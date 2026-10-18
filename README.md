@@ -38,14 +38,14 @@ Everything is plain vanilla - no mod knowledge needed:
 
 | What | How |
 |---|---|
-| A player's aura | scoreboard `aura_type`: 0 none, 1 Shadow, 2 Water, 3 Fire, 4 Wind, 5 Frost |
+| A player's aura | scoreboard `aura_type`: 0 none, 1 Shadow, 2 Water, 3 Fire, 4 Wind, 5 Frost, 6 Verdant |
 | Item keys | scoreboards `itemuse` and `itemsecondary`: 1 while the player holds the key, 0 otherwise |
 | Aura currency | scoreboard `aura_points` (add to it to pay players) |
 | An ability was used | function tag `#aurapoints:ability/<ability>` runs as and at the player, e.g. `data/aurapoints/tags/function/ability/fireball.json` |
 | Aura changed | function tag `#aurapoints:aura_changed` runs as and at the player |
 
 Ability names for the tags: `shockwave`, `healing_tide`, `abyssal_bubble`, `vanish`, `dash`, `super_wind_charge`,
-`double_jump`, `fireball`, `heat_wave`, `fire_bending`, `ice_spike`.
+`double_jump`, `fireball`, `heat_wave`, `fire_bending`, `ice_spike`, `vine_hook`.
 
 Example `data/aurapoints/tags/function/ability/fireball.json`:
 ```json
