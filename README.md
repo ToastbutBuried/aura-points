@@ -3,6 +3,74 @@
 Releases of the Aura Points mod (NeoForge 1.21.1) for our server, and a small updater that keeps
 everyone's copy current. `latest.json` always names the newest release.
 
+## What Aura Points itself needs
+
+To run the mod at all (any world or server):
+
+| | Version |
+|---|---|
+| Minecraft | **1.21.1** |
+| NeoForge | **21.1.251** or newer 21.1.x |
+| Java | **21** (Prism picks it automatically) |
+| [Player Animator](https://modrinth.com/mod/playeranimator) | **2.0.4+1.21.1** or newer - client only, for the ability animations |
+
+For `/aura redeem` and the skill trees it also needs
+[Pufferfish's Skills](https://modrinth.com/mod/skills) and [Pufferfish's Attributes](https://modrinth.com/mod/attributes)
+on the server (and so on every player too - see below). Everything else (abilities, shop, HUD, quests' Aura rewards) works without them.
+
+## What you need to join our server
+
+NeoForge **21.1.251** for Minecraft **1.21.1**, and these mods. Use **exactly** these versions where it
+says so - a different version of a mod that adds blocks, items or ships can stop you from joining or crash
+the game.
+
+**Required (exact versions):**
+
+| Mod | Version |
+|---|---|
+| Aura Points | the newest release here (the updater keeps it current) |
+| Player Animator | 2.0.4+1.21.1 |
+| Create | 6.0.10 |
+| Create Aeronautics (bundled) | 1.3.2 |
+| Sable | 2.0.6 |
+| Create Big Cannons | 5.11.7 |
+| Ritchie's Projectile Library | 2.1.2 |
+| **Forgified Fabric API** | **0.116.15+2.3.5** - *not* 2.3.6, that one crashes on NeoForge 21.1.251 |
+| FTB Library | 2101.1.37 |
+| FTB Teams | 2101.1.11 |
+| FTB Quests | 2101.1.36 |
+| Pufferfish's Skills | 0.19.1 |
+| Pufferfish's Attributes | 0.8.3 |
+| Sophisticated Core | 1.5.7.2381 |
+| Sophisticated Backpacks | 3.26.9.2195 |
+| Sophisticated Backpacks Create Integration | 0.2.2.188 |
+| Sophisticated Storage | 1.6.2.2159 |
+| Sophisticated Storage Create Integration | 0.1.22.238 |
+| Gravestone | 1.0.40 |
+| Horseshoes | 1.3.3 |
+| Vanilla Backport | 1.1.7.10 |
+| Call Your Horse | 1.3.11 |
+| Two Players One Horse | 1.0.2 |
+| Veinminer | 2.11.2 |
+| FallingTree | 1.21.1.11 |
+| Right Click Harvest | 4.6.1 |
+| Libraries the above need: Architectury 13.0.11, Balm 21.0.66, Cloth Config 15.0.140, Konkrete 1.9.9, Platform 1.3.3, JamLib 1.3.6, YetAnotherConfigLib 3.8.2, KotlinLangForge 2.15.0, Kotlin for Forge 5.12.0 | |
+
+**Recommended (any version for 1.21.1 works):**
+
+| Mod | Why |
+|---|---|
+| Do a Barrel Roll 3.7.3 | elytra flying like everyone else on the server (needs the Forgified Fabric API above) |
+| Xaero's Minimap + Xaero's World Map 1.47.0 | the map (the server has the world map part) |
+| Just Enough Items (JEI) | recipes |
+| Distant Horizons 3.3.3 | far view distance, the server sends the far terrain |
+| Sodium, Iris, ... | performance and shaders - entirely up to you |
+
+**Not needed on your side** (server only): NeoEssentials, Root Companion, InvHistory, ServerCore, spark,
+squaremap, SkinRestorer, Biome Replacer, Terralith, Lithostitched, Lithium, FerriteCore, ModernFix, Clumps.
+
+**Easiest:** ask someone who can already join to send you their whole instance (Prism: right-click → Export).
+
 ## Auto-update setup (once per player, Prism Launcher)
 
 1. Download [`aura-updater.jar`](https://github.com/ToastbutBuried/aura-points/raw/main/aura-updater.jar).
