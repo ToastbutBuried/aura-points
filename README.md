@@ -31,7 +31,7 @@ Then it finds your launcher and makes a **new** instance - your existing ones ar
 
 | Launcher | What you get |
 |---|---|
-| **Prism Launcher** / **MultiMC** | a finished instance (Minecraft 1.21.1 + NeoForge 21.1.251), Aura Points auto-update already switched on. Restart the launcher (or press F5) to see it. |
+| **Prism Launcher** / **MultiMC** | a finished instance (Minecraft 1.21.1 + NeoForge 21.1.251), Aura Points auto-update already switched on. It shows up in the launcher right away. |
 | **Modrinth App** / **ATLauncher** | a `.mrpack` modpack file in your Downloads that the launcher imports |
 | **Minecraft Launcher** (official) | NeoForge installed, a new installation with its own game folder (`.minecraft/aura-instances/<name>`). Close the launcher before running the installer. |
 | anything else | a folder with all the mods, to drop into an instance yourself |

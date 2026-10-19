@@ -299,6 +299,25 @@ public final class AuraInstaller {
 		}
 	}
 
+	/** The auto-updater jar (checked to be a real jar), or null after saying why it couldn't be fetched. */
+	static byte[] updaterJar() {
+		Exception last = null;
+		for (String url : List.of(REPO_RAW + "aura-updater.jar", "https://github.com/ToastbutBuried/aura-points/raw/main/aura-updater.jar")) {
+			for (int attempt = 0; attempt < 2; attempt++) {
+				try {
+					byte[] jar = bytes(url);
+					if (jar.length > 4 && jar[0] == 'P' && jar[1] == 'K') return jar; // a zip, not an error page
+					last = new IOException("got something that isn't a jar");
+				} catch (Exception e) {
+					last = e;
+				}
+			}
+		}
+		System.out.println("  WARNING: couldn't download the auto-updater (" + (last == null ? "?" : last.getMessage()) + ").");
+		System.out.println("  The instance works, but Aura Points won't update by itself - see the README to add it by hand.");
+		return null;
+	}
+
 	/** Prism Launcher / MultiMC: a folder with instance.cfg, mmc-pack.json and minecraft/mods. */
 	static final class MMC extends Launcher {
 		final String cfg;
@@ -319,8 +338,13 @@ public final class AuraInstaller {
 
 		@Override
 		void install(String name, String mc, String neo, List<Mod> mods, Path stage) throws Exception {
-			Path inst = unique(instances(), folderName(name));
-			Path modsDir = inst.resolve("minecraft/mods");
+			// The launcher watches its instances folder: an instance that shows up half-built (no instance.cfg yet)
+			// is taken for broken and never looked at again. So, like Prism itself, build it in instances/.tmp
+			// and move it in at the end in one step.
+			Path instances = instances();
+			Path inst = unique(instances, folderName(name));
+			Path build = instances.resolve(".tmp").resolve("aura-" + Long.toHexString(System.nanoTime()));
+			Path modsDir = build.resolve("minecraft/mods");
 			Files.createDirectories(modsDir);
 			for (Mod m : mods) Files.copy(m.path(), modsDir.resolve(m.file()), StandardCopyOption.REPLACE_EXISTING);
 
@@ -331,21 +355,15 @@ public final class AuraInstaller {
 			c.append("name=").append(name).append('\n');
 			c.append("notes=Made by the Aura Points installer. Aura Points updates itself every time you start the game.\n");
 			// Aura Points keeps itself current: the updater runs before every launch (Qt's own escaping of the quotes)
-			boolean updater = false;
-			try {
-				byte[] jar = bytes(REPO_RAW + "aura-updater.jar");
-				Files.write(inst.resolve("aura-updater.jar"), jar);
-				updater = true;
-			} catch (Exception e) {
-				System.out.println("  (Couldn't fetch the auto-updater - Aura Points won't update by itself in this instance.)");
-			}
-			if (updater) {
+			byte[] jar = updaterJar();
+			if (jar != null) {
+				Files.write(build.resolve("aura-updater.jar"), jar);
 				c.append("OverrideCommands=true\n");
 				c.append("PreLaunchCommand=\\\"$INST_JAVA\\\" -jar \\\"$INST_DIR/aura-updater.jar\\\" \\\"$INST_MC_DIR/mods\\\"\n");
 				c.append("PostExitCommand=\nWrapperCommand=\n");
 			}
-			Files.writeString(inst.resolve("instance.cfg"), c.toString());
-			Files.writeString(inst.resolve("mmc-pack.json"), """
+			Files.writeString(build.resolve("instance.cfg"), c.toString());
+			Files.writeString(build.resolve("mmc-pack.json"), """
 					{
 					    "components": [
 					        {
@@ -361,10 +379,15 @@ public final class AuraInstaller {
 					    "formatVersion": 1
 					}
 					""".formatted(mc, neo));
+			try {
+				Files.move(build, inst, StandardCopyOption.ATOMIC_MOVE);
+			} catch (IOException e) {
+				Files.move(build, inst);
+			}
 			System.out.println("  OK - Created the instance \"" + name + "\" in " + label + ":");
 			System.out.println("    " + inst);
 			System.out.println();
-			System.out.println("  If " + label + " is open, close and reopen it (or press F5) to see it.");
+			System.out.println("  It shows up in " + label + " right away (if it doesn't, restart " + label + ").");
 			System.out.println("  On the first start it downloads Minecraft " + mc + " and NeoForge " + neo + " by itself.");
 		}
 	}
