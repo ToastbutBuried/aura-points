@@ -51,8 +51,8 @@ echo "Using $JAVA"
 
 curl -fsSL "$RAW/aura-installer.jar" -o "$WORK/aura-installer.jar"
 # read answers from the keyboard even when this script itself came in through a pipe
-if [ -t 0 ]; then
-	"$JAVA" -jar "$WORK/aura-installer.jar" "$@"
-else
+if [ ! -t 0 ] && (exec </dev/tty) 2>/dev/null; then
 	"$JAVA" -jar "$WORK/aura-installer.jar" "$@" </dev/tty
+else
+	"$JAVA" -jar "$WORK/aura-installer.jar" "$@"
 fi
