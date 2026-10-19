@@ -85,11 +85,13 @@ Everything is plain vanilla - no mod knowledge needed:
 |---|---|
 | A player's aura | scoreboard `aura_type`: 0 none, 1 Shadow, 2 Water, 3 Fire, 4 Wind, 5 Frost, 6 Verdant, 7 Thunder |
 | Item keys | scoreboards `itemuse` and `itemsecondary`: 1 while the player holds the key, 0 otherwise |
+| Ability cooldowns | scoreboards `aura_cd_<ability>` (e.g. `aura_cd_fireball`): ticks left, 0 = ready. Writable: `/scoreboard players set @s aura_cd_fireball 100` = 5s cooldown, `0` = ready right away |
+| Left click (M1) | advancement `aurapoints:toastbutburiedm1` is granted (and taken back) on every left click at air, a block or an entity; its reward runs function `pluss:generalm1` as the player |
 | Aura currency | scoreboard `aura_points` (add to it to pay players) |
 | An ability was used | function tag `#aurapoints:ability/<ability>` runs as and at the player, e.g. `data/aurapoints/tags/function/ability/fireball.json` |
 | Aura changed | function tag `#aurapoints:aura_changed` runs as and at the player |
 
-Ability names for the tags: `shockwave`, `healing_tide`, `abyssal_bubble`, `vanish`, `dash`, `super_wind_charge`,
+Ability names for the tags and `aura_cd_` scoreboards: `shockwave`, `healing_tide`, `abyssal_bubble`, `vanish`, `dash`, `super_wind_charge`,
 `double_jump`, `fireball`, `heat_wave`, `fire_bending`, `ice_spike`, `vine_hook`, `entanglement`, `verdant_viper`,
 `thunderbolt`, `chidori`.
 
