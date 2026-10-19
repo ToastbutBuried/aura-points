@@ -1,9 +1,54 @@
 # Aura Points
 
-Releases of the Aura Points mod (NeoForge 1.21.1) for our server, and a small updater that keeps
-everyone's copy current. `latest.json` always names the newest release.
+Releases of the Aura Points mod (NeoForge 1.21.1) for our server, an installer that sets up a ready-to-join
+instance in your launcher, and a small updater that keeps everyone's Aura Points current.
 
-## Auto-update setup (once per player, Prism Launcher)
+## Join the server: one-command installer
+
+**Windows** - download [`install-windows.bat`](https://github.com/ToastbutBuried/aura-points/raw/main/install-windows.bat)
+and double-click it, or paste this into PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/ToastbutBuried/aura-points/main/install.ps1 | iex
+```
+
+**macOS / Linux** - paste this into a terminal:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ToastbutBuried/aura-points/main/install.sh | bash
+```
+
+It asks two things:
+
+1. **A name** for the new instance (default `Aura Server`).
+2. **Which mods**:
+   - **Needed** - only what you need to join (35 mods).
+   - **Server mods** - everything the server runs that also works on your side (46 mods): the needed ones plus
+     Xaero's Minimap + World Map, JEI, Distant Horizons, Do a Barrel Roll, Terralith and the performance mods
+     (Lithium, FerriteCore, ModernFix, Clumps).
+
+Then it finds your launcher and makes a **new** instance - your existing ones are never touched:
+
+| Launcher | What you get |
+|---|---|
+| **Prism Launcher** / **MultiMC** | a finished instance (Minecraft 1.21.1 + NeoForge 21.1.251), Aura Points auto-update already switched on. Restart the launcher (or press F5) to see it. |
+| **Modrinth App** / **ATLauncher** | a `.mrpack` modpack file in your Downloads that the launcher imports |
+| **Minecraft Launcher** (official) | NeoForge installed, a new installation with its own game folder (`.minecraft/aura-instances/<name>`). Close the launcher before running the installer. |
+| anything else | a folder with all the mods, to drop into an instance yourself |
+
+Several launchers on one computer? It lists them and you pick one. CurseForge isn't supported - use Prism
+(https://prismlauncher.org), it's the easiest.
+
+**What it downloads, and from where:** no mod files are stored in this repo. [`modpack.json`](modpack.json) lists
+every mod with its official download link (Modrinth's CDN, FTB's own Maven for the FTB mods, the releases here
+for Aura Points) and its checksum; the installer checks every file against it. It needs **Java 17+** to run - it
+uses the one that comes with Prism, the Minecraft Launcher or the Modrinth App if you have no Java of your own,
+and if there is none at all it downloads a temporary one (Eclipse Temurin 21) that's deleted afterwards. The
+installer's source is in [`installer/AuraInstaller.java`](installer/AuraInstaller.java).
+
+## Auto-update setup (Prism Launcher)
+
+The installer does this for you. For an instance you made yourself:
 
 1. Download [`aura-updater.jar`](https://github.com/ToastbutBuried/aura-points/raw/main/aura-updater.jar).
 2. In Prism, right-click the instance → **Folder**, and put `aura-updater.jar` in that folder
@@ -38,14 +83,15 @@ Everything is plain vanilla - no mod knowledge needed:
 
 | What | How |
 |---|---|
-| A player's aura | scoreboard `aura_type`: 0 none, 1 Shadow, 2 Water, 3 Fire, 4 Wind, 5 Frost, 6 Verdant |
+| A player's aura | scoreboard `aura_type`: 0 none, 1 Shadow, 2 Water, 3 Fire, 4 Wind, 5 Frost, 6 Verdant, 7 Thunder |
 | Item keys | scoreboards `itemuse` and `itemsecondary`: 1 while the player holds the key, 0 otherwise |
 | Aura currency | scoreboard `aura_points` (add to it to pay players) |
 | An ability was used | function tag `#aurapoints:ability/<ability>` runs as and at the player, e.g. `data/aurapoints/tags/function/ability/fireball.json` |
 | Aura changed | function tag `#aurapoints:aura_changed` runs as and at the player |
 
 Ability names for the tags: `shockwave`, `healing_tide`, `abyssal_bubble`, `vanish`, `dash`, `super_wind_charge`,
-`double_jump`, `fireball`, `heat_wave`, `fire_bending`, `ice_spike`, `vine_hook`.
+`double_jump`, `fireball`, `heat_wave`, `fire_bending`, `ice_spike`, `vine_hook`, `entanglement`, `verdant_viper`,
+`thunderbolt`, `chidori`.
 
 Example `data/aurapoints/tags/function/ability/fireball.json`:
 ```json
@@ -69,7 +115,7 @@ on the server (and so on every player too - see below). Everything else (abiliti
 
 ## What you need to join our server
 
-NeoForge **21.1.251** for Minecraft **1.21.1**, and these mods. Use **exactly** these versions where it
+The installer above sets all of this up. By hand: NeoForge **21.1.251** for Minecraft **1.21.1**, and these mods. Use **exactly** these versions where it
 says so - a different version of a mod that adds blocks, items or ships can stop you from joining or crash
 the game.
 
@@ -118,4 +164,4 @@ the game.
 **Not needed on your side** (server only): NeoEssentials, Root Companion, InvHistory, ServerCore, spark,
 squaremap, SkinRestorer, Biome Replacer, Terralith, Lithostitched, Lithium, FerriteCore, ModernFix, Clumps.
 
-**Easiest:** ask someone who can already join to send you their whole instance (Prism: right-click → Export).
+**Easiest:** use the installer at the top.

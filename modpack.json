@@ -1,0 +1,412 @@
+{
+  "_info": "Mod list for the Aura Points server. install.sh / install.ps1 read this. set 'needed' = required to join, 'server' = the rest of the server's mods that also run on a client. Aura Points itself comes from latest.json.",
+  "minecraft": "1.21.1",
+  "neoforge": "21.1.251",
+  "mods": [
+    {
+      "name": "Architectury API",
+      "file": "architectury-13.0.11-neoforge.jar",
+      "url": "https://cdn.modrinth.com/data/lhGA9TYQ/versions/1IiqEQGl/architectury-13.0.11-neoforge.jar",
+      "sha1": "008656a0702801174b8ec245ed7aad1921d6e9f1",
+      "sha512": "d9f7c3bb8162577dfb461ffdf04bd6a3563c7586934a0e2a744c14421beffb8286f0d88d4c758317003f20f99fe8072a39b9d675af061e036970d36db36027f0",
+      "size": 584734,
+      "set": "needed"
+    },
+    {
+      "name": "Balm",
+      "file": "balm-neoforge-1.21.1-21.0.66.jar",
+      "url": "https://cdn.modrinth.com/data/MBAkmtvl/versions/CquiaiDj/balm-neoforge-1.21.1-21.0.66.jar",
+      "sha1": "dd3606a349f4a3c8fb5bd0ab22905675c02b0d74",
+      "sha512": "0262d51c0e931d10c3dccefb3b5426a1622edecab243d4b15dce07a23309641370184776739765067d292d808242d088c6fbf249762689824eff9ba42c2d1e63",
+      "size": 783793,
+      "set": "needed"
+    },
+    {
+      "name": "Call Your Horse",
+      "file": "call-your-horse-v1.3.11.jar",
+      "url": "https://cdn.modrinth.com/data/QuDyXDNw/versions/8McTlamo/call-your-horse-v1.3.11.jar",
+      "sha1": "f36afc8302306ed2820a8b81c3e0df30f593218a",
+      "sha512": "bc957f4a616ac1d6a1c97273d9e46c3298c467c679e65477b16768b0a00d5120dfce7b2c36e4a0f48e4a51b7ae34a18ddb57f7eea03d784a27e3acc1a229b8b4",
+      "size": 207756,
+      "set": "needed"
+    },
+    {
+      "name": "Cloth Config API",
+      "file": "cloth-config-15.0.140-neoforge.jar",
+      "url": "https://cdn.modrinth.com/data/9s6osm5g/versions/izKINKFg/cloth-config-15.0.140-neoforge.jar",
+      "sha1": "c3e5733ba4503b102589a026000fd5ce0212f6f2",
+      "sha512": "aaf9b010955b8cd294e5a92f069985b18729fd5e2cf22d351f1dff9680f15488688803ec41e77e941cbde130ceb535014ca4c868047d80ab69c2d508e216654d",
+      "size": 1163890,
+      "set": "needed"
+    },
+    {
+      "name": "Create",
+      "file": "create-1.21.1-6.0.10.jar",
+      "url": "https://cdn.modrinth.com/data/LNytGWDc/versions/UjX6dr61/create-1.21.1-6.0.10.jar",
+      "sha1": "0e97e49837bed766e6f28a4c95b04885d6acc353",
+      "sha512": "11cc8fc049d2f67f6548c7abfada6b82a3adb5c7ca410a742de04bbca76e03862c518721b88d806f6e6d768a4d68531fdb903a85859b25d1484d550cc7bafd4b",
+      "size": 19123767,
+      "set": "needed"
+    },
+    {
+      "name": "Create Aeronautics",
+      "file": "create-aeronautics-bundled-1.21.1-1.3.2.jar",
+      "url": "https://cdn.modrinth.com/data/oWaK0Q19/versions/44pLdPGg/create-aeronautics-bundled-1.21.1-1.3.2.jar",
+      "sha1": "ddbe9cbc25e8f663218aa1e9fdfc4b99f0e11e4b",
+      "sha512": "dc7e8e1148fa442243889ba29412207137e1bb86206e6c92bc0a589f1374a466e93de22bdbf14f753984d86c29308fbbdc0f14a4b9618b14c0ac1666a36b46f5",
+      "size": 33123131,
+      "set": "needed"
+    },
+    {
+      "name": "Create Big Cannons",
+      "file": "createbigcannons-5.11.7+mc.1.21.1.jar",
+      "url": "https://cdn.modrinth.com/data/GWp4jCJj/versions/bOiDu0LS/createbigcannons-5.11.7%2Bmc.1.21.1.jar",
+      "sha1": "c90ee0b2142e2c58d233e150cb3a24c7cb07eb2d",
+      "sha512": "24f414dfbb973a0f4d9c9b2aa059edc7bed4d23b4f39eb1f7d23a1d6b437e3b5d64cca6e4b85ff7eb2815743fa711d54ad652bffe96d1eb1234544716006440d",
+      "size": 3771506,
+      "set": "needed"
+    },
+    {
+      "name": "FallingTree",
+      "file": "FallingTree-1.21.1-1.21.1.11.jar",
+      "url": "https://cdn.modrinth.com/data/Fb4jn8m6/versions/wxGXaJMA/FallingTree-1.21.1-1.21.1.11.jar",
+      "sha1": "7e1b3ee0ba89b556d5a468797bb1b5f4e2b8ccb7",
+      "sha512": "21876b270ca40e3ad6168423f2aba04460f590be191c5558d53e4f542993efa6070589029cb3218557309b096cd920e4da65e53f19687b86c638ec6c342d83e5",
+      "size": 496356,
+      "set": "needed"
+    },
+    {
+      "name": "Forgified Fabric API",
+      "file": "forgified-fabric-api-0.116.15+2.3.5+1.21.1.jar",
+      "url": "https://cdn.modrinth.com/data/Aqlf1Shp/versions/V9WdDUTx/forgified-fabric-api-0.116.15%2B2.3.5%2B1.21.1.jar",
+      "sha1": "1a2c41d2efbe1c60159b90a165557e7c06d03a5c",
+      "sha512": "2b44ecd839544e3668a02f8de86433d507417d068dcafeee7f698744fc2b12fd888a1bba509da57c8e2884d01dbaf344f49bbac0f22cdae599507356ed0cbe30",
+      "size": 5613159,
+      "set": "needed"
+    },
+    {
+      "name": "FTB Library",
+      "file": "ftb-library-neoforge-2101.1.37.jar",
+      "url": "https://maven.ftb.dev/releases/dev/ftb/mods/ftb-library-neoforge/2101.1.37/ftb-library-neoforge-2101.1.37.jar",
+      "sha1": "b6e503587afcd678ec257e4abdc6362ff18c2fef",
+      "sha512": "36f7e2fd41de638b044ad2b391f69f276ab28df3d86cf9d83638a2e0432ef151e1737ce60d671901d0a3b49424c9ba1a09c0293fc0c6637871020b46feae9159",
+      "size": 1439881,
+      "set": "needed"
+    },
+    {
+      "name": "FTB Quests",
+      "file": "ftb-quests-neoforge-2101.1.36.jar",
+      "url": "https://maven.ftb.dev/releases/dev/ftb/mods/ftb-quests-neoforge/2101.1.36/ftb-quests-neoforge-2101.1.36.jar",
+      "sha1": "b2ede29b98a3022c22065fbe9b1761e385a28683",
+      "sha512": "35298874f77fc15d1b66478092ec447db73ddaf699431e1529e41a5b4c421abf9cddc0d491385e45862eec816ade0bfbb92f267a035bfe2587b2b82683b61ad1",
+      "size": 1609984,
+      "set": "needed"
+    },
+    {
+      "name": "FTB Teams",
+      "file": "ftb-teams-neoforge-2101.1.11.jar",
+      "url": "https://maven.ftb.dev/releases/dev/ftb/mods/ftb-teams-neoforge/2101.1.11/ftb-teams-neoforge-2101.1.11.jar",
+      "sha1": "62b65f752d0326edd13244e58d5f2aec035da4e9",
+      "sha512": "21c9350c6c7ec54ee54b74f2bdc0a44f91005bedda3caf27d673b2f2bcad1dbef5aec970201ec8e959db2a1743ceb2e24ae99a9e36744dce740a0ab1dad01c52",
+      "size": 308236,
+      "set": "needed"
+    },
+    {
+      "name": "GraveStone Mod",
+      "file": "gravestone-neoforge-1.21.1-1.0.40.jar",
+      "url": "https://cdn.modrinth.com/data/RYtXKJPr/versions/rMGJpjaM/gravestone-neoforge-1.21.1-1.0.40.jar",
+      "sha1": "97230b93af34ac6581ed36b0cc98f6b16b06c04e",
+      "sha512": "5504a222d4085da1898ff6d4dff8eb1821fd14a8caaaac785554277147f984262e63925a411db3f1a34e9c7874652fb6737176bea4c0c3f01243f5eae4ea6eaa",
+      "size": 322082,
+      "set": "needed"
+    },
+    {
+      "name": "Horseshoes",
+      "file": "horseshoes-neoforge-1.21.1-1.3.3.jar",
+      "url": "https://cdn.modrinth.com/data/tyg1IZwj/versions/Avqy6Ep5/horseshoes-neoforge-1.21.1-1.3.3.jar",
+      "sha1": "822b582a5e9da5163bcb14456245eba284032501",
+      "sha512": "c5ce5f30d039dd289e5603538abf396600918de62d7346caf96b71ae61b0c0a39732f07799944871abf74e9eb426a8d5e9f0dd227e9c4df8292977c795311f3a",
+      "size": 46472,
+      "set": "needed"
+    },
+    {
+      "name": "JamLib",
+      "file": "jamlib-neoforge-1.3.6+1.21.1.jar",
+      "url": "https://cdn.modrinth.com/data/IYY9Siz8/versions/n6UM6TcS/jamlib-neoforge-1.3.6%2B1.21.1.jar",
+      "sha1": "0e422dd29b3f82eaf2a450a0370ace82b8d00f82",
+      "sha512": "c544322a31b5f3fe045cf80eb39e6bd59f91f209a0e510731daa0a6403a273f582769bb26277ef767b4c1ca6438316959d31a6a08e5aa4b1b5a9184a370e5135",
+      "size": 188553,
+      "set": "needed"
+    },
+    {
+      "name": "Konkrete",
+      "file": "konkrete_neoforge_1.9.9_MC_1.21.jar",
+      "url": "https://cdn.modrinth.com/data/J81TRJWm/versions/stJDU839/konkrete_neoforge_1.9.9_MC_1.21.jar",
+      "sha1": "97771eb287d5ac7fe667d1df9493d5e54c8ca1fa",
+      "sha512": "378bd12e3c32329abbae5cd514e1d1cc2a3cc3a45979fedb1d4e4c0a6732bdcf4b7d1bf7f7a112074bf288957edf86152c9c090a27d1d5de84a9a7825d3d6511",
+      "size": 618842,
+      "set": "needed"
+    },
+    {
+      "name": "Kotlin for Forge",
+      "file": "kotlinforforge-5.12.0-all.jar",
+      "url": "https://cdn.modrinth.com/data/ordsPcFz/versions/uhJhCT7X/kotlinforforge-5.12.0-all.jar",
+      "sha1": "d10d062caf1aad9aec82d7852f2fee1781735c1f",
+      "sha512": "b8c3942f4d33179edf3f102f3d870b99dd436f8b8236dbbd31aa51b888162c692cfd88927295f24dc8b4375232f4c6c17360c5d6c4823f93cbcd7cf4bdc8bd14",
+      "size": 7279264,
+      "set": "needed"
+    },
+    {
+      "name": "KotlinLangForge",
+      "file": "KotlinLangForge-2.15.0-k2.4.21-3.0+neoforge.jar",
+      "url": "https://cdn.modrinth.com/data/1vrSzlao/versions/rrWKXl0p/KotlinLangForge-2.15.0-k2.4.21-3.0%2Bneoforge.jar",
+      "sha1": "c1c95751598175830d51a51944e907bb6d971e86",
+      "sha512": "677c4dcd8bddcd24818addcfb2694158a9fc9afff8315d156d666dfc2280acc499b707c7b1cd57f1bf43cf0572c69ed68885c3dd61055473ecad6b0d32524bc0",
+      "size": 8222578,
+      "set": "needed"
+    },
+    {
+      "name": "Platform",
+      "file": "Platform-neoforge-1.21.1-1.3.3.jar",
+      "url": "https://cdn.modrinth.com/data/i6fiqm5y/versions/v7P0nBi2/Platform-neoforge-1.21.1-1.3.3.jar",
+      "sha1": "4132ad6809008698b7f489a878e5a33a3879bbfd",
+      "sha512": "1ab1dcf3583237dd30c3443a1fac3ee8271add25aae84af2933fa9eb13def3840d7a8cca53523d1dd3c5a77eb23059099285d218509d02d001034fca42f5f64d",
+      "size": 489341,
+      "set": "needed"
+    },
+    {
+      "name": "playerAnimator",
+      "file": "player-animation-lib-forge-2.0.4+1.21.1.jar",
+      "url": "https://cdn.modrinth.com/data/gedNE4y2/versions/HJZB6bmA/player-animation-lib-forge-2.0.4%2B1.21.1.jar",
+      "sha1": "05be8ddcc78532b9a5520c718edc6c971cd0057c",
+      "sha512": "fc00450fb6c95ec1779021bdc726122dacb5915c6baddaacc981cd221b01b8db35f2a0dfde5d6fa6766d877266dc82f58854f571ea53cc5c4d468b80e1548a5f",
+      "size": 203149,
+      "set": "needed"
+    },
+    {
+      "name": "Pufferfish's Attributes",
+      "file": "puffish_attributes-0.8.3-1.21-neoforge.jar",
+      "url": "https://cdn.modrinth.com/data/FCFcFw09/versions/ZySEqrUb/puffish_attributes-0.8.3-1.21-neoforge.jar",
+      "sha1": "9e6a87f790fc9281ea2685f8d4f6435d0d7c6d1f",
+      "sha512": "e92d8a653b8c8e0b481aac1722ac5da9ca9174e61b3607e1b28c714e55c6b6399f68592bd227576a5a81dce251776a3221b5fc7e1b1446f17fa4795d9c1b449a",
+      "size": 235542,
+      "set": "needed"
+    },
+    {
+      "name": "Pufferfish's Skills",
+      "file": "puffish_skills-0.19.1-1.21-neoforge.jar",
+      "url": "https://cdn.modrinth.com/data/hqQqvaa4/versions/uqAz8XFU/puffish_skills-0.19.1-1.21-neoforge.jar",
+      "sha1": "9e0b16f97427fc7b0049fa3f518579cdc9fe59f9",
+      "sha512": "2b5e11f8677b472d971cab3aa36e6e9267d04065ff40b70f537ace85f704b5d6e99b259b02776618d69592f26d01d5ea6dea5a241a1c5a3a4f5cde08ee492008",
+      "size": 653105,
+      "set": "needed"
+    },
+    {
+      "name": "RightClickHarvest",
+      "file": "rightclickharvest-neoforge-4.6.1+1.21.1.jar",
+      "url": "https://cdn.modrinth.com/data/Cnejf5xM/versions/djt0zS53/rightclickharvest-neoforge-4.6.1%2B1.21.1.jar",
+      "sha1": "473b960c0cae751b7752a43df4756010e30988fa",
+      "sha512": "909cc4aba3ed535bb65c4cf285725907f100c0ebbcb619b1c861338b7993a020f0aef953bebeeb74920304c5a80e9cd07654aa5f885a5995824da7cf6784bf42",
+      "size": 287634,
+      "set": "needed"
+    },
+    {
+      "name": "Ritchie's Projectile Library",
+      "file": "ritchiesprojectilelib-2.1.2+mc.1.21.1-neoforge.jar",
+      "url": "https://cdn.modrinth.com/data/B3pb093D/versions/hZ6B2Z0x/ritchiesprojectilelib-2.1.2%2Bmc.1.21.1-neoforge.jar",
+      "sha1": "ec2e4996f8bee8714173e603e379fef8a6901765",
+      "sha512": "6d64c84505a5a8fbb96d106603065465c5a2314ec09636900c5c1a31014c12fa68f1a41e758313cbf0d6f95d9a1f53bd67339020f7d8db0e184c23f66aee0330",
+      "size": 76369,
+      "set": "needed"
+    },
+    {
+      "name": "Sable",
+      "file": "sable-neoforge-1.21.1-2.0.6.jar",
+      "url": "https://cdn.modrinth.com/data/T9PomCSv/versions/fg9dTRz9/sable-neoforge-1.21.1-2.0.6.jar",
+      "sha1": "cf46f7e8c1511f170abcdbee739944f0540549bf",
+      "sha512": "76d293ce751a01cb9c095a3659b0a41e03e005480bc9d76dfdc73ec7c2eabf7923740c7b077921d42616673c496cd5143569f2085ddcebe174fd91d81e2a04b8",
+      "size": 12986135,
+      "set": "needed"
+    },
+    {
+      "name": "Sophisticated Backpacks",
+      "file": "sophisticatedbackpacks-1.21.1-3.26.9.2195.jar",
+      "url": "https://cdn.modrinth.com/data/TyCTlI4b/versions/1pYxRkKq/sophisticatedbackpacks-1.21.1-3.26.9.2195.jar",
+      "sha1": "b2b301daf9f29a8adc0bd16d4c8a5ef4c46061cd",
+      "sha512": "b9f41c5e3a8fa08d71bf1606c6b1115c58abb19638e9b211fb842120a09bb78b6ed28163a45240d25240580157adb1d893eb62fcaeba381a6540fd9d6eda1a23",
+      "size": 1242171,
+      "set": "needed"
+    },
+    {
+      "name": "Sophisticated Backpacks Create Integration",
+      "file": "sophisticatedbackpackscreateintegration-1.21.1-0.2.2.188.jar",
+      "url": "https://cdn.modrinth.com/data/s85zLEDe/versions/mQ9mijSt/sophisticatedbackpackscreateintegration-1.21.1-0.2.2.188.jar",
+      "sha1": "ae16a09006cb8bd413ebe68c950e5437743e9a9a",
+      "sha512": "077e13d0e4c9411c7eb885c5b85f2cfd68720d172f43ca09525b13ba33dbc060e62e99d230836b4617f559cb8a1980b70de537e1244f41f2fce3bf1240845f34",
+      "size": 94018,
+      "set": "needed"
+    },
+    {
+      "name": "Sophisticated Core",
+      "file": "sophisticatedcore-1.21.1-1.5.7.2381.jar",
+      "url": "https://cdn.modrinth.com/data/nmoqTijg/versions/p09oohxN/sophisticatedcore-1.21.1-1.5.7.2381.jar",
+      "sha1": "4d204eed0783cbca6c196fdc83f79079715cb125",
+      "sha512": "900c0c59d8340c8e707f843ead5c2b26d230744a7c6a532d0988c5d341a8494029aa292c17cd1806e1ec87945492cfd60ac4e21134f37f8d031422b5802df2e6",
+      "size": 1814171,
+      "set": "needed"
+    },
+    {
+      "name": "Sophisticated Storage",
+      "file": "sophisticatedstorage-1.21.1-1.6.2.2159.jar",
+      "url": "https://cdn.modrinth.com/data/hMlaZH8f/versions/f7c8aEld/sophisticatedstorage-1.21.1-1.6.2.2159.jar",
+      "sha1": "cc0af3093031cb91c16c01341b1d2f5cd73d5d58",
+      "sha512": "c78ca743a8ed01ac27937e0870b77fe58e0efc046b1ea1d430d094ef774463c9c9e91873fb8f95c667b57d1582b1573d40cc572348797a3ede542c0280daeb3e",
+      "size": 1920980,
+      "set": "needed"
+    },
+    {
+      "name": "Sophisticated Storage Create Integration",
+      "file": "sophisticatedstoragecreateintegration-1.21.1-0.1.22.238.jar",
+      "url": "https://cdn.modrinth.com/data/MJ0hdevs/versions/vC5Xhg1p/sophisticatedstoragecreateintegration-1.21.1-0.1.22.238.jar",
+      "sha1": "f989af705fa0c4323eb7bbfbd96878e20f1a8556",
+      "sha512": "3304c80ffb6f8f23ec6dbbb8420a5e38c92184e551705e77136e255bb0416453470ee61221418c957f4887c39e556d533971f61fb116e5d971f60e73ed0ee5fd",
+      "size": 147925,
+      "set": "needed"
+    },
+    {
+      "name": "Two Players One Horse",
+      "file": "twoplayersonehorse-neoforge-1.21.1-1.0.2.jar",
+      "url": "https://cdn.modrinth.com/data/c89BhsB1/versions/cTpecyBB/twoplayersonehorse-neoforge-1.21.1-1.0.2.jar",
+      "sha1": "c4256096b78ef3e1d90e70d392efede6e0fa3ea1",
+      "sha512": "5d8edd34316cf5326eb852abc3e279376a3ab8cc93d756af469e4f03fde0f1e685f54d9df30fc38f0462386cce4f5219dfcf55eaff7916fa0e0c7e1dab31b573",
+      "size": 22418,
+      "set": "needed"
+    },
+    {
+      "name": "Vanilla Backport",
+      "file": "VanillaBackport-neoforge-1.21.1-1.1.7.10.jar",
+      "url": "https://cdn.modrinth.com/data/6xwxDTgf/versions/rUSWdBok/VanillaBackport-neoforge-1.21.1-1.1.7.10.jar",
+      "sha1": "eb30efe569cbd5186abf9e5d1e64d4a84895b346",
+      "sha512": "be0622afd2f7d216e4d83aed9190dec6f6f6a2919cffcebe8f334989b91f148638efa1b3e1d4bb8aa6c83ffa5f775951d6b3bc75c0d45b70b5b389b4f3476b4f",
+      "size": 54902084,
+      "set": "needed"
+    },
+    {
+      "name": "VeinMiner",
+      "file": "veinminer-neoforge-2.11.2+1.21.1.jar",
+      "url": "https://cdn.modrinth.com/data/OhduvhIc/versions/syKekkIm/veinminer-neoforge-2.11.2%2B1.21.1.jar",
+      "sha1": "19f67a98cf5e7cfeefb089b5ec31450ac6d5bd53",
+      "sha512": "195fdfe9f1358e85218e770c953223825d102f54b5f607857b8893959cd2164a04c921987611a7933592ba89a83aa2bd8f3cec0b1fcf7d87a20b168f88b2cc05",
+      "size": 616301,
+      "set": "needed"
+    },
+    {
+      "name": "YetAnotherConfigLib (YACL)",
+      "file": "yet_another_config_lib_v3-3.8.2+1.21.1-neoforge.jar",
+      "url": "https://cdn.modrinth.com/data/1eAoo2KR/versions/7TVdVtxF/yet_another_config_lib_v3-3.8.2%2B1.21.1-neoforge.jar",
+      "sha1": "fe270c9f6e0a8142cf316944087f5109cef08bbb",
+      "sha512": "583de19b927ce8050c2b7d5e60b75accc69e325e5aac85c27994c82a9dec2e4e078343fa1d4c3a10d4bd7e0e524e0b3b246a18cf03db01e363a1e6f865adcf48",
+      "size": 1118651,
+      "set": "needed"
+    },
+    {
+      "name": "Clumps",
+      "file": "Clumps-neoforge-1.21.1-19.0.0.1.jar",
+      "url": "https://cdn.modrinth.com/data/Wnxd13zP/versions/jo7lDoK4/Clumps-neoforge-1.21.1-19.0.0.1.jar",
+      "sha1": "fa2576297c7bd12b28aa7070e8141792bd66da4c",
+      "sha512": "314d8d8e640d73041f27e0f3f2cad7aad8b4c77dbd7fb31700ef7760362261f77085eed5289555c725d99c3f47a114e7290cd608f39c9f0f12ef74958463bdcc",
+      "size": 18382,
+      "set": "server"
+    },
+    {
+      "name": "Distant Horizons",
+      "file": "DistantHorizons-3.3.3-1.21.1-fabric-neoforge.jar",
+      "url": "https://cdn.modrinth.com/data/uCdwusMi/versions/9w34y8ai/DistantHorizons-3.3.3-1.21.1-fabric-neoforge.jar",
+      "sha1": "4357b4d19fab818780c94f0e43dad1cc931634b2",
+      "sha512": "d14b32d3fd143a06514d6ad388eee11e9d657c84e1a937aaf8d033b1137fb43ef8b05cff1011a994cc42f3106823c51234f8bc18d72bb05bc317a20ea83c50ed",
+      "size": 28289212,
+      "set": "server"
+    },
+    {
+      "name": "Do a Barrel Roll",
+      "file": "do_a_barrel_roll-neoforge-3.7.3+1.21.jar",
+      "url": "https://cdn.modrinth.com/data/6FtRfnLg/versions/Zj604q5O/do_a_barrel_roll-neoforge-3.7.3%2B1.21.jar",
+      "sha1": "6a3cc7dc17fb701087a9705b06d75d9bb5f09065",
+      "sha512": "dc4a76eacc44b17c444368fdf012c5b06cd9f88463f562cc1d275e2b4e8e15b5f141373fc65de9b56167355d7a406b1dbee691b6cf20a4026b61faadb1d93c17",
+      "size": 465787,
+      "set": "server"
+    },
+    {
+      "name": "FerriteCore",
+      "file": "ferritecore-7.0.3-neoforge.jar",
+      "url": "https://cdn.modrinth.com/data/uXXizFIs/versions/x7kQWVju/ferritecore-7.0.3-neoforge.jar",
+      "sha1": "9563692efb708b6b568df27a01ec52f6311928ef",
+      "sha512": "19af89a2075bb10a63884fa853ebf84b02c79dc3242430ecdad056fd764fdcde367a7303276b329df01b0736e2ef264c5d80c7dc92c6aebd244f556a230bb417",
+      "size": 121559,
+      "set": "server"
+    },
+    {
+      "name": "Just Enough Items (JEI)",
+      "file": "jei-1.21.1-neoforge-19.51.0.418.jar",
+      "url": "https://cdn.modrinth.com/data/u6dRKJwZ/versions/ufHUqt9b/jei-1.21.1-neoforge-19.51.0.418.jar",
+      "sha1": "d19552586f686eae4ef5e7199f31604d1d3cfca7",
+      "sha512": "a6ca3abc3080f6f41033a77cb955fefe9f9ebae795c33546227f555b2d31e8d4131cc705126d14a3fbabb31097fc0e876dc0bbeb05ad907a1b796f21e57527bf",
+      "size": 1804792,
+      "set": "server"
+    },
+    {
+      "name": "Lithium",
+      "file": "lithium-neoforge-0.15.4+mc1.21.1.jar",
+      "url": "https://cdn.modrinth.com/data/gvQqBUqZ/versions/DDUrRVCA/lithium-neoforge-0.15.4%2Bmc1.21.1.jar",
+      "sha1": "97212e45c963730bbfc7c44780df99317814c21b",
+      "sha512": "2735da2088b88a8bdcd4ad02a2b6fffbfd3925557cefd4fa54b5477dfb9e582ea7f521300c060f57dff1325dd21bff276b7333363ad3371ed6893e3de9eca9cd",
+      "size": 774220,
+      "set": "server"
+    },
+    {
+      "name": "Lithostitched",
+      "file": "lithostitched-1.8.0-neoforge-21.1.jar",
+      "url": "https://cdn.modrinth.com/data/XaDC71GB/versions/sPmtDq1X/lithostitched-1.8.0-neoforge-21.1.jar",
+      "sha1": "fe7eb612a0fa0c41ce94d914162d298755bb25a3",
+      "sha512": "0ba80383039270dec739f669fe936d091b87027c350972c88085729333e73e723e0c722d734c0592c08ffd6c5a21c16099f2e54cf7cfbcbd3061f5e3cbd62cb4",
+      "size": 979783,
+      "set": "server"
+    },
+    {
+      "name": "ModernFix",
+      "file": "modernfix-neoforge-5.27.24+mc1.21.1.jar",
+      "url": "https://cdn.modrinth.com/data/nmDcB62a/versions/5HLHxQ2F/modernfix-neoforge-5.27.24%2Bmc1.21.1.jar",
+      "sha1": "1fe7f8b4176e86507cc8ed5460b6acdd3dac5529",
+      "sha512": "da13fa15b2c96a74a7d5f8ea94ea404c96237b97d52c9a77e7e34ac918d28c40760a68cf3897691b317d5119ab9b85035142c3624108b13dda3516c340b96131",
+      "size": 604333,
+      "set": "server"
+    },
+    {
+      "name": "Terralith",
+      "file": "Terralith_1.21.1_v2.6.2_Neoforge.jar",
+      "url": "https://cdn.modrinth.com/data/8oi3bsk5/versions/IY93YaEe/Terralith_1.21.1_v2.6.2_Neoforge.jar",
+      "sha1": "d4a9fe71b841f70edfb4b280f9bf5c58e4a28224",
+      "sha512": "35298f1682567f63dc16658b04cee5498b30819f1c05f9712b4480d7f5eb17059db3b13ab14f81a05fe257149d11ced2cce2030d3727c1747edd8657c53e2a85",
+      "size": 2814865,
+      "set": "server"
+    },
+    {
+      "name": "Xaero's Minimap",
+      "file": "xaerominimap-neoforge-1.21.1-26.6.0.jar",
+      "url": "https://cdn.modrinth.com/data/1bokaNcj/versions/irjR7dHk/xaerominimap-neoforge-1.21.1-26.6.0.jar",
+      "sha1": "551e8e2aa3498b506cc949a74606cdc0380e5e00",
+      "sha512": "d56b93ddb921285624b491d6a85aba23748bec9974867399c881c257eb25a746df92a735473adf3a6875e0928a56ff78245d5238eb9207b0e45c3fec20c896dc",
+      "size": 2186351,
+      "set": "server"
+    },
+    {
+      "name": "Xaero's World Map",
+      "file": "xaeroworldmap-neoforge-1.21.1-1.47.0.jar",
+      "url": "https://cdn.modrinth.com/data/NcUtCpym/versions/SnQ4SoDe/xaeroworldmap-neoforge-1.21.1-1.47.0.jar",
+      "sha1": "2936c9cb9dfbdab145fe6f1e8ae2c68915246a5f",
+      "sha512": "4d2d78bc85afa002f682ef344b7284cf1baa4903cc5a11cd1d7bd260ac63952580ae717bab47079540ead633cdd5d8e4fdf230dc99a68bcb7a269500e7dada13",
+      "size": 1427078,
+      "set": "server"
+    }
+  ]
+}
