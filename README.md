@@ -87,6 +87,7 @@ Everything is plain vanilla - no mod knowledge needed:
 | Item keys | scoreboards `itemuse` and `itemsecondary`: 1 while the player holds the key, 0 otherwise |
 | Ability cooldowns | scoreboards `aura_cd_<ability>` (e.g. `aura_cd_fireball`): ticks left, 0 = ready. Writable: `/scoreboard players set @s aura_cd_fireball 100` = 5s cooldown, `0` = ready right away |
 | Left click (M1) | advancement `aurapoints:toastbutburiedm1` is granted (and taken back) on every left click at air, a block or an entity; its reward runs function `pluss:generalm1` as the player |
+| Accessory slots | slot names `accessory.0` .. `accessory.11` and `accessory.*` work in `/item` and `execute if items`, e.g. `execute if items entity @s accessory.* minecraft:totem_of_undying`. How many are on: `ACCESSORY_SLOTS` in `aurapoints-general.json` (default 2, max 12) |
 | Aura currency | scoreboard `aura_points` (add to it to pay players) |
 | An ability was used | function tag `#aurapoints:ability/<ability>` runs as and at the player, e.g. `data/aurapoints/tags/function/ability/fireball.json` |
 | Aura changed | function tag `#aurapoints:aura_changed` runs as and at the player |
