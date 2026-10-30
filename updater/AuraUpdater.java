@@ -82,6 +82,9 @@ public final class AuraUpdater {
 		if (!sha.matches("[0-9a-fA-F]{64}")) throw new IllegalStateException("odd checksum in latest.json");
 		if (!url.startsWith("https://") && !url.startsWith("http://127.0.0.1")) throw new IllegalStateException("download url must be https");
 
+		// mods Aura Points needs (e.g. GeckoLib): installed if missing, never removed or swapped
+		ensureRequired(http, json);
+
 		Path target = mods.resolve(file);
 		if (Files.isRegularFile(target) && sha256(target).equalsIgnoreCase(sha)) {
 			removeOthers(target);
@@ -110,6 +113,61 @@ public final class AuraUpdater {
 			throw e;
 		}
 		log("installed Aura Points " + version);
+	}
+
+	/**
+	 * latest.json may end with "requires": [{"modid", "name", "file", "url", "sha256"}, ...] - mods the new Aura Points
+	 * needs. Each one whose mod id no jar in the mods folder has is downloaded (checksum checked) and put in. A mod
+	 * that is already there in any version is left alone. One failing doesn't stop the others or Aura Points.
+	 */
+	static void ensureRequired(HttpClient http, String json) {
+		int at = json.indexOf("\"requires\"");
+		if (at < 0) return;
+		Matcher obj = Pattern.compile("\\{[^{}]*\\}").matcher(json.substring(at));
+		while (obj.find()) {
+			String o = obj.group();
+			try {
+				String modid = field(o, "modid"), name = field(o, "name"), file = field(o, "file"), url = field(o, "url"), sha = field(o, "sha256");
+				if (!modid.matches("[a-z0-9_]+") || !file.matches("[A-Za-z0-9.+_-]+\\.jar") || !sha.matches("[0-9a-fA-F]{64}")
+						|| !url.startsWith("https://")) throw new IllegalStateException("odd entry");
+				if (hasMod(modid)) continue;
+				log("downloading " + name + " (needed by Aura Points) ...");
+				Path tmp = mods.resolve(TMP);
+				HttpResponse<InputStream> res = http.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(30)).build(),
+						HttpResponse.BodyHandlers.ofInputStream());
+				if (res.statusCode() != 200) throw new IllegalStateException("download returned HTTP " + res.statusCode());
+				try (InputStream in = res.body()) {
+					Files.copy(in, tmp, StandardCopyOption.REPLACE_EXISTING);
+				}
+				if (!sha256(tmp).equalsIgnoreCase(sha)) throw new IllegalStateException("checksum mismatch, download thrown away");
+				Files.move(tmp, mods.resolve(file), StandardCopyOption.REPLACE_EXISTING);
+				log("installed " + name);
+			} catch (Exception e) {
+				cleanTmp();
+				log("could not install a needed mod (" + e.getMessage() + ") - install it by hand if the game says it's missing");
+			}
+		}
+	}
+
+	/** Some jar in the mods folder declares this mod id. */
+	static boolean hasMod(String modid) throws Exception {
+		try (DirectoryStream<Path> jars = Files.newDirectoryStream(mods, "*.jar")) {
+			for (Path p : jars) if (declares(p, modid)) return true;
+		}
+		return false;
+	}
+
+	static boolean declares(Path jar, String modid) {
+		try (ZipFile zip = new ZipFile(jar.toFile())) {
+			ZipEntry toml = zip.getEntry("META-INF/neoforge.mods.toml");
+			if (toml == null) return false;
+			try (InputStream in = zip.getInputStream(toml)) {
+				String text = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+				return Pattern.compile("modId\\s*=\\s*\"" + Pattern.quote(modid) + "\"").matcher(text).find();
+			}
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/** Every other copy of the mod goes: any .jar whose mod id is aurapoints, whatever it is named. */

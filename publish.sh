@@ -13,7 +13,7 @@ cat > latest.json <<JSON
   "version": "$V",
   "file": "aura-points-$V.jar",
   "url": "https://github.com/ToastbutBuried/aura-points/releases/download/v$V/aura-points-$V.jar",
-  "sha256": "$SHA"
+  "sha256": "$SHA"$( [ -f requires.json ] && printf ',\n  "requires": %s' "$(cat requires.json)" )
 }
 JSON
 git add latest.json
