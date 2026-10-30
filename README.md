@@ -83,7 +83,8 @@ Everything is plain vanilla - no mod knowledge needed:
 
 | What | How |
 |---|---|
-| A player's aura | scoreboard `aura_type`: 0 none, 1 Shadow, 2 Water, 3 Fire, 4 Wind, 5 Frost, 6 Verdant, 7 Thunder |
+| A player's aura | scoreboard `aura_type`: 0 none, 1 Shadow, 2 Water, 3 Fire, 4 Wind, 5 Frost, 6 Verdant, 7 Thunder, 8 Resonance, 9 Earth, 10 Light, 11 Blood, 12 Void |
+| Aura Mastery | scoreboards `aura_mastery_<aura>` (e.g. `aura_mastery_fire`): the player's mastery level 0-5 for every aura; `aura_mastery`: the level of the aura they hold now. Read-only (the mod rewrites them; change levels with `/aura mastery set`) |
 | Item keys | scoreboards `itemuse` and `itemsecondary`: 1 while the player holds the key, 0 otherwise |
 | Ability cooldowns | scoreboards `aura_cd_<ability>` (e.g. `aura_cd_fireball`): ticks left, 0 = ready. Writable: `/scoreboard players set @s aura_cd_fireball 100` = 5s cooldown, `0` = ready right away |
 | Left click (M1) | advancement `aurapoints:toastbutburiedm1` is granted (and taken back) on every left click at air, a block or an entity; its reward runs function `pluss:generalm1` as the player |
