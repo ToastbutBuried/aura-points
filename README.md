@@ -10,8 +10,9 @@ active abilities on rebindable keys, passives, an awakenable Ultimate and a Mast
 - **Aura Book**: every player gets one. Right-click it for your aura and abilities (buy them there), rolling,
   skill points, cosmetics, weekly challenges and settings. It also offers a short tutorial. Every action also
   works as a command.
-- **Aura**: a currency on the scoreboard `aura_points`. Quests, bosses, Trials, datapacks or commands can pay
-  it. It buys abilities, rerolls, cosmetics and points for the built-in skill trees.
+- **Aura**: a currency on the scoreboard `aura_points`. Weekly challenges, aura-touched mobs, team combos and
+  arena wins pay it; so can quests, datapacks and commands. It buys abilities, rerolls, cosmetics and points for
+  the built-in skill trees. **[How to earn Aura, with the full quest list →](QUESTS.md)**
 - **Skill trees** (Pufferfish's Skills): an Aura tree, an Ability tree, and a PvP tree that unlocks once you
   defeat a boss.
 - **Team Combos and Reactions** when auras meet, and aura-touched mobs.
