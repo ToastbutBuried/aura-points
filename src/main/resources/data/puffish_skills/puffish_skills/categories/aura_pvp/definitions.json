@@ -1,0 +1,404 @@
+{
+  "root_offense": {
+    "title": "Offense",
+    "description": "Hit harder. Unlocked by defeating a boss.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:iron_sword"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 1
+  },
+  "attack_damage_1": {
+    "title": "Sharpened Strikes I",
+    "description": "+1 attack damage.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:flint"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 1,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.attack_damage",
+          "operation": "add_value",
+          "value": 1.0
+        }
+      }
+    ]
+  },
+  "attack_damage_2": {
+    "title": "Sharpened Strikes II",
+    "description": "+1 additional attack damage.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:iron_ingot"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.attack_damage",
+          "operation": "add_value",
+          "value": 1.0
+        }
+      }
+    ]
+  },
+  "attack_damage_3": {
+    "title": "Sharpened Strikes III",
+    "description": "+2 additional attack damage.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:diamond"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.attack_damage",
+          "operation": "add_value",
+          "value": 2.0
+        }
+      }
+    ]
+  },
+  "cleave_1": {
+    "title": "Cleave I",
+    "description": "Sweeping attacks deal 25% more damage.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:iron_axe"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:player.sweeping_damage_ratio",
+          "operation": "add_value",
+          "value": 0.25
+        }
+      }
+    ]
+  },
+  "cleave_2": {
+    "title": "Cleave II",
+    "description": "Sweeping attacks deal 25% more damage again.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:diamond_axe"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:player.sweeping_damage_ratio",
+          "operation": "add_value",
+          "value": 0.25
+        }
+      }
+    ]
+  },
+  "root_defense": {
+    "title": "Defense",
+    "description": "Take hits better.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:shield"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 1
+  },
+  "armor_1": {
+    "title": "Thick Hide I",
+    "description": "+1 armor.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:leather"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 1,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.armor",
+          "operation": "add_value",
+          "value": 1.0
+        }
+      }
+    ]
+  },
+  "armor_2": {
+    "title": "Thick Hide II",
+    "description": "+1 additional armor.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:iron_chestplate"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.armor",
+          "operation": "add_value",
+          "value": 1.0
+        }
+      }
+    ]
+  },
+  "armor_3": {
+    "title": "Thick Hide III",
+    "description": "+2 additional armor.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:diamond_chestplate"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.armor",
+          "operation": "add_value",
+          "value": 2.0
+        }
+      }
+    ]
+  },
+  "plating_1": {
+    "title": "Hardened Plating I",
+    "description": "+2 armor toughness.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:netherite_scrap"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.armor_toughness",
+          "operation": "add_value",
+          "value": 2.0
+        }
+      }
+    ]
+  },
+  "plating_2": {
+    "title": "Hardened Plating II",
+    "description": "+2 additional armor toughness.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:netherite_ingot"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.armor_toughness",
+          "operation": "add_value",
+          "value": 2.0
+        }
+      }
+    ]
+  },
+  "root_vitality": {
+    "title": "Vitality",
+    "description": "More health to spend.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:golden_apple"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 1
+  },
+  "max_health_1": {
+    "title": "Vitality I",
+    "description": "+1 heart.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:apple"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.max_health",
+          "operation": "add_value",
+          "value": 2.0
+        }
+      }
+    ]
+  },
+  "max_health_2": {
+    "title": "Vitality II",
+    "description": "+1 additional heart.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:golden_apple"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.max_health",
+          "operation": "add_value",
+          "value": 2.0
+        }
+      }
+    ]
+  },
+  "max_health_3": {
+    "title": "Vitality III",
+    "description": "+2 additional hearts.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:enchanted_golden_apple"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 4,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.max_health",
+          "operation": "add_value",
+          "value": 4.0
+        }
+      }
+    ]
+  }
+}

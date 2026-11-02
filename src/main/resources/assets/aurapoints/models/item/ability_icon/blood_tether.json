@@ -1,0 +1,6 @@
+{
+ "parent": "minecraft:item/generated",
+ "textures": {
+  "layer0": "aurapoints:item/ability_icon/blood_tether"
+ }
+}

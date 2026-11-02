@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "axis=x": { "model": "aurapoints:block/resonance_bark", "x": 90, "y": 90 },
+    "axis=y": { "model": "aurapoints:block/resonance_bark" },
+    "axis=z": { "model": "aurapoints:block/resonance_bark", "x": 90 }
+  }
+}

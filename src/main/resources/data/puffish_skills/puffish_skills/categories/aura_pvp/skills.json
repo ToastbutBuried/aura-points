@@ -1,0 +1,85 @@
+{
+  "root_offense": {
+    "definition": "root_offense",
+    "x": -160,
+    "y": 0,
+    "root": true
+  },
+  "attack_damage_1": {
+    "definition": "attack_damage_1",
+    "x": -160,
+    "y": -32
+  },
+  "attack_damage_2": {
+    "definition": "attack_damage_2",
+    "x": -160,
+    "y": -64
+  },
+  "attack_damage_3": {
+    "definition": "attack_damage_3",
+    "x": -160,
+    "y": -96
+  },
+  "cleave_1": {
+    "definition": "cleave_1",
+    "x": -192,
+    "y": -32
+  },
+  "cleave_2": {
+    "definition": "cleave_2",
+    "x": -224,
+    "y": -64
+  },
+  "root_defense": {
+    "definition": "root_defense",
+    "x": 0,
+    "y": 0,
+    "root": true
+  },
+  "armor_1": {
+    "definition": "armor_1",
+    "x": 0,
+    "y": -32
+  },
+  "armor_2": {
+    "definition": "armor_2",
+    "x": 0,
+    "y": -64
+  },
+  "armor_3": {
+    "definition": "armor_3",
+    "x": 0,
+    "y": -96
+  },
+  "plating_1": {
+    "definition": "plating_1",
+    "x": 32,
+    "y": -32
+  },
+  "plating_2": {
+    "definition": "plating_2",
+    "x": 64,
+    "y": -64
+  },
+  "root_vitality": {
+    "definition": "root_vitality",
+    "x": 160,
+    "y": 0,
+    "root": true
+  },
+  "max_health_1": {
+    "definition": "max_health_1",
+    "x": 160,
+    "y": -32
+  },
+  "max_health_2": {
+    "definition": "max_health_2",
+    "x": 160,
+    "y": -64
+  },
+  "max_health_3": {
+    "definition": "max_health_3",
+    "x": 160,
+    "y": -96
+  }
+}

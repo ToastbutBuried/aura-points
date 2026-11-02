@@ -1,0 +1,342 @@
+{
+  "lifesteal": {
+    "title": "Vein of Aura",
+    "description": "Heal 20% of damage you deal to mobs (not players). Passive. Every aura has it. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:redstone"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 0
+  },
+  "vanish": {
+    "title": "Vanish",
+    "description": "Press your Vanish key to turn completely invisible (armor and gear too) with Speed III for 6s. You leave a black trail on the floor. 45s cooldown. Active. Shadow aura (fast, stealthy). Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:amethyst_shard"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 0
+  },
+  "dash": {
+    "title": "Dash",
+    "description": "Press your Dash key to burst forward. 10s cooldown. Active. Shadow and Wind auras. Wind only: dash up, then press it again 4+ blocks high to dive down - no fall damage, a weak shockwave in front of you on landing, and Dash needs 20s to recharge. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:feather"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 0
+  },
+  "phantom_step": {
+    "title": "Phantom Step",
+    "description": "Sneak while falling to take no fall damage and vanish completely (armor too) for 3s on landing. Passive. Shadow aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:phantom_membrane"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 0
+  },
+  "bloodrush": {
+    "title": "Bloodrush",
+    "description": "Gain Speed II and Haste II for 5s after every player kill. Passive. Shadow aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:sugar"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 0
+  },
+  "shockwave": {
+    "title": "Shockwave",
+    "description": "Press your Shockwave key to blast enemies within 6 blocks away. 30s cooldown. Active. Water aura (sustain). Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:heart_of_the_sea"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 0
+  },
+  "healing_tide": {
+    "title": "Healing Tide",
+    "description": "Press your Healing Tide key to give you and every player within 8 blocks Regeneration II for 5s. 40s cooldown. Active. Water aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:prismarine_crystals"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 0
+  },
+  "iron_skin": {
+    "title": "Iron Skin",
+    "description": "Take 20% less damage from all sources, magic included. Passive. Water aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:iron_ingot"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 0
+  },
+  "flow": {
+    "title": "Flow",
+    "description": "In water or rain: Regeneration, water breathing and faster swimming. Passive. Water aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:nautilus_shell"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 0
+  },
+  "fireball": {
+    "title": "Fireball",
+    "description": "Press your Fireball key to shoot a fireball that sets its target ablaze and starts a few fires where it hits. The farther it flies, the harder it hits. 15s cooldown. Active. Fire aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:fire_charge"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 0
+  },
+  "heat_wave": {
+    "title": "Heat Wave",
+    "description": "Press your Heat Wave key to set everything within 4 blocks on fire and blast it back. Fires break out where the wave ends, and under everyone it hit. Use it while holding a fully charged Fire Bending flame for the Inferno Slam: you slam the ground for a far bigger blast that hurls everyone away and burns them for 12s. 30s cooldown. Active. Fire aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:magma_cream"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 0
+  },
+  "berserker": {
+    "title": "Berserker's Aura",
+    "description": "Deal up to 60% bonus damage the lower your health. Passive. Fire aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:blaze_powder"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 0
+  },
+  "executioner": {
+    "title": "Executioner",
+    "description": "Deal 35% bonus damage to targets below 30% health. Passive. Fire aura. With Berserker on the same hit, the combined bonus is cut by 30%. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:netherite_axe"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 0
+  },
+  "double_jump": {
+    "title": "Double Jump",
+    "description": "Press jump again in mid-air to jump a second time. Once per landing, 3s cooldown. Active. Wind aura (air). Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:rabbit_foot"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 0
+  },
+  "super_wind_charge": {
+    "title": "Super Wind Charge",
+    "description": "Press your Super Wind Charge key to fire a wind charge with 2x the power. No wind charges needed. 20s cooldown. Active. Wind aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:wind_charge"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 0
+  },
+  "gale_rider": {
+    "title": "Gale Rider",
+    "description": "Deal 30% more damage while gliding with an elytra. Passive. Wind aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:elytra"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 0
+  },
+  "featherfall": {
+    "title": "Featherfall",
+    "description": "Take 50% less fall damage. Sneak in mid-air to drift down slowly. Passive. Wind aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:white_wool"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 0
+  },
+  "abyssal_bubble": {
+    "title": "Abyssal Bubble",
+    "description": "Hold your Abyssal Bubble key: a 5-block bubble follows you (you walk slower) and players and mobs inside run out of air and drown. Your camera shakes harder the longer you hold it - keep your crosshair steady or the bubble breaks. Up to 10s, 35s cooldown. Active. Water aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:nautilus_shell"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 0
+  },
+  "fire_bending": {
+    "title": "Fire Bending",
+    "description": "Press your Fire Bending key to hold a ball of fire in front of you, swing it around to charge it, then press again to fire it at your crosshair. Fully charged, it shows you every mob and player in front of you, even through walls. Active. Fire aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:blaze_powder"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 0
+  },
+  "fireborn": {
+    "title": "Fireborn",
+    "description": "Fire can't hurt you: no burning, no fire, campfire, magma block or fireball damage. Only lava still burns. Passive. Fire aura. Roll your aura with /aura roll.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:magma_block"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 0
+  }
+}

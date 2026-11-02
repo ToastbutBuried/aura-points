@@ -1,0 +1,762 @@
+{
+  "root_gathering": {
+    "title": "Gathering",
+    "description": "Dig faster, reach farther, dive deeper. Quality-of-life bonuses for miners and builders.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:iron_pickaxe"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 1
+  },
+  "mining_speed_1": {
+    "title": "Efficient Hands I",
+    "description": "+10% block breaking speed.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:stone_pickaxe"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 1,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:player.block_break_speed",
+          "operation": "add_multiplied_base",
+          "value": 0.1
+        }
+      }
+    ]
+  },
+  "mining_speed_2": {
+    "title": "Efficient Hands II",
+    "description": "+10% additional block breaking speed.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:iron_pickaxe"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:player.block_break_speed",
+          "operation": "add_multiplied_base",
+          "value": 0.1
+        }
+      }
+    ]
+  },
+  "mining_speed_3": {
+    "title": "Efficient Hands III",
+    "description": "+15% additional block breaking speed.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:diamond_pickaxe"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:player.block_break_speed",
+          "operation": "add_multiplied_base",
+          "value": 0.15
+        }
+      }
+    ]
+  },
+  "block_reach_1": {
+    "title": "Extended Reach I",
+    "description": "+0.5 reach for placing and breaking blocks. Does not extend weapon reach.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:fishing_rod"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:player.block_interaction_range",
+          "operation": "add_value",
+          "value": 0.5
+        }
+      }
+    ]
+  },
+  "block_reach_2": {
+    "title": "Extended Reach II",
+    "description": "+0.5 additional reach for placing and breaking blocks.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:lead"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:player.block_interaction_range",
+          "operation": "add_value",
+          "value": 0.5
+        }
+      }
+    ]
+  },
+  "keen_edge": {
+    "title": "Keen Edge",
+    "description": "+1 tool efficiency when mining with the right tool.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:golden_pickaxe"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:player.mining_efficiency",
+          "operation": "add_value",
+          "value": 1.0
+        }
+      }
+    ]
+  },
+  "divers_pick": {
+    "title": "Diver's Pick",
+    "description": "Mine much faster while underwater.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:prismarine_shard"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:player.submerged_mining_speed",
+          "operation": "add_value",
+          "value": 0.3
+        }
+      }
+    ]
+  },
+  "root_exploration": {
+    "title": "Exploration",
+    "description": "Move faster and farther with less effort.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:compass"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 1
+  },
+  "swift_1": {
+    "title": "Swift Feet I",
+    "description": "+6% movement speed.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:sugar"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 1,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.movement_speed",
+          "operation": "add_multiplied_base",
+          "value": 0.06
+        }
+      }
+    ]
+  },
+  "swift_2": {
+    "title": "Swift Feet II",
+    "description": "+6% additional movement speed.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:rabbit_foot"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.movement_speed",
+          "operation": "add_multiplied_base",
+          "value": 0.06
+        }
+      }
+    ]
+  },
+  "swift_3": {
+    "title": "Swift Feet III",
+    "description": "+6% additional movement speed.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:feather"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.movement_speed",
+          "operation": "add_multiplied_base",
+          "value": 0.06
+        }
+      }
+    ]
+  },
+  "step_up": {
+    "title": "Step Up",
+    "description": "Walk up full blocks without jumping (+0.4 step height).",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:oak_stairs"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.step_height",
+          "operation": "add_value",
+          "value": 0.4
+        }
+      }
+    ]
+  },
+  "nimble": {
+    "title": "Nimble",
+    "description": "Jump a little higher.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:slime_ball"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.jump_strength",
+          "operation": "add_value",
+          "value": 0.06
+        }
+      }
+    ]
+  },
+  "sure_footed": {
+    "title": "Sure Footed",
+    "description": "Sneak much faster (+0.2 sneaking speed).",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:leather_boots"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:player.sneaking_speed",
+          "operation": "add_value",
+          "value": 0.2
+        }
+      }
+    ]
+  },
+  "soul_walker": {
+    "title": "Soul Walker",
+    "description": "Soul sand and other slowing blocks slow you down less.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:soul_sand"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.movement_efficiency",
+          "operation": "add_value",
+          "value": 0.5
+        }
+      }
+    ]
+  },
+  "root_water": {
+    "title": "Water",
+    "description": "Make the seas friendlier.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:heart_of_the_sea"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 1
+  },
+  "sea_legs": {
+    "title": "Sea Legs",
+    "description": "Swim at full speed: water no longer slows you down.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:nautilus_shell"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.water_movement_efficiency",
+          "operation": "add_value",
+          "value": 1.0
+        }
+      }
+    ]
+  },
+  "breath_1": {
+    "title": "Deep Breath I",
+    "description": "Hold your breath much longer underwater.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:glass_bottle"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.oxygen_bonus",
+          "operation": "add_value",
+          "value": 1.0
+        }
+      }
+    ]
+  },
+  "breath_2": {
+    "title": "Deep Breath II",
+    "description": "Hold your breath even longer underwater.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:glass_bottle"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.oxygen_bonus",
+          "operation": "add_value",
+          "value": 1.0
+        }
+      }
+    ]
+  },
+  "breath_3": {
+    "title": "Deep Breath III",
+    "description": "Hold your breath far longer underwater.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:dragon_breath"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 4,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.oxygen_bonus",
+          "operation": "add_value",
+          "value": 1.0
+        }
+      }
+    ]
+  },
+  "root_hardy": {
+    "title": "Hardiness",
+    "description": "Shrug off the small stuff: falls, fire and blasts.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:campfire"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 1
+  },
+  "light_footed": {
+    "title": "Light Footed",
+    "description": "+3 blocks of safe fall distance before fall damage starts.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:feather"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.safe_fall_distance",
+          "operation": "add_value",
+          "value": 3.0
+        }
+      }
+    ]
+  },
+  "soft_landing": {
+    "title": "Soft Landing",
+    "description": "Take 25% less fall damage once it does start.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:hay_block"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.fall_damage_multiplier",
+          "operation": "add_value",
+          "value": -0.25
+        }
+      }
+    ]
+  },
+  "heat_tolerance": {
+    "title": "Heat Tolerance",
+    "description": "Burn 30% shorter when set on fire.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:magma_cream"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.burning_time",
+          "operation": "add_value",
+          "value": -0.3
+        }
+      }
+    ]
+  },
+  "blast_cushion": {
+    "title": "Blast Cushion",
+    "description": "Explosions knock you back 30% less.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:tnt"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 2,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.explosion_knockback_resistance",
+          "operation": "add_value",
+          "value": 0.3
+        }
+      }
+    ]
+  },
+  "root_fortune": {
+    "title": "Fortune",
+    "description": "A little luck goes a long way.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:emerald"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 1
+  },
+  "luck_1": {
+    "title": "Fortune's Favor I",
+    "description": "+1 luck: better loot from fishing, chests and loot tables.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:rabbit_foot"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 3,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.luck",
+          "operation": "add_value",
+          "value": 1.0
+        }
+      }
+    ]
+  },
+  "luck_2": {
+    "title": "Fortune's Favor II",
+    "description": "+1 additional luck.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:gold_nugget"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "task"
+      }
+    },
+    "cost": 4,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.luck",
+          "operation": "add_value",
+          "value": 1.0
+        }
+      }
+    ]
+  },
+  "luck_3": {
+    "title": "Fortune's Favor III",
+    "description": "+1 additional luck.",
+    "icon": {
+      "type": "item",
+      "data": {
+        "item": "minecraft:gold_ingot"
+      }
+    },
+    "frame": {
+      "type": "advancement",
+      "data": {
+        "frame": "challenge"
+      }
+    },
+    "cost": 5,
+    "rewards": [
+      {
+        "type": "puffish_skills:attribute",
+        "data": {
+          "attribute": "minecraft:generic.luck",
+          "operation": "add_value",
+          "value": 1.0
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "criteria": {
+    "done": {
+      "trigger": "minecraft:player_killed_entity",
+      "conditions": {
+        "player": [
+          {
+            "condition": "minecraft:entity_properties",
+            "entity": "this",
+            "predicate": {
+              "vehicle": {
+                "type": [
+                  "minecraft:horse",
+                  "minecraft:donkey",
+                  "minecraft:mule",
+                  "minecraft:skeleton_horse",
+                  "minecraft:zombie_horse",
+                  "minecraft:camel"
+                ]
+              }
+            }
+          }
+        ],
+        "entity": [
+          {
+            "condition": "minecraft:inverted",
+            "term": {
+              "condition": "minecraft:entity_properties",
+              "entity": "this",
+              "predicate": {
+                "type": "minecraft:player"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

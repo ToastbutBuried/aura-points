@@ -1,0 +1,10 @@
+{
+  "title": "Aura",
+  "icon": {
+    "type": "item",
+    "data": {
+      "item": "minecraft:nether_star"
+    }
+  },
+  "background": "minecraft:textures/block/deepslate_tiles.png"
+}

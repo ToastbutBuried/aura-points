@@ -1,0 +1,325 @@
+{
+	"format_version": "1.12.0",
+	"minecraft:geometry": [
+		{
+			"description": {
+				"identifier": "geometry.maelstrom_tentacle",
+				"texture_width": 128,
+				"texture_height": 64,
+				"visible_bounds_width": 2,
+				"visible_bounds_height": 6.5,
+				"visible_bounds_offset": [
+					0,
+					2.75,
+					0
+				]
+			},
+			"bones": [
+				{
+					"name": "root",
+					"pivot": [
+						0,
+						0,
+						0
+					]
+				},
+				{
+					"name": "seg1",
+					"parent": "root",
+					"pivot": [
+						0,
+						0,
+						0
+					],
+					"cubes": [
+						{
+							"origin": [
+								-5,
+								-4,
+								-5
+							],
+							"size": [
+								10,
+								16,
+								10
+							],
+							"uv": [
+								0,
+								0
+							]
+						}
+					]
+				},
+				{
+					"name": "seg2",
+					"parent": "seg1",
+					"pivot": [
+						0,
+						12,
+						0
+					],
+					"cubes": [
+						{
+							"origin": [
+								-4.5,
+								12,
+								-4.5
+							],
+							"size": [
+								9,
+								11,
+								9
+							],
+							"uv": [
+								0,
+								26
+							]
+						},
+						{
+							"origin": [
+								-1,
+								16,
+								-5.5
+							],
+							"size": [
+								2,
+								2,
+								1
+							],
+							"uv": [
+								64,
+								24
+							]
+						}
+					]
+				},
+				{
+					"name": "seg3",
+					"parent": "seg2",
+					"pivot": [
+						0,
+						23,
+						0
+					],
+					"cubes": [
+						{
+							"origin": [
+								-4,
+								23,
+								-4
+							],
+							"size": [
+								8,
+								10,
+								8
+							],
+							"uv": [
+								0,
+								46
+							]
+						},
+						{
+							"origin": [
+								-1,
+								27,
+								-5
+							],
+							"size": [
+								2,
+								2,
+								1
+							],
+							"uv": [
+								64,
+								24
+							]
+						}
+					]
+				},
+				{
+					"name": "seg4",
+					"parent": "seg3",
+					"pivot": [
+						0,
+						33,
+						0
+					],
+					"cubes": [
+						{
+							"origin": [
+								-3.5,
+								33,
+								-3.5
+							],
+							"size": [
+								7,
+								10,
+								7
+							],
+							"uv": [
+								40,
+								26
+							]
+						},
+						{
+							"origin": [
+								-1,
+								37,
+								-4.5
+							],
+							"size": [
+								2,
+								2,
+								1
+							],
+							"uv": [
+								64,
+								24
+							]
+						}
+					]
+				},
+				{
+					"name": "seg5",
+					"parent": "seg4",
+					"pivot": [
+						0,
+						43,
+						0
+					],
+					"cubes": [
+						{
+							"origin": [
+								-3,
+								43,
+								-3
+							],
+							"size": [
+								6,
+								9,
+								6
+							],
+							"uv": [
+								32,
+								46
+							]
+						},
+						{
+							"origin": [
+								-1,
+								46,
+								-4
+							],
+							"size": [
+								2,
+								2,
+								1
+							],
+							"uv": [
+								64,
+								24
+							]
+						}
+					]
+				},
+				{
+					"name": "seg6",
+					"parent": "seg5",
+					"pivot": [
+						0,
+						52,
+						0
+					],
+					"cubes": [
+						{
+							"origin": [
+								-2.5,
+								52,
+								-2.5
+							],
+							"size": [
+								5,
+								9,
+								5
+							],
+							"uv": [
+								40,
+								0
+							]
+						},
+						{
+							"origin": [
+								-0.5,
+								56,
+								-3.5
+							],
+							"size": [
+								1,
+								1,
+								1
+							],
+							"uv": [
+								64,
+								28
+							]
+						}
+					]
+				},
+				{
+					"name": "seg7",
+					"parent": "seg6",
+					"pivot": [
+						0,
+						61,
+						0
+					],
+					"cubes": [
+						{
+							"origin": [
+								-2,
+								61,
+								-2
+							],
+							"size": [
+								4,
+								8,
+								4
+							],
+							"uv": [
+								64,
+								0
+							]
+						}
+					]
+				},
+				{
+					"name": "seg8",
+					"parent": "seg7",
+					"pivot": [
+						0,
+						69,
+						0
+					],
+					"cubes": [
+						{
+							"origin": [
+								-1.5,
+								69,
+								-1.5
+							],
+							"size": [
+								3,
+								8,
+								3
+							],
+							"uv": [
+								64,
+								12
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

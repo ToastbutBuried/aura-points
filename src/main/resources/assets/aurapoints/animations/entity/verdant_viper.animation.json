@@ -1,0 +1,294 @@
+{
+	"format_version": "1.8.0",
+	"animations": {
+		"animation.verdant_viper.idle": {
+			"loop": true,
+			"animation_length": 2,
+			"bones": {
+				"jaw_upper": {
+					"rotation": {
+						"0.0": {
+							"post": [
+								"-18",
+								"0",
+								"0"
+							],
+							"lerp_mode": "catmullrom"
+						},
+						"1.0": {
+							"post": [
+								"-34",
+								"0",
+								"0"
+							],
+							"lerp_mode": "catmullrom"
+						},
+						"2.0": {
+							"post": [
+								"-18",
+								"0",
+								"0"
+							],
+							"lerp_mode": "catmullrom"
+						}
+					}
+				},
+				"jaw_lower": {
+					"rotation": {
+						"0.0": {
+							"post": [
+								"8",
+								"0",
+								"0"
+							],
+							"lerp_mode": "catmullrom"
+						},
+						"1.0": {
+							"post": [
+								"15",
+								"0",
+								"0"
+							],
+							"lerp_mode": "catmullrom"
+						},
+						"2.0": {
+							"post": [
+								"8",
+								"0",
+								"0"
+							],
+							"lerp_mode": "catmullrom"
+						}
+					}
+				},
+				"stem": {
+					"rotation": {
+						"0.0": {
+							"post": [
+								"0",
+								"0",
+								"0"
+							],
+							"lerp_mode": "catmullrom"
+						},
+						"0.5": {
+							"post": [
+								"0",
+								"0",
+								"4"
+							],
+							"lerp_mode": "catmullrom"
+						},
+						"1.5": {
+							"post": [
+								"0",
+								"0",
+								"-4"
+							],
+							"lerp_mode": "catmullrom"
+						},
+						"2.0": {
+							"post": [
+								"0",
+								"0",
+								"0"
+							],
+							"lerp_mode": "catmullrom"
+						}
+					}
+				},
+				"hinge": {
+					"rotation": {
+						"0.0": {
+							"post": [
+								"0",
+								"6",
+								"0"
+							],
+							"lerp_mode": "catmullrom"
+						},
+						"1.0": {
+							"post": [
+								"0",
+								"-6",
+								"0"
+							],
+							"lerp_mode": "catmullrom"
+						},
+						"2.0": {
+							"post": [
+								"0",
+								"6",
+								"0"
+							],
+							"lerp_mode": "catmullrom"
+						}
+					}
+				}
+			}
+		},
+		"animation.verdant_viper.bite": {
+			"loop": "hold_on_last_frame",
+			"animation_length": 0.35,
+			"bones": {
+				"jaw_upper": {
+					"rotation": {
+						"0.0": [
+							"-40",
+							"0",
+							"0"
+						],
+						"0.0833": [
+							"2",
+							"0",
+							"0"
+						],
+						"0.1667": [
+							"0",
+							"0",
+							"0"
+						]
+					}
+				},
+				"jaw_lower": {
+					"rotation": {
+						"0.0": [
+							"18",
+							"0",
+							"0"
+						],
+						"0.0833": [
+							"-2",
+							"0",
+							"0"
+						],
+						"0.1667": [
+							"0",
+							"0",
+							"0"
+						]
+					}
+				},
+				"hinge": {
+					"position": {
+						"0.0": [
+							"0",
+							"0",
+							"0"
+						],
+						"0.0833": [
+							"0",
+							"0",
+							"-2"
+						],
+						"0.3333": [
+							"0",
+							"0",
+							"0"
+						]
+					}
+				}
+			}
+		},
+		"animation.verdant_viper.death": {
+			"loop": "hold_on_last_frame",
+			"animation_length": 0.6,
+			"bones": {
+				"stem": {
+					"rotation": {
+						"0.0": [
+							"0",
+							"0",
+							"0"
+						],
+						"0.25": [
+							"30",
+							"0",
+							"10"
+						]
+					}
+				},
+				"jaw_upper": {
+					"rotation": {
+						"0.25": [
+							"-45",
+							"0",
+							"0"
+						]
+					}
+				},
+				"jaw_lower": {
+					"rotation": {
+						"0.25": [
+							"25",
+							"0",
+							"0"
+						]
+					}
+				},
+				"root": {
+					"position": {
+						"0.0": [
+							"0",
+							"0",
+							"0"
+						],
+						"0.25": [
+							"0",
+							"0",
+							"0"
+						],
+						"0.5833": [
+							"0",
+							"-14",
+							"0"
+						]
+					},
+					"scale": {
+						"0.25": [
+							"1",
+							"1",
+							"1"
+						],
+						"0.5833": [
+							"0.5",
+							"0.5",
+							"0.5"
+						]
+					}
+				}
+			}
+		},
+		"animation.verdant_viper.emerge": {
+			"animation_length": 0.35,
+			"bones": {
+				"root": {
+					"position": {
+						"0.0": [
+							"0",
+							"-12",
+							"0"
+						],
+						"0.3333": [
+							"0",
+							"0",
+							"0"
+						]
+					},
+					"scale": {
+						"0.0": [
+							"0.4",
+							"0.4",
+							"0.4"
+						],
+						"0.3333": [
+							"1",
+							"1",
+							"1"
+						]
+					}
+				}
+			}
+		}
+	}
+}

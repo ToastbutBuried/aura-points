@@ -1,0 +1,10 @@
+{
+  "title": "Aura: PvP",
+  "icon": {
+    "type": "item",
+    "data": {
+      "item": "minecraft:netherite_sword"
+    }
+  },
+  "background": "minecraft:textures/block/netherrack.png"
+}

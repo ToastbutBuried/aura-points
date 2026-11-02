@@ -1,0 +1,77 @@
+{
+ "textures": {
+  "all": "aurapoints:block/fx/frost_ice_deep_glow",
+  "particle": "aurapoints:block/fx/frost_ice_deep_glow"
+ },
+ "elements": [
+  {
+   "from": [
+    -0.02,
+    -0.02,
+    -0.02
+   ],
+   "to": [
+    16.02,
+    16.02,
+    16.02
+   ],
+   "shade": false,
+   "faces": {
+    "north": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#all"
+    },
+    "east": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#all"
+    },
+    "south": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#all"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#all"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#all"
+    },
+    "down": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#all"
+    }
+   }
+  }
+ ]
+}

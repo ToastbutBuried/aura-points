@@ -1,0 +1,2 @@
+All textures and models in this mod were made for Aura Points (generators and .bbmodel sources:
+blockbench-models/aurapoints). None are copies or repaints of Minecraft textures.

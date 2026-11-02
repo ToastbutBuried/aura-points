@@ -1,0 +1,128 @@
+{
+  "lifesteal": {
+    "definition": "lifesteal",
+    "x": 0,
+    "y": -200,
+    "root": true
+  },
+  "vanish": {
+    "definition": "vanish",
+    "x": -96,
+    "y": -120,
+    "root": true
+  },
+  "dash": {
+    "definition": "dash",
+    "x": -32,
+    "y": -120,
+    "root": true
+  },
+  "phantom_step": {
+    "definition": "phantom_step",
+    "x": 32,
+    "y": -120,
+    "root": true
+  },
+  "bloodrush": {
+    "definition": "bloodrush",
+    "x": 96,
+    "y": -120,
+    "root": true
+  },
+  "shockwave": {
+    "definition": "shockwave",
+    "x": -128,
+    "y": -40,
+    "root": true
+  },
+  "healing_tide": {
+    "definition": "healing_tide",
+    "x": -64,
+    "y": -40,
+    "root": true
+  },
+  "iron_skin": {
+    "definition": "iron_skin",
+    "x": 64,
+    "y": -40,
+    "root": true
+  },
+  "flow": {
+    "definition": "flow",
+    "x": 128,
+    "y": -40,
+    "root": true
+  },
+  "fireball": {
+    "definition": "fireball",
+    "x": -160,
+    "y": 40,
+    "root": true
+  },
+  "heat_wave": {
+    "definition": "heat_wave",
+    "x": -96,
+    "y": 40,
+    "root": true
+  },
+  "berserker": {
+    "definition": "berserker",
+    "x": 32,
+    "y": 40,
+    "root": true
+  },
+  "executioner": {
+    "definition": "executioner",
+    "x": 96,
+    "y": 40,
+    "root": true
+  },
+  "double_jump": {
+    "definition": "double_jump",
+    "x": 0,
+    "y": 120,
+    "root": true
+  },
+  "super_wind_charge": {
+    "definition": "super_wind_charge",
+    "x": -64,
+    "y": 120,
+    "root": true
+  },
+  "gale_rider": {
+    "definition": "gale_rider",
+    "x": 64,
+    "y": 120,
+    "root": true
+  },
+  "featherfall": {
+    "definition": "featherfall",
+    "x": 128,
+    "y": 120,
+    "root": true
+  },
+  "wind_dash": {
+    "definition": "dash",
+    "x": -128,
+    "y": 120,
+    "root": true
+  },
+  "abyssal_bubble": {
+    "definition": "abyssal_bubble",
+    "x": 0,
+    "y": -40,
+    "root": true
+  },
+  "fire_bending": {
+    "definition": "fire_bending",
+    "x": -32,
+    "y": 40,
+    "root": true
+  },
+  "fireborn": {
+    "definition": "fireborn",
+    "x": 160,
+    "y": 40,
+    "root": true
+  }
+}

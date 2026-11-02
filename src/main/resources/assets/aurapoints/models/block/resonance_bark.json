@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column",
+  "textures": {
+    "end": "aurapoints:block/resonance_bark_top",
+    "side": "aurapoints:block/resonance_bark"
+  }
+}

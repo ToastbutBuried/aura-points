@@ -1,0 +1,266 @@
+{
+ "parent": "minecraft:item/generated",
+ "textures": {
+  "layer0": "aurapoints:item/ability_icon/eclipse"
+ },
+ "overrides": [
+  {
+   "predicate": {
+    "custom_model_data": 1
+   },
+   "model": "aurapoints:item/ability_icon/eclipse"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 2
+   },
+   "model": "aurapoints:item/ability_icon/tidal_ascension"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 3
+   },
+   "model": "aurapoints:item/ability_icon/phoenix"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 4
+   },
+   "model": "aurapoints:item/ability_icon/tempest"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 5
+   },
+   "model": "aurapoints:item/ability_icon/permafrost"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 6
+   },
+   "model": "aurapoints:item/ability_icon/overgrowth"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 7
+   },
+   "model": "aurapoints:item/ability_icon/judgement"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 8
+   },
+   "model": "aurapoints:item/ability_icon/tectonic_rift"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 9
+   },
+   "model": "aurapoints:item/ability_icon/pillar_lift"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 10
+   },
+   "model": "aurapoints:item/ability_icon/boulder_toss"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 11
+   },
+   "model": "aurapoints:item/ability_icon/quake"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 12
+   },
+   "model": "aurapoints:item/ability_icon/sunburst"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 13
+   },
+   "model": "aurapoints:item/ability_icon/radiant_pulse"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 14
+   },
+   "model": "aurapoints:item/ability_icon/solar_flash"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 15
+   },
+   "model": "aurapoints:item/ability_icon/prism_beam"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 16
+   },
+   "model": "aurapoints:item/ability_icon/blood_moon"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 17
+   },
+   "model": "aurapoints:item/ability_icon/hemorrhage"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 18
+   },
+   "model": "aurapoints:item/ability_icon/blood_tether"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 19
+   },
+   "model": "aurapoints:item/ability_icon/crimson_sacrifice"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 20
+   },
+   "model": "aurapoints:item/ability_icon/singularity"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 21
+   },
+   "model": "aurapoints:item/ability_icon/void_pull"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 22
+   },
+   "model": "aurapoints:item/ability_icon/rift_step"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 23
+   },
+   "model": "aurapoints:item/ability_icon/null_orb"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 24
+   },
+   "model": "aurapoints:item/ability_icon/shockwave"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 25
+   },
+   "model": "aurapoints:item/ability_icon/healing_tide"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 26
+   },
+   "model": "aurapoints:item/ability_icon/abyssal_bubble"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 27
+   },
+   "model": "aurapoints:item/ability_icon/vanish"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 28
+   },
+   "model": "aurapoints:item/ability_icon/dash"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 29
+   },
+   "model": "aurapoints:item/ability_icon/fireball"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 30
+   },
+   "model": "aurapoints:item/ability_icon/heat_wave"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 31
+   },
+   "model": "aurapoints:item/ability_icon/fire_bending"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 32
+   },
+   "model": "aurapoints:item/ability_icon/double_jump"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 33
+   },
+   "model": "aurapoints:item/ability_icon/super_wind_charge"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 34
+   },
+   "model": "aurapoints:item/ability_icon/ice_spike"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 35
+   },
+   "model": "aurapoints:item/ability_icon/vine_hook"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 36
+   },
+   "model": "aurapoints:item/ability_icon/entanglement"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 37
+   },
+   "model": "aurapoints:item/ability_icon/verdant_viper"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 38
+   },
+   "model": "aurapoints:item/ability_icon/ice_shell"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 39
+   },
+   "model": "aurapoints:item/ability_icon/thunderbolt"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 40
+   },
+   "model": "aurapoints:item/ability_icon/chidori"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 41
+   },
+   "model": "aurapoints:item/ability_icon/sonic_blossom"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 42
+   },
+   "model": "aurapoints:item/ability_icon/listening_tree"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 43
+   },
+   "model": "aurapoints:item/ability_icon/abyssal_grasp"
+  }
+ ]
+}

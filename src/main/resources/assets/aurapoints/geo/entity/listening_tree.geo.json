@@ -1,0 +1,481 @@
+{
+ "format_version": "1.12.0",
+ "minecraft:geometry": [
+  {
+   "description": {
+    "identifier": "geometry.listening_tree",
+    "texture_width": 128,
+    "texture_height": 128,
+    "visible_bounds_width": 3,
+    "visible_bounds_height": 5,
+    "visible_bounds_offset": [
+     0,
+     2.0,
+     0
+    ]
+   },
+   "bones": [
+    {
+     "name": "root",
+     "pivot": [
+      0,
+      0,
+      0
+     ]
+    },
+    {
+     "name": "roots",
+     "pivot": [
+      0,
+      0,
+      0
+     ],
+     "parent": "root"
+    },
+    {
+     "name": "flare0",
+     "pivot": [
+      0,
+      2,
+      0
+     ],
+     "cubes": [
+      {
+       "origin": [
+        -1.5,
+        -1,
+        -11
+       ],
+       "size": [
+        3,
+        3,
+        9
+       ],
+       "uv": [
+        0,
+        0
+       ]
+      },
+      {
+       "origin": [
+        -1,
+        -1.5,
+        -14
+       ],
+       "size": [
+        2,
+        2,
+        4
+       ],
+       "uv": [
+        24,
+        0
+       ]
+      }
+     ],
+     "parent": "roots",
+     "rotation": [
+      0,
+      25,
+      0
+     ]
+    },
+    {
+     "name": "flare1",
+     "pivot": [
+      0,
+      2,
+      0
+     ],
+     "cubes": [
+      {
+       "origin": [
+        -1.5,
+        -1,
+        -11
+       ],
+       "size": [
+        3,
+        3,
+        9
+       ],
+       "uv": [
+        36,
+        0
+       ]
+      },
+      {
+       "origin": [
+        -1,
+        -1.5,
+        -14
+       ],
+       "size": [
+        2,
+        2,
+        4
+       ],
+       "uv": [
+        60,
+        0
+       ]
+      }
+     ],
+     "parent": "roots",
+     "rotation": [
+      0,
+      145,
+      0
+     ]
+    },
+    {
+     "name": "flare2",
+     "pivot": [
+      0,
+      2,
+      0
+     ],
+     "cubes": [
+      {
+       "origin": [
+        -1.5,
+        -1,
+        -11
+       ],
+       "size": [
+        3,
+        3,
+        9
+       ],
+       "uv": [
+        72,
+        0
+       ]
+      },
+      {
+       "origin": [
+        -1,
+        -1.5,
+        -14
+       ],
+       "size": [
+        2,
+        2,
+        4
+       ],
+       "uv": [
+        96,
+        0
+       ]
+      }
+     ],
+     "parent": "roots",
+     "rotation": [
+      0,
+      265,
+      0
+     ]
+    },
+    {
+     "name": "trunk1",
+     "pivot": [
+      0,
+      0,
+      0
+     ],
+     "cubes": [
+      {
+       "origin": [
+        -6.0,
+        -1,
+        -6.0
+       ],
+       "size": [
+        12,
+        20,
+        12
+       ],
+       "uv": [
+        0,
+        12
+       ]
+      },
+      {
+       "origin": [
+        5.0,
+        7,
+        -2
+       ],
+       "size": [
+        3,
+        3,
+        3
+       ],
+       "uv": [
+        48,
+        12
+       ]
+      },
+      {
+       "origin": [
+        -8.0,
+        11,
+        0
+       ],
+       "size": [
+        3,
+        2,
+        3
+       ],
+       "uv": [
+        60,
+        12
+       ]
+      }
+     ],
+     "parent": "root"
+    },
+    {
+     "name": "trunk2",
+     "pivot": [
+      0,
+      19,
+      0
+     ],
+     "cubes": [
+      {
+       "origin": [
+        -5.0,
+        14.0,
+        -5.0
+       ],
+       "size": [
+        10,
+        22,
+        10
+       ],
+       "uv": [
+        72,
+        12
+       ]
+      },
+      {
+       "origin": [
+        -2,
+        25,
+        4.0
+       ],
+       "size": [
+        3,
+        3,
+        2
+       ],
+       "uv": [
+        112,
+        12
+       ]
+      }
+     ],
+     "parent": "trunk1",
+     "rotation": [
+      -4,
+      0,
+      3
+     ]
+    },
+    {
+     "name": "trunk3",
+     "pivot": [
+      0,
+      36,
+      0
+     ],
+     "cubes": [
+      {
+       "origin": [
+        -4.0,
+        32.0,
+        -4.0
+       ],
+       "size": [
+        8,
+        19,
+        8
+       ],
+       "uv": [
+        0,
+        44
+       ]
+      }
+     ],
+     "parent": "trunk2",
+     "rotation": [
+      -6,
+      0,
+      -4
+     ]
+    },
+    {
+     "name": "curl1",
+     "pivot": [
+      0,
+      51,
+      0
+     ],
+     "cubes": [
+      {
+       "origin": [
+        -3.0,
+        48.0,
+        -3.0
+       ],
+       "size": [
+        6,
+        9,
+        6
+       ],
+       "uv": [
+        32,
+        44
+       ]
+      }
+     ],
+     "parent": "trunk3",
+     "rotation": [
+      40,
+      0,
+      0
+     ]
+    },
+    {
+     "name": "curl2",
+     "pivot": [
+      0,
+      57,
+      0
+     ],
+     "cubes": [
+      {
+       "origin": [
+        -2.5,
+        54.5,
+        -2.5
+       ],
+       "size": [
+        5,
+        9,
+        5
+       ],
+       "uv": [
+        56,
+        44
+       ]
+      }
+     ],
+     "parent": "curl1",
+     "rotation": [
+      55,
+      0,
+      0
+     ]
+    },
+    {
+     "name": "curl3",
+     "pivot": [
+      0,
+      63,
+      0
+     ],
+     "cubes": [
+      {
+       "origin": [
+        -2.0,
+        61.0,
+        -2.0
+       ],
+       "size": [
+        4,
+        7,
+        4
+       ],
+       "uv": [
+        76,
+        44
+       ]
+      }
+     ],
+     "parent": "curl2",
+     "rotation": [
+      60,
+      0,
+      0
+     ]
+    },
+    {
+     "name": "curl4",
+     "pivot": [
+      0,
+      68,
+      0
+     ],
+     "cubes": [
+      {
+       "origin": [
+        -1.5,
+        66.5,
+        -1.5
+       ],
+       "size": [
+        3,
+        6,
+        3
+       ],
+       "uv": [
+        92,
+        44
+       ]
+      }
+     ],
+     "parent": "curl3",
+     "rotation": [
+      65,
+      0,
+      0
+     ]
+    },
+    {
+     "name": "curl5",
+     "pivot": [
+      0,
+      72,
+      0
+     ],
+     "cubes": [
+      {
+       "origin": [
+        -1.0,
+        71.0,
+        -1.0
+       ],
+       "size": [
+        2,
+        5,
+        2
+       ],
+       "uv": [
+        104,
+        44
+       ]
+      }
+     ],
+     "parent": "curl4",
+     "rotation": [
+      70,
+      0,
+      0
+     ]
+    }
+   ]
+  }
+ ]
+}

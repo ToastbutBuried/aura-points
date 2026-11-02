@@ -1,0 +1,16 @@
+# build output / caches
+build/
+.gradle/
+build.log
+# dev server + client run dir (worlds, logs, rcon password)
+run/
+# old copies / archives
+src.old/
+*.zip
+# local Claude settings
+.claude/
+*.tgz
+# private: server deploy tools, Claude notes, the server's quest book specs
+CLAUDE.md
+tools/
+ftbquests-specs/

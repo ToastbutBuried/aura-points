@@ -1,0 +1,10 @@
+{
+  "title": "Aura Abilities",
+  "icon": {
+    "type": "item",
+    "data": {
+      "item": "minecraft:totem_of_undying"
+    }
+  },
+  "background": "minecraft:textures/block/blackstone.png"
+}

@@ -1,0 +1,157 @@
+{
+  "root_gathering": {
+    "definition": "root_gathering",
+    "x": -256,
+    "y": 0,
+    "root": true
+  },
+  "mining_speed_1": {
+    "definition": "mining_speed_1",
+    "x": -256,
+    "y": -32
+  },
+  "mining_speed_2": {
+    "definition": "mining_speed_2",
+    "x": -256,
+    "y": -64
+  },
+  "mining_speed_3": {
+    "definition": "mining_speed_3",
+    "x": -256,
+    "y": -96
+  },
+  "block_reach_1": {
+    "definition": "block_reach_1",
+    "x": -288,
+    "y": -32
+  },
+  "block_reach_2": {
+    "definition": "block_reach_2",
+    "x": -320,
+    "y": -64
+  },
+  "keen_edge": {
+    "definition": "keen_edge",
+    "x": -224,
+    "y": -32
+  },
+  "divers_pick": {
+    "definition": "divers_pick",
+    "x": -192,
+    "y": -64
+  },
+  "root_exploration": {
+    "definition": "root_exploration",
+    "x": -96,
+    "y": 0,
+    "root": true
+  },
+  "swift_1": {
+    "definition": "swift_1",
+    "x": -96,
+    "y": -32
+  },
+  "swift_2": {
+    "definition": "swift_2",
+    "x": -96,
+    "y": -64
+  },
+  "swift_3": {
+    "definition": "swift_3",
+    "x": -96,
+    "y": -96
+  },
+  "step_up": {
+    "definition": "step_up",
+    "x": -128,
+    "y": -32
+  },
+  "nimble": {
+    "definition": "nimble",
+    "x": -160,
+    "y": -64
+  },
+  "sure_footed": {
+    "definition": "sure_footed",
+    "x": -64,
+    "y": -32
+  },
+  "soul_walker": {
+    "definition": "soul_walker",
+    "x": -32,
+    "y": -64
+  },
+  "root_water": {
+    "definition": "root_water",
+    "x": 64,
+    "y": 0,
+    "root": true
+  },
+  "sea_legs": {
+    "definition": "sea_legs",
+    "x": 32,
+    "y": -32
+  },
+  "breath_1": {
+    "definition": "breath_1",
+    "x": 96,
+    "y": -32
+  },
+  "breath_2": {
+    "definition": "breath_2",
+    "x": 96,
+    "y": -64
+  },
+  "breath_3": {
+    "definition": "breath_3",
+    "x": 96,
+    "y": -96
+  },
+  "root_hardy": {
+    "definition": "root_hardy",
+    "x": 224,
+    "y": 0,
+    "root": true
+  },
+  "light_footed": {
+    "definition": "light_footed",
+    "x": 192,
+    "y": -32
+  },
+  "soft_landing": {
+    "definition": "soft_landing",
+    "x": 192,
+    "y": -64
+  },
+  "heat_tolerance": {
+    "definition": "heat_tolerance",
+    "x": 256,
+    "y": -32
+  },
+  "blast_cushion": {
+    "definition": "blast_cushion",
+    "x": 256,
+    "y": -64
+  },
+  "root_fortune": {
+    "definition": "root_fortune",
+    "x": 352,
+    "y": 0,
+    "root": true
+  },
+  "luck_1": {
+    "definition": "luck_1",
+    "x": 352,
+    "y": -32
+  },
+  "luck_2": {
+    "definition": "luck_2",
+    "x": 352,
+    "y": -64
+  },
+  "luck_3": {
+    "definition": "luck_3",
+    "x": 352,
+    "y": -96
+  }
+}
