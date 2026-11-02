@@ -39,7 +39,7 @@ public final class Tutorial {
 		AURA("Look at your aura", "Click your aura in the Aura Book to see what it does.",
 				"Actives are bought there with Aura, then used with your keys (Options > Controls > Aura Points)."),
 		SKILLS("Get stronger", "Open Skill points in the Aura Book.",
-				"You earn Aura from aura-touched mobs (glowing, named), quests, bosses and Trials. Spend it on actives and skill points."),
+				"Earn Aura in the book's Earn Aura page: quests, aura-touched mobs (glowing, named), weeklies and the arena. Spend it on actives and skill points."),
 		SETTINGS("Make it yours", "Open Settings in the Aura Book.",
 				"Cosmetics and weekly challenges are in the book too. Every command still works: type /aura.");
 

@@ -293,7 +293,7 @@ public final class AuraBook {
 	}
 
 	static final class MainPage extends Page {
-		static final int HEADER = 4, AURA = 20, ROLL = 21, SKILLS = 22, COSMETICS = 23, WEEKLY = 24, SETTINGS = 30, TUTORIAL = 32;
+		static final int HEADER = 4, AURA = 20, ROLL = 21, SKILLS = 22, COSMETICS = 23, WEEKLY = 24, SETTINGS = 30, EARN = 31, TUTORIAL = 32;
 
 		@Override
 		Component title(ServerPlayer player) {
@@ -305,8 +305,8 @@ public final class AuraBook {
 			int balance = AuraCurrency.get(player);
 			List<Component> head = new ArrayList<>();
 			head.add(text("Aura: " + balance, ChatFormatting.LIGHT_PURPLE));
-			head.add(text("Earn Aura from aura-touched mobs,", ChatFormatting.GRAY));
-			head.add(text("quests, bosses and Trials.", ChatFormatting.GRAY));
+			head.add(text(EarnPage.questsLoaded() ? "Earn more: quests, mobs, weeklies, arena." : "Earn more: mobs, weeklies, arena.", ChatFormatting.GRAY));
+			head.add(text("Click: ways to earn Aura", ChatFormatting.YELLOW));
 			head.add(text("Every command still works: /aura", ChatFormatting.DARK_GRAY));
 			slots[HEADER] = icon(Items.WRITTEN_BOOK, text(player.getGameProfile().getName() + "'s Aura", ChatFormatting.GOLD), head, false);
 
@@ -337,6 +337,10 @@ public final class AuraBook {
 			slots[SETTINGS] = icon(Items.COMPARATOR, text("Settings", ChatFormatting.WHITE), List.of(
 					text("Self-hide, Bloom, Night Vision", ChatFormatting.GRAY),
 					text("Keys: Options > Controls > Aura Points", ChatFormatting.DARK_GRAY)), false);
+			slots[EARN] = icon(Items.EMERALD, text("Earn Aura", ChatFormatting.GOLD, ChatFormatting.BOLD), List.of(
+					text(EarnPage.questsLoaded() ? "Quest book, aura-touched mobs," : "Aura-touched mobs,", ChatFormatting.GRAY),
+					text("weekly challenges, arena and more", ChatFormatting.GRAY),
+					text("Click: see every way to earn", ChatFormatting.YELLOW)), EarnPage.questsLoaded());
 			slots[TUTORIAL] = Tutorial.menuIcon(data);
 			bar(slots, false);
 			Tutorial.highlight(data, slots);
@@ -346,6 +350,10 @@ public final class AuraBook {
 		void click(ServerPlayer player, AuraPlayerData data, int slot) {
 			if (barClick(player, slot)) return;
 			switch (slot) {
+				case HEADER, EARN -> {
+					pageSound(player);
+					open(player, new EarnPage());
+				}
 				case AURA -> {
 					if (data.aura != null) {
 						pageSound(player);
@@ -561,6 +569,96 @@ public final class AuraBook {
 				case MAIN5 -> run(player, "aura redeem 5");
 				case PVP -> {
 					if (data.pvpUnlocked) run(player, "aura redeem pvp");
+				}
+				default -> {
+				}
+			}
+		}
+	}
+
+	/** Every way to earn Aura: the FTB quest book (when installed) first, then the built-in sources with this server's values. */
+	public static final class EarnPage extends Page {
+		static final int QUESTS = 20, MOBS = 22, WEEKLY = 24, ARENA = 29, WAVES = 31, COMBOS = 33, BOSSES = 40;
+
+		public static boolean questsLoaded() {
+			return net.neoforged.fml.ModList.get() != null && net.neoforged.fml.ModList.get().isLoaded("ftbquests");
+		}
+
+		/** FTB's own quest book item as the icon, so it looks like the thing it opens. */
+		private static Item questBookItem() {
+			return net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ftbquests", "book"))
+					.orElse(Items.WRITABLE_BOOK);
+		}
+
+		@Override
+		Component title(ServerPlayer player) {
+			return Component.literal("Earn Aura");
+		}
+
+		@Override
+		void fill(ServerPlayer player, AuraPlayerData data, ItemStack[] slots) {
+			slots[4] = icon(Items.EMERALD, text("Earn Aura", ChatFormatting.GOLD, ChatFormatting.BOLD), List.of(
+					text("You have " + AuraCurrency.get(player) + " Aura.", ChatFormatting.LIGHT_PURPLE),
+					text("Spend it on actives, rerolls,", ChatFormatting.GRAY),
+					text("skill points and cosmetics.", ChatFormatting.GRAY)), false);
+			if (questsLoaded()) {
+				slots[QUESTS] = icon(questBookItem(), text("Quest book", ChatFormatting.GOLD, ChatFormatting.BOLD), List.of(
+						text("The main way to earn Aura.", ChatFormatting.GRAY),
+						text("Quests pay Aura when you claim them;", ChatFormatting.GRAY),
+						text("harder quests pay more.", ChatFormatting.GRAY),
+						text("Click: open the quest book", ChatFormatting.YELLOW)), true);
+			}
+			if (AuraConfig.TOUCHED_ENABLED && AuraConfig.TOUCHED_KILL_POINTS > 0) {
+				slots[MOBS] = icon(Items.GLOW_INK_SAC, text("Aura-touched mobs", ChatFormatting.LIGHT_PURPLE), List.of(
+						text("Glowing, named monsters with an aura.", ChatFormatting.GRAY),
+						text("They hit harder and use abilities.", ChatFormatting.GRAY),
+						text(AuraConfig.TOUCHED_KILL_POINTS + " Aura per kill", ChatFormatting.GREEN)), false);
+			}
+			if (AuraConfig.WEEKLY_ENABLED) {
+				int lo = AuraConfig.WEEKLY_REWARD_BASE, hi = lo + 2 * AuraConfig.WEEKLY_REWARD_PER_TIER;
+				slots[WEEKLY] = icon(Items.CLOCK, text("Weekly challenges", ChatFormatting.AQUA), List.of(
+						text("3 new challenges every Monday.", ChatFormatting.GRAY),
+						text(lo + "-" + hi + " Aura each, +" + AuraConfig.WEEKLY_ALL_BONUS + " for all three", ChatFormatting.GREEN),
+						text(data.weeklyDone + " done this week", ChatFormatting.DARK_GRAY),
+						text("Click: show them in chat", ChatFormatting.YELLOW)), false);
+			}
+			slots[ARENA] = icon(Items.IRON_SWORD, text("Arena", ChatFormatting.RED), List.of(
+					text("Win a duel: " + AuraConfig.DUEL_PRIZE_AURA + " Aura + the wager pot", ChatFormatting.GREEN),
+					text("Win a match: " + AuraConfig.MATCH_PRIZE_AURA + " Aura", ChatFormatting.GREEN),
+					text("Click: go to the arena", ChatFormatting.YELLOW)), false);
+			slots[WAVES] = icon(Items.ZOMBIE_HEAD, text("Wave Survival", ChatFormatting.DARK_GREEN), List.of(
+					text("Arena mode: fight waves of monsters.", ChatFormatting.GRAY),
+					text(AuraConfig.WAVES_AURA_PER_WAVE + " Aura per wave, +" + AuraConfig.WAVES_BOSS_BONUS + " per boss wave", ChatFormatting.GREEN)), false);
+			if (AuraConfig.COMBO_AURA_REWARD > 0) {
+				slots[COMBOS] = icon(Items.BLAZE_POWDER, text("Team combos", ChatFormatting.GOLD), List.of(
+						text("Mix your ability with a teammate's.", ChatFormatting.GRAY),
+						text(AuraConfig.COMBO_AURA_REWARD + " Aura each when it hits", ChatFormatting.GREEN),
+						text("(outside the arena, with a cooldown)", ChatFormatting.DARK_GRAY)), false);
+			}
+			List<Component> boss = new ArrayList<>();
+			if (AuraConfig.BOSS_AURA_PER_KILL > 0) boss.add(text(AuraConfig.BOSS_AURA_PER_KILL + " Aura per boss", ChatFormatting.GREEN));
+			boss.add(text("Your first boss unlocks the PvP skill tree.", ChatFormatting.GRAY));
+			slots[BOSSES] = icon(Items.WITHER_SKELETON_SKULL, text("Bosses", ChatFormatting.DARK_PURPLE), boss, false);
+			bar(slots, true);
+		}
+
+		@Override
+		void click(ServerPlayer player, AuraPlayerData data, int slot) {
+			if (barClick(player, slot)) return;
+			switch (slot) {
+				case QUESTS -> {
+					if (questsLoaded()) {
+						player.closeContainer();
+						run(player, "ftbquests open_book");
+					}
+				}
+				case WEEKLY -> {
+					player.closeContainer();
+					run(player, "aura weekly");
+				}
+				case ARENA -> {
+					player.closeContainer();
+					run(player, "aura arena");
 				}
 				default -> {
 				}

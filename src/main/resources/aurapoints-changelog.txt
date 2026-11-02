@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.3.0
+- The Aura Book has an "Earn Aura" page (click the emerald or the header): every way to earn Aura with this server's amounts, and a button that opens the quest book.
+- The Aura Book and Balance Tome look like proper Minecraft books now.
+
 == 5.2.0
 - Aura Points is open source now (LGPL), and everything uses the mod's own art: the new models, effects, scarecrow dummy, arena NPCs and ability icons are always on (the "New models" setting is gone), and the Aura Book and Balance Tome got their own textures.
 - The skill trees are built into the mod, and the PvP tree unlocks when you defeat a boss (Wither, Ender Dragon, Warden, Elder Guardian, or one a datapack adds).

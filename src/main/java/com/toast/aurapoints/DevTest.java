@@ -566,6 +566,16 @@ final class DevTest {
 			rlog("dont show again: state " + data.tutorialState + " header " + at.apply(4) + " (must be 3, menu)");
 			com.toast.aurapoints.menu.AuraBook.open(p);
 			rlog("next open: " + at.apply(4) + " (must be the menu)");
+			rlog("earn icon: " + at.apply(31) + " (must be Earn Aura)");
+			click.accept(31);
+			rlog("earn page: " + at.apply(4) + " | quests " + at.apply(20) + " (must be Quest book only with ftbquests: "
+					+ com.toast.aurapoints.menu.AuraBook.EarnPage.questsLoaded() + ") | " + at.apply(22) + " | " + at.apply(24) + " | "
+					+ at.apply(29) + " | " + at.apply(31) + " | " + at.apply(33) + " | " + at.apply(40));
+			click.accept(20); // quest book: closes + runs ftbquests open_book, or nothing without the mod
+			click.accept(45);
+			rlog("earn back: " + at.apply(4) + " (must be Booker's Aura)");
+			click.accept(4);
+			rlog("header click: " + at.apply(4) + " (must be Earn Aura)");
 			data.tutorialState = 1;
 			com.toast.aurapoints.menu.Tutorial.onLogout(p);
 			com.toast.aurapoints.menu.AuraBook.open(p);
