@@ -25,7 +25,7 @@ active abilities on rebindable keys, passives, an awakenable Ultimate and a Mast
   game with the Balance Tome (`/aura balance`).
 
 ## Requirements
-Each release has two jars: `aura-points-<version>.jar` for NeoForge and `aura-points-fabric-<version>.jar` for Fabric.
+Each release has two jars: `aura-points-neoforge-<version>.jar` for NeoForge and `aura-points-fabric-<version>.jar` for Fabric.
 Use the dependencies built for your loader.
 
 | Mod | Where |

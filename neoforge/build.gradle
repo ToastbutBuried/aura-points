@@ -2,9 +2,6 @@ plugins {
 	id 'net.neoforged.moddev'
 }
 
-// the NeoForge jar keeps its old name (aura-points-<ver>.jar): deploy, updater and installer look for it
-base.archivesName = project.archives_base_name
-
 neoForge {
 	version = project.neoforge_version
 
