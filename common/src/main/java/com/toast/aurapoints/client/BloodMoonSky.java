@@ -65,7 +65,7 @@ public final class BloodMoonSky {
 		float s = strength();
 		if (s <= 0 || Minecraft.getInstance().options.hideGui) return;
 		int w = g.guiWidth(), h = g.guiHeight();
-		g.fill(0, 0, w, h, HudColors.argb(0.08f * s, 0x8A0010));
+		g.fill(StatusOverlays.FX, 0, 0, w, h, HudColors.argb(0.08f * s, 0x8A0010));
 		StatusOverlays.edges(g, w, h, 0x4A0008, 0.5f * s, Math.round(h * 0.16f));
 	}
 }

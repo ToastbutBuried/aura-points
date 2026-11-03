@@ -31,10 +31,6 @@ public final class ClientKeyHandler {
 	/** Ability 1, 2, 3 (whatever the aura puts there), then Item Use and Item Secondary, then the Ultimate, then Item Tertiary. Index = AbilityKeyPacket key. */
 	public static final KeyMapping[] KEYS = new KeyMapping[com.toast.aurapoints.ability.AuraType.KEY_SLOTS + 4];
 	private static final boolean[] WAS_DOWN = new boolean[KEYS.length];
-	/** Defaults the group already used: Left Alt, X, ` for the three ability keys; item keys unbound; V for the Ultimate. */
-	private static final int[] DEFAULTS = {InputConstants.KEY_LALT, InputConstants.KEY_X, InputConstants.KEY_GRAVE,
-			InputConstants.UNKNOWN.getValue(), InputConstants.UNKNOWN.getValue(), InputConstants.KEY_V,
-			InputConstants.UNKNOWN.getValue()};
 	private static final String[] NAMES = {"ability_1", "ability_2", "ability_3", "itemuse", "itemsecondary", "ultimate", "itemtertiary"};
 	private static boolean jumpWasDown = false;
 
@@ -43,7 +39,7 @@ public final class ClientKeyHandler {
 			KEYS[i] = com.toast.aurapoints.shim.ClientPlatform.get().inGameKey(
 					"key.aurapoints." + NAMES[i],
 					InputConstants.Type.KEYSYM,
-					DEFAULTS[i],
+					InputConstants.UNKNOWN.getValue(), // no defaults: players pick their own keys (the chat hint asks)
 					"key.categories.aurapoints");
 		}
 	}
@@ -61,7 +57,7 @@ public final class ClientKeyHandler {
 		boolean inGame = client.player != null && client.screen == null;
 
 		for (int i = 0; i < KEYS.length; i++) {
-			boolean down = inGame && KEYS[i].isDown();
+			boolean down = inGame && com.toast.aurapoints.shim.ClientPlatform.get().isKeyDown(KEYS[i]);
 			if (down == WAS_DOWN[i]) continue;
 			WAS_DOWN[i] = down;
 			if (client.player == null) continue;

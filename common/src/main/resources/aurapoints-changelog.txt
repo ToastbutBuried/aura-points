@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.4.1
+- Aura keys start unbound now: pick your own in Options > Controls > Aura Points (keys you already set stay). On Fabric they also work when another mod uses the same key.
+- Fixed: the red/blue screen-edge effects (Lifesteal, Blood Moon, frost...) no longer wipe parts of a minimap.
+
 == 5.4.0
 - Aura Points now runs on Fabric 1.21.1 too (same features, same gameplay). Nothing changes on NeoForge.
 

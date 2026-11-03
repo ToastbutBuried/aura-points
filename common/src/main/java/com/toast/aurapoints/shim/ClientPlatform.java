@@ -44,6 +44,14 @@ public interface ClientPlatform {
 	/** A key that only works (and only conflicts) in game, not in screens. */
 	KeyMapping inGameKey(String name, InputConstants.Type type, int key, String category);
 
+	/**
+	 * Is this (in-game) key held right now? NeoForge: the mapping itself (key contexts let it share a button).
+	 * Plain Minecraft lets only one mapping per button react, so the loader may look at the button instead.
+	 */
+	default boolean isKeyDown(KeyMapping key) {
+		return key.isDown();
+	}
+
 	/** Would these two keys clash if bound to the same button? */
 	boolean keysConflict(KeyMapping a, KeyMapping b);
 

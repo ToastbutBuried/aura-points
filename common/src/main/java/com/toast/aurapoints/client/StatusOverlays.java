@@ -6,6 +6,7 @@ import com.toast.aurapoints.network.ClientAuraState;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import com.toast.aurapoints.shim.api.distmarker.Dist;
@@ -33,6 +34,12 @@ public final class StatusOverlays {
 
 	private StatusOverlays() {
 	}
+
+	/**
+	 * Screen-wide overlays draw without writing depth: the default gui type writes it over the whole band (even its
+	 * clear pixels), so HUD mods drawn later at a lower z (Xaero's minimap on Fabric) lost their tiles under it.
+	 */
+	static final RenderType FX = RenderType.guiOverlay();
 
 	private static final ResourceLocation FROST = ResourceLocation.withDefaultNamespace("textures/misc/powder_snow_outline.png");
 
@@ -97,7 +104,7 @@ public final class StatusOverlays {
 
 		float bubbleA = Mth.lerp(pt, bubbleO, bubble) * strength;
 		if (bubbleA > 0.01f) {
-			g.fill(0, 0, w, h, HudColors.argb(0.12f * bubbleA, 0x0B3B8C));
+			g.fill(FX, 0, 0, w, h, HudColors.argb(0.12f * bubbleA, 0x0B3B8C));
 			float well = calm ? 0.5f : 0.5f + 0.5f * Mth.sin(now / 420f);
 			edges(g, w, h, 0x1C6FE0, 0.5f * bubbleA, Math.round(h * (0.12f + 0.06f * well)));
 		}
@@ -105,9 +112,11 @@ public final class StatusOverlays {
 		float frostA = Mth.lerp(pt, frostO, frost) * strength;
 		if (frostA > 0.01f) {
 			RenderSystem.enableBlend();
+			RenderSystem.depthMask(false);
 			RenderSystem.setShaderColor(1f, 1f, 1f, frostA);
 			g.blit(FROST, 0, 0, -90, 0f, 0f, w, h, w, h);
 			RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+			RenderSystem.depthMask(true);
 			float shimmer = calm ? 0.6f : 0.6f + 0.4f * Mth.sin(now / 300f);
 			edges(g, w, h, 0xBFEFFF, 0.35f * frostA * shimmer, Math.round(h * 0.1f));
 		}
@@ -128,8 +137,8 @@ public final class StatusOverlays {
 				double a = (calm ? 0 : now / 260.0) + i * Math.PI * 2 / 3;
 				int sx = Math.round(cx + (float) Math.cos(a) * 16), sy = Math.round(cy - 14 + (float) Math.sin(a) * 5);
 				int c = HudColors.argb(stunA, i == 0 ? 0xFFF27A : 0xFFFFFF);
-				g.fill(sx - 1, sy, sx + 2, sy + 1, c);
-				g.fill(sx, sy - 1, sx + 1, sy + 2, c);
+				g.fill(FX, sx - 1, sy, sx + 2, sy + 1, c);
+				g.fill(FX, sx, sy - 1, sx + 1, sy + 2, c);
 			}
 		}
 
@@ -145,14 +154,14 @@ public final class StatusOverlays {
 	static void edges(GuiGraphics g, int w, int h, int rgb, float alpha, int depth) {
 		if (alpha <= 0.005f || depth <= 0) return;
 		int solid = HudColors.argb(alpha, rgb), clear = HudColors.argb(0, rgb);
-		g.fillGradient(0, 0, w, depth, solid, clear);
-		g.fillGradient(0, h - depth, w, h, clear, solid);
+		g.fillGradient(FX, 0, 0, w, depth, solid, clear, 0);
+		g.fillGradient(FX, 0, h - depth, w, h, clear, solid, 0);
 		// the sides: the same gradient turned on its side
 		g.pose().pushPose();
 		g.pose().translate(0, h, 0);
 		g.pose().mulPose(com.mojang.math.Axis.ZP.rotationDegrees(-90));
-		g.fillGradient(0, 0, h, depth, solid, clear);
-		g.fillGradient(0, w - depth, h, w, clear, solid);
+		g.fillGradient(FX, 0, 0, h, depth, solid, clear, 0);
+		g.fillGradient(FX, 0, w - depth, h, w, clear, solid, 0);
 		g.pose().popPose();
 	}
 
@@ -205,8 +214,8 @@ public final class StatusOverlays {
 		for (int i = 0; i <= steps; i++) {
 			float x = Mth.lerp(i / (float) steps, x0, x1), y = Mth.lerp(i / (float) steps, y0, y1);
 			int px = Math.round(x - t / 2f), py = Math.round(y - t / 2f);
-			g.fill(px, py, px + t, py + t, body);
-			if (t >= 3) g.fill(px + 1, py, px + 2, py + 1, light);
+			g.fill(FX, px, py, px + t, py + t, body);
+			if (t >= 3) g.fill(FX, px + 1, py, px + 2, py + 1, light);
 		}
 	}
 }

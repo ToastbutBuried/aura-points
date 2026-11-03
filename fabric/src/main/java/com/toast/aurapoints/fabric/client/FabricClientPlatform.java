@@ -4,7 +4,9 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.toast.aurapoints.shim.ClientPlatform;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.ModelBlockRenderer;
 import net.minecraft.client.resources.model.BakedModel;
@@ -12,6 +14,7 @@ import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
+import org.lwjgl.glfw.GLFW;
 
 public final class FabricClientPlatform implements ClientPlatform {
 	/** Fabric's variant for extra models added with ModelLoadingPlugin.addModels. */
@@ -36,6 +39,23 @@ public final class FabricClientPlatform implements ClientPlatform {
 	@Override
 	public KeyMapping inGameKey(String name, InputConstants.Type type, int key, String category) {
 		return new KeyMapping(name, type, key, category);
+	}
+
+	/**
+	 * Plain Minecraft gives a button to ONE mapping only (the last registered), so an ability key sharing X with
+	 * another mod's key never went down. Like NeoForge's key contexts: the button itself counts.
+	 */
+	@Override
+	public boolean isKeyDown(KeyMapping key) {
+		if (key.isDown()) return true;
+		InputConstants.Key bound = KeyBindingHelper.getBoundKeyOf(key);
+		if (bound.getValue() == InputConstants.UNKNOWN.getValue()) return false;
+		long window = Minecraft.getInstance().getWindow().getWindow();
+		return switch (bound.getType()) {
+			case KEYSYM -> InputConstants.isKeyDown(window, bound.getValue());
+			case MOUSE -> GLFW.glfwGetMouseButton(window, bound.getValue()) == GLFW.GLFW_PRESS;
+			default -> false;
+		};
 	}
 
 	@Override
