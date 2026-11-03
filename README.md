@@ -119,8 +119,8 @@ Needs Java 21. The build downloads every dependency. The mod itself lives in `co
 plain Minecraft; `neoforge/` and `fabric/` are the thin loader layers (see `common/.../shim/`).
 
 ## About latest.json
-`latest.json` in this repo is the update manifest that the
-[installer/updater](https://github.com/ToastbutBuried/aura-points-installer) reads. Every release rewrites it.
+`latest.json` (NeoForge) and `latest-fabric.json` in this repo are the update manifests that the
+[installers/updater](https://github.com/ToastbutBuried/aura-points-installer) read. Every release rewrites them.
 
 ## License
 Code and assets: [GNU LGPL v3.0 or later](COPYING.LESSER) (it builds on the [GPL v3.0](LICENSE)). All
