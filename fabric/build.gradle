@@ -1,0 +1,65 @@
+plugins {
+	id 'fabric-loom'
+}
+
+repositories {
+	// Mod Menu (optional: the client settings' config button)
+	maven { url 'https://maven.terraformersmc.com/releases/' }
+}
+
+loom {
+	runs {
+		client {
+			runDir '../run-fabric'
+			if (project.hasProperty('geotest')) {
+				property 'aurapoints.geotest', 'true'
+				if (project.hasProperty('geoonly')) property 'aurapoints.geoonly', project.property('geoonly')
+				// no quick play: from the title screen DevShowcaseClient opens aura_showcase, or creates it (a NeoForge-saved
+				// copy would stop at the "missing data pack" prompt)
+			}
+		}
+		server {
+			runDir '../run-fabric'
+			property 'aurapoints.devtest', 'true'
+		}
+	}
+}
+
+// Fabric API's modules exactly as Fabric API 0.116.17 ships them (fabric-api-pins.properties): some of its 1.21.1
+// module POMs ask for newer modules (fabric-loot-api-v2 -> fabric-resource-loader-v0 2.0.0, which crashes 1.21.1).
+// Loom resolves mods itself, so the pins are strict dependencies rather than a resolution rule.
+def fabricApiPins = new Properties()
+file('fabric-api-pins.properties').withInputStream { fabricApiPins.load(it) }
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraft_version}"
+	mappings loom.officialMojangMappings()
+	modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+	fabricApiPins.each { module, pinned ->
+		modImplementation("net.fabricmc.fabric-api:${module}") { version { strictly pinned } }
+	}
+
+	// GeckoLib draws the animated ability models. Needed on the server and every client.
+	modImplementation "software.bernie.geckolib:geckolib-fabric-1.21.1:${geckolib_version}"
+	// Player Animator (client only at runtime, like on NeoForge)
+	modImplementation "maven.modrinth:playeranimator:CkedfDp3" // 2.0.4+1.21.1-fabric
+	// Puffish's Skills + Attributes: talked to through commands only
+	modRuntimeOnly "maven.modrinth:skills:ppOVyisF" // 0.19.2 fabric
+	modRuntimeOnly "maven.modrinth:FCFcFw09:969uN2vX" // puffish attributes 0.8.3 fabric
+	// FTB Teams / Quests: optional, found by reflection (dev runs have them to test allies + quest hooks)
+	modRuntimeOnly "dev.architectury:architectury-fabric:13.0.11"
+	modRuntimeOnly "dev.ftb.mods:ftb-library-fabric:2101.1.39"
+	modRuntimeOnly "dev.ftb.mods:ftb-teams-fabric:2101.1.11"
+	modRuntimeOnly "dev.ftb.mods:ftb-quests-fabric:2101.1.38"
+	// Mod Menu: optional config button
+	modCompileOnly("com.terraformersmc:modmenu:11.0.3") { transitive = false }
+}
+
+processResources {
+	inputs.property "version", project.version
+	filesMatching("fabric.mod.json") {
+		expand "version": project.version
+	}
+	// NeoForge's per-face "neoforge_data" light is read by the Fabric layer itself (fabric/mixin/client/BlockElementFaceMixin)
+}

@@ -1,10 +1,19 @@
-# Aura Points – Changelog (4.10 → 5.2.0)
+# Aura Points – Changelog (4.10 → 5.4.0)
 
 Everyone needs the newest jar on their client, plus **GeckoLib**, **Pufferfish's Skills + Attributes** and **Player Animator** (`player-animation-lib-forge-2.0.4+1.21.1.jar`).
 
 4.36 and later are copied from the in-game changelog (`src/main/resources/aurapoints-changelog.txt`, shown by `/changelog`); 4.35.6 and older are the original detailed notes.
 
 ---
+
+## 5.4.0
+- Fabric 1.21.1 support: one codebase builds a NeoForge jar (`aura-points-<version>.jar`, unchanged) and a Fabric jar
+  (`aura-points-fabric-<version>.jar`). Same features and gameplay on both; worlds, configs and packets stay as they were on NeoForge.
+- Fabric needs Fabric API, GeckoLib (Fabric), Pufferfish's Skills + Attributes (Fabric) and, on the client, Player Animator (Fabric).
+  Mod Menu (optional) gives the client settings a config button.
+
+## 5.3.0
+- The Aura Book has an "Earn Aura" page with every way to earn Aura and a button for the quest book; the Aura Book and Balance Tome look like proper Minecraft books.
 
 ## 5.2.0
 - Open source (LGPL-3.0-or-later). Everything uses the mod's own art: the new models, effects, scarecrow dummy, arena NPCs and ability icons are always on (the "New models" setting is gone); new Aura Book and Balance Tome textures.

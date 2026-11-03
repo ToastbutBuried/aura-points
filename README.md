@@ -1,6 +1,6 @@
 # Aura Points
 
-A NeoForge 1.21.1 mod about elemental auras. Roll one of 12 auras, buy its abilities, level them up, and test
+A Minecraft 1.21.1 mod (NeoForge and Fabric) about elemental auras. Roll one of 12 auras, buy its abilities, level them up, and test
 yourself in a built-in arena.
 
 **Auras:** Shadow, Water, Fire, Wind, Frost, Verdant, Thunder, Resonance, Earth, Light, Blood, Void. Each has
@@ -25,15 +25,19 @@ active abilities on rebindable keys, passives, an awakenable Ultimate and a Mast
   game with the Balance Tome (`/aura balance`).
 
 ## Requirements
+Each release has two jars: `aura-points-<version>.jar` for NeoForge and `aura-points-fabric-<version>.jar` for Fabric.
+Use the dependencies built for your loader.
+
 | Mod | Where |
 |---|---|
-| [NeoForge](https://neoforged.net) 21.1.x for Minecraft 1.21.1 | server + client |
+| [NeoForge](https://neoforged.net) 21.1.x **or** [Fabric Loader](https://fabricmc.net) 0.16+ with [Fabric API](https://modrinth.com/mod/fabric-api), for Minecraft 1.21.1 | server + client |
 | [GeckoLib](https://modrinth.com/mod/geckolib) 4.9.3+ | server + client |
 | [Pufferfish's Skills](https://modrinth.com/mod/skills) 0.19+ | server + client |
 | [Pufferfish's Attributes](https://modrinth.com/mod/puffish-attributes) | server + client |
 | [Player Animator](https://modrinth.com/mod/playeranimator) 2.0.4+ | client |
 
-Optional: FTB Teams (team members count as allies) and FTB Quests (`/aura resetprogress quests`).
+Optional: FTB Teams (team members count as allies) and FTB Quests (`/aura resetprogress quests`). On Fabric,
+[Mod Menu](https://modrinth.com/mod/modmenu) adds a config button for the client settings.
 
 ## Getting started
 1. Install the mod and its requirements on the server and every client.
@@ -107,11 +111,12 @@ The mod creates these scoreboards and tags. Datapacks can build on them without 
 
 ## Building
 ```
-./gradlew build          # jar in build/libs/
-./gradlew runClient      # dev client
-./gradlew runServer      # dev server; /auradev test commands are on there
+./gradlew build                    # neoforge/build/libs/ and fabric/build/libs/
+./gradlew :neoforge:runClient      # dev client (also :fabric:runClient)
+./gradlew :neoforge:runServer      # dev server; /auradev test commands are on there (also :fabric:runServer)
 ```
-Needs Java 21. The build downloads every dependency.
+Needs Java 21. The build downloads every dependency. The mod itself lives in `common/` and is compiled against
+plain Minecraft; `neoforge/` and `fabric/` are the thin loader layers (see `common/.../shim/`).
 
 ## About latest.json
 `latest.json` in this repo is the update manifest that the

@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.toast.aurapoints.fabric.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ItemStackMixin", "LivingEntityMixin", "PlayerMixin", "ServerPlayerMixin", "EntityMixin", "PersistentEntitySectionManagerMixin",
+    "MobMixin", "PlayerListMixin", "MobGriefingMixin", "GriefingSitesMixin$Explosions", "GriefingSitesMixin$Crops", "GriefingSitesMixin$TurtleEggs", "BlockItemMixin"
+  ],
+  "client": [
+    "client.GuiMixin", "client.MinecraftClientMixin", "client.LocalPlayerMixin", "client.SoundEngineMixin", "client.CameraMixin",
+    "client.GameRendererMixin", "client.FogRendererMixin", "client.EntityRendererHooksMixin$Living", "client.EntityRendererHooksMixin$Player",
+    "client.AbstractContainerScreenMixin", "client.EmissiveFacesMixin$Face", "client.EmissiveFacesMixin$Quad", "client.EmissiveFacesMixin$Read",
+    "client.EmissiveFacesMixin$Bake", "client.EmissiveFacesMixin$Draw"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

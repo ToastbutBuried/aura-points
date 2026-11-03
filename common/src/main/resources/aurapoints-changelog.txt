@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.4.0
+- Aura Points now runs on Fabric 1.21.1 too (same features, same gameplay). Nothing changes on NeoForge.
+
 == 5.3.0
 - The Aura Book has an "Earn Aura" page (click the emerald or the header): every way to earn Aura with this server's amounts, and a button that opens the quest book.
 - The Aura Book and Balance Tome look like proper Minecraft books now.

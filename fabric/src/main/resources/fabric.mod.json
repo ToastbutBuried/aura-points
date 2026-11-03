@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "aurapoints",
+  "version": "${version}",
+  "name": "Aura Points",
+  "description": "Roll one of 12 auras with /aura roll and buy its active abilities in /aura shop, triggered with rebindable keys. Level an aura's Mastery, awaken its Ultimate, combine auras in Team Combos, and test yourself in the arena. Aura - a scoreboard currency paid by quests, bosses and Trials - also buys points for the built-in Puffish skill trees, cosmetics and rerolls. Requires Pufferfish's Skills + Attributes, GeckoLib, and on the client Player Animator.",
+  "authors": ["ToastbutBuried"],
+  "contact": {
+    "homepage": "https://github.com/ToastbutBuried/aura-points",
+    "sources": "https://github.com/ToastbutBuried/aura-points",
+    "issues": "https://github.com/ToastbutBuried/aura-points/issues"
+  },
+  "license": "LGPL-3.0-or-later",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.toast.aurapoints.fabric.AuraFabric"],
+    "client": ["com.toast.aurapoints.fabric.client.AuraFabricClient"],
+    "modmenu": ["com.toast.aurapoints.fabric.client.AuraModMenu"]
+  },
+  "mixins": [
+    "aurapoints.mixins.json",
+    "aurapoints.fabric.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "geckolib": ">=4.9.3",
+    "puffish_skills": ">=0.19"
+  },
+  "recommends": {
+    "playeranimator": "*"
+  }
+}
