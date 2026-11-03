@@ -118,9 +118,10 @@ The mod creates these scoreboards and tags. Datapacks can build on them without 
 Needs Java 21. The build downloads every dependency. The mod itself lives in `common/` and is compiled against
 plain Minecraft; `neoforge/` and `fabric/` are the thin loader layers (see `common/.../shim/`).
 
-## About latest.json
-`latest.json` (NeoForge) and `latest-fabric.json` in this repo are the update manifests that the
-[installers/updater](https://github.com/ToastbutBuried/aura-points-installer) read. Every release rewrites them.
+## About latest-neoforge.json / latest-fabric.json
+The update manifests the [installers/updater](https://github.com/ToastbutBuried/aura-points-installer) read, one per
+loader. Every release rewrites them. `latest.json` is a copy of `latest-neoforge.json` kept for updaters from before
+5.4.0's Fabric support, which only know that name.
 
 ## License
 Code and assets: [GNU LGPL v3.0 or later](COPYING.LESSER) (it builds on the [GPL v3.0](LICENSE)). All
