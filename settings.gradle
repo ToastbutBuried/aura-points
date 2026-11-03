@@ -6,11 +6,21 @@ pluginManagement {
 			name = "NeoForged"
 			url = "https://maven.neoforged.net/releases"
 		}
+		maven {
+			name = "Fabric"
+			url = "https://maven.fabricmc.net/"
+		}
 	}
 }
 
 plugins {
-	id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+	id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
 rootProject.name = 'aura-points'
+
+// common: the whole mod, compiled against plain Minecraft (no loader) so nothing loader-specific sneaks in.
+// neoforge / fabric: the loader glue (shim/ implementations, entry points, mod metadata), each builds one jar
+// from its own sources plus common's.
+include 'common', 'neoforge'
+if (file('fabric').exists()) include 'fabric'

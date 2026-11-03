@@ -1,0 +1,10 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.toast.aurapoints.neoforge.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": ["ItemStackMixin", "LivingEntityMixin"],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,65 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "LGPL-3.0-or-later"
+issueTrackerURL = "https://github.com/ToastbutBuried/aura-points/issues"
+
+[[mods]]
+modId = "aurapoints"
+version = "${version}"
+displayName = "Aura Points"
+authors = "ToastbutBuried"
+displayURL = "https://github.com/ToastbutBuried/aura-points"
+description = '''
+Roll one of 12 auras (Shadow, Water, Fire, Wind, Frost, Verdant, Thunder, Resonance,
+Earth, Light, Blood, Void) with /aura roll and buy its active abilities in /aura shop,
+triggered with rebindable keys. Level an aura's Mastery, awaken its Ultimate, combine
+auras in Team Combos, and test yourself in the arena (duels, matches, Wave Survival,
+Training Hall). Aura - a scoreboard currency paid by quests, bosses and Trials - also
+buys points for the built-in Puffish skill trees (/aura redeem; the PvP tree once you
+have defeated a boss), cosmetics and rerolls. Weekly challenges, /changelog and player tickets
+are built in.
+
+Requires Pufferfish's Skills + Pufferfish's Attributes, GeckoLib, and on the client
+Player Animator.
+'''
+
+[[dependencies.aurapoints]]
+    modId = "neoforge"
+    type = "required"
+    versionRange = "[21.1.0,)"
+    ordering = "NONE"
+    side = "BOTH"
+
+[[dependencies.aurapoints]]
+    modId = "minecraft"
+    type = "required"
+    versionRange = "[1.21.1,1.21.2)"
+    ordering = "NONE"
+    side = "BOTH"
+
+[[mixins]]
+config = "aurapoints.mixins.json"
+
+[[mixins]]
+config = "aurapoints.neoforge.mixins.json"
+
+[[dependencies.aurapoints]]
+    modId = "geckolib"
+    type = "required"
+    versionRange = "[4.9.3,)"
+    ordering = "AFTER"
+    side = "BOTH"
+
+[[dependencies.aurapoints]]
+    modId = "playeranimator"
+    type = "required"
+    versionRange = "[2.0.4,)"
+    ordering = "NONE"
+    side = "CLIENT"
+
+[[dependencies.aurapoints]]
+    modId = "puffish_skills"
+    type = "required"
+    versionRange = "[0.19,)"
+    ordering = "NONE"
+    side = "BOTH"

@@ -1,0 +1,17 @@
+// The whole mod against plain Minecraft (no loader). Only compiled to prove common/ has no loader code in it;
+// the loader projects compile these same sources into their jars.
+plugins {
+	id 'net.neoforged.moddev'
+}
+
+neoForge {
+	neoFormVersion = project.neoform_version
+}
+
+dependencies {
+	compileOnly 'org.spongepowered:mixin:0.8.5'
+	compileOnly 'io.github.llamalad7:mixinextras-common:0.4.1'
+	compileOnly "software.bernie.geckolib:geckolib-common-1.21.1:${geckolib_version}"
+	// Player Animator's API is the same on both loaders; the NeoForge build is plain Mojang names
+	compileOnly "maven.modrinth:playeranimator:HJZB6bmA" // 2.0.4+1.21.1-forge
+}

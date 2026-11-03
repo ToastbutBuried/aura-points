@@ -1,0 +1,72 @@
+plugins {
+	id 'net.neoforged.moddev'
+}
+
+// the NeoForge jar keeps its old name (aura-points-<ver>.jar): deploy, updater and installer look for it
+base.archivesName = project.archives_base_name
+
+neoForge {
+	version = project.neoforge_version
+
+	// Puffish's Skills is talked to purely through its /puffish_skills command (PuffishBridge.java), so it is only
+	// a runtime dependency here; the mod ships its skill trees in data/puffish_skills.
+
+	runs {
+		configureEach {
+			// the dev world, configs and rcon password from before the multiloader split
+			gameDirectory = rootProject.file('run')
+		}
+		client {
+			client()
+			// gradle runClient -Pmodeltest: opens the showcase world and lays out the model test scene (DevModelTest)
+			if (project.hasProperty('modeltest')) {
+				systemProperty 'aurapoints.modeltest', 'true'
+				programArguments.addAll '--quickPlaySingleplayer', 'aura_showcase'
+			}
+			// gradle runClient -Pgeotest: the showcase world with every GeckoLib ability model lined up (DevGeoTest)
+			if (project.hasProperty('geotest')) {
+				systemProperty 'aurapoints.geotest', 'true'
+				if (project.hasProperty('geoonly')) systemProperty 'aurapoints.geoonly', project.property('geoonly')
+				if (project.hasProperty('geoyaw')) systemProperty 'aurapoints.geoyaw', project.property('geoyaw')
+				programArguments.addAll '--quickPlaySingleplayer', 'aura_showcase'
+			}
+			// gradle runClient -Picetest: the showcase world, an Ice Spike held charging, third person (DevIceTest)
+			if (project.hasProperty('icetest')) {
+				systemProperty 'aurapoints.icetest', 'true'
+				programArguments.addAll '--quickPlaySingleplayer', 'aura_showcase'
+			}
+		}
+		server {
+			server()
+			systemProperty 'aurapoints.devtest', 'true'
+		}
+		data {
+			data()
+		}
+	}
+
+	mods {
+		aurapoints {
+			sourceSet sourceSets.main
+		}
+	}
+}
+
+// Player Animator (KosmX) drives the ability animations. Client side only: the server never
+// loads it, every player needs it installed (neoforge.mods.toml marks it required on the client).
+dependencies {
+	compileOnly "maven.modrinth:playeranimator:HJZB6bmA" // 2.0.4+1.21.1-forge
+	runtimeOnly "maven.modrinth:playeranimator:HJZB6bmA"
+	// required at runtime (neoforge.mods.toml): Puffish's Skills 0.19.1 + Attributes 0.8.3
+	runtimeOnly "maven.modrinth:skills:uqAz8XFU"
+	runtimeOnly "maven.modrinth:FCFcFw09:ZySEqrUb"
+	// GeckoLib draws the animated ability models (viper head, clone, sentinel ...). Needed on the server and every client.
+	implementation "software.bernie.geckolib:geckolib-neoforge-1.21.1:${geckolib_version}"
+}
+
+processResources {
+	inputs.property "version", project.version
+	filesMatching("META-INF/neoforge.mods.toml") {
+		expand "version": project.version
+	}
+}

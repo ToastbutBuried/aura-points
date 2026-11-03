@@ -1,114 +1,95 @@
+// Shared setup for common/, neoforge/ and fabric/. Each loader project compiles common's sources and resources
+// into its own jar (see commonSources() below), so common never ships as a jar of its own.
 plugins {
-	id 'java-library'
-	id 'maven-publish'
-	id 'net.neoforged.moddev' version '2.0.78'
+	id 'net.neoforged.moddev' version '2.0.148' apply false
+	id 'fabric-loom' version '1.17.21' apply false
 }
 
-version = project.mod_version
-group = project.maven_group
+subprojects {
+	apply plugin: 'java-library'
 
-base {
-	archivesName = project.archives_base_name
-}
+	version = project.mod_version
+	group = project.maven_group
+	base.archivesName = "${project.archives_base_name}-${project.name}"
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+	java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-repositories {
-	mavenCentral()
-	// GeckoLib
-	maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
-	// Player Animator, Puffish's Skills + Attributes (Modrinth: maven.modrinth:<project>:<version id>)
-	exclusiveContent {
-		forRepository { maven { url 'https://api.modrinth.com/maven' } }
-		filter { includeGroup 'maven.modrinth' }
-	}
-}
-
-neoForge {
-	version = project.neoforge_version
-
-	// Puffish's Skills is talked to purely through its /puffish_skills command (PuffishBridge.java), so it is only
-	// a runtime dependency here; the mod ships its skill trees in data/puffish_skills.
-
-	runs {
-		client {
-			client()
-			// gradle runClient -Pmodeltest: opens the showcase world and lays out the model test scene (DevModelTest)
-			if (project.hasProperty('modeltest')) {
-				systemProperty 'aurapoints.modeltest', 'true'
-				programArguments.addAll '--quickPlaySingleplayer', 'aura_showcase'
-			}
-			// gradle runClient -Pgeotest: the showcase world with every GeckoLib ability model lined up (DevGeoTest)
-			if (project.hasProperty('geotest')) {
-				systemProperty 'aurapoints.geotest', 'true'
-				if (project.hasProperty('geoonly')) systemProperty 'aurapoints.geoonly', project.property('geoonly')
-				if (project.hasProperty('geoyaw')) systemProperty 'aurapoints.geoyaw', project.property('geoyaw')
-				programArguments.addAll '--quickPlaySingleplayer', 'aura_showcase'
-			}
-			// gradle runClient -Picetest: the showcase world, an Ice Spike held charging, third person (DevIceTest)
-			if (project.hasProperty('icetest')) {
-				systemProperty 'aurapoints.icetest', 'true'
-				programArguments.addAll '--quickPlaySingleplayer', 'aura_showcase'
-			}
-		}
-		server {
-			server()
-			systemProperty 'aurapoints.devtest', 'true'
-		}
-		data {
-			data()
-		}
-	}
-
-	mods {
-		aurapoints {
-			sourceSet sourceSets.main
-		}
-	}
-}
-
-// Player Animator (KosmX) drives the ability animations. Client side only: the server never
-// loads it, every player needs it installed (neoforge.mods.toml marks it required on the client).
-dependencies {
-	compileOnly "maven.modrinth:playeranimator:HJZB6bmA" // 2.0.4+1.21.1-forge
-	runtimeOnly "maven.modrinth:playeranimator:HJZB6bmA"
-	// required at runtime (neoforge.mods.toml): Puffish's Skills 0.19.1 + Attributes 0.8.3
-	runtimeOnly "maven.modrinth:skills:uqAz8XFU"
-	runtimeOnly "maven.modrinth:FCFcFw09:ZySEqrUb"
-	// GeckoLib draws the animated ability models (viper head, clone, sentinel ...). Needed on the server and every client.
-	implementation "software.bernie.geckolib:geckolib-neoforge-1.21.1:${geckolib_version}"
-}
-
-tasks.withType(JavaCompile).configureEach {
-	it.options.encoding = "UTF-8"
-	it.options.release = 21
-}
-
-processResources {
-	inputs.property "version", project.version
-	filesMatching("META-INF/neoforge.mods.toml") {
-		expand "version": project.version
-	}
-}
-
-jar {
-	manifest {
-		attributes([
-			"Specification-Title"  : project.archives_base_name,
-			"Specification-Vendor" : "ToastbutBuried",
-			"Implementation-Title" : project.archives_base_name,
-			"Implementation-Version": project.version,
-			"Implementation-Vendor": "ToastbutBuried"
-		])
-	}
-}
-
-publishing {
-	publications {
-		mavenJava(MavenPublication) {
-			from components.java
-		}
-	}
 	repositories {
+		mavenCentral()
+		// GeckoLib
+		maven { url 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/' }
+		// Mixin annotations for common
+		maven { url 'https://repo.spongepowered.org/repository/maven-public/' }
+		maven { url 'https://maven.fabricmc.net/' }
+		// Player Animator, Puffish's Skills + Attributes (Modrinth: maven.modrinth:<project>:<version id>)
+		exclusiveContent {
+			forRepository { maven { url 'https://api.modrinth.com/maven' } }
+			filter { includeGroup 'maven.modrinth' }
+		}
+		// FTB Quests / Teams / Library (Fabric dev runs only; the mod talks to them by reflection)
+		exclusiveContent {
+			forRepository { maven { url 'https://maven.ftb.dev/releases' } }
+			filter { includeGroup 'dev.ftb.mods' }
+		}
+		exclusiveContent {
+			forRepository { maven { url 'https://maven.architectury.dev/' } }
+			filter { includeGroup 'dev.architectury' }
+		}
 	}
+
+	tasks.withType(JavaCompile).configureEach {
+		it.options.encoding = "UTF-8"
+		it.options.release = 21
+	}
+
+	jar {
+		manifest {
+			attributes([
+				"Specification-Title"  : project.archives_base_name,
+				"Specification-Vendor" : "ToastbutBuried",
+				"Implementation-Title" : project.archives_base_name,
+				"Implementation-Version": project.version,
+				"Implementation-Vendor": "ToastbutBuried"
+			])
+		}
+	}
+}
+
+// Loader projects: add common's java + resources to their main source set, and list every class with an
+// @EventBusSubscriber (shim) annotation in aurapoints-subscribers.txt, which shim/AuraBus registers at startup.
+configure(subprojects.findAll { it.name != 'common' }) {
+	def common = project(':common')
+	sourceSets.main.java.srcDir common.file('src/main/java')
+	sourceSets.main.resources.srcDir common.file('src/main/resources')
+	sourceSets.main.resources.srcDir layout.buildDirectory.dir('generated/subscribers')
+
+	def genSubscribers = tasks.register('generateSubscriberList') {
+		def srcRoots = [common.file('src/main/java'), file('src/main/java')]
+		def out = layout.buildDirectory.file('generated/subscribers/aurapoints-subscribers.txt')
+		inputs.files(srcRoots.collect { fileTree(it) { include '**/*.java' } })
+		outputs.file(out)
+		doLast {
+			def lines = []
+			srcRoots.each { root ->
+				fileTree(root) { include '**/*.java' }.each { f ->
+					def text = f.text
+					if (text =~ /(?m)^\s*@(?:com\.toast\.aurapoints\.shim\.fml\.common\.)?EventBusSubscriber\b/) {
+						def rel = root.toPath().relativize(f.toPath()).toString().replace(File.separatorChar, '.' as char)
+						lines << rel.substring(0, rel.length() - 5)
+					}
+					// nested static classes with the annotation (AuraPoints.GameEvents)
+					(text =~ /(?m)^\s*@(?:com\.toast\.aurapoints\.shim\.fml\.common\.)?EventBusSubscriber\b[^\n]*\n\s*public static (?:final )?class (\w+)/).each { m ->
+						def rel = root.toPath().relativize(f.toPath()).toString().replace(File.separatorChar, '.' as char)
+						def outer = rel.substring(0, rel.length() - 5)
+						lines.remove(outer)
+						lines << outer + '$' + m[1]
+					}
+				}
+			}
+			def o = out.get().asFile
+			o.parentFile.mkdirs()
+			o.text = lines.unique().sort().join('\n') + '\n'
+		}
+	}
+	tasks.named('processResources') { dependsOn genSubscribers }
 }
