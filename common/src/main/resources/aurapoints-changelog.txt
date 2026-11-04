@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.15.2
+- Shadow dragon, rider in first person: the mane along the top of the skull and the nose horn are no longer drawn at all, so nothing blocks your view (works with shader packs). New client option "Dragon transparency: shader support": turn it on if the dragon transparency does nothing with your shader pack.
+
 == 5.15.1
 - Shadow dragon: when you ride it in first person, the horn right in front of you is now see-through so it no longer blocks your view. New client option "Dragon transparency (rider)" (Options > Mods > Aura Points > Feedback, default 0 = solid) makes the whole head see-through for you; only the rider sees it.
 
