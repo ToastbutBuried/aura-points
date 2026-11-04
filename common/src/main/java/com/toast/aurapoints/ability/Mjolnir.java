@@ -40,7 +40,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 /**
- * Mjölnir (test phase, owner only - see item/MjolnirItem). Hold Ability 3 with it in your main hand: you
+ * Mjölnir (test phase, owner only - see item/MjolnirItem). Hold the Mjölnir Swing key (own rebindable key) with it in your main hand: you
  * whirl it at your side (MJOLNIR_SPIN pose), faster and faster, wind whooshing, sparks on its path; after
  * SPIN_TICKS lightning strikes the hammer and it is Charged for CHARGED_TICKS. While charged, the
  * Frost-style streak counts: STREAK_HITS full-strength hits in a row (each within STREAK_WINDOW_TICKS of the
@@ -64,7 +64,7 @@ public final class Mjolnir {
 		return player.getMainHandItem().is(AuraPoints.MJOLNIR_ITEM.get());
 	}
 
-	/** Ability 3 belongs to Mjölnir while its worthy wielder holds it (or is still spinning it). */
+	/** The Mjölnir Swing key works while its worthy wielder holds the hammer (a release counts while still spinning it). */
 	public static boolean handlesKey(ServerPlayer player, boolean down) {
 		if (!down) return SPINNING.containsKey(player.getUUID());
 		return holding(player) && AuraCommand.isOwner(player);
@@ -552,28 +552,33 @@ public final class Mjolnir {
 	}
 
 	// ---------------------------------------------------------------
-	// Flight: spinning, then left-click - you're carried along the path the hammer would fly (toward the
-	// crosshair, up to FLIGHT_RANGE or the first wall), hammer first. Anyone in the way gets hit (a charged
-	// hammer brings the thunder down on the first). No fall damage until you land. NoGravity while flying,
-	// tagged so a crash mid-flight can't leave you floating (cleared on login).
+	// Flight: spinning, then HOLD left-click - you're carried where you point, hammer first. The heading follows
+	// your aim every tick (FLIGHT_STEERING), so you can change direction mid-flight; you only stop once you let go
+	// of the button (the client reports it: AbilityKeyPacket.MJOLNIR_ATTACK_HELD), swap the hammer out of your hand,
+	// or FLIGHT_MAX_TICKS run out. A wall just stops you against it (you can steer away, still flying). Anyone in
+	// the way gets hit (a charged hammer brings the thunder down on the first). No fall damage until you land.
+	// NoGravity while flying, tagged so a crash mid-flight can't leave you floating (cleared on login).
 	// ---------------------------------------------------------------
 
 	private static final String FLY_TAG = "aurapoints_mjolnir_flight";
 
 	private static final class Ride {
-		final Vec3 dir;
+		Vec3 dir;
 		final double speed;
 		final java.util.Set<LivingEntity> hit = new java.util.HashSet<>();
 		boolean charged;
-		int ticksLeft;
+		/** Left mouse let go (or the hold packet said so). */
+		boolean released;
+		/** Pressed against a wall (the slam effect plays once per contact). */
+		boolean pressed;
+		int age;
 		/** Flight over: waiting to touch down (no fall damage meanwhile). */
 		boolean landing;
 		int landingTicks;
 
-		Ride(Vec3 dir, double speed, int ticks, boolean charged) {
+		Ride(Vec3 dir, double speed, boolean charged) {
 			this.dir = dir;
 			this.speed = speed;
-			this.ticksLeft = ticks;
 			this.charged = charged;
 		}
 	}
@@ -584,6 +589,12 @@ public final class Mjolnir {
 	public static boolean isFlying(ServerPlayer player) {
 		Ride r = RIDING.get(player.getUUID());
 		return r != null && !r.landing;
+	}
+
+	/** The client's attack button went down or up while it holds Mjölnir: letting go ends a flight. */
+	public static void attackHeld(ServerPlayer player, boolean down) {
+		Ride r = RIDING.get(player.getUUID());
+		if (r != null && !r.landing && !down) r.released = true;
 	}
 
 	/** A left-click (at the air, a block or a mob). True if it started a flight - the click itself is then cancelled. */
@@ -602,14 +613,8 @@ public final class Mjolnir {
 			STREAK.remove(player.getUUID());
 		}
 		ServerLevel level = player.serverLevel();
-		Vec3 dir = player.getLookAngle().normalize();
-		Vec3 eye = player.getEyePosition();
-		double range = AuraConfig.MJOLNIR_FLIGHT_RANGE;
-		HitResult block = level.clip(new ClipContext(eye, eye.add(dir.scale(range)), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-		double distance = block.getType() == HitResult.Type.MISS ? range : Math.max(1.0, eye.distanceTo(block.getLocation()) - 0.8);
 		double speed = Math.max(0.3, AuraConfig.MJOLNIR_FLIGHT_SPEED);
-		RIDING.put(player.getUUID(), new Ride(dir, speed, Math.max(1, (int) Math.ceil(distance / speed)), charged));
-		FLIGHT_READY.put(player.getUUID(), now + AuraConfig.MJOLNIR_FLIGHT_COOLDOWN_TICKS);
+		RIDING.put(player.getUUID(), new Ride(player.getLookAngle().normalize(), speed, charged));
 		player.setNoGravity(true);
 		player.addTag(FLY_TAG);
 		player.fallDistance = 0;
@@ -624,6 +629,7 @@ public final class Mjolnir {
 
 	private static void tickRides(MinecraftServer server) {
 		if (RIDING.isEmpty()) return;
+		long now = server.getTickCount();
 		for (Iterator<Map.Entry<UUID, Ride>> it = RIDING.entrySet().iterator(); it.hasNext(); ) {
 			var e = it.next();
 			ServerPlayer p = server.getPlayerList().getPlayer(e.getKey());
@@ -632,21 +638,22 @@ public final class Mjolnir {
 				it.remove();
 				continue;
 			}
-			if (!p.isAlive() || p.isSpectator() || IceSpike.isFrozen(p) || Stun.isStunned(p) || Entanglement.isEntangled(p)) {
-				endFlight(p, r);
-				it.remove();
-				continue;
-			}
 			if (r.landing) {
 				p.fallDistance = 0;
 				if (p.onGround() || p.isInWater() || ++r.landingTicks > 200) it.remove();
+				continue;
+			}
+			if (!p.isAlive() || p.isSpectator() || IceSpike.isFrozen(p) || Stun.isStunned(p) || Entanglement.isEntangled(p)
+					|| r.released || !holding(p) || ++r.age > Math.max(1, AuraConfig.MJOLNIR_FLIGHT_MAX_TICKS)) {
+				endFlight(p, r, now);
+				if (!p.isAlive() || p.isSpectator()) it.remove();
 				continue;
 			}
 			try {
 				ride(p, r);
 			} catch (Exception ex) {
 				AuraPoints.LOGGER.error("Mjölnir flight failed", ex);
-				endFlight(p, r);
+				endFlight(p, r, now);
 				it.remove();
 			}
 		}
@@ -655,6 +662,10 @@ public final class Mjolnir {
 	private static void ride(ServerPlayer player, Ride r) {
 		ServerLevel level = player.serverLevel();
 		player.fallDistance = 0;
+		// steer: the heading swings toward where you look
+		Vec3 look = player.getLookAngle().normalize();
+		Vec3 steered = r.dir.lerp(look, Mth.clamp(AuraConfig.MJOLNIR_FLIGHT_STEERING, 0.05, 1.0));
+		r.dir = steered.lengthSqr() < 1.0e-4 ? look : steered.normalize();
 		Vec3 chest = AuraFx.chest(player);
 		Vec3 step = r.dir.scale(r.speed);
 		Vec3 ahead = chest.add(r.dir.scale(r.speed + 1.0));
@@ -676,17 +687,20 @@ public final class Mjolnir {
 			}
 			level.playSound(null, e.getX(), e.getY(), e.getZ(), AuraSounds.MACE_SMASH_GROUND_HEAVY.value(), SoundSource.PLAYERS, 1.0f, 1.1f);
 		}
-		// a wall: slam into it and stop
+		// a wall: slam into it (once) and hang there - still flying, steer away or let go
 		HitResult wall = level.clip(new ClipContext(chest, chest.add(step).add(r.dir.scale(0.4)), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-		if (wall.getType() != HitResult.Type.MISS || --r.ticksLeft < 0) {
-			if (wall.getType() != HitResult.Type.MISS) {
+		if (wall.getType() != HitResult.Type.MISS) {
+			if (!r.pressed) {
+				r.pressed = true;
 				Vec3 w = wall.getLocation();
 				Thunderbolt.impact(level, w, 1.0f);
 				level.playSound(null, w.x, w.y, w.z, AuraSounds.MACE_SMASH_GROUND.value(), SoundSource.PLAYERS, 1.2f, 0.9f);
 			}
-			endFlight(player, r);
+			player.setDeltaMovement(Vec3.ZERO);
+			player.hurtMarked = true;
 			return;
 		}
+		r.pressed = false;
 		player.setDeltaMovement(step);
 		player.hurtMarked = true;
 		// the hammer leading: lightning off its head, wind behind
@@ -695,17 +709,18 @@ public final class Mjolnir {
 		Thunderbolt.send(level, AuraFx.dust(Thunderbolt.GLOW, 1.3f), chest.x, chest.y, chest.z, 3, 0.25, 0.4, 0.25, 0);
 		Thunderbolt.send(level, ParticleTypes.CLOUD, chest.x, chest.y - 0.4, chest.z, 1, 0.2, 0.2, 0.2, 0.01);
 		if (player.getRandom().nextFloat() < 0.5f) Thunderbolt.bolt(level, head, head.add(r.dir.scale(1.2)).add(player.getRandom().nextGaussian() * 0.3, player.getRandom().nextGaussian() * 0.3, player.getRandom().nextGaussian() * 0.3), 0.4f, 0, 1);
-		if (r.ticksLeft % 4 == 0) level.playSound(null, chest.x, chest.y, chest.z, AuraSounds.ELYTRA_FLYING.value(), SoundSource.PLAYERS, 0.15f, 1.6f);
+		if (r.age % 4 == 0) level.playSound(null, chest.x, chest.y, chest.z, AuraSounds.ELYTRA_FLYING.value(), SoundSource.PLAYERS, 0.15f, 1.6f);
 	}
 
-	/** Out of the air: gravity back, a little momentum, no fall damage until the ground. */
-	private static void endFlight(ServerPlayer player, Ride r) {
+	/** Out of the air: gravity back, a little momentum, no fall damage until the ground. The flight cooldown starts now. */
+	private static void endFlight(ServerPlayer player, Ride r, long now) {
 		player.setNoGravity(false);
 		player.removeTag(FLY_TAG);
-		player.setDeltaMovement(r.dir.scale(Math.min(0.4, r.speed * 0.25)));
+		player.setDeltaMovement(r.pressed ? Vec3.ZERO : r.dir.scale(Math.min(0.4, r.speed * 0.25)));
 		player.hurtMarked = true;
 		player.fallDistance = 0;
 		NetworkHandler.sendBendAnim(player, BendingAnimPacket.NONE);
+		FLIGHT_READY.put(player.getUUID(), now + AuraConfig.MJOLNIR_FLIGHT_COOLDOWN_TICKS);
 		r.landing = true;
 	}
 

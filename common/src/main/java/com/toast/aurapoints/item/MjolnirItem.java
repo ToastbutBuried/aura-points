@@ -22,7 +22,7 @@ import java.util.List;
 
 /**
  * Mjölnir - test phase, only the server owner may wield it (/aura mjolnir gives it). A heavy hammer:
- * hold Ability 3 to whirl it (ability/Mjolnir), a full spin draws lightning into it, and while it is
+ * hold the Mjölnir Swing key to whirl it (ability/Mjolnir), a full spin draws lightning into it, and while it is
  * charged the 3rd charged hit in a row calls a thunder strike down on the target. Anyone else holding it
  * is not worthy: slowed and weakened to a crawl.
  */
@@ -74,9 +74,9 @@ public class MjolnirItem extends Item implements software.bernie.geckolib.animat
 	@Override
 	public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag type) {
 		tooltip.add(Component.literal("Test phase - only the worthy can wield it.").withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC));
-		tooltip.add(Component.literal("Hold Ability 3 to spin it until lightning strikes it.").withStyle(ChatFormatting.GRAY));
+		tooltip.add(Component.translatable("item.aurapoints.mjolnir.tip_swing", Component.keybind("key.aurapoints.mjolnirswing")).withStyle(ChatFormatting.GRAY));
 		tooltip.add(Component.literal("Right-click to throw it - it comes back. While spinning: a faster throw.").withStyle(ChatFormatting.GRAY));
-		tooltip.add(Component.literal("Spinning, left-click: fly with it.").withStyle(ChatFormatting.GRAY));
+		tooltip.add(Component.literal("Spinning, then HOLD left-click: fly where you point - let go to land.").withStyle(ChatFormatting.GRAY));
 		tooltip.add(Component.literal("Charged: " + AuraConfig.MJOLNIR_STREAK_HITS + " full hits in a row - the last one calls down thunder.").withStyle(ChatFormatting.GRAY));
 		super.appendHoverText(stack, context, tooltip, type);
 	}

@@ -23,6 +23,12 @@ public record AbilityKeyPacket(int key, boolean down) implements CustomPacketPay
 	/** The "Item Tertiary" key's index: added after the Ultimate so the older indexes (and the wire format) stay the same. */
 	public static final int ITEM_TERTIARY = com.toast.aurapoints.ability.AuraType.KEY_SLOTS + 3;
 
+	/** The rebindable "Mjölnir Swing" key (spins the hammer). Added after Item Tertiary so older indexes stay. */
+	public static final int MJOLNIR_SWING = com.toast.aurapoints.ability.AuraType.KEY_SLOTS + 4;
+
+	/** Not a key of its own: the client's attack button (left mouse), held or let go, reported while Mjölnir is in the main hand. Keeps the Mjölnir flight going. */
+	public static final int MJOLNIR_ATTACK_HELD = com.toast.aurapoints.ability.AuraType.KEY_SLOTS + 5;
+
 	public static final Type<AbilityKeyPacket> TYPE =
 			new Type<>(ResourceLocation.fromNamespaceAndPath("aurapoints", "ability_key"));
 

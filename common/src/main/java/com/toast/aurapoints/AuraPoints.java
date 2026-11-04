@@ -536,7 +536,9 @@ public class AuraPoints {
 		/** Hitting a block breaks the Shatter combo (a swing at nothing is reported by the client). Frozen players can't break blocks. */
 		@SubscribeEvent
 		public static void onLeftClickBlock(com.toast.aurapoints.shim.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock event) {
-			if (com.toast.aurapoints.ability.IceSpike.isFrozen(event.getEntity())) {
+			if (com.toast.aurapoints.ability.IceSpike.isFrozen(event.getEntity())
+					|| (event.getEntity() instanceof ServerPlayer flyer && com.toast.aurapoints.ability.Mjolnir.isFlying(flyer))) {
+				// (also while flying with Mjölnir: the held left mouse must not dig up what you are looking at)
 				event.setCanceled(true);
 				return;
 			}

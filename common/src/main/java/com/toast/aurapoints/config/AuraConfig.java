@@ -951,7 +951,7 @@ public final class AuraConfig {
 	public static double CHIDORI_KNOCKBACK = 0.8;
 
 	/**
-	 * Mjölnir (test item, owner only): hold Ability 3 to spin it; after SPIN_TICKS lightning strikes it (SKY_LIGHTNING:
+	 * Mjölnir (test item, owner only): hold the Mjölnir Swing key (rebindable) to spin it; after SPIN_TICKS lightning strikes it (SKY_LIGHTNING:
 	 * a real visual-only bolt too) and it is charged for CHARGED_TICKS. While charged, STREAK_HITS full hits in a row
 	 * (each within STREAK_WINDOW_TICKS of the last) call a thunder strike on the last target: STRIKE_DAMAGE to it,
 	 * SPLASH_DAMAGE to everyone within SPLASH_RADIUS, all thrown (KNOCKBACK) and paralyzed PARALYZE_TICKS.
@@ -976,9 +976,14 @@ public final class AuraConfig {
 	public static double MJOLNIR_THROW_RANGE = 32.0;
 	public static float MJOLNIR_THROW_DAMAGE = 7.0f;
 	public static float MJOLNIR_RETURN_DAMAGE = 3.0f;
-	/** Flight (spin, then left-click): FLIGHT_SPEED blocks a tick toward the crosshair, up to FLIGHT_RANGE or a wall; FLIGHT_DAMAGE to whoever is in the way. */
+	/**
+	 * Flight (spin, then HOLD left-click): FLIGHT_SPEED blocks a tick toward wherever you look, as long as the button is held
+	 * (at most FLIGHT_MAX_TICKS); FLIGHT_STEERING is how fast the heading follows your aim (0.05 lazy .. 1 instant);
+	 * FLIGHT_DAMAGE to whoever is in the way; FLIGHT_COOLDOWN_TICKS after you let go.
+	 */
 	public static double MJOLNIR_FLIGHT_SPEED = 1.5;
-	public static double MJOLNIR_FLIGHT_RANGE = 80.0;
+	public static double MJOLNIR_FLIGHT_STEERING = 0.35;
+	public static int MJOLNIR_FLIGHT_MAX_TICKS = 20 * 30;
 	public static float MJOLNIR_FLIGHT_DAMAGE = 6.0f;
 	public static int MJOLNIR_FLIGHT_COOLDOWN_TICKS = 40;
 

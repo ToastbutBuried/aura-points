@@ -411,6 +411,18 @@ public final class NetworkHandler {
 				if (packet.down()) com.toast.aurapoints.ability.Ultimates.press(player, server.getTickCount());
 				return;
 			}
+			// Mjölnir (owner only): its own swing key spins it; the attack button's held state keeps the flight going
+			if (packet.key() == AbilityKeyPacket.MJOLNIR_SWING) {
+				if (com.toast.aurapoints.ability.Mjolnir.handlesKey(player, packet.down())) {
+					if (packet.down()) com.toast.aurapoints.ability.Mjolnir.press(player, server.getTickCount());
+					else com.toast.aurapoints.ability.Mjolnir.release(player);
+				}
+				return;
+			}
+			if (packet.key() == AbilityKeyPacket.MJOLNIR_ATTACK_HELD) {
+				com.toast.aurapoints.ability.Mjolnir.attackHeld(player, packet.down());
+				return;
+			}
 			// Never trust the client: ignore indexes that do not map to a key.
 			int itemSlot = itemSlot(packet.key());
 			if (packet.key() < 0 || (packet.key() >= slots && itemSlot < 0)) return;
@@ -420,13 +432,6 @@ public final class NetworkHandler {
 				com.toast.aurapoints.AuraHooks.setItemKey(player, itemSlot, packet.down() && !frozen);
 				// Item Use with a handheld weapon: its ability
 				if (packet.key() == slots && packet.down() && !frozen) com.toast.aurapoints.ability.Handhelds.onItemKey(player);
-				return;
-			}
-
-			// Ability 3 while holding Mjölnir: spin it (test item, owner only)
-			if (packet.key() == 2 && com.toast.aurapoints.ability.Mjolnir.handlesKey(player, packet.down())) {
-				if (packet.down()) com.toast.aurapoints.ability.Mjolnir.press(player, server.getTickCount());
-				else com.toast.aurapoints.ability.Mjolnir.release(player);
 				return;
 			}
 

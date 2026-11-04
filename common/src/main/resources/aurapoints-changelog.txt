@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.15.0
+- Mjölnir (owner): spinning it now has its own key, "Mjölnir Swing" in Options > Controls > Aura Points (bind it; Ability 3 is free again). Flight: spin, then HOLD left click - you fly where you point and can change direction mid-air, and you keep flying until you let go of the button. All the new values (flight steering, max flight time) are in the Balance Tome under Thunder.
+
 == 5.14.1
 - The shadow dragon's body is now sent and drawn from up to 384 blocks away (the server's view distance and your own render distance still cap it). Before it stopped at 160.
 
