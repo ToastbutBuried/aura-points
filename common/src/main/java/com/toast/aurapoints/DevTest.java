@@ -303,6 +303,54 @@ final class DevTest {
 			return 1;
 		})));
 		// /auradev icespike: a fake player charges a full Ice Spike at a zombie; logs the frost shard displays every tick
+		// /auradev perf: microseconds per player-tick of every per-player hook, for each aura (fake player, all actives owned)
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("perf").executes(ctx -> {
+			var server = ctx.getSource().getServer();
+			ServerLevel level = server.overworld();
+			net.minecraft.server.level.ServerPlayer p = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("41C82C87-7AfB-4024-BA57-13D2C99CAE77"), "[AuraDev]"));
+			p.moveTo(40.5, level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, 40, 40), 40.5, 0f, 0f);
+			var state = com.toast.aurapoints.data.AuraState.get(server);
+			var data = state.getOrCreate(p.getUUID());
+			var savedAura = data.aura;
+			java.util.Set<com.toast.aurapoints.ability.AuraAbilities.Ability> savedOwned = java.util.EnumSet.noneOf(com.toast.aurapoints.ability.AuraAbilities.Ability.class);
+			savedOwned.addAll(data.owned);
+			data.owned.addAll(java.util.Arrays.asList(com.toast.aurapoints.ability.AuraAbilities.Ability.values()));
+			int n = 4000;
+			String[] names = {"doubleJump", "passives", "earth", "light", "blood", "void", "syncCooldowns", "idle", "cosmetics", "berserker"};
+			for (com.toast.aurapoints.ability.AuraType aura : com.toast.aurapoints.ability.AuraType.values()) {
+				data.aura = aura;
+				long[] ns = new long[names.length];
+				for (int round = 0; round < 2; round++) { // round 0 warms up
+					java.util.Arrays.fill(ns, 0);
+					for (int i = 0; i < n; i++) {
+						long now = server.getTickCount() + i, t;
+						t = System.nanoTime(); com.toast.aurapoints.ability.AuraAbilities.tickDoubleJump(p); ns[0] += System.nanoTime() - t;
+						t = System.nanoTime(); com.toast.aurapoints.ability.AuraAbilities.tickPassives(p, data, now); ns[1] += System.nanoTime() - t;
+						t = System.nanoTime(); com.toast.aurapoints.ability.Earth.tickPassives(p, data, now); ns[2] += System.nanoTime() - t;
+						t = System.nanoTime(); com.toast.aurapoints.ability.Light.tickPassives(p, data, now); ns[3] += System.nanoTime() - t;
+						t = System.nanoTime(); com.toast.aurapoints.ability.Blood.tickPassives(p, data, now); ns[4] += System.nanoTime() - t;
+						t = System.nanoTime(); com.toast.aurapoints.ability.VoidAura.tickPassives(p, data, now); ns[5] += System.nanoTime() - t;
+						t = System.nanoTime(); AuraHooks.syncCooldowns(p, now); ns[6] += System.nanoTime() - t;
+						t = System.nanoTime(); com.toast.aurapoints.ability.IdleAnimations.tick(p, data, now); ns[7] += System.nanoTime() - t;
+						t = System.nanoTime(); com.toast.aurapoints.cosmetic.Cosmetics.tick(p, data, now); ns[8] += System.nanoTime() - t;
+						t = System.nanoTime(); if (now % 10 == 0) com.toast.aurapoints.ability.AuraAbilities.refreshBerserkerModifier(p,
+								com.toast.aurapoints.ability.AuraAbilities.hasAbility(data, com.toast.aurapoints.ability.AuraAbilities.Ability.BERSERKER)); ns[9] += System.nanoTime() - t;
+					}
+					com.toast.aurapoints.ability.AuraFx.clearAll(); // drop the particles/delayed effects the passives queued
+				}
+				StringBuilder line = new StringBuilder();
+				long total = 0;
+				for (int k = 0; k < names.length; k++) {
+					total += ns[k];
+					line.append(names[k]).append('=').append(String.format("%.1f", ns[k] / (double) n / 1000.0)).append(' ');
+				}
+				AuraPoints.LOGGER.info("[perf] {} total={}us/player-tick | {}", aura.id(), String.format("%.1f", total / (double) n / 1000.0), line);
+			}
+			data.aura = savedAura;
+			data.owned.clear();
+			data.owned.addAll(savedOwned);
+			return 1;
+		})));
 		// /auradev fire <x> <z>: an aura fire on the ground there (no caster); see AuraFire (put out after AURA_FIRE_SECONDS, even if its chunk unloaded meanwhile)
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("fire")
 				.then(Commands.argument("x", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
