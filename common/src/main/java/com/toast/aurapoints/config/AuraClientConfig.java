@@ -248,7 +248,7 @@ public final class AuraClientConfig {
 						"Only the rider sees this, everyone else sees it solid. In first person the mane and nose horn are always hidden on top of this.")
 				.translation("aurapoints.configuration.dragonTransparency")
 				.defineInRange("dragonTransparency", 0.0, 0.0, 0.9);
-		DRAGON_SHADER_SUPPORT = b.comment("Force shader mode (it also switches on by itself when Iris/Oculus reports a shader pack, e.g. Photon, Bliss, Complementary/Euphoria): shader packs handle alpha blending unpredictably, so the transparency hides the head step by step instead: at 0.2 mane, horn and tines, 0.4 antlers, whiskers, beard and fins, 0.6 brows and jaw, 0.7 snout, 0.8 the whole head.")
+		DRAGON_SHADER_SUPPORT = b.comment("Force shader mode (it also switches on by itself when Iris/Oculus reports a shader pack, e.g. Photon, Bliss, Complementary/Euphoria): shader packs handle alpha blending unpredictably, so the transparency cuts a fine checker of holes into the head instead (the higher, the more holes).")
 				.translation("aurapoints.configuration.dragonShaderSupport")
 				.define("dragonShaderSupport", false);
 		ARENA_MESSAGES = b.comment("How arena announcements (countdowns, round won, wave cleared, knocked out...) appear:",

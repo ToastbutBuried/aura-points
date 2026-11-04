@@ -24,7 +24,8 @@ import software.bernie.geckolib.util.Color;
  * The RIDER's view is eased: in first person the mane along the top of the skull and the nose horn (the parts at eye
  * level of a big dragon) are not drawn at all, and the whole head can be made see-through with the client option
  * dragonTransparency. With a shader pack (Iris/Oculus: detected, or forced by dragonShaderSupport) alpha blending can't be
- * trusted, so the transparency hides the head's parts step by step instead. Nobody else's view changes.
+ * trusted, so the head is drawn as a cutout with a dithered copy of its texture (a checker of fully transparent texels,
+ * denser the higher the transparency): every shader pack discards those texels. Nobody else's view changes.
  */
 public class DragonHeadRenderer extends GeoEntityRenderer<DragonHead> {
 
@@ -110,17 +111,33 @@ public class DragonHeadRenderer extends GeoEntityRenderer<DragonHead> {
 		return com.toast.aurapoints.config.AuraClientConfig.DRAGON_SHADER_SUPPORT.get() || irisShaders();
 	}
 
-	/**
-	 * From which transparency a bone is not drawn in shader mode (a bone's children go with it, so a parent is never
-	 * hidden before its children): decoration first, the skull last (that is the whole head).
-	 */
-	private static float hideAt(String bone) {
-		if (bone.startsWith("mane") || bone.equals("nose_horn") || bone.startsWith("brow_spike") || bone.startsWith("tine")) return 0.2f;
-		if (bone.startsWith("horn") || bone.startsWith("whisker") || bone.startsWith("beard") || bone.startsWith("fin")) return 0.4f;
-		if (bone.startsWith("brow") || bone.equals("jaw")) return 0.6f;
-		if (bone.equals("snout")) return 0.7f;
-		if (bone.equals("skull")) return 0.8f;
-		return Float.MAX_VALUE;
+	private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("aurapoints", "textures/entity/dragon_head.png");
+	/** Dither steps (of 16: how many of the 4x4 pattern's cells are cut out) -> the texture with that many texels gone. */
+	private static final java.util.Map<Integer, ResourceLocation> DITHERED = new java.util.HashMap<>();
+	/** The 4x4 Bayer matrix: the order the cells of the pattern disappear in, so the holes spread evenly. */
+	private static final int[] BAYER = {0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5};
+
+	/** The head's texture with {@code steps}/16 of its texels made fully transparent in an even pattern (null if it can't be made). */
+	private static ResourceLocation dithered(int steps) {
+		ResourceLocation have = DITHERED.get(steps);
+		if (have != null) return have;
+		try (java.io.InputStream in = Minecraft.getInstance().getResourceManager().open(TEXTURE);
+				com.mojang.blaze3d.platform.NativeImage image = com.mojang.blaze3d.platform.NativeImage.read(in)) {
+			com.mojang.blaze3d.platform.NativeImage out = new com.mojang.blaze3d.platform.NativeImage(image.getWidth(), image.getHeight(), false);
+			for (int y = 0; y < image.getHeight(); y++) {
+				for (int x = 0; x < image.getWidth(); x++) {
+					out.setPixelRGBA(x, y, BAYER[(y & 3) * 4 + (x & 3)] < steps ? 0 : image.getPixelRGBA(x, y));
+				}
+			}
+			ResourceLocation id = ResourceLocation.fromNamespaceAndPath("aurapoints", "dragon_head_dither_" + steps);
+			Minecraft.getInstance().getTextureManager().register(id, new net.minecraft.client.renderer.texture.DynamicTexture(out));
+			DITHERED.put(steps, id);
+			return id;
+		} catch (Exception e) {
+			com.toast.aurapoints.AuraPoints.LOGGER.error("Could not build the dragon's dithered texture", e);
+			DITHERED.put(steps, TEXTURE);
+			return TEXTURE;
+		}
 	}
 
 	@Override
@@ -129,22 +146,25 @@ public class DragonHeadRenderer extends GeoEntityRenderer<DragonHead> {
 		return a >= 0.999f || shaderMode() ? super.getRenderColor(head, partialTick, packedLight) : Color.ofRGBA(1f, 1f, 1f, a);
 	}
 
-	/** Alpha blending needs the translucent render type, used only while the rider picked a transparency and no shader pack is on. */
+	/**
+	 * While the rider picked a transparency: normally alpha blending (the translucent render type); in shader mode a plain
+	 * cutout (culling the inside faces) of the dithered texture. The glow layer keeps the original texture, so the eyes still glow.
+	 */
 	@Override
 	public RenderType getRenderType(DragonHead head, ResourceLocation texture, MultiBufferSource bufferSource, float partialTick) {
-		if (headAlpha(head) < 0.999f && !shaderMode()) return RenderType.entityTranslucent(texture);
+		float a = headAlpha(head);
+		if (a < 0.999f) {
+			if (!shaderMode()) return RenderType.entityTranslucent(texture);
+			int steps = Math.min(15, Math.round((1f - a) * 16f));
+			if (steps > 0) return RenderType.entityCutout(dithered(steps));
+		}
 		return super.getRenderType(head, texture, bufferSource, partialTick);
 	}
 
 	@Override
 	public void renderRecursively(PoseStack poseStack, DragonHead head, GeoBone bone, RenderType renderType, MultiBufferSource bufferSource,
 			VertexConsumer buffer, boolean isReRender, float partialTick, int packedLight, int packedOverlay, int colour) {
-		if (ridden(head)) {
-			String name = bone.getName();
-			if (blocksView(name) && firstPersonRider(head)) return;
-			float t = 1f - headAlpha(head);
-			if (t > 0.001f && shaderMode() && t >= hideAt(name)) return;
-		}
+		if (blocksView(bone.getName()) && firstPersonRider(head)) return;
 		super.renderRecursively(poseStack, head, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour);
 	}
 }

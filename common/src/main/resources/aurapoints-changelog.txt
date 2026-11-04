@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.15.4
+- Dragon transparency with shader packs (Photon...) now really works: with a shader pack on (or "Dragon transparency: shader mode" forced in the client config) the rider's dragon head gets a fine checker of holes instead of blending, more holes the higher the value (0.4-0.6 is a good start). Only the rider sees it.
+
 == 5.15.3
 - Dragon transparency with shader packs (Photon, Bliss, Complementary, Euphoria...): when Iris/Oculus has a shader pack on (or "Dragon transparency: shader mode" is forced on in the client config), the transparency no longer blends; the dragon's head parts disappear step by step as you raise it (decoration first, the whole head at 0.8). Only the rider sees it.
 
