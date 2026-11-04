@@ -300,6 +300,16 @@ public final class Earth {
 		AuraAbilities.markUsed(p, Ability.BOULDER_TOSS, now);
 	}
 
+	/** Frozen or paralyzed: a boulder still held overhead crumbles (no throw, no cooldown). One in flight flies on. */
+	static void dropBoulder(ServerPlayer p) {
+		Boulder b = BOULDERS.get(p.getUUID());
+		if (b == null || b.flying) return;
+		BOULDERS.remove(p.getUUID());
+		release(p);
+		NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
+		crumble(b, b.pos);
+	}
+
 	private static void release(ServerPlayer p) {
 		AttributeInstance speed = p.getAttribute(Attributes.MOVEMENT_SPEED);
 		if (speed != null) speed.removeModifier(BOULDER_SLOW);

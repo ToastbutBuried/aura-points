@@ -63,6 +63,22 @@ public final class Stun {
 		modifiers(player, true);
 	}
 
+	/**
+	 * Frozen (IceSpike.lock) or paralyzed (stun): whatever the player was holding falls apart - a spike, a flame, a
+	 * wind ball, the bubble, a held Wind key, the Prism Beam, a boulder overhead, someone in their grasp.
+	 */
+	static void breakHolds(ServerPlayer player) {
+		long now = player.getServer() == null ? 0 : player.getServer().getTickCount();
+		IceSpike.drop(player);
+		FireBending.drop(player);
+		AirBending.drop(player);
+		AbyssalBubble.drop(player);
+		WindLaunch.cancelHolds(player);
+		Light.beamRelease(player, now);
+		Earth.dropBoulder(player);
+		Resonance.dropGrasp(player);
+	}
+
 	private static void modifiers(ServerPlayer player, boolean on) {
 		var speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
 		var jump = player.getAttribute(Attributes.JUMP_STRENGTH);

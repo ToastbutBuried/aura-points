@@ -804,6 +804,13 @@ public final class Resonance {
 		AuraAbilities.markUsed(owner, Ability.ABYSSAL_GRASP, now);
 	}
 
+	/** Frozen or paralyzed: the tentacles let go (or stop reaching) - no throw, no cooldown. */
+	static void dropGrasp(ServerPlayer owner) {
+		if (!GRASPS.containsKey(owner.getUUID())) return;
+		drop(owner.getUUID());
+		NetworkHandler.sendGrasp(owner, com.toast.aurapoints.network.GraspPacket.NONE, null, null, 0);
+	}
+
 	/** The held one is let go where they hang (the owner is gone). */
 	private static void drop(UUID owner) {
 		Grasp g = GRASPS.remove(owner);

@@ -229,7 +229,7 @@ public final class IceSpike {
 	}
 
 	/** Gone without a throw or cooldown (ability lost, death, logout). */
-	private static void drop(ServerPlayer player) {
+	static void drop(ServerPlayer player) {
 		if (CHARGING.remove(player.getUUID()) == null) return;
 		removeShard(HELD.remove(player.getUUID()));
 		NetworkHandler.sendFireBending(player, false, 0, 0);
@@ -476,12 +476,7 @@ public final class IceSpike {
 		}
 		target.stopUsingItem();
 		if (target instanceof ServerPlayer player) {
-			// whatever they were holding falls apart: a spike, a flame, a wind ball, the bubble, a held Wind key
-			drop(player);
-			FireBending.drop(player);
-			AirBending.drop(player);
-			AbyssalBubble.drop(player);
-			WindLaunch.cancelHolds(player);
+			Stun.breakHolds(player); // whatever they were holding falls apart
 			NetworkHandler.sendFrozen(player, ticks);
 		}
 	}
