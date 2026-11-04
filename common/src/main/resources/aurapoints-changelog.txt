@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.13.0
+- The last four auras get their branches (pick at Mastery V in the Aura Book): Water (Tidecaller: bigger Healing Tide that soaks enemies Wet; Leviathan: Iron Skin stacks while you are hit), Thunder (Surge: faster Thunderbolt, Chidori and Static Charge; Conductor: wider chains, Chidori arcs, Charged targets spread damage), Wind (Skyrunner: two-use Dash and Double Jump, Gale Rider lingers; Cyclone: the wind blast pulls enemies in, harder Firestorm and Storm) and Resonance (Dirge: harder darts that deafen; Chorus: longer trees, 5 blossoms, Echolocation shows friends). Every aura has branches now.
+- Fixed: Frostbite's Brittle bonus now sees Chilled marks left by Frost hits.
+
 == 5.12.0
 - Branches for Light and Blood (pick at Mastery V in the Aura Book): Light is Radiant (bigger heals, Halo gives friends Resistance I) or Prismatic (stronger Prism Beam that chains from targets your Solar Flash marked); Blood is Sanguine (Hemorrhage and bleeding heal you, faster blood bar, dearer Blood Moon) or Sacrificial (Crimson Sacrifice and Blood Tether cost more health for much bigger effects, cheaper Blood Moon). Every branch has a price, see the Branches page.
 

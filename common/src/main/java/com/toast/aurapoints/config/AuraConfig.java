@@ -464,6 +464,60 @@ public final class AuraConfig {
 	public static float BLOOD_SACRIFICIAL_LUST_HEAL = 2.0f;
 	public static double BLOOD_SACRIFICIAL_THIN_THRESHOLD = 0.3;
 
+	/** Water - Tidecaller: a bigger Healing Tide that marks enemies Wet, a harder Shockwave; a thinner Iron Skin, a slower Abyssal Bubble. */
+	public static int WATER_TIDECALLER_HEALING_AMPLIFIER = 2;
+	public static double WATER_TIDECALLER_HEALING_RADIUS = 10.0;
+	public static double WATER_TIDECALLER_SHOCKWAVE_KNOCKBACK = 2.4;
+	public static float WATER_TIDECALLER_IRON_SKIN_REDUCTION = 0.10f;
+	public static int WATER_TIDECALLER_BUBBLE_COOLDOWN_TICKS = 20 * 60;
+	/** Water - Leviathan: Iron Skin gains STACK_BONUS per hit taken (up to MAX_STACKS, gone after STACK_TICKS without a hit), a harder Bubble pull; a weaker Healing Tide and Shockwave. */
+	public static float WATER_LEVIATHAN_STACK_BONUS = 0.05f;
+	public static int WATER_LEVIATHAN_MAX_STACKS = 5;
+	public static int WATER_LEVIATHAN_STACK_TICKS = 100;
+	public static double WATER_LEVIATHAN_BUBBLE_PULL = 0.05;
+	public static int WATER_LEVIATHAN_HEALING_AMPLIFIER = 0;
+	public static double WATER_LEVIATHAN_SHOCKWAVE_FACTOR = 0.75;
+
+	/** Thunder - Surge: faster Thunderbolt and Chidori, Static Charge every STATIC_HITS-th hit arcing to fewer targets; a weaker Wrath and slower Chidori. */
+	public static int THUNDER_SURGE_THUNDERBOLT_COOLDOWN_TICKS = 20 * 14;
+	public static int THUNDER_SURGE_CHIDORI_CHARGE_TICKS = 20;
+	public static int THUNDER_SURGE_STATIC_HITS = 3;
+	public static int THUNDER_SURGE_STATIC_ARC_TARGETS = 1;
+	public static double THUNDER_SURGE_WRATH_FACTOR = 0.75;
+	public static int THUNDER_SURGE_CHIDORI_COOLDOWN_TICKS = 20 * 18;
+	/** Thunder - Conductor: wider chains, Chidori arcs, Charged targets spread damage; one Chidori charge and a slower Thunderbolt. */
+	public static int THUNDER_CONDUCTOR_STATIC_ARC_TARGETS = 4;
+	public static double THUNDER_CONDUCTOR_CHAIN_RADIUS = 8.0;
+	public static int THUNDER_CONDUCTOR_CHAIN_TARGETS = 3;
+	public static int THUNDER_CONDUCTOR_CHIDORI_ARC_TARGETS = 2;
+	public static float THUNDER_CONDUCTOR_CHIDORI_ARC_FRACTION = 0.4f;
+	public static double THUNDER_CONDUCTOR_SPREAD_FRACTION = 0.3;
+	public static int THUNDER_CONDUCTOR_SPREAD_TARGETS = 3;
+	public static double THUNDER_CONDUCTOR_SPREAD_RADIUS = 4.0;
+	public static int THUNDER_CONDUCTOR_CHIDORI_CHARGES = 1;
+	public static int THUNDER_CONDUCTOR_THUNDERBOLT_COOLDOWN_TICKS = 20 * 24;
+
+	/** Wind - Skyrunner: Gale Rider lingers after gliding, two-use Dash and Double Jump charges; a slower Super Wind Charge and a smaller Air Bending blast. */
+	public static int WIND_SKYRUNNER_GALE_LINGER_TICKS = 80;
+	public static int WIND_SKYRUNNER_WIND_CHARGE_COOLDOWN_TICKS = 20 * 28;
+	public static double WIND_SKYRUNNER_BLAST_RADIUS = 4.0;
+	/** Wind - Cyclone: the blast pulls enemies in, Firestorm and Storm hit harder; slower Dash and Double Jump. */
+	public static double WIND_CYCLONE_STORM_FACTOR = 1.5;
+	public static int WIND_CYCLONE_DASH_COOLDOWN_TICKS = 20 * 14;
+	public static int WIND_CYCLONE_DOUBLE_JUMP_COOLDOWN_TICKS = 20 * 5;
+
+	/** Resonance - Dirge: harder darts that deafen (noise pinned at NOISE_DEAF_LEVEL for DEAF_TICKS); a shorter-lived tree and slower Grasp. */
+	public static float RESONANCE_DIRGE_DART_DAMAGE = 3.5f;
+	public static int RESONANCE_DIRGE_DEAF_TICKS = 80;
+	public static int RESONANCE_DIRGE_TREE_TICKS = 20 * 40;
+	public static int RESONANCE_DIRGE_GRASP_COOLDOWN_TICKS = 20 * 30;
+	/** Resonance - Chorus: a longer-lived tree, more blossoms, Echolocation shows friends; weaker darts and a slower Grasp. */
+	public static int RESONANCE_CHORUS_TREE_TICKS = 20 * 90;
+	public static int RESONANCE_CHORUS_BLOSSOM_MAX = 5;
+	public static float RESONANCE_CHORUS_DART_DAMAGE = 1.5f;
+	public static int RESONANCE_CHORUS_GRASP_COOLDOWN_TICKS = 20 * 32;
+	public static float NOISE_DEAF_LEVEL = 60.0f;
+
 	/** Fireborn: how far you see while in lava, in blocks (vanilla: about 1, with Fire Resistance 5; 0 = like vanilla). */
 	public static float FIREBORN_LAVA_SIGHT = 16f;
 	/** Fireball damage on a hit - the same however far it flew. */

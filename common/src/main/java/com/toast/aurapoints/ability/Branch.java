@@ -140,6 +140,64 @@ public enum Branch {
 							+ " and no longer heals you. Blood Moon costs " + AuraConfig.BLOOD_SACRIFICIAL_MOON_COST + " of the bar.",
 					"Price: Bloodlust heals " + AuraAbilities.fmt(AuraConfig.BLOOD_SACRIFICIAL_LUST_HEAL) + " and Thin Blood starts at " + Math.round(AuraConfig.BLOOD_SACRIFICIAL_THIN_THRESHOLD * 100) + "% health.")),
 
+	TIDECALLER(AuraType.WATER, "Tidecaller", ChatFormatting.AQUA, "Support", Items.HEART_OF_THE_SEA,
+			() -> List.of(
+					"Healing Tide regenerates at level " + (AuraConfig.WATER_TIDECALLER_HEALING_AMPLIFIER + 1) + " over " + AuraAbilities.fmt((float) AuraConfig.WATER_TIDECALLER_HEALING_RADIUS)
+							+ " blocks and soaks every enemy in range Wet (feeds Freeze and Conduct).",
+					"Shockwave throws enemies back " + AuraAbilities.fmt((float) AuraConfig.WATER_TIDECALLER_SHOCKWAVE_KNOCKBACK) + " (was " + AuraAbilities.fmt((float) AuraConfig.SHOCKWAVE_KNOCKBACK) + ").",
+					"Price: Iron Skin only " + Math.round(AuraConfig.WATER_TIDECALLER_IRON_SKIN_REDUCTION * 100) + "%, Abyssal Bubble cooldown "
+							+ (AuraConfig.WATER_TIDECALLER_BUBBLE_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.BUBBLE_COOLDOWN_TICKS / 20) + "s).")),
+
+	LEVIATHAN(AuraType.WATER, "Leviathan", ChatFormatting.DARK_AQUA, "Tank", Items.TRIDENT,
+			() -> List.of(
+					"Every hit you take adds " + Math.round(AuraConfig.WATER_LEVIATHAN_STACK_BONUS * 100) + "% to Iron Skin, up to " + AuraConfig.WATER_LEVIATHAN_MAX_STACKS
+							+ " times; the stacks fade after " + (AuraConfig.WATER_LEVIATHAN_STACK_TICKS / 20) + "s without a hit.",
+					"Abyssal Bubble drags enemies in harder.",
+					"Price: Healing Tide regenerates at level " + (AuraConfig.WATER_LEVIATHAN_HEALING_AMPLIFIER + 1) + ", Shockwave deals "
+							+ Math.round((1 - AuraConfig.WATER_LEVIATHAN_SHOCKWAVE_FACTOR) * 100) + "% less.")),
+
+	SURGE(AuraType.THUNDER, "Surge", ChatFormatting.YELLOW, "High tempo", Items.LIGHTNING_ROD,
+			() -> List.of(
+					"Thunderbolt cooldown " + (AuraConfig.THUNDER_SURGE_THUNDERBOLT_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.THUNDERBOLT_COOLDOWN_TICKS / 20) + "s); Chidori charges in "
+							+ AuraAbilities.fmt(AuraConfig.THUNDER_SURGE_CHIDORI_CHARGE_TICKS / 20f) + "s.",
+					"Static Charge fires every " + AuraConfig.THUNDER_SURGE_STATIC_HITS + "rd hit (was " + AuraConfig.STATIC_CHARGE_HITS + "th) but arcs to " + AuraConfig.THUNDER_SURGE_STATIC_ARC_TARGETS + " target.",
+					"Price: Wrath of Zeus deals " + Math.round((1 - AuraConfig.THUNDER_SURGE_WRATH_FACTOR) * 100) + "% less, Chidori cooldown "
+							+ (AuraConfig.THUNDER_SURGE_CHIDORI_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.CHIDORI_COOLDOWN_TICKS / 20) + "s).")),
+
+	CONDUCTOR(AuraType.THUNDER, "Conductor", ChatFormatting.GOLD, "Area", Items.COPPER_INGOT,
+			() -> List.of(
+					"Static Charge arcs to " + AuraConfig.THUNDER_CONDUCTOR_STATIC_ARC_TARGETS + " targets; Thunderbolt's chain reaches " + AuraAbilities.fmt((float) AuraConfig.THUNDER_CONDUCTOR_CHAIN_RADIUS)
+							+ " blocks and " + AuraConfig.THUNDER_CONDUCTOR_CHAIN_TARGETS + " targets; Chidori arcs on to " + AuraConfig.THUNDER_CONDUCTOR_CHIDORI_ARC_TARGETS + " enemies.",
+					"A Charged target you hurt spreads " + Math.round(AuraConfig.THUNDER_CONDUCTOR_SPREAD_FRACTION * 100) + "% of it to " + AuraConfig.THUNDER_CONDUCTOR_SPREAD_TARGETS
+							+ " enemies within " + AuraAbilities.fmt((float) AuraConfig.THUNDER_CONDUCTOR_SPREAD_RADIUS) + " blocks.",
+					"Price: Chidori has " + AuraConfig.THUNDER_CONDUCTOR_CHIDORI_CHARGES + " charge and Thunderbolt cooldown is " + (AuraConfig.THUNDER_CONDUCTOR_THUNDERBOLT_COOLDOWN_TICKS / 20) + "s.")),
+
+	SKYRUNNER(AuraType.WIND, "Skyrunner", ChatFormatting.WHITE, "Mobility", Items.FEATHER,
+			() -> List.of(
+					"Dash and Double Jump have two charges: the first use does not start the cooldown, the second does (the first comes back after the normal cooldown, or when you land).",
+					"Gale Rider's bonus lingers " + AuraAbilities.fmt(AuraConfig.WIND_SKYRUNNER_GALE_LINGER_TICKS / 20f) + "s after you stop gliding.",
+					"Price: Super Wind Charge cooldown " + (AuraConfig.WIND_SKYRUNNER_WIND_CHARGE_COOLDOWN_TICKS / 20) + "s, Air Bending blast radius " + AuraAbilities.fmt((float) AuraConfig.WIND_SKYRUNNER_BLAST_RADIUS) + ".")),
+
+	CYCLONE(AuraType.WIND, "Cyclone", ChatFormatting.GRAY, "Crowd control", Items.WIND_CHARGE,
+			() -> List.of(
+					"The Air Bending blast pulls enemies toward its centre instead of throwing them out (you are still thrown).",
+					"Firestorm and Storm reactions you trigger hit " + Math.round((AuraConfig.WIND_CYCLONE_STORM_FACTOR - 1) * 100) + "% harder.",
+					"Price: Dash cooldown " + (AuraConfig.WIND_CYCLONE_DASH_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.DASH_COOLDOWN_TICKS / 20) + "s), Double Jump cooldown "
+							+ (AuraConfig.WIND_CYCLONE_DOUBLE_JUMP_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.DOUBLE_JUMP_COOLDOWN_TICKS / 20) + "s).")),
+
+	DIRGE(AuraType.RESONANCE, "Dirge", ChatFormatting.LIGHT_PURPLE, "Ranged hunter", Items.NOTE_BLOCK,
+			() -> List.of(
+					"Sonic Blossom darts deal " + AuraAbilities.fmt(AuraConfig.RESONANCE_DIRGE_DART_DAMAGE) + " (was " + AuraAbilities.fmt(AuraConfig.BLOSSOM_DART_DAMAGE) + ") and deafen: the target is loud for "
+							+ AuraAbilities.fmt(AuraConfig.RESONANCE_DIRGE_DEAF_TICKS / 20f) + "s and cannot hide by sneaking.",
+					"Price: Listening Tree lasts " + (AuraConfig.RESONANCE_DIRGE_TREE_TICKS / 20) + "s (was " + (AuraConfig.LISTENING_TREE_TICKS / 20) + "s), Abyssal Grasp cooldown "
+							+ (AuraConfig.RESONANCE_DIRGE_GRASP_COOLDOWN_TICKS / 20) + "s.")),
+
+	CHORUS(AuraType.RESONANCE, "Chorus", ChatFormatting.DARK_PURPLE, "Plant zone control", Items.JUKEBOX,
+			() -> List.of(
+					"Listening Tree lasts " + (AuraConfig.RESONANCE_CHORUS_TREE_TICKS / 20) + "s and you can keep " + AuraConfig.RESONANCE_CHORUS_BLOSSOM_MAX + " blossoms (was " + AuraConfig.BLOSSOM_MAX + ").",
+					"Echolocation outlines your friends too (same colour as enemies).",
+					"Price: darts deal " + AuraAbilities.fmt(AuraConfig.RESONANCE_CHORUS_DART_DAMAGE) + ", Abyssal Grasp cooldown " + (AuraConfig.RESONANCE_CHORUS_GRASP_COOLDOWN_TICKS / 20) + "s.")),
+
 	DARK(AuraType.SHADOW, "Dark", ChatFormatting.DARK_PURPLE, "Pull, rift and null", Items.ENDER_PEARL,
 			() -> List.of(
 					"Your actives become Void Pull, Rift Step and Null Orb; Dash and Vanish are given up.",
@@ -280,8 +338,17 @@ public enum Branch {
 			case PHANTOM -> ability == AuraAbilities.Ability.VANISH || ability == AuraAbilities.Ability.DASH
 					? Math.max(1, (int) Math.round(ticks * AuraConfig.PHANTOM_COOLDOWN_FACTOR)) : ticks;
 			case RADIANT -> ability == AuraAbilities.Ability.SOLAR_FLASH ? AuraConfig.LIGHT_RADIANT_FLASH_COOLDOWN_TICKS : ticks;
+			case TIDECALLER -> ability == AuraAbilities.Ability.ABYSSAL_BUBBLE ? AuraConfig.WATER_TIDECALLER_BUBBLE_COOLDOWN_TICKS : ticks;
+			case SURGE -> ability == AuraAbilities.Ability.THUNDERBOLT ? AuraConfig.THUNDER_SURGE_THUNDERBOLT_COOLDOWN_TICKS
+					: ability == AuraAbilities.Ability.CHIDORI ? AuraConfig.THUNDER_SURGE_CHIDORI_COOLDOWN_TICKS : ticks;
+			case CONDUCTOR -> ability == AuraAbilities.Ability.THUNDERBOLT ? AuraConfig.THUNDER_CONDUCTOR_THUNDERBOLT_COOLDOWN_TICKS : ticks;
+			case SKYRUNNER -> ability == AuraAbilities.Ability.SUPER_WIND_CHARGE ? AuraConfig.WIND_SKYRUNNER_WIND_CHARGE_COOLDOWN_TICKS : ticks;
+			case CYCLONE -> ability == AuraAbilities.Ability.DASH ? AuraConfig.WIND_CYCLONE_DASH_COOLDOWN_TICKS
+					: ability == AuraAbilities.Ability.DOUBLE_JUMP ? AuraConfig.WIND_CYCLONE_DOUBLE_JUMP_COOLDOWN_TICKS : ticks;
+			case DIRGE -> ability == AuraAbilities.Ability.ABYSSAL_GRASP ? AuraConfig.RESONANCE_DIRGE_GRASP_COOLDOWN_TICKS : ticks;
+			case CHORUS -> ability == AuraAbilities.Ability.ABYSSAL_GRASP ? AuraConfig.RESONANCE_CHORUS_GRASP_COOLDOWN_TICKS : ticks;
 			case VENOMWEAVER -> ability == AuraAbilities.Ability.VERDANT_VIPER ? AuraConfig.VERDANT_VENOM_VIPER_COOLDOWN_TICKS : ticks;
-			case DARK, GLACIAL, FROSTBITE, GROVE_WARDEN, BULWARK, TECTONIC, PRISMATIC, SANGUINE, SACRIFICIAL -> ticks;
+			case DARK, GLACIAL, FROSTBITE, GROVE_WARDEN, BULWARK, TECTONIC, PRISMATIC, SANGUINE, SACRIFICIAL, LEVIATHAN -> ticks;
 		};
 	}
 

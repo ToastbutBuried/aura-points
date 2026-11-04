@@ -832,8 +832,32 @@ public final class AuraAbilities {
 		return source.is(net.minecraft.tags.DamageTypeTags.IS_FIRE) && !source.is(net.minecraft.world.damagesource.DamageTypes.LAVA);
 	}
 
-	public static float applyIronSkinReduction(float incomingDamage) {
-		return incomingDamage * (1.0f - AuraConfig.IRON_SKIN_DAMAGE_REDUCTION);
+	/** Leviathan: recent hits taken per player ({stacks, tick of the last hit}). */
+	private static final Map<UUID, long[]> IRON_STACKS = new HashMap<>();
+
+	/** The Iron Skin share of the next hit: the base 20%, Tidecaller's thinner one, or Leviathan's with a stack per recent hit. */
+	public static float ironSkinReduction(ServerPlayer victim) {
+		Branch b = Branch.current(victim);
+		if (b == Branch.TIDECALLER) return AuraConfig.WATER_TIDECALLER_IRON_SKIN_REDUCTION;
+		float r = AuraConfig.IRON_SKIN_DAMAGE_REDUCTION;
+		if (b == Branch.LEVIATHAN) r += AuraConfig.WATER_LEVIATHAN_STACK_BONUS * ironStacks(victim);
+		return Math.min(0.9f, r);
+	}
+
+	/** How many Leviathan stacks the player holds right now. */
+	public static int ironStacks(ServerPlayer p) {
+		long[] s = IRON_STACKS.get(p.getUUID());
+		if (s == null || p.getServer() == null) return 0;
+		return p.getServer().getTickCount() - s[1] > Math.max(1, AuraConfig.WATER_LEVIATHAN_STACK_TICKS) ? 0 : (int) s[0];
+	}
+
+	public static float applyIronSkinReduction(ServerPlayer victim, float incomingDamage) {
+		float out = incomingDamage * (1.0f - ironSkinReduction(victim));
+		if (Branch.is(victim, Branch.LEVIATHAN) && victim.getServer() != null) {
+			int stacks = Math.min(Math.max(1, AuraConfig.WATER_LEVIATHAN_MAX_STACKS), ironStacks(victim) + 1);
+			IRON_STACKS.put(victim.getUUID(), new long[]{stacks, victim.getServer().getTickCount()});
+		}
+		return out;
 	}
 
 	/** Iron flakes and a clank when Iron Skin soaks up a hit. */
@@ -989,7 +1013,7 @@ public final class AuraAbilities {
 		double t = Math.min(1.0, Math.sqrt(target.distanceToSqr(player)) / Math.max(0.1, r));
 		t = Math.pow(t, Math.max(0.01, AuraConfig.SHOCKWAVE_FALLOFF_CURVE));
 		double edge = Math.max(0.0, Math.min(1.0, AuraConfig.SHOCKWAVE_EDGE_DAMAGE_FRACTION));
-		return (float) (AuraConfig.SHOCKWAVE_DAMAGE * (1.0 - (1.0 - edge) * t));
+		return (float) (AuraConfig.SHOCKWAVE_DAMAGE * (1.0 - (1.0 - edge) * t) * (Branch.is(player, Branch.LEVIATHAN) ? AuraConfig.WATER_LEVIATHAN_SHOCKWAVE_FACTOR : 1.0));
 	}
 
 	public static boolean tryShockwave(ServerPlayer player, long now) {
@@ -1008,7 +1032,7 @@ public final class AuraAbilities {
 				target.hurt(world.damageSources().playerAttack(player), vsMob(target, shockwaveDamage(player, target, r)));
 				double dx = player.getX() - target.getX();
 				double dz = player.getZ() - target.getZ();
-				target.knockback(AuraConfig.SHOCKWAVE_KNOCKBACK, dx, dz);
+				target.knockback(Branch.is(player, Branch.TIDECALLER) ? AuraConfig.WATER_TIDECALLER_SHOCKWAVE_KNOCKBACK : AuraConfig.SHOCKWAVE_KNOCKBACK, dx, dz);
 				AuraStunts.shockwaveHit(player, target);
 				Vec3 c = AuraFx.chest(target);
 				AuraFx.burst(world, c.x, c.y, c.z, AuraFx.dust(SPRAY_WHITE, 1.2f), 10, 0.3, 0.0);
@@ -1143,7 +1167,7 @@ public final class AuraAbilities {
 		AuraStats.add(player, AuraStats.DASH_USES, 1);
 		AuraStunts.dashed(player);
 		DashDive.dashed(player, data, now);
-		markUsed(player, Ability.DASH, now);
+		markUsedCharged(player, Ability.DASH, now, AuraConfig.DASH_COOLDOWN_TICKS);
 		return true;
 	}
 
@@ -1167,6 +1191,45 @@ public final class AuraAbilities {
 	/** Players who used their double jump and haven't touched the ground since. In memory only. */
 	private static final Set<UUID> AIR_JUMP_USED = new HashSet<>();
 
+	/** Skyrunner: when each player used the first of their two charges of an ability (Dash, Double Jump). */
+	private static final Map<UUID, EnumMap<Ability, Long>> FIRST_CHARGE = new HashMap<>();
+
+	/**
+	 * Skyrunner's two-use charge. Returns true when this use is the free first one: no cooldown starts, the charge
+	 * comes back after the ability's normal cooldown (or on landing for Double Jump). The second use starts the
+	 * cooldown as usual. Everyone else: always false.
+	 */
+	public static boolean useCharge(ServerPlayer player, Ability ability, long now, int cooldownTicks) {
+		if (!Branch.is(player, Branch.SKYRUNNER)) return false;
+		EnumMap<Ability, Long> map = FIRST_CHARGE.computeIfAbsent(player.getUUID(), k -> new EnumMap<>(Ability.class));
+		Long first = map.get(ability);
+		if (first != null && (now < first || now - first >= cooldownTicks)) first = null;
+		if (first == null) {
+			map.put(ability, now);
+			return true;
+		}
+		map.remove(ability);
+		return false;
+	}
+
+	/** True while the player holds the spent first charge of this ability (the next use is the second). */
+	public static boolean firstChargeSpent(ServerPlayer player, Ability ability) {
+		EnumMap<Ability, Long> map = FIRST_CHARGE.get(player.getUUID());
+		return map != null && map.containsKey(ability);
+	}
+
+	private static void refillCharge(ServerPlayer player, Ability ability) {
+		if (FIRST_CHARGE.isEmpty()) return;
+		EnumMap<Ability, Long> map = FIRST_CHARGE.get(player.getUUID());
+		if (map != null) map.remove(ability);
+	}
+
+	/** The cooldown start for a use that may ride on a Skyrunner charge. */
+	private static void markUsedCharged(ServerPlayer player, Ability ability, long now, int cooldownTicks) {
+		if (useCharge(player, ability, now, cooldownTicks)) com.toast.aurapoints.AuraHooks.abilityUsed(player, ability);
+		else markUsed(player, ability, now);
+	}
+
 	/** Ticks each player has been airborne. In memory only. */
 	private static final Map<UUID, Integer> AIR_TICKS = new HashMap<>();
 
@@ -1186,6 +1249,7 @@ public final class AuraAbilities {
 		if (player.onGround() || player.isInWater() || player.onClimbable()) {
 			AIR_JUMP_USED.remove(player.getUUID());
 			AIR_TICKS.remove(player.getUUID());
+			refillCharge(player, Ability.DOUBLE_JUMP);
 		} else {
 			AIR_TICKS.merge(player.getUUID(), 1, Integer::sum);
 		}
@@ -1218,9 +1282,12 @@ public final class AuraAbilities {
 		AuraFx.trail(player, AuraFx.dust(AuraType.WIND.rgb, 1.0f), 2, 6);
 
 		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_DOUBLE_JUMP, player.getRandom().nextInt(2));
-		AIR_JUMP_USED.add(player.getUUID());
 		AuraStats.add(player, AuraStats.DOUBLE_JUMPS, 1);
-		markUsed(player, Ability.DOUBLE_JUMP, now);
+		// Skyrunner: the first of two jumps is free and leaves the air jump open; the second uses it up
+		boolean free = useCharge(player, Ability.DOUBLE_JUMP, now, AuraConfig.DOUBLE_JUMP_COOLDOWN_TICKS);
+		if (!free) AIR_JUMP_USED.add(player.getUUID());
+		if (free) com.toast.aurapoints.AuraHooks.abilityUsed(player, Ability.DOUBLE_JUMP);
+		else markUsed(player, Ability.DOUBLE_JUMP, now);
 		return true;
 	}
 
@@ -1274,12 +1341,18 @@ public final class AuraAbilities {
 		AuraFx.burst(world, hand.x, hand.y, hand.z, AuraFx.dust(AuraType.WIND.rgb, 1.4f), 10, 0.25, 0.0);
 	}
 
+	/** Healing Tide's Regeneration level for the caster's branch. */
+	public static int healingAmplifier(ServerPlayer player) {
+		Branch b = Branch.current(player);
+		return b == Branch.TIDECALLER ? AuraConfig.WATER_TIDECALLER_HEALING_AMPLIFIER : b == Branch.LEVIATHAN ? AuraConfig.WATER_LEVIATHAN_HEALING_AMPLIFIER : AuraConfig.HEALING_TIDE_AMPLIFIER;
+	}
+
 	public static boolean tryHealingTide(ServerPlayer player, long now) {
 		if (!checkCooldown(player, Ability.HEALING_TIDE, AuraConfig.HEALING_TIDE_COOLDOWN_TICKS, now)) return false;
 		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_HEALING_TIDE, where(player) == 2 ? 2 : player.getRandom().nextInt(2));
 
 		ServerLevel world = player.serverLevel();
-		double r = AuraConfig.HEALING_TIDE_RADIUS;
+		double r = Branch.is(player, Branch.TIDECALLER) ? AuraConfig.WATER_TIDECALLER_HEALING_RADIUS : AuraConfig.HEALING_TIDE_RADIUS;
 		List<ServerPlayer> healed = world.getEntitiesOfClass(ServerPlayer.class, player.getBoundingBox().inflate(r),
 				// friends only (Light.friend, like Radiant Pulse): everyone outside the arena, only teammates inside it
 				p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(player) <= r * r && Light.friend(player, p));
@@ -1292,11 +1365,18 @@ public final class AuraAbilities {
 				bad.forEach(p::removeEffect);
 			}
 			p.addEffect(new MobEffectInstance(MobEffects.REGENERATION,
-					AuraConfig.HEALING_TIDE_DURATION_TICKS, AuraConfig.HEALING_TIDE_AMPLIFIER, false, true, true));
+					AuraConfig.HEALING_TIDE_DURATION_TICKS, healingAmplifier(player), false, true, true));
 			Vec3 c = AuraFx.chest(p);
 			AuraFx.burst(world, c.x, c.y + 0.5, c.z, ParticleTypes.HEART, 3, 0.4, 0.0);
 			AuraFx.burst(world, c.x, c.y, c.z, ParticleTypes.HAPPY_VILLAGER, 8, 0.4, 0.0);
 			if (p != player) AuraFx.helix(p, AuraFx.dust(TIDE_TEAL, 1.0f), 20, 0.6, 2.0);
+		}
+		// Tidecaller: the tide soaks every enemy in range, a mark Frost and Thunder react with
+		if (Branch.is(player, Branch.TIDECALLER)) {
+			for (LivingEntity e : Handhelds.enemies(player, world, player.position().add(0, player.getBbHeight() * 0.5, 0), r)) {
+				Reactions.applyMark(e, Reactions.Mark.WET);
+				AuraFx.particles(world, ParticleTypes.SPLASH, e.getX(), e.getY() + e.getBbHeight() * 0.6, e.getZ(), 6, 0.3, 0.4, 0.3, 0.0);
+			}
 		}
 
 		// the caster alone: a little Resistance
@@ -1521,7 +1601,24 @@ public final class AuraAbilities {
 	// ---------------------------------------------------------------
 
 	/** Called every server tick per player for the passives that work over time. */
+	/** Skyrunner: the last tick each player was gliding (Gale Rider lingers after it). */
+	private static final Map<UUID, Long> LAST_GLIDE = new HashMap<>();
+
+	/** True while Gale Rider's bonus counts: gliding now, or (Skyrunner) within the linger time of the last glide. */
+	public static boolean galeActive(ServerPlayer player) {
+		if (player.isFallFlying()) return true;
+		if (!Branch.is(player, Branch.SKYRUNNER) || player.getServer() == null) return false;
+		Long last = LAST_GLIDE.get(player.getUUID());
+		return last != null && player.getServer().getTickCount() - last <= AuraConfig.WIND_SKYRUNNER_GALE_LINGER_TICKS;
+	}
+
+	/** Test hook: pretend the player was gliding at this tick. */
+	public static void markGlide(ServerPlayer player, long tick) {
+		LAST_GLIDE.put(player.getUUID(), tick);
+	}
+
 	public static void tickPassives(ServerPlayer player, AuraPlayerData data, long now) {
+		if (player.isFallFlying()) LAST_GLIDE.put(player.getUUID(), now);
 		ShadowCloak.tick(player, data, now);
 		FireBending.tick(player, data, now);
 		AirBending.tick(player, data, now);

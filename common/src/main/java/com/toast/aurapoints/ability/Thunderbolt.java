@@ -294,8 +294,19 @@ public final class Thunderbolt {
 			float damage = stage == 0 ? AuraConfig.THUNDERBOLT_DAMAGE : AuraConfig.THUNDERBOLT_QUICK_DAMAGE;
 			zap(player, aim.target(), damage);
 			charge(aim.target(), 1);
-			chain(player, aim.target(), damage * AuraConfig.THUNDERBOLT_CHAIN_DAMAGE_FRACTION, AuraConfig.THUNDERBOLT_CHAIN_TARGETS);
+			chain(player, aim.target(), damage * AuraConfig.THUNDERBOLT_CHAIN_DAMAGE_FRACTION, Branch.is(player, Branch.CONDUCTOR) ? AuraConfig.THUNDER_CONDUCTOR_CHAIN_TARGETS : AuraConfig.THUNDERBOLT_CHAIN_TARGETS);
 		}
+	}
+
+	/** True while the target carries Thunderbolt charges (Conductor's spread asks). */
+	public static boolean isCharged(LivingEntity e) {
+		long[] c = CHARGED.get(e);
+		return c != null && c[0] > 0 && e.getServer() != null && c[1] > e.getServer().getTickCount();
+	}
+
+	/** How far a chain reaches for this owner (Conductor wider). */
+	public static double chainRadius(ServerPlayer owner) {
+		return Branch.is(owner, Branch.CONDUCTOR) ? AuraConfig.THUNDER_CONDUCTOR_CHAIN_RADIUS : AuraConfig.THUNDERBOLT_CHAIN_RADIUS;
 	}
 
 	/** Arcs from {@code from} on to up to {@code hops} more enemies near it, one after the other. */
@@ -305,7 +316,7 @@ public final class Thunderbolt {
 		Set<LivingEntity> hit = new HashSet<>();
 		hit.add(from);
 		LivingEntity at = from;
-		double r = AuraConfig.THUNDERBOLT_CHAIN_RADIUS;
+		double r = chainRadius(owner);
 		for (int i = 0; i < hops; i++) {
 			LivingEntity next = null;
 			double best = Double.MAX_VALUE;
@@ -435,7 +446,7 @@ public final class Thunderbolt {
 			double d = Math.sqrt(e.distanceToSqr(p));
 			if (d > r && e != c.wrathTarget) continue;
 			double t = Math.min(1.0, d / Math.max(0.1, r));
-			float damage = (float) (AuraConfig.THUNDERBOLT_WRATH_DAMAGE * (1.0 - t * (1.0 - AuraConfig.THUNDERBOLT_WRATH_EDGE_FRACTION)));
+			float damage = (float) (AuraConfig.THUNDERBOLT_WRATH_DAMAGE * (Branch.is(player, Branch.SURGE) ? AuraConfig.THUNDER_SURGE_WRATH_FACTOR : 1.0) * (1.0 - t * (1.0 - AuraConfig.THUNDERBOLT_WRATH_EDGE_FRACTION)));
 			int charges = takeCharges(e);
 			damage += charges * AuraConfig.THUNDERBOLT_OVERLOAD_DAMAGE;
 			zap(player, e, damage);
@@ -500,7 +511,7 @@ public final class Thunderbolt {
 	// Charged targets
 	// ---------------------------------------------------------------
 
-	static void charge(LivingEntity e, int amount) {
+	public static void charge(LivingEntity e, int amount) {
 		MinecraftServer server = e.getServer();
 		if (server == null || amount <= 0) return;
 		long until = server.getTickCount() + AuraConfig.THUNDERBOLT_CHARGE_TICKS;
@@ -661,13 +672,45 @@ public final class Thunderbolt {
 
 	private static final Map<UUID, Integer> STATIC = new HashMap<>();
 
+	/** How many enemies a Static Charge discharge arcs to: Surge fewer, Conductor more. */
+	public static int staticArcs(ServerPlayer player) {
+		Branch b = Branch.current(player);
+		return b == Branch.SURGE ? AuraConfig.THUNDER_SURGE_STATIC_ARC_TARGETS : b == Branch.CONDUCTOR ? AuraConfig.THUNDER_CONDUCTOR_STATIC_ARC_TARGETS : AuraConfig.STATIC_CHARGE_ARC_TARGETS;
+	}
+
+	/** True while a Conductor spread is running, so spread damage cannot spread again. */
+	private static boolean spreading = false;
+
+	/** Conductor: a Charged target you hurt passes a share of the hit on to enemies near it. Returns how many it reached. */
+	public static int spread(ServerPlayer owner, LivingEntity victim, float amount) {
+		if (spreading || amount <= 0 || !Branch.is(owner, Branch.CONDUCTOR) || !isCharged(victim)) return 0;
+		spreading = true;
+		try {
+			ServerLevel level = owner.serverLevel();
+			Vec3 from = AuraFx.chest(victim);
+			var near = new java.util.ArrayList<>(Handhelds.enemies(owner, level, from, Math.max(1, AuraConfig.THUNDER_CONDUCTOR_SPREAD_RADIUS)));
+			near.remove(victim);
+			near.sort(java.util.Comparator.comparingDouble(e -> e.distanceToSqr(victim)));
+			int n = 0;
+			for (LivingEntity e : near) {
+				if (n >= AuraConfig.THUNDER_CONDUCTOR_SPREAD_TARGETS) break;
+				Handhelds.hurt(owner, e, amount * (float) Math.max(0, AuraConfig.THUNDER_CONDUCTOR_SPREAD_FRACTION));
+				bolt(level, from, AuraFx.chest(e), 0.4f, 1, 2);
+				n++;
+			}
+			return n;
+		} finally {
+			spreading = false;
+		}
+	}
+
 	/** A melee attack is about to land: charged hits build static; every STATIC_CHARGE_HITS-th one arcs. */
 	public static void onAttack(ServerPlayer player, Entity target) {
 		MinecraftServer server = player.getServer();
 		if (server == null || !(target instanceof LivingEntity living) || !living.isAlive()) return;
 		if (!AuraAbilities.hasAbility(AuraState.get(server).getOrCreate(player.getUUID()), Ability.STATIC_CHARGE)) return;
 		if (player.getAttackStrengthScale(0.5f) < 0.9f) return;
-		int need = Math.max(1, AuraConfig.STATIC_CHARGE_HITS);
+		int need = Math.max(1, Branch.is(player, Branch.SURGE) ? AuraConfig.THUNDER_SURGE_STATIC_HITS : AuraConfig.STATIC_CHARGE_HITS);
 		int n = STATIC.merge(player.getUUID(), 1, Integer::sum);
 		ServerLevel level = player.serverLevel();
 		Vec3 ch = AuraFx.chest(living);
@@ -684,7 +727,7 @@ public final class Thunderbolt {
 			level.playSound(null, living.getX(), living.getY(), living.getZ(), AuraSounds.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.6f, 2.0f);
 			zap(player, living, AuraConfig.STATIC_CHARGE_DAMAGE);
 			charge(living, 1);
-			chain(player, living, AuraConfig.STATIC_CHARGE_DAMAGE, AuraConfig.STATIC_CHARGE_ARC_TARGETS);
+			chain(player, living, AuraConfig.STATIC_CHARGE_DAMAGE, staticArcs(player));
 		});
 	}
 

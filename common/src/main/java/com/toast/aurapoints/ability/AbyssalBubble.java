@@ -276,11 +276,17 @@ public final class AbyssalBubble {
 		if (AuraConfig.BUBBLE_PULL_STRENGTH > 0 || AuraConfig.BUBBLE_OUTWARD_DRAG > 0) {
 			for (LivingEntity e : near) {
 				if (e.position().add(0, e.getBbHeight() * 0.5, 0).distanceToSqr(c) > r * r) continue;
+				// Leviathan drags harder: mobs get the bigger strength, players an extra push from here (the client pull keeps its own numbers)
+				boolean leviathan = Branch.is(player, Branch.LEVIATHAN);
 				if (e instanceof ServerPlayer target) {
 					NetworkHandler.sendBubblePull(target, c.x, c.z);
+					if (leviathan && !target.isPassenger()) {
+						e.setDeltaMovement(undertow(e.position(), e.getDeltaMovement(), c.x, c.z, AuraConfig.WATER_LEVIATHAN_BUBBLE_PULL, 0));
+						e.hurtMarked = true;
+					}
 				} else if (!e.isPassenger()) {
 					e.setDeltaMovement(undertow(e.position(), e.getDeltaMovement(), c.x, c.z,
-							AuraConfig.BUBBLE_PULL_STRENGTH, AuraConfig.BUBBLE_OUTWARD_DRAG));
+							leviathan ? AuraConfig.BUBBLE_PULL_STRENGTH + AuraConfig.WATER_LEVIATHAN_BUBBLE_PULL : AuraConfig.BUBBLE_PULL_STRENGTH, AuraConfig.BUBBLE_OUTWARD_DRAG));
 				}
 			}
 		}

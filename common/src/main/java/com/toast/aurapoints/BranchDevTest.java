@@ -38,6 +38,10 @@ final class BranchDevTest {
 			run(ctx.getSource().getServer());
 			return 1;
 		})));
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("branch4").executes(ctx -> {
+			lastEight(ctx.getSource().getServer());
+			return 1;
+		})));
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("branch3").executes(ctx -> {
 			lightBlood(ctx.getSource().getServer());
 			return 1;
@@ -368,6 +372,131 @@ final class BranchDevTest {
 		log("branch3 done (state restored)");
 	}
 
+	/** /auradev branch4: the 5.13.0 branches (Water, Thunder, Wind, Resonance). */
+	private static void lastEight(net.minecraft.server.MinecraftServer server) {
+		ServerLevel level = server.overworld();
+		var spawn = level.getSharedSpawnPos();
+		Vec3 base = new Vec3(spawn.getX() + 0.5, 120, spawn.getZ() + 0.5);
+		net.minecraft.server.level.ServerPlayer p = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000b4a7"), "Stormer"));
+		net.minecraft.server.level.ServerPlayer friend = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000b4a8"), "Pal"));
+		var state = com.toast.aurapoints.data.AuraState.get(server);
+		var data = state.getOrCreate(p.getUUID());
+		var wasAura = data.aura;
+		var wasMastery = new java.util.EnumMap<AuraType, Integer>(AuraType.class);
+		wasMastery.putAll(data.mastery);
+		for (AuraType a : new AuraType[]{AuraType.WATER, AuraType.THUNDER, AuraType.WIND, AuraType.RESONANCE}) data.mastery.put(a, 5);
+		data.branches.clear();
+		long tick = server.getTickCount();
+
+		// ---- Water
+		data.aura = AuraType.WATER;
+		StringBuilder water = new StringBuilder();
+		for (Branch b : new Branch[]{null, Branch.TIDECALLER, Branch.LEVIATHAN}) {
+			if (b == null) data.branches.remove(AuraType.WATER);
+			else data.branches.put(AuraType.WATER, b);
+			water.append(b == null ? "base" : b.id()).append(": iron ").append(AuraAbilities.ironSkinReduction(p)).append(" heal amp ").append(AuraAbilities.healingAmplifier(p))
+					.append(" bubble cd ").append(Branch.cooldown(p, AuraAbilities.Ability.ABYSSAL_BUBBLE, AuraConfig.BUBBLE_COOLDOWN_TICKS)).append(" | ");
+		}
+		log("Water " + water);
+		log("(must be: base iron 0.2 heal amp 1 bubble cd 900 | tidecaller iron 0.1 heal amp 2 bubble cd 1200 | leviathan iron 0.2 heal amp 0 bubble cd 900)");
+		data.branches.put(AuraType.WATER, Branch.LEVIATHAN);
+		StringBuilder hits = new StringBuilder();
+		for (int i = 0; i < 7; i++) hits.append(AuraAbilities.applyIronSkinReduction(p, 10f)).append(i < 6 ? "/" : "");
+		log("Leviathan stacks, ten damage seven times: " + hits + " (must be 8.0/7.5/7.0/6.5/6.0/5.5/5.5), stacks " + AuraAbilities.ironStacks(p) + " (5)");
+		data.branches.put(AuraType.WATER, Branch.TIDECALLER);
+		log("Tidecaller hit: " + AuraAbilities.applyIronSkinReduction(p, 10f) + " (must be 9.0)");
+		net.minecraft.world.entity.animal.Pig soaked = pig(level, p.position().add(3, 0, 0)); // NeoForge fake players sit where they spawned, so measure from them
+		boolean before = com.toast.aurapoints.ability.Reactions.marked(soaked, com.toast.aurapoints.ability.Reactions.Mark.WET);
+		AuraAbilities.tryHealingTide(p, tick + 100000);
+		log("Tidecaller Healing Tide: pig Wet " + before + " -> " + com.toast.aurapoints.ability.Reactions.marked(soaked, com.toast.aurapoints.ability.Reactions.Mark.WET) + " (must be false -> true)");
+		soaked.discard();
+
+		// ---- Thunder
+		data.aura = AuraType.THUNDER;
+		StringBuilder thunder = new StringBuilder();
+		for (Branch b : new Branch[]{null, Branch.SURGE, Branch.CONDUCTOR}) {
+			if (b == null) data.branches.remove(AuraType.THUNDER);
+			else data.branches.put(AuraType.THUNDER, b);
+			thunder.append(b == null ? "base" : b.id()).append(": bolt cd ").append(Branch.cooldown(p, AuraAbilities.Ability.THUNDERBOLT, AuraConfig.THUNDERBOLT_COOLDOWN_TICKS))
+					.append(" chidori cd ").append(Branch.cooldown(p, AuraAbilities.Ability.CHIDORI, AuraConfig.CHIDORI_COOLDOWN_TICKS)).append(" chidori charge ").append(com.toast.aurapoints.ability.Chidori.chargeTicks(p))
+					.append(" arcs ").append(com.toast.aurapoints.ability.Thunderbolt.staticArcs(p)).append(" chain r ").append(com.toast.aurapoints.ability.Thunderbolt.chainRadius(p)).append(" | ");
+		}
+		log("Thunder " + thunder);
+		log("(must be: base bolt cd 400 chidori cd 280 chidori charge 30 arcs 2 chain r 5.0 | surge bolt cd 280 chidori cd 360 chidori charge 20 arcs 1 chain r 5.0 | conductor bolt cd 480 chidori cd 280 chidori charge 30 arcs 4 chain r 8.0)");
+		data.branches.put(AuraType.THUNDER, Branch.CONDUCTOR);
+		net.minecraft.world.entity.animal.Pig v = pig(level, base.add(10, 0, 12));
+		net.minecraft.world.entity.animal.Pig n1 = pig(level, base.add(12, 0, 12)), n2 = pig(level, base.add(10, 0, 14)), n3 = pig(level, base.add(8, 0, 12)), nFar = pig(level, base.add(10, 0, 22));
+		for (var q : new net.minecraft.world.entity.animal.Pig[]{v, n1, n2, n3, nFar}) q.invulnerableTime = 0;
+		int unchargedSpread = com.toast.aurapoints.ability.Thunderbolt.spread(p, v, 10f);
+		com.toast.aurapoints.ability.Thunderbolt.charge(v, 2);
+		com.toast.aurapoints.ability.Thunderbolt.charge(n1, 1); // charged neighbours must not chain the spread on
+		com.toast.aurapoints.ability.Thunderbolt.charge(n2, 1);
+		int reached = com.toast.aurapoints.ability.Thunderbolt.spread(p, v, 10f);
+		double a1 = 200 - n1.getHealth(), a2 = 200 - n2.getHealth(), a3 = 200 - n3.getHealth(), af = 200 - nFar.getHealth();
+		log("Conductor spread: uncharged victim reached " + unchargedSpread + " (must be 0), charged reached " + reached + " (must be 3), damage " + a1 + "/" + a2 + "/" + a3 + " (each exactly "
+				+ (10 * AuraConfig.THUNDER_CONDUCTOR_SPREAD_FRACTION) + ": no second spread from the charged neighbours), far pig " + af + " (0), the victim itself " + (200 - v.getHealth()) + " (0)");
+		data.branches.put(AuraType.THUNDER, Branch.SURGE);
+		log("Surge does not spread: " + com.toast.aurapoints.ability.Thunderbolt.spread(p, v, 10f) + " (must be 0)");
+		for (var q : new net.minecraft.world.entity.animal.Pig[]{v, n1, n2, n3, nFar}) q.discard();
+
+		// ---- Wind
+		data.aura = AuraType.WIND;
+		data.branches.put(AuraType.WIND, Branch.SKYRUNNER);
+		boolean u1 = AuraAbilities.useCharge(p, AuraAbilities.Ability.DASH, 1000, 200), u2 = AuraAbilities.useCharge(p, AuraAbilities.Ability.DASH, 1010, 200),
+				u3 = AuraAbilities.useCharge(p, AuraAbilities.Ability.DASH, 1020, 200), u4 = AuraAbilities.useCharge(p, AuraAbilities.Ability.DASH, 1250, 200);
+		log("Skyrunner charges (use at 1000, 1010, 1020, 1250): free " + u1 + "/" + u2 + "/" + u3 + "/" + u4 + " (must be true/false/true/true: first free, second starts the cooldown, a new first, and it refunds after the cooldown)");
+		boolean other = AuraAbilities.useCharge(p, AuraAbilities.Ability.DOUBLE_JUMP, 1000, 60) | AuraAbilities.firstChargeSpent(p, AuraAbilities.Ability.DOUBLE_JUMP) == false;
+		log("charges are per ability: Double Jump first use free " + AuraAbilities.firstChargeSpent(p, AuraAbilities.Ability.DOUBLE_JUMP) + " (spent, true) while Dash holds " + AuraAbilities.firstChargeSpent(p, AuraAbilities.Ability.DASH) + " (true)" + (other ? "" : ""));
+		data.branches.put(AuraType.WIND, Branch.CYCLONE);
+		log("Cyclone: Dash charges " + AuraAbilities.useCharge(p, AuraAbilities.Ability.DASH, 5000, 200) + " (must be false, only Skyrunner has them), Dash cd "
+				+ Branch.cooldown(p, AuraAbilities.Ability.DASH, AuraConfig.DASH_COOLDOWN_TICKS) + " (280) Double Jump cd " + Branch.cooldown(p, AuraAbilities.Ability.DOUBLE_JUMP, AuraConfig.DOUBLE_JUMP_COOLDOWN_TICKS)
+				+ " (100) storm x" + com.toast.aurapoints.ability.Reactions.stormDamage(p, 4f) / 4f + " (1.5)");
+		data.branches.put(AuraType.WIND, Branch.SKYRUNNER);
+		log("Skyrunner Super Wind Charge cd " + Branch.cooldown(p, AuraAbilities.Ability.SUPER_WIND_CHARGE, AuraConfig.SUPER_WIND_CHARGE_COOLDOWN_TICKS) + " (560), storm x" + com.toast.aurapoints.ability.Reactions.stormDamage(p, 4f) / 4f + " (1)");
+		AuraAbilities.markGlide(p, tick - 40);
+		boolean linger = AuraAbilities.galeActive(p);
+		AuraAbilities.markGlide(p, tick - 200);
+		boolean gone = AuraAbilities.galeActive(p);
+		data.branches.put(AuraType.WIND, Branch.CYCLONE);
+		AuraAbilities.markGlide(p, tick - 40);
+		log("Gale Rider linger (Skyrunner): 2 s after gliding " + linger + " (true), 10 s after " + gone + " (false), Cyclone 2 s after " + AuraAbilities.galeActive(p) + " (false)");
+		Vec3 centre = new Vec3(0, 0, 0), thing = new Vec3(3, 0, 0), dir = new Vec3(1, 0, 0);
+		Vec3 out = com.toast.aurapoints.ability.AirBending.blastPush(thing, centre, dir, 1.0, false), in = com.toast.aurapoints.ability.AirBending.blastPush(thing, centre, dir, 1.0, true),
+				onTop = com.toast.aurapoints.ability.AirBending.blastPush(centre, centre, dir, 1.0, true);
+		log("blast push at 3 blocks: outward x " + out.x + " (must be > 0), Cyclone inward x " + in.x + " (must be < 0 and never more than 2.4 so it cannot overshoot), at the centre x " + onTop.x + " (0), both lift " + out.y + "/" + in.y + " (equal, > 0)");
+
+		// ---- Resonance
+		data.aura = AuraType.RESONANCE;
+		StringBuilder res = new StringBuilder();
+		for (Branch b : new Branch[]{null, Branch.DIRGE, Branch.CHORUS}) {
+			if (b == null) data.branches.remove(AuraType.RESONANCE);
+			else data.branches.put(AuraType.RESONANCE, b);
+			res.append(b == null ? "base" : b.id()).append(": dart ").append(com.toast.aurapoints.ability.Resonance.dartDamage(p)).append(" tree ").append(com.toast.aurapoints.ability.Resonance.treeTicks(p))
+					.append(" blossoms ").append(com.toast.aurapoints.ability.Resonance.blossomMax(p)).append(" grasp cd ").append(Branch.cooldown(p, AuraAbilities.Ability.ABYSSAL_GRASP, AuraConfig.GRASP_COOLDOWN_TICKS)).append(" | ");
+		}
+		log("Resonance " + res);
+		log("(must be: base dart 2.0 tree 1200 blossoms 3 grasp cd 500 | dirge dart 3.5 tree 800 blossoms 3 grasp cd 600 | chorus dart 1.5 tree 1800 blossoms 5 grasp cd 640)");
+		net.minecraft.world.entity.animal.Pig quiet = pig(level, base.add(14, 0, 0));
+		boolean wasLoud = com.toast.aurapoints.ability.Noise.isLoud(quiet);
+		com.toast.aurapoints.ability.Noise.deafen(quiet, 80);
+		log("Dirge deafen: loud " + wasLoud + " -> " + com.toast.aurapoints.ability.Noise.isLoud(quiet) + " (must be false -> true), noise " + com.toast.aurapoints.ability.Noise.get(quiet) + " (>= " + AuraConfig.NOISE_DEAF_LEVEL + "), deaf " + com.toast.aurapoints.ability.Noise.isDeaf(quiet) + " (true)");
+		data.branches.put(AuraType.RESONANCE, Branch.CHORUS);
+		boolean friendHeard = com.toast.aurapoints.ability.Resonance.hears(p, friend, false), pigHeard = com.toast.aurapoints.ability.Resonance.hears(p, quiet, false);
+		data.branches.put(AuraType.RESONANCE, Branch.DIRGE);
+		boolean dirgeFriend = com.toast.aurapoints.ability.Resonance.hears(p, friend, false);
+		log("Chorus Echolocation: friend heard " + friendHeard + " (true), a mob that is loud anyway " + pigHeard + " (true here because of the deafen above); Dirge friend heard " + dirgeFriend + " (false)");
+		quiet.discard();
+
+		AuraFx.later(server, 130, () -> {
+			log("Leviathan stacks after 6.5 s without a hit: " + AuraAbilities.ironStacks(p) + " (must be 0)");
+			data.aura = wasAura;
+			data.branches.clear();
+			data.mastery.clear();
+			data.mastery.putAll(wasMastery);
+			log("branch4 done (state restored)");
+		});
+	}
+
 	private static AuraAbilities.Ability Ultimates(com.toast.aurapoints.data.AuraPlayerData data) {
 		return com.toast.aurapoints.ability.Ultimates.of(data.aura, Branch.current(data));
 	}
@@ -423,7 +552,11 @@ final class BranchDevTest {
 		log("too poor: '" + m4 + "' (must refuse), branch " + Branch.current(p) + " (must be MAGMA), Aura " + AuraCurrency.get(p) + " (must be 10)");
 		data.aura = AuraType.WATER;
 		data.mastery.put(AuraType.WATER, 5);
-		log("Water: blocker '" + Branch.blocker(data) + "' (must say no branches), held Fire pick ignored: " + Branch.current(p) + " (must be null)");
+		log("Water: blocker '" + Branch.blocker(data) + "' (null: Water has branches since 5.13.0), held Fire pick ignored: " + Branch.current(p) + " (must be null)");
+		var noAura = data.aura;
+		data.aura = null;
+		log("No aura: blocker '" + Branch.blocker(data) + "' (must say you have no aura yet)");
+		data.aura = noAura;
 		data.aura = AuraType.FIRE;
 
 		// 3. cooldowns and passives per branch

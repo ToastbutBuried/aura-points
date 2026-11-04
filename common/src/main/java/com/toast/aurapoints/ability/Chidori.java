@@ -73,8 +73,13 @@ public final class Chidori {
 		return LUNGING.containsKey(player.getUUID());
 	}
 
-	private static double charge(long since, long now) {
-		return Mth.clamp((now - since) / (double) Math.max(1, AuraConfig.CHIDORI_CHARGE_TICKS), 0.0, 1.0);
+	/** Ticks a full Chidori charge takes (Surge faster). */
+	public static int chargeTicks(ServerPlayer player) {
+		return Branch.is(player, Branch.SURGE) ? AuraConfig.THUNDER_SURGE_CHIDORI_CHARGE_TICKS : AuraConfig.CHIDORI_CHARGE_TICKS;
+	}
+
+	private static double charge(ServerPlayer player, long since, long now) {
+		return Mth.clamp((now - since) / (double) Math.max(1, chargeTicks(player)), 0.0, 1.0);
 	}
 
 	/** The right hand, held low at the side. */
@@ -110,7 +115,7 @@ public final class Chidori {
 	public static void release(ServerPlayer player, long now) {
 		Long since = CHARGING.remove(player.getUUID());
 		if (since == null) return;
-		double charge = charge(since, now);
+		double charge = charge(player, since, now);
 		endCharge(player);
 		ServerLevel level = player.serverLevel();
 		Vec3 h = hand(player);
@@ -190,7 +195,7 @@ public final class Chidori {
 			release(player, now);
 			return;
 		}
-		double charge = charge(since, now);
+		double charge = charge(player, since, now);
 		boolean full = charge >= 1.0 - 1.0e-6;
 		if (now % 2 == 0) NetworkHandler.sendFireBending(player, true, (float) charge, 1f);
 
@@ -224,7 +229,7 @@ public final class Chidori {
 			level.playSound(null, h.x, h.y, h.z, AuraSounds.PARROT_AMBIENT.value(), SoundSource.PLAYERS, 0.25f + (float) charge * 0.25f, pitch);
 			level.playSound(null, h.x, h.y, h.z, AuraSounds.AMETHYST_CLUSTER_HIT.value(), SoundSource.PLAYERS, 0.3f + (float) charge * 0.3f, 1.4f + rnd.nextFloat() * 0.6f);
 		}
-		if (full && CHARGING.get(player.getUUID()) + AuraConfig.CHIDORI_CHARGE_TICKS == now) {
+		if (full && CHARGING.get(player.getUUID()) + chargeTicks(player) == now) {
 			level.playSound(null, h.x, h.y, h.z, AuraSounds.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.8f, 1.6f);
 			Thunderbolt.impact(level, h, 0.6f);
 		}
@@ -293,7 +298,10 @@ public final class Chidori {
 		float damage = (float) Mth.lerp(l.charge, AuraConfig.CHIDORI_MIN_DAMAGE, AuraConfig.CHIDORI_MAX_DAMAGE);
 		boolean full = l.charge >= 1.0 - 1.0e-6;
 		Thunderbolt.zap(player, target, damage);
-		Thunderbolt.charge(target, full ? AuraConfig.CHIDORI_CHARGES : Math.max(1, AuraConfig.CHIDORI_CHARGES - 1));
+		int charges = Branch.is(player, Branch.CONDUCTOR) ? AuraConfig.THUNDER_CONDUCTOR_CHIDORI_CHARGES : AuraConfig.CHIDORI_CHARGES;
+		Thunderbolt.charge(target, full ? charges : Math.max(1, charges - 1));
+		// Conductor: the lightning runs on from the one it pierced
+		if (Branch.is(player, Branch.CONDUCTOR)) Thunderbolt.chain(player, target, damage * AuraConfig.THUNDER_CONDUCTOR_CHIDORI_ARC_FRACTION, AuraConfig.THUNDER_CONDUCTOR_CHIDORI_ARC_TARGETS);
 		AuraStats.add(player, AuraStats.CHIDORI_HITS, 1);
 		int para = (int) Math.round(Mth.lerp(l.charge, AuraConfig.CHIDORI_PARALYZE_MIN_TICKS, AuraConfig.CHIDORI_PARALYZE_MAX_TICKS));
 		if (para > 0) {

@@ -334,8 +334,24 @@ public final class AirBending {
 	}
 
 	/** The burst: everything within BLAST_RADIUS is hurled away and up, hardest at the center. */
+	/** The push a blast gives something at {@code center}: away from the blast, or (Cyclone, enemies only) toward it without overshooting. */
+	public static Vec3 blastPush(Vec3 center, Vec3 c, Vec3 dir, double force, boolean inward) {
+		Vec3 flat = center.subtract(c).multiply(1, 0, 1);
+		if (inward) {
+			double reach = flat.length();
+			if (reach < 1.0e-4) return new Vec3(0, AuraConfig.AIR_BENDING_LIFT * force, 0);
+			double speed = Math.min(AuraConfig.AIR_BENDING_KNOCKBACK * force, reach * 0.8);
+			return flat.normalize().scale(-speed).add(0, AuraConfig.AIR_BENDING_LIFT * force, 0);
+		}
+		Vec3 away = flat;
+		if (away.lengthSqr() < 1.0e-4) away = dir.multiply(1, 0, 1);
+		if (away.lengthSqr() < 1.0e-4) away = new Vec3(1, 0, 0);
+		return away.normalize().scale(AuraConfig.AIR_BENDING_KNOCKBACK * force).add(0, AuraConfig.AIR_BENDING_LIFT * force, 0);
+	}
+
 	static void blast(ServerPlayer owner, ServerLevel level, Vec3 c, double strength, Vec3 dir) {
-		double r = AuraConfig.AIR_BENDING_BLAST_RADIUS;
+		double r = owner != null && Branch.is(owner, Branch.SKYRUNNER) ? AuraConfig.WIND_SKYRUNNER_BLAST_RADIUS : AuraConfig.AIR_BENDING_BLAST_RADIUS;
+		boolean cyclone = owner != null && Branch.is(owner, Branch.CYCLONE);
 		long now = level.getServer().getTickCount();
 		if (owner != null) Combos.pass(owner, c, c, r, dir);
 		for (Entity e : level.getEntities((Entity) null, new AABB(c, c).inflate(r), t -> t == owner || WindLaunch.canShove(owner, t))) {
@@ -345,9 +361,6 @@ public final class AirBending {
 			// full force at the center, half at the edge
 			double falloff = 1.0 - 0.5 * dist / Math.max(0.1, r);
 			double force = strength * falloff;
-			Vec3 away = center.subtract(c).multiply(1, 0, 1);
-			if (away.lengthSqr() < 1.0e-4) away = dir.multiply(1, 0, 1);
-			if (away.lengthSqr() < 1.0e-4) away = new Vec3(1, 0, 0);
 			if (e == owner) {
 				if (AuraConfig.AIR_BENDING_SELF_FACTOR <= 0) continue;
 				force *= AuraConfig.AIR_BENDING_SELF_FACTOR;
@@ -356,7 +369,7 @@ public final class AirBending {
 			} else if (e instanceof LivingEntity target && AuraConfig.AIR_BENDING_DAMAGE > 0) {
 				target.hurt(damage(owner), AuraAbilities.vsMob(target, (float) (AuraConfig.AIR_BENDING_DAMAGE * strength)));
 			}
-			Vec3 push = away.normalize().scale(AuraConfig.AIR_BENDING_KNOCKBACK * force).add(0, AuraConfig.AIR_BENDING_LIFT * force, 0);
+			Vec3 push = blastPush(center, c, dir, force, cyclone && e != owner);
 			e.setDeltaMovement(e.getDeltaMovement().multiply(0.2, 0.0, 0.2).add(push));
 			e.hurtMarked = true;
 		}

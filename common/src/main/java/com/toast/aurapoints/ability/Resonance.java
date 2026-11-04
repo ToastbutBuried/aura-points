@@ -190,6 +190,29 @@ public final class Resonance {
 		return out;
 	}
 
+	/** How many blossoms a Resonance player keeps (Chorus more). */
+	public static int blossomMax(ServerPlayer p) {
+		return Branch.is(p, Branch.CHORUS) ? AuraConfig.RESONANCE_CHORUS_BLOSSOM_MAX : AuraConfig.BLOSSOM_MAX;
+	}
+
+	/** How long a Listening Tree lives (Chorus longer, Dirge shorter). */
+	public static int treeTicks(ServerPlayer p) {
+		Branch b = Branch.current(p);
+		return b == Branch.CHORUS ? AuraConfig.RESONANCE_CHORUS_TREE_TICKS : b == Branch.DIRGE ? AuraConfig.RESONANCE_DIRGE_TREE_TICKS : AuraConfig.LISTENING_TREE_TICKS;
+	}
+
+	/** A Sonic Blossom dart's damage. */
+	public static float dartDamage(ServerPlayer p) {
+		Branch b = Branch.current(p);
+		return b == Branch.DIRGE ? AuraConfig.RESONANCE_DIRGE_DART_DAMAGE : b == Branch.CHORUS ? AuraConfig.RESONANCE_CHORUS_DART_DAMAGE : AuraConfig.BLOSSOM_DART_DAMAGE;
+	}
+
+	/** Chorus: the entities Echolocation outlines for this player: the noisy and marked ones, plus friends. */
+	public static boolean hears(ServerPlayer p, LivingEntity e, boolean marked) {
+		if (Noise.isLoud(e) || marked) return true;
+		return Branch.is(p, Branch.CHORUS) && e instanceof net.minecraft.world.entity.player.Player && Light.friend(p, e);
+	}
+
 	private static void mark(UUID owner, LivingEntity target, long now) {
 		MARKS.computeIfAbsent(owner, k -> new HashMap<>()).put(target, now + AuraConfig.ECHO_MARK_TICKS);
 	}
@@ -268,7 +291,7 @@ public final class Resonance {
 		}
 		Deque<Blossom> mine = BLOSSOMS.computeIfAbsent(player.getUUID(), k -> new ArrayDeque<>());
 		mine.addLast(b);
-		while (mine.size() > Math.max(1, AuraConfig.BLOSSOM_MAX)) mine.removeFirst().wither(null);
+		while (mine.size() > Math.max(1, blossomMax(player))) mine.removeFirst().wither(null);
 
 		AuraFx.particles(level, ParticleTypes.SQUID_INK, at.x, at.y + 0.3, at.z, 12, 0.3, 0.2, 0.3, 0.02);
 		AuraFx.particles(level, AuraFx.dust(MAGENTA, 0.9f), at.x, at.y + 0.4, at.z, 10, 0.3, 0.3, 0.3, 0);
@@ -329,7 +352,8 @@ public final class Resonance {
 		AuraFx.particles(level, AuraFx.dust(VIOLET, 0.9f), end.x, end.y, end.z, 1, 0, 0, 0, 0);
 		if (hit != null && hit.getEntity() instanceof LivingEntity victim) {
 			victim.invulnerableTime = 0;
-			Handhelds.hurt(owner, victim, AuraConfig.BLOSSOM_DART_DAMAGE);
+			Handhelds.hurt(owner, victim, dartDamage(owner));
+			if (Branch.is(owner, Branch.DIRGE)) Noise.deafen(victim, AuraConfig.RESONANCE_DIRGE_DEAF_TICKS);
 			mark(owner.getUUID(), victim, now);
 			Vec3 c = AuraFx.chest(victim);
 			AuraFx.particles(level, AuraFx.dust(PINK, 1.0f), c.x, c.y, c.z, 6, 0.2, 0.2, 0.2, 0);
@@ -422,7 +446,7 @@ public final class Resonance {
 
 	private static boolean tickTree(ServerPlayer owner, Tree t, long now) {
 		int age = t.age++;
-		if (t.broken || age >= AuraConfig.LISTENING_TREE_TICKS) {
+		if (t.broken || age >= treeTicks(owner)) {
 			release(t);
 			return true;
 		}
@@ -895,7 +919,7 @@ public final class Resonance {
 				double r = AuraConfig.ECHO_RANGE;
 				List<LivingEntity> heard = p.serverLevel().getEntitiesOfClass(LivingEntity.class, p.getBoundingBox().inflate(r),
 						e -> e != p && e.isAlive() && !e.isSpectator() && e.distanceToSqr(p) <= r * r
-								&& (Noise.isLoud(e) || (marks != null && marks.containsKey(e))));
+								&& hears(p, e, marks != null && marks.containsKey(e)));
 				heard.sort(Comparator.comparingDouble(e -> e.distanceToSqr(p)));
 				for (LivingEntity e : heard) {
 					if (ids.size() >= HighlightPacket.MAX_IDS) break; // more would not fit the packet and kick the player

@@ -374,7 +374,7 @@ public class AuraPoints {
 				}
 				if (AuraAbilities.hasAbility(data, AuraAbilities.Ability.IRON_SKIN) && event.getAmount() > 0) {
 					float before = event.getAmount();
-					event.setAmount(AuraAbilities.applyIronSkinReduction(before));
+					event.setAmount(AuraAbilities.applyIronSkinReduction(victim, before));
 					AuraStats.add(victim, AuraStats.IRON_SKIN_BLOCKED, Math.round((before - event.getAmount()) * 10));
 					AuraAbilities.ironSkinFx(victim);
 				}
@@ -420,6 +420,9 @@ public class AuraPoints {
 				AuraFx.particles((net.minecraft.server.level.ServerLevel) victim.level(), net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER,
 						victim.getX(), victim.getY() + victim.getBbHeight() * 0.6, victim.getZ(), 3, 0.25, 0.3, 0.25, 0.0);
 			}
+
+			// Conductor: a Charged target passes part of the hit on
+			com.toast.aurapoints.ability.Thunderbolt.spread(attacker, victim, event.getAmount());
 
 			// Brittle (Frostbite branch): Chilled targets take more
 			if (AuraConfig.BRITTLE_BONUS > 0 && AuraAbilities.hasAbility(attackerData, AuraAbilities.Ability.BRITTLE)
@@ -477,7 +480,7 @@ public class AuraPoints {
 			}
 
 			// Gale Rider: also counts for arrows and charges that land while the shooter still glides.
-			if (attacker.isFallFlying() && AuraAbilities.hasAbility(attackerData, AuraAbilities.Ability.GALE_RIDER)) {
+			if (AuraAbilities.galeActive(attacker) && AuraAbilities.hasAbility(attackerData, AuraAbilities.Ability.GALE_RIDER)) {
 				event.setAmount(event.getAmount() * AuraConfig.GALE_RIDER_DAMAGE_MULTIPLIER);
 				AuraAbilities.galeRiderHitFx(attacker, victim);
 			}

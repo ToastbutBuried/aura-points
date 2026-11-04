@@ -235,9 +235,20 @@ public final class Reactions {
 		}
 	}
 
+	/** Cyclone: the Wind reactions you trigger hit harder. */
+	public static float stormDamage(ServerPlayer attacker, float base) {
+		return Branch.is(attacker, Branch.CYCLONE) ? (float) (base * AuraConfig.WIND_CYCLONE_STORM_FACTOR) : base;
+	}
+
+	/** Puts a mark on the target for REACTION_MARK_TICKS (Tidecaller's Healing Tide soaks enemies Wet). */
+	public static void applyMark(LivingEntity e, Mark mark) {
+		if (e.getServer() == null || AuraConfig.REACTION_MARK_TICKS <= 0) return;
+		MARKS.computeIfAbsent(e, k -> new Marks()).until.put(mark, (long) e.getServer().getTickCount() + AuraConfig.REACTION_MARK_TICKS);
+	}
+
 	/** True if the target carries this mark right now (a hit left it, or the world puts it on, like freezing). */
 	public static boolean marked(LivingEntity e, Mark mark) {
-		return has(e, MARKS.get(e), mark, e.level().getGameTime());
+		return has(e, MARKS.get(e), mark, e.getServer() == null ? 0 : e.getServer().getTickCount());
 	}
 
 	private static boolean has(LivingEntity e, Marks marks, Mark mark, long now) {
@@ -288,7 +299,7 @@ public final class Reactions {
 				});
 			}
 			case FIRESTORM -> {
-				bonus(event, victim, AuraConfig.REACTION_FIRESTORM_DAMAGE);
+				bonus(event, victim, stormDamage(attacker, AuraConfig.REACTION_FIRESTORM_DAMAGE));
 				List<LivingEntity> around = Handhelds.enemies(attacker, level, c, AuraConfig.REACTION_FIRESTORM_RADIUS);
 				for (LivingEntity e : around) if (!e.fireImmune()) e.igniteForSeconds(AuraConfig.REACTION_FIRESTORM_FIRE_SECONDS);
 				spiral(level, victim.position(), AuraConfig.REACTION_FIRESTORM_RADIUS, ParticleTypes.FLAME);
@@ -299,7 +310,7 @@ public final class Reactions {
 				others.remove(victim);
 				AuraFx.later(server, 1, () -> {
 					if (!AuraFx.alive(attacker)) return;
-					for (LivingEntity e : others) hurt(attacker, e, AuraConfig.REACTION_FIRESTORM_DAMAGE);
+					for (LivingEntity e : others) hurt(attacker, e, stormDamage(attacker, AuraConfig.REACTION_FIRESTORM_DAMAGE));
 				});
 			}
 			case TOXIC_CLOUD -> {
@@ -340,7 +351,7 @@ public final class Reactions {
 				AuraFx.sound(level, victim, AuraSounds.MANGROVE_ROOTS_PLACE.value(), 1.2f, 0.8f);
 			}
 			case STORM -> {
-				bonus(event, victim, AuraConfig.REACTION_STORM_DAMAGE);
+				bonus(event, victim, stormDamage(attacker, AuraConfig.REACTION_STORM_DAMAGE));
 				List<LivingEntity> around = Handhelds.enemies(attacker, level, c, AuraConfig.REACTION_STORM_RADIUS);
 				for (LivingEntity e : around) {
 					e.setDeltaMovement(e.getDeltaMovement().add(0, AuraConfig.REACTION_STORM_LIFT, 0));
@@ -354,7 +365,7 @@ public final class Reactions {
 				others.remove(victim);
 				AuraFx.later(server, 1, () -> {
 					if (!AuraFx.alive(attacker)) return;
-					for (LivingEntity e : others) hurt(attacker, e, AuraConfig.REACTION_STORM_DAMAGE);
+					for (LivingEntity e : others) hurt(attacker, e, stormDamage(attacker, AuraConfig.REACTION_STORM_DAMAGE));
 				});
 			}
 		}

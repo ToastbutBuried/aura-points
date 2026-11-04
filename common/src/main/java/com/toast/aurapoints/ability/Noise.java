@@ -42,6 +42,22 @@ public final class Noise {
 		return ear == null ? 0f : ear.level;
 	}
 
+	/** Dirge: entities pinned loud until this game tick. */
+	private static final Map<LivingEntity, Long> DEAF = new HashMap<>();
+
+	/** Deafened: for {@code ticks} the entity's noise stays at NOISE_DEAF_LEVEL however still or sneaky it is. */
+	public static void deafen(LivingEntity e, int ticks) {
+		if (ticks <= 0 || e.getServer() == null) return;
+		DEAF.put(e, (long) e.getServer().getTickCount() + ticks);
+		Ear ear = EARS.computeIfAbsent(e, k -> new Ear());
+		ear.level = Math.max(ear.level, AuraConfig.NOISE_DEAF_LEVEL);
+	}
+
+	public static boolean isDeaf(LivingEntity e) {
+		Long until = DEAF.get(e);
+		return until != null && e.getServer() != null && until > e.getServer().getTickCount();
+	}
+
 	public static boolean isLoud(LivingEntity e) {
 		return get(e) >= AuraConfig.NOISE_LOUD;
 	}
@@ -61,6 +77,7 @@ public final class Noise {
 			EARS.clear();
 			return;
 		}
+		DEAF.entrySet().removeIf(d -> !d.getKey().isAlive() || d.getValue() <= server.getTickCount());
 		double r = AuraConfig.NOISE_LISTEN_RANGE;
 		Set<LivingEntity> near = new HashSet<>();
 		for (Resonance.Listener l : listeners) {
@@ -97,6 +114,7 @@ public final class Noise {
 		boolean sneaking = e instanceof Player p && p.isCrouching();
 		if (moved > 0.02 && moved < 4.0 && !sneaking) floor = e.isSprinting() ? AuraConfig.NOISE_SPRINT : AuraConfig.NOISE_WALK;
 		if (e.isUsingItem()) floor = Math.max(floor, AuraConfig.NOISE_USE_ITEM);
+		if (isDeaf(e)) floor = Math.max(floor, AuraConfig.NOISE_DEAF_LEVEL);
 		if (e instanceof ServerPlayer p && (com.toast.aurapoints.network.NetworkHandler.holdsAbilityKey(p) || Mjolnir.isSpinning(p))) {
 			floor = Math.max(floor, AuraConfig.NOISE_ABILITY_HOLD);
 		}
