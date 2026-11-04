@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.16.1
+- Fixed: /aura worthy could be run by anyone (the command rules file had it open), so a player could make themselves worthy. It is owner only now, whatever the rules file says. Server owners: check /aura worthy for names you did not add.
+
 == 5.16.0
 - The worthy (server owner): /aura worthy add <player> lets someone else wield Mjölnir, the aura handhelds and the World Tree Bow like you; /aura worthy remove <player> takes it back, /aura worthy lists them. /aura mjolnir <players> hands the hammer out. The whole system has a switch, WORTHY_ENABLED (Balance Tome, General page): off = only owners, whatever the list says. The list is aurapoints-worthy.json.
 

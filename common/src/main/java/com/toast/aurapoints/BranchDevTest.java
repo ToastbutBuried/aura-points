@@ -483,6 +483,12 @@ final class BranchDevTest {
 			boolean listedOn = AuraCommand.isWorthy(p);
 			AuraConfig.WORTHY_ENABLED = false;
 			boolean listedOff = AuraCommand.isWorthy(p);
+			// the command itself: a non-owner running it must change nothing (5.16.1: the rules file once left it open to everyone)
+			com.toast.aurapoints.config.Worthy.remove("WorthyTest");
+			server.getCommands().performPrefixedCommand(p.createCommandSourceStack(), "aura worthy add WorthyTest");
+			boolean sneaked = com.toast.aurapoints.config.Worthy.list().stream().anyMatch(n -> n.equalsIgnoreCase("WorthyTest"));
+			log("worthy: a non-owner running /aura worthy add on themselves got in=" + sneaked + " (must be false)");
+			com.toast.aurapoints.config.Worthy.remove("WorthyTest");
 			log("worthy: fake player is owner=" + owner + " (must be false for the rest to mean anything); worthy before listing=" + before + " (false), listed+enabled=" + listedOn
 					+ " (true), listed+disabled=" + listedOff + " (false), Mjolnir.handlesKey on a hammer-less player=" + com.toast.aurapoints.ability.Mjolnir.handlesKey(p, true) + " (false)");
 		} finally {

@@ -67,11 +67,17 @@ public final class CommandRules {
 				"aura setaura", "aura mastery set", "aura awaken")) {
 			DEFAULTS.put(key, new Rule(true, 2, false, Set.of()));
 		}
-		for (String key : List.of("aura mjolnir", "aura handheld", "aura lock", "aura unlock", "aura balance whitelist", "aura arena rebuild",
+		for (String key : List.of("aura mjolnir", "aura handheld", "aura worthy", "aura lock", "aura unlock", "aura balance whitelist", "aura arena rebuild",
 				"aura arena duel stop", "aura arena match stop", "aura arena layout")) {
 			DEFAULTS.put(key, new Rule(true, 0, true, Set.of()));
 		}
 	}
+
+	/**
+	 * Commands that are owner only whatever the rules file says: it stores the first default it ever saw for a command, so a
+	 * default added later would never reach a server that already has the key (5.16.0 shipped /aura worthy open to everyone).
+	 */
+	private static final Set<String> ALWAYS_OWNER = Set.of("aura worthy");
 
 	/** The rules in force (key -> rule) and the global blacklist; swapped whole on load. */
 	private static volatile Map<String, Rule> rules = new LinkedHashMap<>();
@@ -110,7 +116,7 @@ public final class CommandRules {
 		if (player != null && (listed(blacklistAll, player) || listed(r.blacklist(), player))) return false;
 		// the owner in game, or the server console / rcon
 		boolean owner = player == null ? src.getEntity() == null && src.hasPermission(4) : AuraCommand.isOwner(player);
-		if (r.ownerOnly()) return owner;
+		if (r.ownerOnly() || ALWAYS_OWNER.contains(key)) return owner;
 		return owner || src.hasPermission(r.opLevel());
 	}
 
