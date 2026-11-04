@@ -1,6 +1,6 @@
 # How to earn Aura
 
-_244 quests, generated from the live quest book._
+_238 quests, generated from the live quest book._
 
 Aura is the currency on the `aura_points` scoreboard. Spend it on abilities, rerolls, skill points and cosmetics.
 
@@ -220,7 +220,7 @@ Master your aura's abilities.
 | Long Shot | Kill a mob with an arrow, trident or other projectile from 100+ blocks away. | 35 Aura | once |
 | Arbalistic | Kill five different kinds of mobs with a single piercing crossbow shot. | 35 Aura | once |
 
-### Aura Mastery (71)
+### Aura Mastery (65)
 
 Master your aura, level by level.
 
@@ -270,10 +270,6 @@ Master your aura, level by level.
 | Blood Mastery II | Earn 300 Blood mastery XP (use your aura - /aura mastery shows it). | Blood Mastery II, 10 Aura | once |
 | Blood Mastery III | Earn 750 Blood mastery XP (use your aura - /aura mastery shows it). | Blood Mastery III, 20 Aura | once |
 | Blood Mastery IV | Earn 1500 Blood mastery XP (use your aura - /aura mastery shows it). | Blood Mastery IV, 35 Aura | once |
-| Void Mastery I | Earn 100 Void mastery XP (use your aura - /aura mastery shows it). | Void Mastery I, 10 Aura | once |
-| Void Mastery II | Earn 300 Void mastery XP (use your aura - /aura mastery shows it). | Void Mastery II, 10 Aura | once |
-| Void Mastery III | Earn 750 Void mastery XP (use your aura - /aura mastery shows it). | Void Mastery III, 20 Aura | once |
-| Void Mastery IV | Earn 1500 Void mastery XP (use your aura - /aura mastery shows it). | Void Mastery IV, 35 Aura | once |
 | Shadow Mastery V | Earn 3000 Shadow mastery XP (use your aura - /aura mastery shows it). | Shadow Mastery V, 50 Aura | once |
 | Water Mastery V | Earn 3000 Water mastery XP (use your aura - /aura mastery shows it). | Water Mastery V, 50 Aura | once |
 | Fire Mastery V | Earn 3000 Fire mastery XP (use your aura - /aura mastery shows it). | Fire Mastery V, 50 Aura | once |
@@ -285,7 +281,6 @@ Master your aura, level by level.
 | Earth Mastery V | Earn 3000 Earth mastery XP (use your aura - /aura mastery shows it). | Earth Mastery V, 50 Aura | once |
 | Light Mastery V | Earn 3000 Light mastery XP (use your aura - /aura mastery shows it). | Light Mastery V, 50 Aura | once |
 | Blood Mastery V | Earn 3000 Blood mastery XP (use your aura - /aura mastery shows it). | Blood Mastery V, 50 Aura | once |
-| Void Mastery V | Earn 3000 Void mastery XP (use your aura - /aura mastery shows it). | Void Mastery V, 50 Aura | once |
 | Shadow Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Shadow Awakening (Ultimate), 50 Aura | once |
 | Water Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Water Awakening (Ultimate), 50 Aura | once |
 | Fire Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Fire Awakening (Ultimate), 50 Aura | once |
@@ -296,4 +291,3 @@ Master your aura, level by level.
 | Earth Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Earth Awakening (Ultimate), 50 Aura | once |
 | Light Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Light Awakening (Ultimate), 50 Aura | once |
 | Blood Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Blood Awakening (Ultimate), 50 Aura | once |
-| Void Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Void Awakening (Ultimate), 50 Aura | once |
