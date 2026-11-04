@@ -303,6 +303,18 @@ final class DevTest {
 			return 1;
 		})));
 		// /auradev icespike: a fake player charges a full Ice Spike at a zombie; logs the frost shard displays every tick
+		// /auradev holds: every hold breaks when its holder is paralyzed (stun) and when frozen
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("holds").executes(ctx -> {
+			ServerLevel level = ctx.getSource().getServer().overworld();
+			int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, 0, 0);
+			for (boolean freeze : new boolean[]{false, true}) {
+				net.minecraft.server.level.ServerPlayer p = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("41C82C87-7AfB-4024-BA57-13D2C99CAE77"), "[AuraDev]"));
+				p.moveTo(20.5, y, 20.5, 0f, 0f);
+				p.setOnGround(true);
+				AuraPoints.LOGGER.info("[auradev] holds {}: {}", freeze ? "freeze" : "stun", com.toast.aurapoints.ability.Stun.devHolds(p, freeze));
+			}
+			return 1;
+		})));
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("icespike").executes(ctx -> {
 			var server = ctx.getSource().getServer();
 			ServerLevel level = server.overworld();

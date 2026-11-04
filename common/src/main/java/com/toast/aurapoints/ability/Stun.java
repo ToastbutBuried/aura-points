@@ -120,4 +120,23 @@ public final class Stun {
 		STUNNED.remove(player.getUUID());
 		WINDING.remove(player.getUUID());
 	}
+
+	/** DEV (/auradev holds): starts every hold on {@code p}, then freezes or paralyzes it; "name=before>after" each (after must be false). */
+	public static String devHolds(ServerPlayer p, boolean freeze) {
+		long now = p.getServer().getTickCount();
+		AuraAbilities.clearCooldowns(p);
+		FireBending.press(p, now);
+		AbyssalBubble.press(p, now);
+		Light.beam(p, now);
+		Earth.boulder(p, now);
+		Resonance.devGrasp(p, now);
+		IceSpike.press(p, now);
+		String before = "bubble=" + AbyssalBubble.isHolding(p) + " beam=" + Light.isBeaming(p) + " boulder=" + Earth.isHolding(p)
+				+ " grasp=" + Resonance.isGrasping(p) + " spike=" + IceSpike.isCharging(p) + " fire=" + FireBending.isHolding(p);
+		if (freeze) IceSpike.freeze(p, now, 40);
+		else stun(p, 40);
+		String after = "bubble=" + AbyssalBubble.isHolding(p) + " beam=" + Light.isBeaming(p) + " boulder=" + Earth.isHolding(p)
+				+ " grasp=" + Resonance.isGrasping(p) + " spike=" + IceSpike.isCharging(p) + " fire=" + FireBending.isHolding(p);
+		return "before[" + before + "] after[" + after + "] (all after must be false)";
+	}
 }

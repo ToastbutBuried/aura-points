@@ -804,6 +804,16 @@ public final class Resonance {
 		AuraAbilities.markUsed(owner, Ability.ABYSSAL_GRASP, now);
 	}
 
+	public static boolean isGrasping(ServerPlayer owner) {
+		return GRASPS.containsKey(owner.getUUID());
+	}
+
+	/** DEV: a grasp reaching out right away (as if charged and let go). */
+	static void devGrasp(ServerPlayer player, long now) {
+		CHARGING.put(player.getUUID(), now);
+		graspRelease(player, now + AuraConfig.GRASP_CHARGE_TICKS);
+	}
+
 	/** Frozen or paralyzed: the tentacles let go (or stop reaching) - no throw, no cooldown. */
 	static void dropGrasp(ServerPlayer owner) {
 		if (!GRASPS.containsKey(owner.getUUID())) return;
