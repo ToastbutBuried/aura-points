@@ -282,7 +282,7 @@ public final class NetworkHandler {
 	/** The Blood aura's blood bar for the player's own client. */
 	public static void sendBloodBar(ServerPlayer player, int blood) {
 		PacketDistributor.sendToPlayer(player, new BloodBarPacket(blood, com.toast.aurapoints.config.AuraConfig.BLOOD_BAR_MAX,
-				com.toast.aurapoints.config.AuraConfig.BLOOD_BAR_MOON_COST));
+				com.toast.aurapoints.ability.Blood.moonCost()));
 	}
 
 	/** Abyssal Bubble on/off for the holder's own client (camera shake and the stability bar), with the shake settings. */

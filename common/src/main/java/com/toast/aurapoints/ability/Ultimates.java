@@ -963,7 +963,7 @@ public final class Ultimates {
 		ServerLevel level = p.serverLevel();
 		int ticks = Math.max(40, AuraConfig.BLOOD_MOON_TICKS);
 		Blood.MOON.put(p.getUUID(), (long) p.getServer().getTickCount() + ticks);
-		if (!AuraAbilities.cooldownsDisabled(p)) Blood.spendBlood(p, AuraConfig.BLOOD_BAR_MOON_COST);
+		if (!AuraAbilities.cooldownsDisabled(p)) Blood.spendBlood(p, Blood.moonCost());
 		// the sky goes red for everyone near
 		double range = Math.max(8, AuraConfig.BLOOD_MOON_SKY_RANGE);
 		for (ServerPlayer other : level.players()) {

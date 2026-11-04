@@ -169,9 +169,14 @@ public final class Blood {
 		setBar(p, 0);
 	}
 
+	/** What Blood Moon takes from the bar: the config value, never more than the bar can hold. */
+	public static int moonCost() {
+		return Math.max(0, Math.min(AuraConfig.BLOOD_BAR_MOON_COST, Math.max(1, AuraConfig.BLOOD_BAR_MAX)));
+	}
+
 	/** True if the bar holds enough for Blood Moon; otherwise tells the player how much is missing. */
 	static boolean moonReady(ServerPlayer p) {
-		int need = Math.max(0, AuraConfig.BLOOD_BAR_MOON_COST), have = bar(p);
+		int need = moonCost(), have = bar(p);
 		if (have >= need) return true;
 		p.displayClientMessage(Component.literal("Not enough blood (" + have + "/" + need + ") - make them bleed.").withStyle(ChatFormatting.DARK_RED), true);
 		return false;
