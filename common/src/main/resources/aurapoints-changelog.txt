@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.7.1
+- Wave Survival: everyone in a run is a teammate (no damage to each other, heals reach them) and the mobs no longer fight each other. Healing Tide only heals friends now (in the arena: your teammates).
+- Getting frozen or paralyzed breaks whatever you hold (flame, wind ball, bubble, Prism Beam, boulder, grasp). Fixed fires that could stay forever.
+
 == 5.7.0
 - Shadow dragon head: new, bigger look (glowing slit eyes, antlers, a flowing mane) and it moves smoothly now (vanilla Motion, interpolated like any mob). Datapacks can size it with the generic.scale attribute (model, hitbox and rider seat follow).
 - Its collision score now looks one tick ahead along its Motion. Update your game: the entity changed.
