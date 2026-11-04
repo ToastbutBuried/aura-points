@@ -67,7 +67,7 @@ public class AuraPoints {
 			ENTITY_TYPES.register("viper_head", () -> net.minecraft.world.entity.EntityType.Builder
 					.<com.toast.aurapoints.geo.ViperHead>of(com.toast.aurapoints.geo.ViperHead::new, net.minecraft.world.entity.MobCategory.MISC)
 					.sized(0.5f, 0.75f).noSave().noSummon().fireImmune().clientTrackingRange(10).updateInterval(1).build("viper_head"));
-	/** The shadow eastern dragon's head (geo/DragonHead): a saved, summonable entity a datapack drives by Motion/Rotation; no player interaction. */
+	/** The shadow eastern dragon's head (geo/DragonHead): a saved, summonable LivingEntity (generic.scale works) a datapack drives by Motion/Rotation; no player interaction. */
 	public static final java.util.function.Supplier<net.minecraft.world.entity.EntityType<com.toast.aurapoints.geo.DragonHead>> DRAGON_HEAD =
 			ENTITY_TYPES.register("dragon_head", () -> net.minecraft.world.entity.EntityType.Builder
 					.<com.toast.aurapoints.geo.DragonHead>of(com.toast.aurapoints.geo.DragonHead::new, net.minecraft.world.entity.MobCategory.MISC)
@@ -190,6 +190,7 @@ public class AuraPoints {
 		modEventBus.addListener(com.toast.aurapoints.shim.neoforge.event.entity.EntityAttributeCreationEvent.class, event -> {
 			event.put(TRAINING_DUMMY.get(), com.toast.aurapoints.arena.TrainingDummy.createAttributes().build());
 			event.put(ARENA_NPC.get(), com.toast.aurapoints.arena.ArenaNpc.createAttributes().build());
+			event.put(DRAGON_HEAD.get(), com.toast.aurapoints.geo.DragonHead.createAttributes().build());
 		});
 		com.toast.aurapoints.ability.AuraSounds.SOUNDS.register(modEventBus);
 		AuraConditions.CONDITIONS.register(modEventBus);

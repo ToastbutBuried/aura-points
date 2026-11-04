@@ -25,7 +25,7 @@ public class AuraGeoRenderer<T extends AuraGeoEntity> extends GeoEntityRenderer<
 		this(context, new DefaultedEntityGeoModel<>(ResourceLocation.fromNamespaceAndPath("aurapoints", name)), glow);
 	}
 
-	/** A renderer with its own model class (the dragon head pitches its root bone). */
+	/** A renderer with its own model class. */
 	protected AuraGeoRenderer(EntityRendererProvider.Context context, software.bernie.geckolib.model.GeoModel<T> model, boolean glow) {
 		super(context, model);
 		this.shadowRadius = 0;

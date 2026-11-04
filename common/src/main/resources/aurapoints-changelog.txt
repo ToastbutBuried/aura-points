@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.7.0
+- Shadow dragon head: new, bigger look (glowing slit eyes, antlers, a flowing mane) and it moves smoothly now (vanilla Motion, interpolated like any mob). Datapacks can size it with the generic.scale attribute (model, hitbox and rider seat follow).
+- Its collision score now looks one tick ahead along its Motion. Update your game: the entity changed.
+
 == 5.6.0
 - New for datapacks: a dark shadow dragon head entity (aurapoints:dragon_head) plus two body segment models, built for the shadow serpent. Update your game: this adds a new entity.
 

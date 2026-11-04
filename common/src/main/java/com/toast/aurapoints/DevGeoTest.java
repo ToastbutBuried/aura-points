@@ -38,7 +38,6 @@ public final class DevGeoTest {
 	private static List<Row> rows() {
 		return List.of(new Row(AuraPoints.VIPER_HEAD, ViperHead.GONE + 1, 1.6f),
 				new Row(AuraPoints.SHADOW_CLONE, com.toast.aurapoints.geo.ShadowClone.GONE + 1, 1f),
-				new Row(AuraPoints.DRAGON_HEAD, 1, 1f),
 				new Row(AuraPoints.SENTINEL_TREE, com.toast.aurapoints.geo.SentinelTree.GONE + 1, 1f),
 				new Row(AuraPoints.KRAKEN_TENTACLE, com.toast.aurapoints.geo.KrakenTentacle.GONE + 1, 0.6f),
 				new Row(AuraPoints.SONIC_BLOSSOM, com.toast.aurapoints.geo.SonicBlossom.GONE + 1, 1.5f),
@@ -129,18 +128,32 @@ public final class DevGeoTest {
 			}
 			// -Pgeoonly=dragon: five dragon heads side-on at pitches -70..70, each with an armor-stand rider, one with a segment chain
 			if (List.of(only.split(",")).contains("dragon")) {
-				player.teleportTo(level, 1.5, y + 1.2, 8.3, 180f, 8f);
-				float[] pitches = {-60f, 0f, 60f};
+				player.teleportTo(level, -0.5, y + 1.6, 10.0, 180f, 8f);
+				float[] pitches = {-45f, 0f, 45f};
 				for (int i = 0; i < pitches.length; i++) {
 					var head = AuraPoints.DRAGON_HEAD.get().create(level);
 					if (head == null) continue;
-					head.moveTo(-0.7 + i * 2.2, y + 0.5, 6, 90f, pitches[i]);
+					head.moveTo(-3.5 + i * 3.5, y + 0.5, 6, 90f, pitches[i]);
 					level.addFreshEntity(head);
 					var rider = net.minecraft.world.entity.EntityType.ARMOR_STAND.create(level);
 					if (rider != null) {
 						rider.moveTo(head.getX(), head.getY(), head.getZ());
 						level.addFreshEntity(rider);
 						rider.startRiding(head, true);
+					}
+				}
+				// and a big one behind them, scaled by the vanilla attribute (model, hitbox and seat follow)
+				var big = AuraPoints.DRAGON_HEAD.get().create(level);
+				if (big != null) {
+					big.moveTo(-1.5, y + 0.5, 0.5, 90f, 0f);
+					java.util.Objects.requireNonNull(big.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SCALE)).setBaseValue(2.5);
+					level.addFreshEntity(big);
+					AuraPoints.LOGGER.info("[geotest] big dragon scale {} box {}", big.getScale(), big.getBoundingBox());
+					var rider = net.minecraft.world.entity.EntityType.ARMOR_STAND.create(level);
+					if (rider != null) {
+						rider.moveTo(big.getX(), big.getY(), big.getZ());
+						level.addFreshEntity(rider);
+						rider.startRiding(big, true);
 					}
 				}
 				for (int k = 1; k <= 4; k++) {
@@ -150,7 +163,7 @@ public final class DevGeoTest {
 					((com.toast.aurapoints.mixin.ItemDisplayAccessor) d).aurapoints$setItemTransform(net.minecraft.world.item.ItemDisplayContext.FIXED);
 					((com.toast.aurapoints.mixin.DisplayAccessor) d).aurapoints$setTransformation(new com.mojang.math.Transformation(new org.joml.Vector3f(),
 							new org.joml.Quaternionf().rotateY((float) Math.PI / 2), new org.joml.Vector3f(1f), null));
-					d.setPos(1.5 + k * 1.0, y + 1.0, 6.0 + 1.6); // behind the middle head (facing -X, so behind = +X)
+					d.setPos(0.4 + k * 1.0, y + 1.0, 6.0 + 1.6); // behind the middle head (facing -X, so behind = +X)
 					level.addFreshEntity(d);
 				}
 			}
