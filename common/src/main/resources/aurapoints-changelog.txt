@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.5.1
+- Small fixes: Blood Moon's blood cost can no longer be set higher than the bar holds, and a few leftover effect marks are cleaned up properly.
+
 == 5.5.0
 - Blood aura: a new blood bar fills as your bleeds tick (players most, then monsters, then animals). Blood Moon now needs a full bar and spends it.
 - Crimson Sacrifice can spend blood from the bar to cost far less health. The bar empties when you die. Update the mod on your client.
