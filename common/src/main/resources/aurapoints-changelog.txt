@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.13.2
+- Blood, Sacrificial branch: Crimson Sacrifice always costs the full 10 HP. The blood bar no longer takes any off it (and is no longer spent on it).
+
 == 5.13.1
 - The shadow dragon's body (the item displays holding its segments) is drawn from up to 160 blocks away instead of 64, so a long dragon no longer loses its far half when you look up at it from the ground.
 

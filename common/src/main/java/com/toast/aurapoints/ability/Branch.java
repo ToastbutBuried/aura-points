@@ -134,7 +134,7 @@ public enum Branch {
 
 	SACRIFICIAL(AuraType.BLOOD, "Sacrificial", ChatFormatting.DARK_RED, "High risk, high reward", Items.NETHER_WART,
 			() -> List.of(
-					"Crimson Sacrifice costs " + AuraAbilities.fmt(AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_COST) + " HP and multiplies your next " + AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_HITS
+					"Crimson Sacrifice costs a flat " + AuraAbilities.fmt(AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_COST) + " HP (the blood bar no longer takes any off) and multiplies your next " + AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_HITS
 							+ " hits by " + AuraAbilities.fmt((float) AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_MULTIPLIER) + ".",
 					"Blood Tether drains " + AuraAbilities.fmt(AuraConfig.BLOOD_SACRIFICIAL_TETHER_DRAIN) + " per pulse but costs you " + AuraAbilities.fmt(AuraConfig.BLOOD_SACRIFICIAL_TETHER_COST)
 							+ " and no longer heals you. Blood Moon costs " + AuraConfig.BLOOD_SACRIFICIAL_MOON_COST + " of the bar.",

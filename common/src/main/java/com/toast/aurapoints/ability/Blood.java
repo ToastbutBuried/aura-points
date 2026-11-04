@@ -364,7 +364,9 @@ public final class Blood {
 	public static boolean sacrifice(ServerPlayer p, long now) {
 		if (!AuraAbilities.checkCooldown(p, Ability.CRIMSON_SACRIFICE, AuraConfig.BLOOD_SACRIFICE_COOLDOWN_TICKS, now)) return false;
 		// blood from the bar pays part of the price: a full SACRIFICE_SPEND takes MAX_REDUCTION off
-		int full = Math.max(0, AuraConfig.BLOOD_BAR_SACRIFICE_SPEND);
+		// Sacrificial pays the full price in health: the bar neither reduces it nor is spent
+		boolean flat = Branch.is(p, Branch.SACRIFICIAL);
+		int full = flat ? 0 : Math.max(0, AuraConfig.BLOOD_BAR_SACRIFICE_SPEND);
 		int spend = Math.min(bar(p), full);
 		double cut = full == 0 ? 0 : spend / (double) full * Math.max(0, Math.min(1, AuraConfig.BLOOD_SACRIFICE_MAX_REDUCTION));
 		float cost = Math.max(0, Branch.is(p, Branch.SACRIFICIAL) ? AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_COST : AuraConfig.BLOOD_SACRIFICE_COST) * (float) (1 - cut);

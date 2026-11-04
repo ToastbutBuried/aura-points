@@ -362,6 +362,20 @@ final class BranchDevTest {
 		float hitDamage = com.toast.aurapoints.ability.Blood.onHit(p, victim, 10f, true);
 		victim.discard();
 		log("Sacrificial Sacrifice: fired " + paid + " (true), health 20 -> " + after + " (must be " + (20 - AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_COST) + "), next hit 10 -> " + hitDamage + " (must be " + (10 * AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_MULTIPLIER) + ")");
+		// a full blood bar: Sacrificial still pays the whole 10, base takes the bar's discount off (and spends the bar)
+		p.removeAllEffects();
+		StringBuilder bar = new StringBuilder();
+		for (Branch b : new Branch[]{Branch.SACRIFICIAL, null}) {
+			if (b == null) data.branches.remove(AuraType.BLOOD);
+			else data.branches.put(AuraType.BLOOD, b);
+			data.bloodBar = 100;
+			p.setHealth(20f);
+			boolean ok = com.toast.aurapoints.ability.Blood.sacrifice(p, server.getTickCount() + 200000 + (b == null ? 100000 : 0));
+			bar.append(b == null ? "base" : b.id()).append(": fired ").append(ok).append(", health 20 -> ").append(p.getHealth()).append(", bar 100 -> ").append(data.bloodBar).append(" | ");
+		}
+		log("Sacrifice with a full bar " + bar + "(must be: sacrificial health 10.0 bar 100 (flat, bar kept) | base health above 12.0 and bar below 100 (the bar paid part))");
+		data.branches.put(AuraType.BLOOD, Branch.SACRIFICIAL);
+		data.bloodBar = 0;
 		p.setHealth(2f);
 		boolean tooLow = com.toast.aurapoints.ability.Blood.sacrifice(p, server.getTickCount() + 100000);
 		log("Sacrifice at 1 heart: fired " + tooLow + " (must be false, never kills you), health " + p.getHealth() + " (2.0)");
