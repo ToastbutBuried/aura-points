@@ -11,9 +11,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.OwnableEntity;
-import net.minecraft.world.entity.decoration.ArmorStand;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Blocks;
@@ -100,11 +97,7 @@ public final class VineHook {
 
 
 	static boolean canHook(ServerPlayer owner, Entity e) {
-		if (!(e instanceof LivingEntity) || e == owner || !e.isAlive() || e.isSpectator() || e instanceof ArmorStand) return false;
-		if (e instanceof Player p && p.getAbilities().invulnerable) return false;
-		if (VerdantViper.isSteering((LivingEntity) e)) return false; // untouchable while steering a viper
-		return e.getRootVehicle() != owner.getRootVehicle()
-				&& !(e instanceof OwnableEntity pet && owner.getUUID().equals(pet.getOwnerUUID()));
+		return Handhelds.enemy(owner, e); // the shared rule: party protection, viper steerers untouchable
 	}
 
 	/** The catch: damage and a burst of leaves - VineRoots carries the target in (through any block). */

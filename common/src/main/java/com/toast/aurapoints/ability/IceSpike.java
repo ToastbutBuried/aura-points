@@ -25,11 +25,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Creeper;
-import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.item.ItemDisplayContext;
@@ -294,11 +292,9 @@ public final class IceSpike {
 		}
 	}
 
+	/** The shared rule (Handhelds.enemy): party protection and viper steerers included. */
 	private static boolean canHit(ServerPlayer owner, Entity e) {
-		if (!(e instanceof LivingEntity) || e == owner || !e.isAlive() || e.isSpectator() || e instanceof ArmorStand) return false;
-		if (e instanceof Player p && p.getAbilities().invulnerable) return false;
-		return e.getRootVehicle() != owner.getRootVehicle()
-				&& !(e instanceof OwnableEntity pet && owner.getUUID().equals(pet.getOwnerUUID()));
+		return Handhelds.enemy(owner, e);
 	}
 
 	/** Every server tick: the spikes in flight, and the frozen targets. */
