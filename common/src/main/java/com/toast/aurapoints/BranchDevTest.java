@@ -38,6 +38,10 @@ final class BranchDevTest {
 			run(ctx.getSource().getServer());
 			return 1;
 		})));
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("branch3").executes(ctx -> {
+			lightBlood(ctx.getSource().getServer());
+			return 1;
+		})));
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("branch2").executes(ctx -> {
 			frostVerdantEarth(ctx.getSource().getServer());
 			return 1;
@@ -278,6 +282,90 @@ final class BranchDevTest {
 			com.toast.aurapoints.ability.Earth.tickPassives(p, data, 5);
 			log("branch2 done (state restored)");
 		});
+	}
+
+	/** /auradev branch3: the 5.12.0 branches (Light, Blood): numbers per branch, Halo friends, the Prismatic mark and chain, Blood bar gain, Moon cost, a Sacrificial Sacrifice. */
+	private static void lightBlood(net.minecraft.server.MinecraftServer server) {
+		ServerLevel level = server.overworld();
+		var spawn = level.getSharedSpawnPos();
+		Vec3 base = new Vec3(spawn.getX() + 0.5, 120, spawn.getZ() + 0.5);
+		net.minecraft.server.level.ServerPlayer p = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000b4a5"), "Prismer"));
+		net.minecraft.server.level.ServerPlayer friend = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000b4a6"), "Mate"));
+		var state = com.toast.aurapoints.data.AuraState.get(server);
+		var data = state.getOrCreate(p.getUUID());
+		var wasAura = data.aura;
+		var wasMastery = new java.util.EnumMap<AuraType, Integer>(AuraType.class);
+		wasMastery.putAll(data.mastery);
+		var wasBar = data.bloodBar;
+		for (AuraType a : new AuraType[]{AuraType.LIGHT, AuraType.BLOOD}) data.mastery.put(a, 5);
+		data.branches.clear();
+
+		// ---- Light
+		data.aura = AuraType.LIGHT;
+		StringBuilder light = new StringBuilder();
+		for (Branch b : new Branch[]{null, Branch.RADIANT, Branch.PRISMATIC}) {
+			if (b == null) data.branches.remove(AuraType.LIGHT);
+			else data.branches.put(AuraType.LIGHT, b);
+			light.append(b == null ? "base" : b.id()).append(": pulse ").append(com.toast.aurapoints.ability.Light.pulseHeal(p)).append(" sun ").append(com.toast.aurapoints.ability.Light.sunHeal(p))
+					.append(" beam ").append(com.toast.aurapoints.ability.Light.beamDamage(p)).append(" flash cd ").append(Branch.cooldown(p, AuraAbilities.Ability.SOLAR_FLASH, AuraConfig.LIGHT_FLASH_COOLDOWN_TICKS)).append(" | ");
+		}
+		log("Light " + light);
+		log("(must be: base pulse 4.0 sun 2.0 beam 1.5 flash cd 280 | radiant pulse 6.0 sun 3.0 beam 1.05 flash cd 360 | prismatic pulse 3.0 sun 2.0 beam 2.25 flash cd 280)");
+		data.branches.put(AuraType.LIGHT, Branch.RADIANT);
+		friend.moveTo(p.getX(), p.getY(), p.getZ()); // Fabric fake players spawn apart
+		int reached = com.toast.aurapoints.ability.Light.haloFriends(p, java.util.List.of(p, friend));
+		var res = friend.getEffect(net.minecraft.world.effect.MobEffects.DAMAGE_RESISTANCE);
+		log("Radiant Halo: reached " + reached + " (must be 1, not you), friend has Resistance " + (res == null ? "none" : String.valueOf(res.getAmplifier() + 1)) + " (must be 1) for " + (res == null ? 0 : res.getDuration()) + " ticks (<= " + AuraConfig.LIGHT_RADIANT_HALO_BUFF_TICKS + ")");
+		friend.removeAllEffects();
+		data.branches.put(AuraType.LIGHT, Branch.PRISMATIC);
+		net.minecraft.world.entity.animal.Pig target = pig(level, base.add(12, 0, 0));
+		net.minecraft.world.entity.animal.Pig near1 = pig(level, base.add(14, 0, 0)), near2 = pig(level, base.add(12, 0, 3)), near3 = pig(level, base.add(9, 0, 0)), far = pig(level, base.add(12, 0, 20));
+		for (var q : new net.minecraft.world.entity.animal.Pig[]{near1, near2, near3, far}) q.invulnerableTime = 0;
+		log("Prismatic mark: before " + com.toast.aurapoints.ability.Light.isFlashed(target) + " (false)");
+		com.toast.aurapoints.ability.Light.markFlashed(target);
+		log("after Solar Flash marks it: " + com.toast.aurapoints.ability.Light.isFlashed(target) + " (true), a pig never flashed " + com.toast.aurapoints.ability.Light.isFlashed(far) + " (false)");
+		int chained = com.toast.aurapoints.ability.Light.chain(p, target, 10f);
+		double d1 = 200 - near1.getHealth(), d2 = 200 - near2.getHealth(), d3 = 200 - near3.getHealth(), dfar = 200 - far.getHealth();
+		log("chain: reached " + chained + " (must be " + AuraConfig.LIGHT_PRISM_CHAIN_TARGETS + "), damage to the three near pigs " + d1 + "/" + d2 + "/" + d3 + " (two of them " + (10 * AuraConfig.LIGHT_PRISM_CHAIN_FACTOR)
+				+ ", one 0), far pig " + dfar + " (must be 0), the marked target itself " + (200 - target.getHealth()) + " (0: the beam hits it, the chain does not)");
+		for (var q : new net.minecraft.world.entity.animal.Pig[]{target, near1, near2, near3, far}) q.discard();
+
+		// ---- Blood
+		data.aura = AuraType.BLOOD;
+		StringBuilder blood = new StringBuilder();
+		for (Branch b : new Branch[]{null, Branch.SANGUINE, Branch.SACRIFICIAL}) {
+			if (b == null) data.branches.remove(AuraType.BLOOD);
+			else data.branches.put(AuraType.BLOOD, b);
+			data.bloodBar = 0;
+			com.toast.aurapoints.ability.Blood.addBlood(p, 4);
+			blood.append(b == null ? "base" : b.id()).append(": lust ").append(com.toast.aurapoints.ability.Blood.lustHeal(data)).append(" sacrifice x")
+					.append(com.toast.aurapoints.ability.Blood.sacrificeMultiplier(p)).append(" moon ").append(com.toast.aurapoints.ability.Blood.moonCost(p)).append(" bar+4 -> ")
+					.append(data.bloodBar).append(" | ");
+		}
+		log("Blood " + blood);
+		log("(must be: base lust 4.0 sacrifice x2.0 moon 100 bar+4 -> 4 | sanguine lust 6.0 sacrifice x1.5 moon 130 bar+4 -> 6 | sacrificial lust 2.0 sacrifice x3.0 moon 70 bar+4 -> 4)");
+		data.bloodBar = 0;
+		data.branches.put(AuraType.BLOOD, Branch.SACRIFICIAL);
+		AuraCurrency.set(p, 0);
+		p.setHealth(20f);
+		boolean paid = com.toast.aurapoints.ability.Blood.sacrifice(p, server.getTickCount());
+		float after = p.getHealth();
+		net.minecraft.world.entity.animal.Pig victim = pig(level, base.add(12, 0, -12));
+		float hitDamage = com.toast.aurapoints.ability.Blood.onHit(p, victim, 10f, true);
+		victim.discard();
+		log("Sacrificial Sacrifice: fired " + paid + " (true), health 20 -> " + after + " (must be " + (20 - AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_COST) + "), next hit 10 -> " + hitDamage + " (must be " + (10 * AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_MULTIPLIER) + ")");
+		p.setHealth(2f);
+		boolean tooLow = com.toast.aurapoints.ability.Blood.sacrifice(p, server.getTickCount() + 100000);
+		log("Sacrifice at 1 heart: fired " + tooLow + " (must be false, never kills you), health " + p.getHealth() + " (2.0)");
+		p.setHealth(p.getMaxHealth());
+		p.removeAllEffects();
+
+		data.aura = wasAura;
+		data.branches.clear();
+		data.bloodBar = wasBar;
+		data.mastery.clear();
+		data.mastery.putAll(wasMastery);
+		log("branch3 done (state restored)");
 	}
 
 	private static AuraAbilities.Ability Ultimates(com.toast.aurapoints.data.AuraPlayerData data) {

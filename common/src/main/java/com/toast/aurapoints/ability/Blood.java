@@ -120,6 +120,7 @@ public final class Blood {
 				ServerPlayer owner = server.getPlayerList().getPlayer(b.owner);
 				if (owner != null) {
 					hurtQuietly(owner, e, AuraConfig.BLOOD_BLEED_DAMAGE);
+					if (Branch.is(owner, Branch.SANGUINE)) owner.heal(AuraConfig.BLOOD_BLEED_DAMAGE * (float) AuraConfig.BLOOD_SANGUINE_BLEED_LIFESTEAL);
 					if (moonUntil(owner) <= server.getTickCount()) addBlood(owner, gain(e));
 				} else e.hurt(level.damageSources().magic(), AuraConfig.BLOOD_BLEED_DAMAGE);
 				AuraFx.particles(level, AuraFx.dust(CRIMSON, 1.1f), e.getX(), e.getY() + e.getBbHeight() * 0.5, e.getZ(), 6, 0.25, 0.3, 0.25, 0);
@@ -149,7 +150,7 @@ public final class Blood {
 	/** Sets the bar (clamped to 0..MAX), saves it and tells the player's client when it changed. */
 	private static void setBar(ServerPlayer p, int blood) {
 		AuraPlayerData data = data(p);
-		blood = Math.max(0, Math.min(Math.max(1, AuraConfig.BLOOD_BAR_MAX), blood));
+		blood = Math.max(0, Math.min(barMax(p), blood));
 		if (blood == data.bloodBar) return;
 		data.bloodBar = blood;
 		AuraState.get(p.getServer()).markDirty();
@@ -157,6 +158,7 @@ public final class Blood {
 	}
 
 	public static void addBlood(ServerPlayer p, int amount) {
+		if (amount > 0 && Branch.is(p, Branch.SANGUINE)) amount = Math.max(1, (int) Math.round(amount * AuraConfig.BLOOD_SANGUINE_BAR_FACTOR));
 		if (amount > 0) setBar(p, bar(p) + amount);
 	}
 
@@ -169,14 +171,22 @@ public final class Blood {
 		setBar(p, 0);
 	}
 
+	/** How much the blood bar holds: Sanguine's holds enough for its dearer Blood Moon. */
+	public static int barMax(ServerPlayer p) {
+		int max = Math.max(1, AuraConfig.BLOOD_BAR_MAX);
+		return Branch.is(p, Branch.SANGUINE) ? Math.max(max, AuraConfig.BLOOD_SANGUINE_MOON_COST) : max;
+	}
+
 	/** What Blood Moon takes from the bar: the config value, never more than the bar can hold. */
-	public static int moonCost() {
-		return Math.max(0, Math.min(AuraConfig.BLOOD_BAR_MOON_COST, Math.max(1, AuraConfig.BLOOD_BAR_MAX)));
+	public static int moonCost(ServerPlayer p) {
+		Branch b = Branch.current(p);
+		int cost = b == Branch.SANGUINE ? AuraConfig.BLOOD_SANGUINE_MOON_COST : b == Branch.SACRIFICIAL ? AuraConfig.BLOOD_SACRIFICIAL_MOON_COST : AuraConfig.BLOOD_BAR_MOON_COST;
+		return Math.max(0, Math.min(cost, barMax(p)));
 	}
 
 	/** True if the bar holds enough for Blood Moon; otherwise tells the player how much is missing. */
 	static boolean moonReady(ServerPlayer p) {
-		int need = moonCost(), have = bar(p);
+		int need = moonCost(p), have = bar(p);
 		if (have >= need) return true;
 		p.displayClientMessage(Component.literal("Not enough blood (" + have + "/" + need + ") - make them bleed.").withStyle(ChatFormatting.DARK_RED), true);
 		return false;
@@ -233,6 +243,7 @@ public final class Blood {
 		}
 		if (hit == null) return true;
 		Handhelds.hurt(p, hit, AuraConfig.BLOOD_HEMO_DAMAGE);
+		if (Branch.is(p, Branch.SANGUINE)) p.heal(AuraConfig.BLOOD_HEMO_DAMAGE * (float) AuraConfig.BLOOD_SANGUINE_HEMO_LIFESTEAL);
 		bleed(p, hit, AuraConfig.BLOOD_BLEED_TICKS);
 		Vec3 hc = AuraFx.chest(hit);
 		AuraFx.particles(level, ParticleTypes.SWEEP_ATTACK, hc.x, hc.y, hc.z, 1, 0, 0, 0, 0);
@@ -313,8 +324,19 @@ public final class Blood {
 		Vec3 pulse = from.lerp(to, f).add(0, -Math.sin(f * Math.PI) * 0.5, 0);
 		AuraFx.particles(level, AuraFx.dust(BRIGHT, 1.5f), pulse.x, pulse.y, pulse.z, 2, 0.05, 0.05, 0.05, 0);
 		if (th.t % every == 0) {
-			hurtQuietly(p, e, AuraConfig.BLOOD_TETHER_DRAIN);
-			p.heal(AuraConfig.BLOOD_TETHER_DRAIN * (float) Math.max(0, AuraConfig.BLOOD_TETHER_HEAL_FRACTION));
+			if (Branch.is(p, Branch.SACRIFICIAL)) {
+				// the tether costs you: it snaps rather than take the last of your blood
+				float cost = Math.max(0, AuraConfig.BLOOD_SACRIFICIAL_TETHER_COST);
+				if (p.getHealth() <= cost + 1 && !p.getAbilities().invulnerable) {
+					snap(p, th);
+					return false;
+				}
+				if (!p.getAbilities().invulnerable) p.setHealth(p.getHealth() - cost);
+				hurtQuietly(p, e, AuraConfig.BLOOD_SACRIFICIAL_TETHER_DRAIN);
+			} else {
+				hurtQuietly(p, e, AuraConfig.BLOOD_TETHER_DRAIN);
+				p.heal(AuraConfig.BLOOD_TETHER_DRAIN * (float) Math.max(0, AuraConfig.BLOOD_TETHER_HEAL_FRACTION));
+			}
 			AuraFx.particles(level, DROPS, from.x, from.y, from.z, 6, 0.25, 0.25, 0.25, 0);
 			sound(level, to, SoundEvents.WARDEN_HEARTBEAT, 0.9f, 1.3f);
 		}
@@ -339,20 +361,20 @@ public final class Blood {
 		return EMPOWERED.containsKey(p.getUUID());
 	}
 
-	static boolean sacrifice(ServerPlayer p, long now) {
+	public static boolean sacrifice(ServerPlayer p, long now) {
 		if (!AuraAbilities.checkCooldown(p, Ability.CRIMSON_SACRIFICE, AuraConfig.BLOOD_SACRIFICE_COOLDOWN_TICKS, now)) return false;
 		// blood from the bar pays part of the price: a full SACRIFICE_SPEND takes MAX_REDUCTION off
 		int full = Math.max(0, AuraConfig.BLOOD_BAR_SACRIFICE_SPEND);
 		int spend = Math.min(bar(p), full);
 		double cut = full == 0 ? 0 : spend / (double) full * Math.max(0, Math.min(1, AuraConfig.BLOOD_SACRIFICE_MAX_REDUCTION));
-		float cost = Math.max(0, AuraConfig.BLOOD_SACRIFICE_COST) * (float) (1 - cut);
+		float cost = Math.max(0, Branch.is(p, Branch.SACRIFICIAL) ? AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_COST : AuraConfig.BLOOD_SACRIFICE_COST) * (float) (1 - cut);
 		if (p.getHealth() <= cost + 1 && !p.getAbilities().invulnerable) {
 			p.displayClientMessage(Component.literal("Not enough blood left to give.").withStyle(ChatFormatting.RED), true);
 			return false;
 		}
 		if (!p.getAbilities().invulnerable) p.setHealth(p.getHealth() - cost);
 		spendBlood(p, spend);
-		EMPOWERED.put(p.getUUID(), new int[]{Math.max(1, AuraConfig.BLOOD_SACRIFICE_HITS), Math.max(20, AuraConfig.BLOOD_SACRIFICE_TICKS)});
+		EMPOWERED.put(p.getUUID(), new int[]{Math.max(1, Branch.is(p, Branch.SACRIFICIAL) ? AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_HITS : AuraConfig.BLOOD_SACRIFICE_HITS), Math.max(20, AuraConfig.BLOOD_SACRIFICE_TICKS)});
 		ServerLevel level = p.serverLevel();
 		Vec3 c = AuraFx.chest(p);
 		AuraFx.burst(level, c.x, c.y, c.z, AuraFx.dust(BRIGHT, 1.5f), 30, 0.6, 0);
@@ -385,7 +407,7 @@ public final class Blood {
 		if (amount <= 0) return amount;
 		int[] power = EMPOWERED.get(attacker.getUUID());
 		if (melee && power != null) {
-			amount *= (float) Math.max(1, AuraConfig.BLOOD_SACRIFICE_MULTIPLIER);
+			amount *= (float) Math.max(1, sacrificeMultiplier(attacker));
 			if (--power[0] <= 0) EMPOWERED.remove(attacker.getUUID());
 			Vec3 c = AuraFx.chest(victim);
 			ServerLevel level = attacker.serverLevel();
@@ -401,10 +423,22 @@ public final class Blood {
 		return amount;
 	}
 
+	/** What a kill heals: Sanguine more, Sacrificial less. */
+	public static float lustHeal(AuraPlayerData data) {
+		Branch b = Branch.current(data);
+		return b == Branch.SANGUINE ? AuraConfig.BLOOD_SANGUINE_LUST_HEAL : b == Branch.SACRIFICIAL ? AuraConfig.BLOOD_SACRIFICIAL_LUST_HEAL : AuraConfig.BLOOD_LUST_HEAL;
+	}
+
+	/** Crimson Sacrifice's damage multiplier for the owner. */
+	public static double sacrificeMultiplier(ServerPlayer p) {
+		Branch b = Branch.current(p);
+		return b == Branch.SANGUINE ? AuraConfig.BLOOD_SANGUINE_SACRIFICE_MULTIPLIER : b == Branch.SACRIFICIAL ? AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_MULTIPLIER : AuraConfig.BLOOD_SACRIFICE_MULTIPLIER;
+	}
+
 	/** Bloodlust: something the player killed. */
 	public static void onKill(ServerPlayer killer, AuraPlayerData data, LivingEntity dead) {
 		if (!AuraAbilities.hasAbility(data, Ability.BLOODLUST)) return;
-		killer.heal(Math.max(0, AuraConfig.BLOOD_LUST_HEAL));
+		killer.heal(Math.max(0, lustHeal(data)));
 		ServerLevel level = killer.serverLevel();
 		Vec3 a = AuraFx.chest(dead), b = AuraFx.chest(killer);
 		AuraFx.line(level, a, b, AuraFx.dust(BRIGHT, 1.2f), 16);
@@ -420,7 +454,7 @@ public final class Blood {
 	public static void tickPassives(ServerPlayer p, AuraPlayerData data, long now) {
 		if (now % 10 != 0) return;
 		if (!AuraAbilities.hasAbility(data, Ability.THIN_BLOOD) || !p.isAlive()) return;
-		if (p.getHealth() / p.getMaxHealth() <= AuraConfig.BLOOD_THIN_THRESHOLD) {
+		if (p.getHealth() / p.getMaxHealth() <= (Branch.current(data) == Branch.SACRIFICIAL ? AuraConfig.BLOOD_SACRIFICIAL_THIN_THRESHOLD : AuraConfig.BLOOD_THIN_THRESHOLD)) {
 			p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 30, Math.max(0, AuraConfig.BLOOD_THIN_SPEED_AMPLIFIER), true, false, true));
 			if (!p.isInvisible() && now % 20 == 0) AuraFx.particles(p.serverLevel(), DROPS, p.getX(), p.getY() + 1, p.getZ(), 2, 0.2, 0.3, 0.2, 0);
 		}

@@ -80,6 +80,65 @@ public final class Light {
 	// Radiant Pulse
 	// ---------------------------------------------------------------
 
+	/** Radiant Pulse's heal: Radiant heals more, Prismatic less. */
+	public static float pulseHeal(ServerPlayer p) {
+		Branch b = Branch.current(p);
+		return b == Branch.RADIANT ? AuraConfig.LIGHT_RADIANT_PULSE_HEAL : b == Branch.PRISMATIC ? AuraConfig.LIGHT_PRISM_PULSE_HEAL : AuraConfig.LIGHT_PULSE_HEAL;
+	}
+
+	/** Sunburst's warmth for friends: Radiant heals more. */
+	public static float sunHeal(ServerPlayer p) {
+		return Branch.is(p, Branch.RADIANT) ? AuraConfig.LIGHT_RADIANT_SUN_HEAL : AuraConfig.LIGHT_SUN_HEAL;
+	}
+
+	/** Prismatic: whom Solar Flash marked, until which game tick. */
+	private static final java.util.Map<LivingEntity, Long> FLASHED = new java.util.WeakHashMap<>();
+
+	public static boolean isFlashed(LivingEntity e) {
+		Long until = FLASHED.get(e);
+		return until != null && until > e.level().getGameTime();
+	}
+
+	public static void markFlashed(LivingEntity e) {
+		FLASHED.put(e, e.level().getGameTime() + Math.max(1, AuraConfig.LIGHT_PRISM_MARK_TICKS));
+	}
+
+	/** The Prism Beam's damage per hit for this owner (Radiant weaker, Prismatic stronger). */
+	public static float beamDamage(ServerPlayer p) {
+		Branch b = Branch.current(p);
+		return b == Branch.RADIANT ? (float) (AuraConfig.LIGHT_BEAM_DAMAGE * AuraConfig.LIGHT_RADIANT_BEAM_FACTOR)
+				: b == Branch.PRISMATIC ? AuraConfig.LIGHT_PRISM_BEAM_DAMAGE : AuraConfig.LIGHT_BEAM_DAMAGE;
+	}
+
+	/** Prismatic: the beam on a marked target also burns the nearest others around it. Returns how many it hit. */
+	public static int chain(ServerPlayer p, LivingEntity target, float damage) {
+		int hit = 0;
+		ServerLevel level = p.serverLevel();
+		Vec3 from = AuraFx.chest(target);
+		var near = new java.util.ArrayList<>(Handhelds.enemies(p, level, from, Math.max(1, AuraConfig.LIGHT_PRISM_CHAIN_RADIUS)));
+		near.remove(target);
+		near.sort(java.util.Comparator.comparingDouble(e -> e.distanceToSqr(target)));
+		for (LivingEntity e : near) {
+			if (hit >= AuraConfig.LIGHT_PRISM_CHAIN_TARGETS) break;
+			Handhelds.hurt(p, e, damage * (float) Math.max(0, AuraConfig.LIGHT_PRISM_CHAIN_FACTOR));
+			AuraFx.line(level, from, AuraFx.chest(e), AuraFx.dust(GOLD, 0.8f), 10);
+			hit++;
+		}
+		return hit;
+	}
+
+	/** Radiant: friends near the halo's wearer get a small shield of light. Returns how many it reached. */
+	public static int haloFriends(ServerPlayer p, java.util.Collection<? extends LivingEntity> near) {
+		double r = Math.max(1, AuraConfig.LIGHT_RADIANT_HALO_RADIUS);
+		int n = 0;
+		for (LivingEntity e : near) {
+			if (e == p || !e.isAlive() || e.distanceToSqr(p) > r * r || !friend(p, e)) continue;
+			e.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, Math.max(20, AuraConfig.LIGHT_RADIANT_HALO_BUFF_TICKS), 0, true, false, true), p);
+			n++;
+		}
+		return n;
+	}
+
 	static boolean pulse(ServerPlayer p, long now) {
 		if (!AuraAbilities.checkCooldown(p, Ability.RADIANT_PULSE, AuraConfig.LIGHT_PULSE_COOLDOWN_TICKS, now)) return false;
 		ServerLevel level = p.serverLevel();
@@ -95,7 +154,7 @@ public final class Light {
 				Vec3 ec = AuraFx.chest(e);
 				AuraFx.particles(level, ParticleTypes.FLAME, ec.x, ec.y, ec.z, 8, 0.3, 0.4, 0.3, 0.02);
 			} else if (friend(p, e)) {
-				e.heal(Math.max(0, AuraConfig.LIGHT_PULSE_HEAL));
+				e.heal(Math.max(0, pulseHeal(p)));
 				if (AuraConfig.LIGHT_PULSE_REGEN_TICKS > 0) e.addEffect(new MobEffectInstance(MobEffects.REGENERATION, AuraConfig.LIGHT_PULSE_REGEN_TICKS, 0), p);
 				AuraFx.particles(level, ParticleTypes.HEART, e.getX(), e.getY() + 2.1, e.getZ(), 1, 0.2, 0.1, 0.2, 0);
 				AuraFx.particles(level, AuraFx.dust(GOLD, 1.0f), e.getX(), e.getY() + 1, e.getZ(), 10, 0.3, 0.5, 0.3, 0);
@@ -137,6 +196,7 @@ public final class Light {
 			Handhelds.hurt(p, e, AuraConfig.LIGHT_FLASH_DAMAGE);
 			e.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, Math.max(20, AuraConfig.LIGHT_FLASH_BLIND_TICKS), 0), p);
 			e.addEffect(new MobEffectInstance(MobEffects.GLOWING, Math.max(20, AuraConfig.LIGHT_FLASH_GLOW_TICKS), 0), p);
+			if (Branch.is(p, Branch.PRISMATIC)) markFlashed(e);
 			// a mob caught in it loses you for a moment
 			if (e instanceof net.minecraft.world.entity.Mob mob && mob.getTarget() == p) mob.setTarget(null);
 			Vec3 ec = AuraFx.chest(e);
@@ -258,8 +318,10 @@ public final class Light {
 			AuraFx.particles(level, ParticleTypes.WAX_OFF, at.x, at.y, at.z, 1, 0.05, 0.05, 0.05, 0);
 		}
 		if (target != null && b.t % Math.max(1, AuraConfig.LIGHT_BEAM_HIT_TICKS) == 0) {
-			Handhelds.hurt(p, target, AuraConfig.LIGHT_BEAM_DAMAGE * (undead(target) ? (float) Math.max(1, AuraConfig.LIGHT_UNDEAD_MULTIPLIER) : 1f));
+			float beam = beamDamage(p) * (undead(target) ? (float) Math.max(1, AuraConfig.LIGHT_UNDEAD_MULTIPLIER) : 1f);
+			Handhelds.hurt(p, target, beam);
 			if (undead(target)) target.igniteForSeconds(2);
+			if (Branch.is(p, Branch.PRISMATIC) && isFlashed(target)) chain(p, target, beam);
 		}
 		if (b.t % 20 == 1) sound(level, from, SoundEvents.BEACON_AMBIENT, 1.2f, 1.7f);
 		return true;
@@ -289,9 +351,14 @@ public final class Light {
 		} else if (sight != null && sight.isAmbient() && !sight.isVisible() && sight.getDuration() <= 400 && !Nightstalker.wantsVision(p, data)) {
 			p.removeEffect(MobEffects.NIGHT_VISION);
 		}
+		if (AuraAbilities.hasAbility(data, Ability.HALO) && p.isAlive() && !p.isSpectator() && now % Math.max(20, AuraConfig.LIGHT_HALO_HEAL_TICKS) == 0
+				&& Branch.current(data) == Branch.RADIANT) {
+			double r = Math.max(1, AuraConfig.LIGHT_RADIANT_HALO_RADIUS);
+			haloFriends(p, p.serverLevel().getEntitiesOfClass(Player.class, p.getBoundingBox().inflate(r)));
+		}
 		if (AuraAbilities.hasAbility(data, Ability.HALO) && p.isAlive() && now % Math.max(20, AuraConfig.LIGHT_HALO_HEAL_TICKS) == 0
 				&& p.getHealth() < p.getMaxHealth() && inSunlight(p)) {
-			p.heal(Math.max(0, AuraConfig.LIGHT_HALO_HEAL));
+			p.heal(Math.max(0, Branch.current(data) == Branch.PRISMATIC ? AuraConfig.LIGHT_PRISM_HALO_HEAL : AuraConfig.LIGHT_HALO_HEAL));
 			if (!p.isInvisible()) AuraFx.particles(p.serverLevel(), AuraFx.dust(GOLD, 0.9f), p.getX(), p.getY() + 2.15, p.getZ(), 6, 0.25, 0.05, 0.25, 0);
 		}
 	}

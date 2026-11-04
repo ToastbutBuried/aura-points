@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.12.0
+- Branches for Light and Blood (pick at Mastery V in the Aura Book): Light is Radiant (bigger heals, Halo gives friends Resistance I) or Prismatic (stronger Prism Beam that chains from targets your Solar Flash marked); Blood is Sanguine (Hemorrhage and bleeding heal you, faster blood bar, dearer Blood Moon) or Sacrificial (Crimson Sacrifice and Blood Tether cost more health for much bigger effects, cheaper Blood Moon). Every branch has a price, see the Branches page.
+
 == 5.11.0
 - Branches for three more auras (pick at Mastery V, Aura Book > your aura > Branches): Frost (Glacial: longer freeze and a 5-layer Ice Shell; Frostbite: Shatter in 2 hits and +15% damage to Chilled targets), Verdant (Venomweaver: stronger Virulence and stacking poison; Grove Warden: Bloom heals friends, tougher Entanglement) and Earth (Bulwark: tougher Stone Skin and Quake absorption; Tectonic: harder Pillar Lift, Boulder Toss and Quake). Every branch has a price, see the Branches page.
 - Fixed: the Branches page showed a magma block for Phantom and Dark.

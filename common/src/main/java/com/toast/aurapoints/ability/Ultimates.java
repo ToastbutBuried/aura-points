@@ -926,7 +926,7 @@ public final class Ultimates {
 		if (run.t > SUN_RISE && run.t < burstAt && run.t % 20 == 0) {
 			for (ServerPlayer other : level.players()) {
 				if (!Light.friend(p, other) || other.distanceToSqr(sun.x, sun.y - lift, sun.z) > 12 * 12 || other.getHealth() >= other.getMaxHealth()) continue;
-				other.heal(Math.max(0, AuraConfig.LIGHT_SUN_HEAL));
+				other.heal(Math.max(0, Light.sunHeal(p)));
 				AuraFx.particles(level, ParticleTypes.HEART, other.getX(), other.getY() + 2.1, other.getZ(), 1, 0.2, 0.1, 0.2, 0);
 			}
 		}
@@ -969,7 +969,7 @@ public final class Ultimates {
 		ServerLevel level = p.serverLevel();
 		int ticks = Math.max(40, AuraConfig.BLOOD_MOON_TICKS);
 		Blood.MOON.put(p.getUUID(), (long) p.getServer().getTickCount() + ticks);
-		if (!AuraAbilities.cooldownsDisabled(p)) Blood.spendBlood(p, Blood.moonCost());
+		if (!AuraAbilities.cooldownsDisabled(p)) Blood.spendBlood(p, Blood.moonCost(p));
 		// the sky goes red for everyone near
 		double range = Math.max(8, AuraConfig.BLOOD_MOON_SKY_RANGE);
 		for (ServerPlayer other : level.players()) {

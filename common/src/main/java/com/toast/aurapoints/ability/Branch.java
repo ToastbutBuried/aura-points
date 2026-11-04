@@ -108,6 +108,38 @@ public enum Branch {
 					"Price: Stone Skin gives only " + AuraAbilities.fmt((float) AuraConfig.EARTH_TECTONIC_SKIN_ARMOR) + " armor and Grounded resists "
 							+ Math.round(AuraConfig.EARTH_TECTONIC_KNOCKBACK_RESISTANCE * 100) + "% knockback.")),
 
+	RADIANT(AuraType.LIGHT, "Radiant", ChatFormatting.YELLOW, "Support", Items.SUNFLOWER,
+			() -> List.of(
+					"Radiant Pulse heals " + AuraAbilities.fmt(AuraConfig.LIGHT_RADIANT_PULSE_HEAL) + " (was " + AuraAbilities.fmt(AuraConfig.LIGHT_PULSE_HEAL) + ") and Sunburst "
+							+ AuraAbilities.fmt(AuraConfig.LIGHT_RADIANT_SUN_HEAL) + " (was " + AuraAbilities.fmt(AuraConfig.LIGHT_SUN_HEAL) + ").",
+					"Halo shines on friends within " + AuraConfig.LIGHT_RADIANT_HALO_RADIUS + " blocks: Resistance I, refreshed with every Halo pulse, day or night.",
+					"Price: Prism Beam deals " + Math.round((1 - AuraConfig.LIGHT_RADIANT_BEAM_FACTOR) * 100) + "% less, Solar Flash cooldown "
+							+ (AuraConfig.LIGHT_RADIANT_FLASH_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.LIGHT_FLASH_COOLDOWN_TICKS / 20) + "s).")),
+
+	PRISMATIC(AuraType.LIGHT, "Prismatic", ChatFormatting.GOLD, "Damage", Items.GLOWSTONE,
+			() -> List.of(
+					"Prism Beam deals " + AuraAbilities.fmt(AuraConfig.LIGHT_PRISM_BEAM_DAMAGE) + " (was " + AuraAbilities.fmt(AuraConfig.LIGHT_BEAM_DAMAGE) + ").",
+					"Solar Flash marks what it hits for " + (AuraConfig.LIGHT_PRISM_MARK_TICKS / 20) + "s; the beam on a marked target chains to " + AuraConfig.LIGHT_PRISM_CHAIN_TARGETS
+							+ " more enemies within " + AuraAbilities.fmt((float) AuraConfig.LIGHT_PRISM_CHAIN_RADIUS) + " blocks for " + Math.round(AuraConfig.LIGHT_PRISM_CHAIN_FACTOR * 100) + "% damage.",
+					"Price: Radiant Pulse heals " + AuraAbilities.fmt(AuraConfig.LIGHT_PRISM_PULSE_HEAL) + " and Halo " + AuraAbilities.fmt(AuraConfig.LIGHT_PRISM_HALO_HEAL) + ".")),
+
+	SANGUINE(AuraType.BLOOD, "Sanguine", ChatFormatting.RED, "Aggressive sustain", Items.REDSTONE,
+			() -> List.of(
+					"Hemorrhage heals you for " + Math.round(AuraConfig.BLOOD_SANGUINE_HEMO_LIFESTEAL * 100) + "% of its damage and every bleed tick for "
+							+ Math.round(AuraConfig.BLOOD_SANGUINE_BLEED_LIFESTEAL * 100) + "% of the bleed damage.",
+					"Bloodlust heals " + AuraAbilities.fmt(AuraConfig.BLOOD_SANGUINE_LUST_HEAL) + " per kill (was " + AuraAbilities.fmt(AuraConfig.BLOOD_LUST_HEAL) + "); the Blood bar fills "
+							+ Math.round((AuraConfig.BLOOD_SANGUINE_BAR_FACTOR - 1) * 100) + "% faster.",
+					"Price: Crimson Sacrifice only multiplies by " + AuraAbilities.fmt((float) AuraConfig.BLOOD_SANGUINE_SACRIFICE_MULTIPLIER) + ", Blood Moon costs "
+							+ AuraConfig.BLOOD_SANGUINE_MOON_COST + " of the bar.")),
+
+	SACRIFICIAL(AuraType.BLOOD, "Sacrificial", ChatFormatting.DARK_RED, "High risk, high reward", Items.NETHER_WART,
+			() -> List.of(
+					"Crimson Sacrifice costs " + AuraAbilities.fmt(AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_COST) + " HP and multiplies your next " + AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_HITS
+							+ " hits by " + AuraAbilities.fmt((float) AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_MULTIPLIER) + ".",
+					"Blood Tether drains " + AuraAbilities.fmt(AuraConfig.BLOOD_SACRIFICIAL_TETHER_DRAIN) + " per pulse but costs you " + AuraAbilities.fmt(AuraConfig.BLOOD_SACRIFICIAL_TETHER_COST)
+							+ " and no longer heals you. Blood Moon costs " + AuraConfig.BLOOD_SACRIFICIAL_MOON_COST + " of the bar.",
+					"Price: Bloodlust heals " + AuraAbilities.fmt(AuraConfig.BLOOD_SACRIFICIAL_LUST_HEAL) + " and Thin Blood starts at " + Math.round(AuraConfig.BLOOD_SACRIFICIAL_THIN_THRESHOLD * 100) + "% health.")),
+
 	DARK(AuraType.SHADOW, "Dark", ChatFormatting.DARK_PURPLE, "Pull, rift and null", Items.ENDER_PEARL,
 			() -> List.of(
 					"Your actives become Void Pull, Rift Step and Null Orb; Dash and Vanish are given up.",
@@ -247,8 +279,9 @@ public enum Branch {
 			case MAGMA -> ability == AuraAbilities.Ability.FIREBALL ? AuraConfig.FIRE_MAGMA_FIREBALL_COOLDOWN_TICKS : ticks;
 			case PHANTOM -> ability == AuraAbilities.Ability.VANISH || ability == AuraAbilities.Ability.DASH
 					? Math.max(1, (int) Math.round(ticks * AuraConfig.PHANTOM_COOLDOWN_FACTOR)) : ticks;
+			case RADIANT -> ability == AuraAbilities.Ability.SOLAR_FLASH ? AuraConfig.LIGHT_RADIANT_FLASH_COOLDOWN_TICKS : ticks;
 			case VENOMWEAVER -> ability == AuraAbilities.Ability.VERDANT_VIPER ? AuraConfig.VERDANT_VENOM_VIPER_COOLDOWN_TICKS : ticks;
-			case DARK, GLACIAL, FROSTBITE, GROVE_WARDEN, BULWARK, TECTONIC -> ticks;
+			case DARK, GLACIAL, FROSTBITE, GROVE_WARDEN, BULWARK, TECTONIC, PRISMATIC, SANGUINE, SACRIFICIAL -> ticks;
 		};
 	}
 

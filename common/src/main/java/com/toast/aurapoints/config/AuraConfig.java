@@ -431,6 +431,39 @@ public final class AuraConfig {
 	public static double EARTH_TECTONIC_SKIN_ARMOR = 2.0;
 	public static double EARTH_TECTONIC_KNOCKBACK_RESISTANCE = 0.25;
 
+	/** Light - Radiant: bigger heals, Halo shines on friends (Resistance I for BUFF_TICKS within RADIUS), a weaker Prism Beam (x BEAM_FACTOR) and a slower Solar Flash. */
+	public static float LIGHT_RADIANT_PULSE_HEAL = 6.0f;
+	public static float LIGHT_RADIANT_SUN_HEAL = 3.0f;
+	public static int LIGHT_RADIANT_HALO_RADIUS = 6;
+	public static int LIGHT_RADIANT_HALO_BUFF_TICKS = 100;
+	public static double LIGHT_RADIANT_BEAM_FACTOR = 0.7;
+	public static int LIGHT_RADIANT_FLASH_COOLDOWN_TICKS = 18 * 20;
+	/** Light - Prismatic: a stronger Prism Beam that chains from a target Solar Flash marked (MARK_TICKS) to CHAIN_TARGETS others within CHAIN_RADIUS for CHAIN_FACTOR of its damage; weaker Pulse and Halo heals. */
+	public static float LIGHT_PRISM_BEAM_DAMAGE = 2.25f;
+	public static int LIGHT_PRISM_MARK_TICKS = 120;
+	public static int LIGHT_PRISM_CHAIN_TARGETS = 2;
+	public static double LIGHT_PRISM_CHAIN_RADIUS = 5.0;
+	public static double LIGHT_PRISM_CHAIN_FACTOR = 0.6;
+	public static float LIGHT_PRISM_PULSE_HEAL = 3.0f;
+	public static float LIGHT_PRISM_HALO_HEAL = 0.5f;
+
+	/** Blood - Sanguine: Hemorrhage and bleeding heal you (share of the damage), a bigger Bloodlust heal, a faster Blood bar, a weaker Crimson Sacrifice and a dearer Blood Moon. */
+	public static double BLOOD_SANGUINE_HEMO_LIFESTEAL = 0.5;
+	public static double BLOOD_SANGUINE_BLEED_LIFESTEAL = 0.25;
+	public static float BLOOD_SANGUINE_LUST_HEAL = 6.0f;
+	public static double BLOOD_SANGUINE_BAR_FACTOR = 1.5;
+	public static double BLOOD_SANGUINE_SACRIFICE_MULTIPLIER = 1.5;
+	public static int BLOOD_SANGUINE_MOON_COST = 130;
+	/** Blood - Sacrificial: a dearer, much stronger Crimson Sacrifice; a Tether that costs you health and no longer heals; a cheap Blood Moon; a poorer Bloodlust and Thin Blood. */
+	public static float BLOOD_SACRIFICIAL_SACRIFICE_COST = 10.0f;
+	public static double BLOOD_SACRIFICIAL_SACRIFICE_MULTIPLIER = 3.0;
+	public static int BLOOD_SACRIFICIAL_SACRIFICE_HITS = 4;
+	public static float BLOOD_SACRIFICIAL_TETHER_DRAIN = 3.0f;
+	public static float BLOOD_SACRIFICIAL_TETHER_COST = 1.0f;
+	public static int BLOOD_SACRIFICIAL_MOON_COST = 70;
+	public static float BLOOD_SACRIFICIAL_LUST_HEAL = 2.0f;
+	public static double BLOOD_SACRIFICIAL_THIN_THRESHOLD = 0.3;
+
 	/** Fireborn: how far you see while in lava, in blocks (vanilla: about 1, with Fire Resistance 5; 0 = like vanilla). */
 	public static float FIREBORN_LAVA_SIGHT = 16f;
 	/** Fireball damage on a hit - the same however far it flew. */
