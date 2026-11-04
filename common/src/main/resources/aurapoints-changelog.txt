@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.15.3
+- Dragon transparency with shader packs (Photon, Bliss, Complementary, Euphoria...): when Iris/Oculus has a shader pack on (or "Dragon transparency: shader mode" is forced on in the client config), the transparency no longer blends; the dragon's head parts disappear step by step as you raise it (decoration first, the whole head at 0.8). Only the rider sees it.
+
 == 5.15.2
 - Shadow dragon, rider in first person: the mane along the top of the skull and the nose horn are no longer drawn at all, so nothing blocks your view (works with shader packs). New client option "Dragon transparency: shader support": turn it on if the dragon transparency does nothing with your shader pack.
 
