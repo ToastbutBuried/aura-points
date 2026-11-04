@@ -128,6 +128,8 @@ public final class Handhelds {
 		if (e instanceof Player p && p.getAbilities().invulnerable) return false;
 		if (e instanceof LivingEntity l && VerdantViper.isSteering(l)) return false;
 		if (AuraConfig.COMBO_PARTY_PROTECTION && e instanceof ServerPlayer p && Allies.party(owner, p)) return false;
+		// the same side of an arena match (Team Battle, Wave Survival): never a target
+		if (e instanceof ServerPlayer mate && com.toast.aurapoints.arena.Match.teammates(owner, mate)) return false;
 		return e.getRootVehicle() != owner.getRootVehicle()
 				&& !(e instanceof OwnableEntity pet && owner.getUUID().equals(pet.getOwnerUUID()));
 	}

@@ -852,6 +852,7 @@ public final class Match {
 		if (g == null || g.phase != Phase.FIGHT || !g.alive(victim.getUUID())) return false;
 		if (!(attacker instanceof ServerPlayer a)) return true;
 		if (!g.alive(a.getUUID())) return false;
+		if (g.mode == Mode.WAVES) return false; // everyone in a Wave Survival run is on one side
 		return g.mode != Mode.TEAMS || !g.side.get(a.getUUID()).equals(g.side.get(victim.getUUID()));
 	}
 

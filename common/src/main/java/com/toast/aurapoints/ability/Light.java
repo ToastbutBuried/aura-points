@@ -60,7 +60,7 @@ public final class Light {
 	static boolean friend(ServerPlayer p, LivingEntity e) {
 		if (e == p) return true;
 		if (!(e instanceof Player other) || other.isSpectator()) return false;
-		if (p.isAlliedTo(other)) return true;
+		if (p.isAlliedTo(other) || other instanceof ServerPlayer mate && com.toast.aurapoints.arena.Match.teammates(p, mate)) return true;
 		return !com.toast.aurapoints.arena.Arena.in(p) && !com.toast.aurapoints.arena.Arena.in(other);
 	}
 
