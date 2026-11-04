@@ -338,12 +338,12 @@ public final class AuraConfig {
 	public static double AIR_BENDING_READY_FACTOR = 0.5;
 	public static double AIR_BENDING_SELF_FACTOR = 0.7;
 
-	/** Healing Tide: Regeneration for you and every player within the radius. */
+	/** Healing Tide: Regeneration for you and every friendly player within the radius (outside the arena everyone, in it only teammates). */
 	public static double HEALING_TIDE_RADIUS = 8.0;
 	public static int HEALING_TIDE_DURATION_TICKS = 20 * 5;
 	public static int HEALING_TIDE_AMPLIFIER = 1; // Regeneration II
 	public static int HEALING_TIDE_COOLDOWN_TICKS = 20 * 40;
-	/** true: also clears every negative effect (poison, wither, slowness...) from everyone it reaches. */
+	/** true: also clears every negative effect (poison, wither, slowness...) from every friend it reaches. */
 	public static boolean HEALING_TIDE_CLEANSE = true;
 	/** The caster alone also gets Resistance (AMPLIFIER 0 = Resistance I) for this long (0 = none). */
 	public static int HEALING_TIDE_RESISTANCE_DURATION_TICKS = 20 * 6;

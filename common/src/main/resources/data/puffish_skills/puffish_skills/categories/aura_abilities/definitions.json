@@ -103,7 +103,7 @@
   },
   "healing_tide": {
     "title": "Healing Tide",
-    "description": "Press your Healing Tide key to give you and every player within 8 blocks Regeneration II for 5s. 40s cooldown. Active. Water aura. Roll your aura with /aura roll.",
+    "description": "Press your Healing Tide key to give you and every friendly player (in the arena: your teammates) within 8 blocks Regeneration II for 5s. 40s cooldown. Active. Water aura. Roll your aura with /aura roll.",
     "icon": {
       "type": "item",
       "data": {

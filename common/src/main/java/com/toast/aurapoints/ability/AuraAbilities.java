@@ -279,7 +279,7 @@ public final class AuraAbilities {
 								+ "everything within " + (int) AuraConfig.AIR_BENDING_BLAST_RADIUS + " blocks is hurled far away and high up. "
 								+ (AuraConfig.AIR_BENDING_COOLDOWN_TICKS / 20) + "s cooldown." : "")),
 		HEALING_TIDE("Healing Tide", true, () ->
-				"Press your Healing Tide key to give you and every player within " + (int) AuraConfig.HEALING_TIDE_RADIUS
+				"Press your Healing Tide key to give you and every friendly player (in the arena: your teammates) within " + (int) AuraConfig.HEALING_TIDE_RADIUS
 						+ " blocks Regeneration " + roman(AuraConfig.HEALING_TIDE_AMPLIFIER + 1) + " for " + (AuraConfig.HEALING_TIDE_DURATION_TICKS / 20) + "s"
 						+ (AuraConfig.HEALING_TIDE_CLEANSE ? " and wash away every negative effect" : "") + ". "
 						+ (AuraConfig.HEALING_TIDE_RESISTANCE_DURATION_TICKS > 0 && AuraConfig.HEALING_TIDE_RESISTANCE_AMPLIFIER >= 0
@@ -1270,7 +1270,8 @@ public final class AuraAbilities {
 		ServerLevel world = player.serverLevel();
 		double r = AuraConfig.HEALING_TIDE_RADIUS;
 		List<ServerPlayer> healed = world.getEntitiesOfClass(ServerPlayer.class, player.getBoundingBox().inflate(r),
-				p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(player) <= r * r);
+				// friends only (Light.friend, like Radiant Pulse): everyone outside the arena, only teammates inside it
+				p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(player) <= r * r && Light.friend(player, p));
 		for (ServerPlayer p : healed) {
 			if (AuraConfig.HEALING_TIDE_CLEANSE) {
 				List<net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect>> bad = p.getActiveEffects().stream()
