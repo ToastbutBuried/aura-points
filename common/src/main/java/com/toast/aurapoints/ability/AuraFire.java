@@ -17,7 +17,8 @@ import java.util.Set;
  * spawn protection, and never for a player who can't build here (adventure mode).
  *
  * Each fire is put out again after AURA_FIRE_SECONDS: with the doFireTick gamerule off, fire never
- * burns out by itself. Remembered in memory only; a fire still burning at a restart stays.
+ * burns out by itself; one whose chunk is unloaded by then goes out as soon as the chunk loads again. Remembered
+ * in memory only; a fire still burning at a restart stays.
  */
 public final class AuraFire {
 
@@ -36,7 +37,9 @@ public final class AuraFire {
 		LIT.removeIf(l -> {
 			if (l.level().getServer() != server) return true; // a world from an earlier session (single player)
 			if (now < l.until() && l.until() - now <= 20L * 3600) return false;
-			if (l.level().isLoaded(l.pos()) && l.level().getBlockState(l.pos()).getBlock() instanceof BaseFireBlock) {
+			// its chunk unloaded (caster logged out, teleported, died far away): keep it until the chunk is back, then put it out
+			if (!l.level().isLoaded(l.pos())) return false;
+			if (l.level().getBlockState(l.pos()).getBlock() instanceof BaseFireBlock) {
 				l.level().removeBlock(l.pos(), false);
 				AuraFx.particles(l.level(), ParticleTypes.SMOKE, l.pos().getX() + 0.5, l.pos().getY() + 0.2, l.pos().getZ() + 0.5, 4, 0.2, 0.1, 0.2, 0.01);
 			}

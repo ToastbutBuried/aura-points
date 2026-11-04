@@ -303,6 +303,17 @@ final class DevTest {
 			return 1;
 		})));
 		// /auradev icespike: a fake player charges a full Ice Spike at a zombie; logs the frost shard displays every tick
+		// /auradev fire <x> <z>: an aura fire on the ground there (no caster); see AuraFire (put out after AURA_FIRE_SECONDS, even if its chunk unloaded meanwhile)
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("fire")
+				.then(Commands.argument("x", com.mojang.brigadier.arguments.IntegerArgumentType.integer())
+						.then(Commands.argument("z", com.mojang.brigadier.arguments.IntegerArgumentType.integer()).executes(ctx -> {
+							ServerLevel level = ctx.getSource().getServer().overworld();
+							int x = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "x"), z = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "z");
+							int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, x, z);
+							boolean lit = com.toast.aurapoints.ability.AuraFire.light(level, null, new net.minecraft.core.BlockPos(x, y, z));
+							AuraPoints.LOGGER.info("[auradev] fire lit={} at {} {} {}", lit, x, y, z);
+							return 1;
+						})))));
 		// /auradev holds: every hold breaks when its holder is paralyzed (stun) and when frozen
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("holds").executes(ctx -> {
 			ServerLevel level = ctx.getSource().getServer().overworld();
