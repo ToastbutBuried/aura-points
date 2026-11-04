@@ -20,8 +20,8 @@ import java.util.UUID;
 
 /**
  * What datapacks can build on, without knowing anything about the mod:
- *  - scoreboard {@code aura_type}: each player's aura, 0 none, 1 Shadow, 2 Water, 3 Fire, 4 Wind, 5 Frost, 6 Verdant, 7 Thunder
- *    (always current);
+ *  - scoreboard {@code aura_type}: each player's aura, 0 none, then 1 + its place in AuraType (1 Shadow, 2 Water, 3 Fire,
+ *    4 Wind, 5 Frost, 6 Verdant, 7 Thunder, 8 Resonance, 9 Earth, 10 Light, 11 Blood, 12 Void; always current);
  *  - scoreboards {@code itemuse} / {@code itemsecondary} / {@code itemtertiary}: 1 while the player holds the "Item Use" /
  *    "Item Secondary" / "Item Tertiary" key, 0 otherwise - for datapack items;
  *  - scoreboards {@code aura_cd_<ability>} (e.g. aura_cd_fireball): ticks left on that ability's cooldown, 0 when ready.
@@ -107,7 +107,7 @@ public final class AuraHooks {
 		WRITTEN_COOLDOWNS.remove(player.getUUID());
 	}
 
-	/** 0 for none, else 1 + the aura's place in the list (Shadow 1 ... Frost 5). */
+	/** 0 for none, else 1 + the aura's place in the list (Shadow 1 ... Void 12). */
 	public static int auraNumber(AuraType aura) {
 		return aura == null ? 0 : aura.ordinal() + 1;
 	}
