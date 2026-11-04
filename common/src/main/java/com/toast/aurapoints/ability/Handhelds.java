@@ -66,8 +66,8 @@ public final class Handhelds {
 	public static boolean use(ServerPlayer player, Ability ability) {
 		MinecraftServer server = player.getServer();
 		if (server == null) return false;
-		// private for now: only the owner wields them
-		if (!com.toast.aurapoints.AuraCommand.isOwner(player)) {
+		// only the owner and the worthy wield them
+		if (!com.toast.aurapoints.AuraCommand.isWorthy(player)) {
 			say(player, "Only the worthy can wield this.", ChatFormatting.GOLD);
 			return false;
 		}

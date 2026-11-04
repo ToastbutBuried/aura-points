@@ -9,7 +9,8 @@ import net.minecraft.resources.ResourceLocation;
 /**
  * Server -> client: abilities switched off in the server config, as enum names
  * joined with commas ("" = none). The cooldown HUD leaves them out. Also whether this
- * player is a server owner (config/CommandRules owners), which the client can't work out itself.
+ * player is worthy (a server owner, or on the worthy list: AuraCommand.isWorthy), which the client can't work out itself.
+ * The field is still called owner: renaming it would change nothing on the wire.
  */
 public record DisabledAbilitiesPacket(String names, boolean owner) implements CustomPacketPayload {
 

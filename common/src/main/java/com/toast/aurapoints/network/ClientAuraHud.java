@@ -127,7 +127,7 @@ public final class ClientAuraHud {
 
 	/** The ability of the handheld weapon in your hand, if it is your aura's (it gets its own panel right of the hotbar). */
 	private static Ability heldAbility(Minecraft mc, AuraType aura) {
-		if (!com.toast.aurapoints.AuraCommand.isOwner(mc.player)) return null;
+		if (!com.toast.aurapoints.AuraCommand.isWorthy(mc.player)) return null;
 		Ability held = com.toast.aurapoints.ability.Handhelds.held(mc.player);
 		return held != null && com.toast.aurapoints.ability.Handhelds.auraOf(held) == aura && !ClientAuraState.isDisabled(held) ? held : null;
 	}

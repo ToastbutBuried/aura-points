@@ -283,7 +283,7 @@ public final class ClientAuraState {
 	}
 
 	/** Abilities the server switched off; the HUD leaves them out. */
-	/** This player is a server owner (sent with the disabled abilities). */
+	/** This player is worthy: a server owner or on the worthy list (sent with the disabled abilities). */
 	public static volatile boolean owner;
 
 	private static final java.util.Set<AuraAbilities.Ability> DISABLED = java.util.EnumSet.noneOf(AuraAbilities.Ability.class);

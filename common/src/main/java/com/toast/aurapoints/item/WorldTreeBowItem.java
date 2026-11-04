@@ -43,7 +43,7 @@ public class WorldTreeBowItem extends BowItem implements software.bernie.geckoli
 	@Override
 	public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
-		if (!com.toast.aurapoints.AuraCommand.isOwner(player)) return InteractionResultHolder.fail(stack);
+		if (!com.toast.aurapoints.AuraCommand.isWorthy(player)) return InteractionResultHolder.fail(stack);
 		if (hand == InteractionHand.MAIN_HAND && player.isShiftKeyDown()) {
 			if (level.isClientSide) return InteractionResultHolder.success(stack);
 			return Handhelds.use((ServerPlayer) player, Ability.THORN_SENTINEL) ? InteractionResultHolder.consume(stack) : InteractionResultHolder.fail(stack);

@@ -56,7 +56,7 @@ public class HandheldItem extends Item {
 	}
 
 	static void notWorthy(Level level, net.minecraft.world.entity.Entity entity, boolean selected) {
-		if (level.isClientSide || !selected || !(entity instanceof ServerPlayer player) || com.toast.aurapoints.AuraCommand.isOwner(player)) return;
+		if (level.isClientSide || !selected || !(entity instanceof ServerPlayer player) || com.toast.aurapoints.AuraCommand.isWorthy(player)) return;
 		player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 30, 3, false, false, true));
 		player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.WEAKNESS, 30, 2, false, false, true));
 		if (player.tickCount % 40 == 0) player.displayClientMessage(Component.literal("You are not worthy.").withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC), true);

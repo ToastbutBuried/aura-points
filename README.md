@@ -18,7 +18,7 @@ can pick one of two branches (Fire: Blue Flame or Magma, Shadow: Phantom or Dark
   defeat a boss.
 - **Team Combos and Reactions** when auras meet, and aura-touched mobs.
 - **Aura weapons**: handheld weapons per aura, e.g. Mjölnir and the World Tree Bow. Server owners only by
-  default.
+  default; owners can make others worthy with `/aura worthy add <player>` (switch: `WORTHY_ENABLED`).
 - **Arena dimension**: duels, team matches, Wave Survival and a Training Hall with dummies. Open it with
   `/aura arena`.
 - **Weekly challenges**, a `/changelog` in game, and player **tickets** (change requests that reviewers vote on).
@@ -76,6 +76,7 @@ Everything is in the server's `config/` folder. Apply changes with `/aura reload
   - `owners`: player names or UUIDs of the server owners. Empty means everyone with permission level 4.
 - `aurapoints-tickets.json`: ticket reviewers, rate limit and blacklist.
 - `aurapoints-editors.json`: who may use the Balance Tome.
+- `aurapoints-worthy.json`: who besides the owners may wield Mjölnir, the handhelds and the World Tree Bow.
 - Client: `aurapoints-client.toml` (Mods > Aura Points > Config) for animations, HUD and shader-safe wind
   charges.
 

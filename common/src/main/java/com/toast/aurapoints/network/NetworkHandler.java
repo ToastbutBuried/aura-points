@@ -245,7 +245,7 @@ public final class NetworkHandler {
 			if (!names.isEmpty()) names.append(',');
 			names.append(a.name());
 		}
-		PacketDistributor.sendToPlayer(player, new DisabledAbilitiesPacket(names.toString(), com.toast.aurapoints.config.CommandRules.isOwner(player)));
+		PacketDistributor.sendToPlayer(player, new DisabledAbilitiesPacket(names.toString(), com.toast.aurapoints.AuraCommand.isWorthy(player)));
 	}
 
 	/** Sends the accessory slot count (on login and after every reload) and moves items out of slots that were switched off. */

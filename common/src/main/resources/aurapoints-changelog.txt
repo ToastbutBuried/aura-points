@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.16.0
+- The worthy (server owner): /aura worthy add <player> lets someone else wield Mjölnir, the aura handhelds and the World Tree Bow like you; /aura worthy remove <player> takes it back, /aura worthy lists them. /aura mjolnir <players> hands the hammer out. The whole system has a switch, WORTHY_ENABLED (Balance Tome, General page): off = only owners, whatever the list says. The list is aurapoints-worthy.json.
+
 == 5.15.5
 - Dragon transparency: real see-through (alpha blending) is the default again, also with shader packs. Photon cannot blend entities on 1.21.1 (it turns blending off), so there the transparency does nothing; the old holes (dither) are an opt-in: "Dragon transparency: dither mode". New client option "Dragon: hide head in first person" leaves the head out completely while you ride in first person: a clear view with any shader pack.
 

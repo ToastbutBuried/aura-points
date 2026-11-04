@@ -951,6 +951,12 @@ public final class AuraConfig {
 	public static double CHIDORI_KNOCKBACK = 0.8;
 
 	/**
+	 * The worthy (/aura worthy add|remove, aurapoints-worthy.json): players besides the owner who may wield Mjölnir, the aura
+	 * handhelds and the World Tree Bow. false = only owners can, whatever the list says.
+	 */
+	public static boolean WORTHY_ENABLED = true;
+
+	/**
 	 * Mjölnir (test item, owner only): hold the Mjölnir Swing key (rebindable) to spin it; after SPIN_TICKS lightning strikes it (SKY_LIGHTNING:
 	 * a real visual-only bolt too) and it is charged for CHARGED_TICKS. While charged, STREAK_HITS full hits in a row
 	 * (each within STREAK_WINDOW_TICKS of the last) call a thunder strike on the last target: STRIKE_DAMAGE to it,

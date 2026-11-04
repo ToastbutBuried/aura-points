@@ -67,7 +67,7 @@ public final class Mjolnir {
 	/** The Mjölnir Swing key works while its worthy wielder holds the hammer (a release counts while still spinning it). */
 	public static boolean handlesKey(ServerPlayer player, boolean down) {
 		if (!down) return SPINNING.containsKey(player.getUUID());
-		return holding(player) && AuraCommand.isOwner(player);
+		return holding(player) && AuraCommand.isWorthy(player);
 	}
 
 	public static boolean isSpinning(ServerPlayer player) {
@@ -225,7 +225,7 @@ public final class Mjolnir {
 
 	/** A melee attack is about to land (AttackEntityEvent). */
 	public static void onAttack(ServerPlayer player, Entity target, long now) {
-		if (!holding(player) || !AuraCommand.isOwner(player) || !isCharged(player, now)) return;
+		if (!holding(player) || !AuraCommand.isWorthy(player) || !isCharged(player, now)) return;
 		if (!(target instanceof LivingEntity living) || !living.isAlive()) return;
 		if (player.getAttackStrengthScale(0.5f) < 0.9f) {
 			STREAK.remove(player.getUUID());
@@ -350,7 +350,7 @@ public final class Mjolnir {
 
 	/** Right-click with Mjölnir. False if it can't be thrown now. */
 	public static boolean throwHammer(ServerPlayer player) {
-		if (!AuraCommand.isOwner(player) || !holding(player) || FLYING.containsKey(player.getUUID())
+		if (!AuraCommand.isWorthy(player) || !holding(player) || FLYING.containsKey(player.getUUID())
 				|| IceSpike.isFrozen(player) || Stun.isBusy(player)) return false;
 		long now = player.getServer().getTickCount();
 		boolean spun = SPINNING.containsKey(player.getUUID());
@@ -599,7 +599,7 @@ public final class Mjolnir {
 
 	/** A left-click (at the air, a block or a mob). True if it started a flight - the click itself is then cancelled. */
 	public static boolean onLeftClick(ServerPlayer player) {
-		if (!SPINNING.containsKey(player.getUUID()) || !holding(player) || !AuraCommand.isOwner(player) || isFlying(player)) return false;
+		if (!SPINNING.containsKey(player.getUUID()) || !holding(player) || !AuraCommand.isWorthy(player) || isFlying(player)) return false;
 		long now = player.getServer().getTickCount();
 		Long ready = FLIGHT_READY.get(player.getUUID());
 		if (ready != null && now < ready && ready - now < 20 * 60) {

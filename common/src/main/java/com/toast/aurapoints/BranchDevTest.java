@@ -46,6 +46,10 @@ final class BranchDevTest {
 			tome(ctx.getSource().getServer());
 			return 1;
 		})));
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("worthy").executes(ctx -> {
+			worthy(ctx.getSource().getServer());
+			return 1;
+		})));
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("segments").executes(ctx -> {
 			segments(ctx.getSource().getServer());
 			return 1;
@@ -463,6 +467,28 @@ final class BranchDevTest {
 		}
 		var sample = entries.stream().filter(e -> e.group().equals(com.toast.aurapoints.config.AuraBalance.BRANCH_GROUP + "SACRIFICIAL")).map(e -> e.key()).toList();
 		log("Sacrificial keys: " + sample);
+	}
+
+	/** /auradev worthy: the worthy list and its switch decide AuraCommand.isWorthy (an owner is always worthy) (5.16.0). */
+	private static void worthy(net.minecraft.server.MinecraftServer server) {
+		ServerLevel level = server.overworld();
+		net.minecraft.server.level.ServerPlayer p = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000c7d2"), "WorthyTest"));
+		boolean was = AuraConfig.WORTHY_ENABLED;
+		try {
+			boolean owner = AuraCommand.isOwner(p);
+			com.toast.aurapoints.config.Worthy.remove("WorthyTest");
+			boolean before = AuraCommand.isWorthy(p);
+			com.toast.aurapoints.config.Worthy.add("WorthyTest");
+			AuraConfig.WORTHY_ENABLED = true;
+			boolean listedOn = AuraCommand.isWorthy(p);
+			AuraConfig.WORTHY_ENABLED = false;
+			boolean listedOff = AuraCommand.isWorthy(p);
+			log("worthy: fake player is owner=" + owner + " (must be false for the rest to mean anything); worthy before listing=" + before + " (false), listed+enabled=" + listedOn
+					+ " (true), listed+disabled=" + listedOff + " (false), Mjolnir.handlesKey on a hammer-less player=" + com.toast.aurapoints.ability.Mjolnir.handlesKey(p, true) + " (false)");
+		} finally {
+			AuraConfig.WORTHY_ENABLED = was;
+			com.toast.aurapoints.config.Worthy.remove("WorthyTest");
+		}
 	}
 
 	/** /auradev segments: dragon segment item displays get a longer view range, other displays and bigger datapack values are left alone. */

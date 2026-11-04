@@ -21,7 +21,7 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 
 /**
- * Mjölnir - test phase, only the server owner may wield it (/aura mjolnir gives it). A heavy hammer:
+ * Mjölnir - test phase, only the server owner and the worthy (/aura worthy) may wield it (/aura mjolnir gives it). A heavy hammer:
  * hold the Mjölnir Swing key to whirl it (ability/Mjolnir), a full spin draws lightning into it, and while it is
  * charged the 3rd charged hit in a row calls a thunder strike down on the target. Anyone else holding it
  * is not worthy: slowed and weakened to a crawl.
@@ -54,7 +54,7 @@ public class MjolnirItem extends Item implements software.bernie.geckolib.animat
 	@Override
 	public net.minecraft.world.InteractionResultHolder<ItemStack> use(Level level, net.minecraft.world.entity.player.Player player, net.minecraft.world.InteractionHand hand) {
 		ItemStack stack = player.getItemInHand(hand);
-		if (hand != net.minecraft.world.InteractionHand.MAIN_HAND || !AuraCommand.isOwner(player)) return net.minecraft.world.InteractionResultHolder.pass(stack);
+		if (hand != net.minecraft.world.InteractionHand.MAIN_HAND || !AuraCommand.isWorthy(player)) return net.minecraft.world.InteractionResultHolder.pass(stack);
 		if (level.isClientSide) return net.minecraft.world.InteractionResultHolder.success(stack);
 		return com.toast.aurapoints.ability.Mjolnir.throwHammer((ServerPlayer) player)
 				? net.minecraft.world.InteractionResultHolder.consume(stack) : net.minecraft.world.InteractionResultHolder.pass(stack);
@@ -62,7 +62,7 @@ public class MjolnirItem extends Item implements software.bernie.geckolib.animat
 
 	@Override
 	public void inventoryTick(ItemStack stack, Level level, Entity entity, int slot, boolean selected) {
-		if (level.isClientSide || !selected || !(entity instanceof ServerPlayer player) || AuraCommand.isOwner(player)) return;
+		if (level.isClientSide || !selected || !(entity instanceof ServerPlayer player) || AuraCommand.isWorthy(player)) return;
 		// not worthy: it barely moves
 		player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 3, false, false, true));
 		player.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 30, 2, false, false, true));
@@ -73,7 +73,7 @@ public class MjolnirItem extends Item implements software.bernie.geckolib.animat
 
 	@Override
 	public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag type) {
-		tooltip.add(Component.literal("Test phase - only the worthy can wield it.").withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC));
+		tooltip.add(Component.literal("Only the worthy can wield it.").withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC));
 		tooltip.add(Component.translatable("item.aurapoints.mjolnir.tip_swing", Component.keybind("key.aurapoints.mjolnirswing")).withStyle(ChatFormatting.GRAY));
 		tooltip.add(Component.literal("Right-click to throw it - it comes back. While spinning: a faster throw.").withStyle(ChatFormatting.GRAY));
 		tooltip.add(Component.literal("Spinning, then HOLD left-click: fly where you point - let go to land.").withStyle(ChatFormatting.GRAY));

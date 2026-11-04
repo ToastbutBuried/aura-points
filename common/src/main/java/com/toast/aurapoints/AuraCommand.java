@@ -222,7 +222,21 @@ public final class AuraCommand {
 												.executes(ctx -> editBalanceWhitelist(ctx, StringArgumentType.getString(ctx, "player"), false))))))
 				.then(Commands.literal("mjolnir")
 						.requires(src -> isOwner(src.getPlayer()))
-						.executes(AuraCommand::giveMjolnir))
+						.executes(AuraCommand::giveMjolnir)
+						.then(Commands.argument("targets", EntityArgument.players())
+								.executes(ctx -> giveMjolnirTo(ctx, EntityArgument.getPlayers(ctx, "targets")))))
+				// who else may wield Mjölnir, the handhelds and the World Tree Bow (owner only; WORTHY_ENABLED is the switch)
+				.then(Commands.literal("worthy")
+						.requires(AuraCommand::isOwner)
+						.executes(AuraCommand::listWorthy)
+						.then(Commands.literal("add")
+								.then(Commands.argument("player", StringArgumentType.word())
+										.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(c.getSource().getOnlinePlayerNames(), b))
+										.executes(ctx -> editWorthy(ctx, StringArgumentType.getString(ctx, "player"), true))))
+						.then(Commands.literal("remove")
+								.then(Commands.argument("player", StringArgumentType.word())
+										.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(com.toast.aurapoints.config.Worthy.list(), b))
+										.executes(ctx -> editWorthy(ctx, StringArgumentType.getString(ctx, "player"), false)))))
 				.then(Commands.literal("handheld")
 						.requires(AuraCommand::isOwner)
 						.executes(ctx -> giveHandheld(ctx, null, null))
@@ -826,6 +840,7 @@ public final class AuraCommand {
 	private static int reloadBalance(CommandContext<CommandSourceStack> ctx) {
 		List<String> report = new java.util.ArrayList<>(com.toast.aurapoints.config.AuraBalance.load());
 		com.toast.aurapoints.editor.BalanceEditors.reload();
+		com.toast.aurapoints.config.Worthy.reload();
 		report.addAll(com.toast.aurapoints.config.CommandRules.load());
 		report.addAll(Tickets.reloadConfig());
 		CommandSourceStack source = ctx.getSource();
@@ -1024,6 +1039,17 @@ public final class AuraCommand {
 		return player != null && player.level().isClientSide && com.toast.aurapoints.network.ClientAuraState.owner;
 	}
 
+	/**
+	 * May wield the owner-only items (Mjölnir, handhelds, World Tree Bow): an owner, or someone on the worthy list while
+	 * WORTHY_ENABLED is on. On the client: what the server last sent (the same flag as ClientAuraState.owner).
+	 */
+	public static boolean isWorthy(net.minecraft.world.entity.player.Player player) {
+		if (player instanceof ServerPlayer sp) {
+			return com.toast.aurapoints.config.CommandRules.isOwner(sp) || (com.toast.aurapoints.config.AuraConfig.WORTHY_ENABLED && com.toast.aurapoints.config.Worthy.listed(sp));
+		}
+		return player != null && player.level().isClientSide && com.toast.aurapoints.network.ClientAuraState.owner;
+	}
+
 	/** /aura lock and unlock: an owner in game, or the server console / rcon. */
 	private static boolean isOwner(CommandSourceStack src) {
 		ServerPlayer player = src.getPlayer();
@@ -1056,6 +1082,43 @@ public final class AuraCommand {
 				: (changed ? who + " can't use the Balance Tome anymore." : who + " isn't on the whitelist.");
 		ctx.getSource().sendSuccess(() -> Component.literal(msg).withStyle(changed ? ChatFormatting.GREEN : ChatFormatting.GRAY), true);
 		return changed ? 1 : 0;
+	}
+
+	/** /aura worthy: who is on the list and whether the system is on. */
+	private static int listWorthy(CommandContext<CommandSourceStack> ctx) {
+		List<String> list = com.toast.aurapoints.config.Worthy.list();
+		boolean on = com.toast.aurapoints.config.AuraConfig.WORTHY_ENABLED;
+		ctx.getSource().sendSuccess(() -> Component.literal("Worthy (" + (on ? "on" : "OFF - only owners count; WORTHY_ENABLED in the Balance Tome's General page") + "): "
+				+ (list.isEmpty() ? "nobody but the owners." : String.join(", ", list))).withStyle(ChatFormatting.GOLD), false);
+		return list.size();
+	}
+
+	/** /aura worthy add|remove <player>: tells them, and refreshes what their client knows. */
+	private static int editWorthy(CommandContext<CommandSourceStack> ctx, String who, boolean add) {
+		boolean changed = add ? com.toast.aurapoints.config.Worthy.add(who) : com.toast.aurapoints.config.Worthy.remove(who);
+		String msg = add ? (changed ? who + " is worthy now." : who + " is already worthy.")
+				: (changed ? who + " is no longer worthy." : who + " isn't on the worthy list.");
+		if (changed && add && !com.toast.aurapoints.config.AuraConfig.WORTHY_ENABLED) msg += " (The worthy system is switched off: WORTHY_ENABLED.)";
+		String shown = msg;
+		ctx.getSource().sendSuccess(() -> Component.literal(shown).withStyle(changed ? ChatFormatting.GREEN : ChatFormatting.GRAY), true);
+		ServerPlayer online = ctx.getSource().getServer().getPlayerList().getPlayerByName(who);
+		if (online != null) {
+			if (changed) online.displayClientMessage(Component.literal(add ? "You have been judged worthy." : "You are no longer worthy.").withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC), false);
+			com.toast.aurapoints.network.NetworkHandler.syncDisabled(online);
+		}
+		return changed ? 1 : 0;
+	}
+
+	/** /aura mjolnir <targets>: the hammer for other players (it only works for the worthy). */
+	private static int giveMjolnirTo(CommandContext<CommandSourceStack> ctx, Collection<ServerPlayer> targets) {
+		for (ServerPlayer p : targets) {
+			net.minecraft.world.item.ItemStack hammer = new net.minecraft.world.item.ItemStack(com.toast.aurapoints.AuraPoints.MJOLNIR_ITEM.get());
+			if (!p.getInventory().add(hammer)) p.drop(hammer, false);
+			p.serverLevel().playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0f, 1.2f);
+			if (!isWorthy(p)) ctx.getSource().sendSuccess(() -> Component.literal(p.getGameProfile().getName() + " isn't worthy yet: /aura worthy add " + p.getGameProfile().getName()).withStyle(ChatFormatting.GRAY), false);
+		}
+		ctx.getSource().sendSuccess(() -> Component.literal("Mjölnir sent to " + targets.size() + " player(s).").withStyle(ChatFormatting.AQUA), true);
+		return targets.size();
 	}
 
 	/** /aura mjolnir: the test hammer, for its one worthy wielder. */
