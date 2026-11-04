@@ -352,6 +352,36 @@ public final class AuraConfig {
 	/** Fireball: a blaze fireball (5 s burning, never sets blocks on fire) and cooldown. */
 	public static int FIREBALL_COOLDOWN_TICKS = 20 * 15;
 
+	/** Aura branches (5.9.0, ability/Branch): switch them all off here. A branch needs this Mastery level on its aura. */
+	public static boolean BRANCHES_ENABLED = true;
+	public static int BRANCH_MASTERY_REQUIRED = 5;
+	/** Aura price of switching to another branch (the first pick on an aura is free). */
+	public static int BRANCH_SWITCH_COST = 300;
+
+	/** Fire - Blue Flame: Fireball speed x this, passes through the first target; cooldowns. */
+	public static double FIRE_BLUE_FLAME_FIREBALL_SPEED = 1.5;
+	public static boolean FIRE_BLUE_FLAME_PIERCE = true;
+	public static int FIRE_BLUE_FLAME_FIREBALL_COOLDOWN_TICKS = 20 * 11;
+	public static int FIRE_BLUE_FLAME_HEAT_WAVE_COOLDOWN_TICKS = 20 * 31;
+	/** Fire Bending shot damage for Blue Flame (see FIRE_BENDING_DAMAGE_CLOSE / FAR for the base). */
+	public static float FIRE_BLUE_FLAME_BENDING_DAMAGE_CLOSE = 14.0f;
+	public static float FIRE_BLUE_FLAME_BENDING_DAMAGE_FAR = 6.0f;
+	/** Scorch (Blue Flame passive): burning targets take this much more damage from you (0.20 = +20%). */
+	public static double SCORCH_BONUS = 0.20;
+
+	/** Fire - Magma: pools (radius in blocks, life and damage tick in ticks) and Resistance for the owner standing in one. */
+	public static int FIRE_MAGMA_FIREBALL_COOLDOWN_TICKS = 20 * 18;
+	public static double FIRE_MAGMA_POOL_RADIUS = 2.0;
+	public static int FIRE_MAGMA_POOL_TICKS = 20 * 6;
+	public static int FIRE_MAGMA_POOL_INTERVAL_TICKS = 10;
+	public static float FIRE_MAGMA_POOL_DAMAGE = 1.0f;
+	public static float FIRE_MAGMA_POOL_BURN_SECONDS = 3.0f;
+	public static int FIRE_MAGMA_RESISTANCE_AMPLIFIER = 0;
+	/** Heat Wave leaves this many pools at random spots inside the wave; the Inferno Slam one pool of INFERNO_POOL_RADIUS. */
+	public static int FIRE_MAGMA_HEAT_WAVE_POOLS = 3;
+	public static double FIRE_MAGMA_HEAT_WAVE_POOL_RADIUS = 1.6;
+	public static double FIRE_MAGMA_INFERNO_POOL_RADIUS = 4.0;
+
 	/** Fireborn: how far you see while in lava, in blocks (vanilla: about 1, with Fire Resistance 5; 0 = like vanilla). */
 	public static float FIREBORN_LAVA_SIGHT = 16f;
 	/** Fireball damage on a hit - the same however far it flew. */

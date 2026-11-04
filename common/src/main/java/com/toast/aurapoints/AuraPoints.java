@@ -270,6 +270,7 @@ public class AuraPoints {
 			com.toast.aurapoints.menu.Tutorial.tick(server);
 			com.toast.aurapoints.ability.FireBending.tickShots(server);
 			com.toast.aurapoints.ability.AuraFire.tick(server);
+			com.toast.aurapoints.ability.MagmaPools.tickAll(server);
 			com.toast.aurapoints.ability.Stun.tick(server);
 			com.toast.aurapoints.ability.WindLaunch.tick(server);
 			com.toast.aurapoints.ability.IceSpike.tickAll(server);
@@ -415,6 +416,13 @@ public class AuraPoints {
 				AuraStats.add(attacker, AuraStats.VIRULENCE_HITS, 1);
 				AuraFx.particles((net.minecraft.server.level.ServerLevel) victim.level(), net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER,
 						victim.getX(), victim.getY() + victim.getBbHeight() * 0.6, victim.getZ(), 3, 0.25, 0.3, 0.25, 0.0);
+			}
+
+			// Scorch (Blue Flame branch): burning targets take more
+			if (AuraConfig.SCORCH_BONUS > 0 && victim.isOnFire() && AuraAbilities.hasAbility(attackerData, AuraAbilities.Ability.SCORCH)) {
+				event.setAmount((float) (event.getAmount() * (1.0 + AuraConfig.SCORCH_BONUS)));
+				AuraFx.particles((net.minecraft.server.level.ServerLevel) victim.level(), net.minecraft.core.particles.ParticleTypes.SOUL_FIRE_FLAME,
+						victim.getX(), victim.getY() + victim.getBbHeight() * 0.6, victim.getZ(), 3, 0.25, 0.3, 0.25, 0.01);
 			}
 
 			// Umbral Ambush: the hit right after it

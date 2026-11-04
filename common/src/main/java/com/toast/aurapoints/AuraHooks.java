@@ -44,6 +44,8 @@ public final class AuraHooks {
 	public static final String AURA_OBJECTIVE = "aura_type";
 	public static final String[] ITEM_OBJECTIVES = {"itemuse", "itemsecondary", "itemtertiary"};
 	public static final String MASTERY_OBJECTIVE = "aura_mastery";
+	/** aura_branch: the branch in force for the held aura, 0 none, else its place (1 or 2) among that aura's branches. */
+	public static final String BRANCH_OBJECTIVE = "aura_branch";
 
 	public static String masteryObjective(AuraType aura) {
 		return MASTERY_OBJECTIVE + "_" + aura.id();
@@ -63,6 +65,7 @@ public final class AuraHooks {
 		objective(server, AURA_OBJECTIVE);
 		for (String name : ITEM_OBJECTIVES) objective(server, name);
 		objective(server, MASTERY_OBJECTIVE);
+		objective(server, BRANCH_OBJECTIVE);
 		for (AuraType aura : AuraType.values()) objective(server, masteryObjective(aura));
 		for (Ability ability : Ability.values()) if (ability.active) objective(server, cooldownObjective(ability));
 	}
@@ -133,6 +136,8 @@ public final class AuraHooks {
 			scoreboard.getOrCreatePlayerScore(player, objective(server, masteryObjective(aura))).set(data.mastery.getOrDefault(aura, 0));
 		}
 		scoreboard.getOrCreatePlayerScore(player, objective(server, MASTERY_OBJECTIVE)).set(data.aura == null ? 0 : data.mastery.getOrDefault(data.aura, 0));
+		var branch = com.toast.aurapoints.ability.Branch.current(data);
+		scoreboard.getOrCreatePlayerScore(player, objective(server, BRANCH_OBJECTIVE)).set(branch == null ? 0 : branch.number());
 	}
 
 	/** Item key {@code index} (0 itemuse, 1 itemsecondary, 2 itemtertiary) held or let go. */

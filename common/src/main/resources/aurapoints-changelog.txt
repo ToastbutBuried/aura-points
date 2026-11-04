@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.9.0
+- Aura branches: at Mastery V you pick one of two branches of your aura (Aura Book > your aura > Branches, or /aura branch). The first pick is free, switching costs 300 Aura. Fire goes first: Blue Flame (faster piercing Fireball, +20% damage to burning targets, harder Fire Bending shots) or Magma (pools of heat from Fireball, Heat Wave and Inferno Slam that burn enemies and shield you).
+
 == 5.8.0
 - Verdant gets a new passive, Virulence: poisoned targets take 25% more damage from you. Aura Book: new Arena page (one click to the lobby) and a Reactions page that explains every elemental reaction. Ice Shell breaks for good when you die.
 - Duels: both fighters vote for the map (ring layout) before the intro. Wave Survival: pick a twist (Swift, Brutal, Tough, Flow) when you open a run, and the record board now keeps solo and party runs apart.

@@ -78,6 +78,9 @@ public class AuraPlayerData {
 	/** Aura Mastery level per aura (ability/Mastery), kept when rerolling. Saved by aura name. */
 	public final java.util.Map<AuraType, Integer> mastery = new java.util.EnumMap<>(AuraType.class);
 
+	/** Aura branch picked per aura (ability/Branch); only counts at the Mastery level it needs. Saved by name. */
+	public final java.util.Map<AuraType, com.toast.aurapoints.ability.Branch> branches = new java.util.EnumMap<>(AuraType.class);
+
 	/** Cosmetics owned (cosmetic/Cosmetics ids) and the one worn per kind (kind id -> cosmetic id). */
 	public final java.util.Set<String> cosmetics = new java.util.LinkedHashSet<>();
 	public final java.util.Map<String, String> equipped = new java.util.HashMap<>();
@@ -144,6 +147,11 @@ public class AuraPlayerData {
 		net.minecraft.nbt.ListTag rolledList = new net.minecraft.nbt.ListTag();
 		for (AuraType a : rolled) rolledList.add(net.minecraft.nbt.StringTag.valueOf(a.name()));
 		nbt.put("rolled", rolledList);
+		if (!branches.isEmpty()) {
+			CompoundTag picked = new CompoundTag();
+			for (var e : branches.entrySet()) picked.putString(e.getKey().name(), e.getValue().name());
+			nbt.put("branches", picked);
+		}
 		if (arenaRealAura != null) nbt.putString("arenaRealAura", arenaRealAura.name());
 		net.minecraft.nbt.ListTag cosmeticList = new net.minecraft.nbt.ListTag();
 		for (String c : cosmetics) cosmeticList.add(net.minecraft.nbt.StringTag.valueOf(c));
@@ -229,6 +237,16 @@ public class AuraPlayerData {
 				data.owned.add(com.toast.aurapoints.ability.AuraAbilities.Ability.valueOf(ownedList.getString(i)));
 			} catch (IllegalArgumentException ignored) {
 				// ability no longer exists
+			}
+		}
+		if (nbt.contains("branches")) {
+			CompoundTag picked = nbt.getCompound("branches");
+			for (String key : picked.getAllKeys()) {
+				try {
+					data.branches.put(AuraType.valueOf(key), com.toast.aurapoints.ability.Branch.valueOf(picked.getString(key)));
+				} catch (IllegalArgumentException ignored) {
+					// aura or branch no longer exists
+				}
 			}
 		}
 		var rolledList = nbt.getList("rolled", net.minecraft.nbt.Tag.TAG_STRING);

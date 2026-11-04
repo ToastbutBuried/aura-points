@@ -469,8 +469,19 @@ public final class FireBending {
 
 	/** Damage for a shot that hit after flying from {@code distance} blocks away. */
 	public static float shotDamage(double distance, float factor) {
+		return shotDamage(distance, factor, AuraConfig.FIRE_BENDING_DAMAGE_CLOSE, AuraConfig.FIRE_BENDING_DAMAGE_FAR);
+	}
+
+	/** The shot damage of {@code shooter}: Blue Flame hits harder than the base kit. */
+	public static float shotDamage(ServerPlayer shooter, double distance, float factor) {
+		return Branch.is(shooter, Branch.BLUE_FLAME)
+				? shotDamage(distance, factor, AuraConfig.FIRE_BLUE_FLAME_BENDING_DAMAGE_CLOSE, AuraConfig.FIRE_BLUE_FLAME_BENDING_DAMAGE_FAR)
+				: shotDamage(distance, factor);
+	}
+
+	private static float shotDamage(double distance, float factor, float close, float far) {
 		double f = Math.max(0.0, Math.min(1.0, distance / Math.max(1.0, AuraConfig.FIRE_BENDING_RANGE)));
-		return (float) ((AuraConfig.FIRE_BENDING_DAMAGE_CLOSE + (AuraConfig.FIRE_BENDING_DAMAGE_FAR - AuraConfig.FIRE_BENDING_DAMAGE_CLOSE) * f) * factor);
+		return (float) ((close + (far - close) * f) * factor);
 	}
 
 	/** Every server tick: moves each shot in flight one step (block and entity checks cover the whole step). A shot never lives longer than 10 s. */
@@ -539,7 +550,7 @@ public final class FireBending {
 		target.igniteForSeconds(AuraConfig.FIRE_BENDING_BURN_SECONDS);
 		HITTING = Hit.SHOT;
 		try {
-			target.hurt(damage(owner), AuraAbilities.vsMob(target, shotDamage(distance, s.damageFactor)));
+			target.hurt(damage(owner), AuraAbilities.vsMob(target, shotDamage(owner, distance, s.damageFactor)));
 		} finally {
 			HITTING = null;
 		}

@@ -47,7 +47,7 @@ public final class AuraReset {
 		AURA("aura", "aura, free roll, held-auras record and blood bar; bought abilities refunded"),
 		SKILLS("skills", "both skill trees (points refunded, PvP tree locked again)"),
 		BALANCE("balance", "Aura balance set to 0"),
-		MASTERY("mastery", "Mastery levels and XP"),
+		MASTERY("mastery", "Mastery levels and XP, and branch picks"),
 		AWAKENINGS("awakenings", "awakened auras (Ultimates)"),
 		COSMETICS("cosmetics", "owned and equipped cosmetics"),
 		WEEKLIES("weeklies", "weekly challenge progress and streaks"),
@@ -98,6 +98,7 @@ public final class AuraReset {
 			}
 			case MASTERY -> {
 				data.mastery.clear();
+				data.branches.clear();
 				for (AuraType t : AuraType.values()) {
 					var stat = AuraStats.mastery(t);
 					if (stat != null) player.getStats().setValue(player, Stats.CUSTOM.get(stat), 0);
@@ -180,6 +181,7 @@ public final class AuraReset {
 		data.awakened.clear();
 		data.rolled.clear();
 		data.mastery.clear();
+		data.branches.clear();
 		reset(player, data, Part.COSMETICS);
 		reset(player, data, Part.WEEKLIES);
 		AuraAbilities.refreshBerserkerModifier(player, false);

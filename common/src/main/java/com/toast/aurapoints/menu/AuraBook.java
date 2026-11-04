@@ -443,6 +443,14 @@ public final class AuraBook {
 			}
 			head.add(text("Aura: " + AuraCurrency.get(player), ChatFormatting.LIGHT_PURPLE));
 			slots[4] = icon(auraIcon(aura), auraName(aura), head, data.awakened.contains(aura));
+			if (!com.toast.aurapoints.ability.Branch.of(aura).isEmpty() && AuraConfig.BRANCHES_ENABLED) {
+				var picked = com.toast.aurapoints.ability.Branch.current(data);
+				boolean open = com.toast.aurapoints.ability.Branch.unlocked(data);
+				slots[6] = icon(open ? Items.RECOVERY_COMPASS : Items.COMPASS, text("Branches", open ? ChatFormatting.GOLD : ChatFormatting.GRAY), List.of(
+						text(picked != null ? picked.label() : open ? "Choose your branch" : "Unlocks at Mastery " + com.toast.aurapoints.ability.Mastery.roman(AuraConfig.BRANCH_MASTERY_REQUIRED),
+								picked != null ? picked.color : ChatFormatting.GRAY),
+						text("Click: see both branches", ChatFormatting.YELLOW)), picked != null);
+			}
 
 			slots[10] = icon(Items.BLAZE_ROD, text("Actives", ChatFormatting.GOLD), List.of(
 					text("Bought once, used with your keys.", ChatFormatting.GRAY)), false);
@@ -482,11 +490,61 @@ public final class AuraBook {
 				return;
 			}
 			if (barClick(player, slot) || data.aura == null) return;
+			if (slot == 6 && !com.toast.aurapoints.ability.Branch.of(data.aura).isEmpty() && AuraConfig.BRANCHES_ENABLED) {
+				open(player, new BranchPage());
+				return;
+			}
 			List<AuraAbilities.Ability> actives = actives(data.aura);
 			for (int i = 0; i < actives.size() && i < ACTIVE_SLOTS.length; i++) {
 				AuraAbilities.Ability a = actives.get(i);
 				if (ACTIVE_SLOTS[i] == slot && !data.owned.contains(a) && !AuraAbilities.DISABLED.contains(a)) {
 					run(player, "aura shop buy " + a.name().toLowerCase(Locale.ROOT));
+					return;
+				}
+			}
+		}
+	}
+
+	/** The two branches of the held aura: what each changes, the pick (free the first time, then BRANCH_SWITCH_COST). */
+	static final class BranchPage extends Page {
+		static final int[] SPOTS = {21, 23};
+
+		@Override
+		Component title(ServerPlayer player) {
+			AuraType aura = data(player).aura;
+			return Component.literal(aura == null ? "Branches" : aura.displayName + " branches");
+		}
+
+		@Override
+		void fill(ServerPlayer player, AuraPlayerData data, ItemStack[] slots) {
+			bar(slots, true);
+			if (data.aura == null) return;
+			String blocker = com.toast.aurapoints.ability.Branch.blocker(data);
+			List<com.toast.aurapoints.ability.Branch> branches = com.toast.aurapoints.ability.Branch.of(data.aura);
+			var mine = data.branches.get(data.aura);
+			slots[4] = icon(Items.RECOVERY_COMPASS, text("Branches", ChatFormatting.GOLD), blocker != null
+					? List.of(text(blocker, ChatFormatting.RED))
+					: List.of(text(mine == null ? "Pick one (free the first time)." : "Switching costs " + AuraConfig.BRANCH_SWITCH_COST + " Aura.", ChatFormatting.GRAY),
+							text("Aura: " + AuraCurrency.get(player), ChatFormatting.LIGHT_PURPLE)), false);
+			for (int i = 0; i < branches.size() && i < SPOTS.length; i++) {
+				var b = branches.get(i);
+				List<Component> lore = new ArrayList<>();
+				lore.add(text(b.role, ChatFormatting.DARK_AQUA));
+				for (String line : b.description()) lore.addAll(wrap(line, 38, ChatFormatting.GRAY));
+				if (b == mine) lore.add(text("✔ Your branch", ChatFormatting.GREEN));
+				else if (blocker == null) lore.add(text(mine == null ? "Click: choose (free)" : "Click: switch for " + AuraConfig.BRANCH_SWITCH_COST + " Aura", ChatFormatting.YELLOW));
+				slots[SPOTS[i]] = icon(b == com.toast.aurapoints.ability.Branch.BLUE_FLAME ? Items.SOUL_CAMPFIRE : Items.MAGMA_BLOCK,
+						text(b.displayName, b.color, ChatFormatting.BOLD), lore, b == mine);
+			}
+		}
+
+		@Override
+		void click(ServerPlayer player, AuraPlayerData data, int slot) {
+			if (barClick(player, slot) || data.aura == null) return;
+			List<com.toast.aurapoints.ability.Branch> branches = com.toast.aurapoints.ability.Branch.of(data.aura);
+			for (int i = 0; i < branches.size() && i < SPOTS.length; i++) {
+				if (SPOTS[i] == slot) {
+					run(player, "aura branch " + branches.get(i).id());
 					return;
 				}
 			}

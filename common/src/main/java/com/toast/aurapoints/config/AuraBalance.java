@@ -63,7 +63,7 @@ public final class AuraBalance {
 		for (String p : List.of("RESONANCE_", "NOISE_", "ECHO_", "BLOSSOM_", "LISTENING_TREE_", "GRASP_")) PREFIXES.put(p, "resonance");
 		for (String p : List.of("HANDHELD_", "MAELSTROM_", "SUNFALL_", "STORM_EYE_", "UMBRAL_", "THORN_SENTINEL_", "WINTERS_GATE_", "CHAIN_STRIKE_")) PREFIXES.put(p, "handhelds");
 		for (String p : List.of("FIRE_ROLLABLE", "FIREBALL_", "HEAT_WAVE_", "FIRE_BENDING_", "INFERNO_SLAM_", "BERSERKER_", "EXECUTIONER_",
-				"FIRE_COMBO_", "AURA_FIRE_", "FIREBORN_")) PREFIXES.put(p, "fire");
+				"FIRE_COMBO_", "AURA_FIRE_", "FIREBORN_", "FIRE_BLUE_FLAME_", "FIRE_MAGMA_", "SCORCH_")) PREFIXES.put(p, "fire");
 		for (String p : List.of("ARENA_", "DUEL_", "TRAINING_", "MATCH_", "WAVES_")) PREFIXES.put(p, "arena");
 		PREFIXES.put("EARTH_", "earth");
 		PREFIXES.put("LIGHT_", "light");

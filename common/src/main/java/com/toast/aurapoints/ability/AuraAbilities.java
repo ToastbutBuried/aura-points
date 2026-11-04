@@ -97,6 +97,9 @@ public final class AuraAbilities {
 		VIRULENCE("Virulence", false, () ->
 				"Anything poisoned takes " + Math.round(AuraConfig.VIRULENCE_BONUS * 100) + "% more damage from you. Your Entanglement, bites and "
 						+ "Toxic Clouds all poison, and so does anything else that does."),
+		// Blue Flame branch only (ability/Branch.grants): not in the Fire aura's own list
+		SCORCH("Scorch", false, () ->
+				"Anything burning takes " + Math.round(AuraConfig.SCORCH_BONUS * 100) + "% more damage from you. Blue Flame branch."),
 		STATIC_CHARGE("Static Charge", false, () ->
 				"Your charged melee hits build static: every " + AuraConfig.STATIC_CHARGE_HITS + "th one discharges - "
 						+ fmt(AuraConfig.STATIC_CHARGE_DAMAGE) + " damage that arcs on to up to " + AuraConfig.STATIC_CHARGE_ARC_TARGETS
@@ -507,7 +510,7 @@ public final class AuraAbilities {
 			return data.aura != null && !data.locked && !allLocked && Ultimates.of(data.aura) == ability && data.awakened.contains(data.aura)
 					&& !DISABLED.contains(ability);
 		}
-		return data.aura != null && !data.locked && !allLocked && data.aura.has(ability) && !DISABLED.contains(ability)
+		return data.aura != null && !data.locked && !allLocked && (data.aura.has(ability) || Branch.grants(data, ability)) && !DISABLED.contains(ability)
 				&& (!ability.active || data.owned.contains(ability));
 	}
 
@@ -537,7 +540,7 @@ public final class AuraAbilities {
 		EnumMap<Ability, Integer> overrides = LENGTH_OVERRIDE.get(player.getUUID());
 		if (overrides != null) overrides.remove(ability);
 		int ticks = ability.cooldownTicks();
-		int flowed = com.toast.aurapoints.arena.Waves.cooldown(player, flowCooldown(player, Mastery.cooldown(player, ticks)));
+		int flowed = com.toast.aurapoints.arena.Waves.cooldown(player, flowCooldown(player, Mastery.cooldown(player, Branch.cooldown(player, ability, ticks))));
 		if (flowed != ticks) LENGTH_OVERRIDE.computeIfAbsent(player.getUUID(), k -> new EnumMap<>(Ability.class)).put(ability, flowed);
 		if (!cooldownsDisabled(player)) NetworkHandler.sendCooldown(player, ability, flowed);
 	}
@@ -1357,6 +1360,7 @@ public final class AuraAbilities {
 		Vec3 start = player.getEyePosition().add(look.scale(0.8));
 		AuraFireball fireball = new AuraFireball(world, player, look.normalize());
 		fireball.setPos(start.x, start.y - 0.1, start.z);
+		fireball.boost(player);
 		world.addFreshEntity(fireball);
 
 		AuraFx.burst(world, start.x, start.y, start.z, ParticleTypes.FLAME, 12, 0.15, 0.05);
@@ -1483,6 +1487,7 @@ public final class AuraAbilities {
 		// At the edge: fires at random spots, and always where someone was caught.
 		AuraFx.later(server, steps + 1, () -> {
 			if (!AuraFx.alive(player) || player.serverLevel() != world) return;
+			magmaPools(player, cx, cy - 0.1, cz, r, inferno);
 			AuraFire.scatter(world, player, new Vec3(cx, cy + 0.5, cz), r,
 					inferno ? AuraConfig.INFERNO_SLAM_RANDOM_FIRES : AuraConfig.HEAT_WAVE_RANDOM_FIRES);
 			if (AuraConfig.HEAT_WAVE_FIRE_UNDER_TARGETS) {
@@ -1490,6 +1495,20 @@ public final class AuraAbilities {
 			}
 			world.playSound(null, cx, cy, cz, AuraSounds.FIRECHARGE_USE.value(), SoundSource.PLAYERS, 0.8f, 0.5f);
 		});
+	}
+
+	/** Magma branch: the Heat Wave leaves pools at random spots inside it, the Inferno Slam one big pool at the centre. */
+	private static void magmaPools(ServerPlayer player, double cx, double cy, double cz, double r, boolean inferno) {
+		if (!Branch.is(player, Branch.MAGMA)) return;
+		if (inferno) {
+			MagmaPools.add(player, new Vec3(cx, cy, cz), AuraConfig.FIRE_MAGMA_INFERNO_POOL_RADIUS);
+			return;
+		}
+		var random = player.getRandom();
+		for (int i = 0; i < AuraConfig.FIRE_MAGMA_HEAT_WAVE_POOLS; i++) {
+			double a = random.nextDouble() * Math.PI * 2, d = Math.sqrt(random.nextDouble()) * Math.max(0, r - AuraConfig.FIRE_MAGMA_HEAT_WAVE_POOL_RADIUS * 0.5);
+			MagmaPools.add(player, new Vec3(cx + Math.cos(a) * d, cy, cz + Math.sin(a) * d), AuraConfig.FIRE_MAGMA_HEAT_WAVE_POOL_RADIUS);
+		}
 	}
 
 	// ---------------------------------------------------------------

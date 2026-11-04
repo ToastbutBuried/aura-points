@@ -22,8 +22,45 @@ import net.minecraft.world.phys.Vec3;
  */
 public class AuraFireball extends SmallFireball {
 
+	/** Blue Flame: the entity this fireball already passed through (it pierces the first target only). */
+	private Entity pierced = null;
+	private boolean didPierce = false;
+	/** Set at launch (boost): a Blue Flame fireball keeps piercing even if its owner switches branch mid-flight. */
+	private boolean canPierce = false;
+
 	public AuraFireball(Level level, LivingEntity owner, Vec3 movement) {
 		super(level, owner, movement);
+	}
+
+	/** Blue Flame flies faster: scales the launch speed and the push that keeps it going. */
+	public void boost(ServerPlayer owner) {
+		if (!Branch.is(owner, Branch.BLUE_FLAME)) return;
+		canPierce = true;
+		if (AuraConfig.FIRE_BLUE_FLAME_FIREBALL_SPEED <= 0) return;
+		double f = AuraConfig.FIRE_BLUE_FLAME_FIREBALL_SPEED;
+		this.accelerationPower *= f;
+		setDeltaMovement(getDeltaMovement().scale(f));
+	}
+
+	private boolean piercing() {
+		return AuraConfig.FIRE_BLUE_FLAME_PIERCE && canPierce && !didPierce;
+	}
+
+	/** Vanilla discards the fireball on any hit; Blue Flame lets the first entity hit pass and flies on. */
+	@Override
+	protected void onHit(net.minecraft.world.phys.HitResult result) {
+		if (result instanceof EntityHitResult hit && piercing() && !this.level().isClientSide) {
+			didPierce = true;
+			pierced = hit.getEntity();
+			onHitEntity(hit);
+			return;
+		}
+		super.onHit(result);
+	}
+
+	@Override
+	protected boolean canHitEntity(Entity entity) {
+		return entity != pierced && super.canHitEntity(entity);
 	}
 
 	/**
@@ -64,6 +101,7 @@ public class AuraFireball extends SmallFireball {
 	/** Up to FIREBALL_FIRES fires at random spots within FIREBALL_FIRE_RADIUS of the impact. */
 	private void ignite(ServerLevel level, Vec3 at) {
 		ServerPlayer owner = getOwner() instanceof ServerPlayer p ? p : null;
+		if (owner != null) MagmaPools.add(owner, new Vec3(at.x, Math.floor(at.y), at.z), AuraConfig.FIRE_MAGMA_POOL_RADIUS);
 		if (owner != null) Combos.zone(owner, Combos.Kind.FIRE, at, AuraConfig.COMBO_FIRE_ZONE_RADIUS, AuraConfig.COMBO_FIRE_ZONE_TICKS, null, true);
 		if (AuraFire.scatter(level, owner, at, AuraConfig.FIREBALL_FIRE_RADIUS, AuraConfig.FIREBALL_FIRES) > 0) {
 			level.playSound(null, at.x, at.y, at.z, AuraSounds.FIRECHARGE_USE.value(), net.minecraft.sounds.SoundSource.PLAYERS, 0.8f, 0.9f);

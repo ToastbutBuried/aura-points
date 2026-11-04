@@ -25,6 +25,7 @@ final class DevTest {
 		registerVirulenceTest(dispatcher);
 		registerMastery(dispatcher);
 		registerBloodBar(dispatcher);
+		BranchDevTest.register(dispatcher);
 		// balance editor write path: set a value + a switch through AuraBalance.apply, check, then put both back
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("balance").executes(ctx -> {
 			var e = com.toast.aurapoints.config.AuraBalance.entry("FIREBALL_DAMAGE");
@@ -664,6 +665,25 @@ final class DevTest {
 			click.accept(31);
 			click.accept(29);
 			rlog("earn arena click opens: " + at.apply(4) + " (must be The Aura Arena)");
+			// Branches (5.9.0): the aura page button and the Branch page
+			data.aura = com.toast.aurapoints.ability.AuraType.FIRE;
+			var firePick = data.mastery.get(com.toast.aurapoints.ability.AuraType.FIRE);
+			data.mastery.put(com.toast.aurapoints.ability.AuraType.FIRE, 5);
+			data.branches.put(com.toast.aurapoints.ability.AuraType.FIRE, com.toast.aurapoints.ability.Branch.MAGMA);
+			com.toast.aurapoints.menu.AuraBook.open(p);
+			click.accept(20);
+			rlog("fire aura page: branch button " + at.apply(6) + " (must be Branches)");
+			click.accept(6);
+			rlog("branch page: " + at.apply(4) + " | " + at.apply(21) + " | " + at.apply(23) + " (must be Branches | Blue Flame | Magma)");
+			rlog("magma lore: " + p.containerMenu.getSlot(23).getItem().get(net.minecraft.core.component.DataComponents.LORE).lines().stream().map(c -> c.getString()).toList());
+			click.accept(45);
+			data.aura = com.toast.aurapoints.ability.AuraType.WATER;
+			com.toast.aurapoints.menu.AuraBook.open(p);
+			click.accept(20);
+			rlog("water aura page: slot 6 " + p.containerMenu.getSlot(6).getItem().isEmpty() + " (must be true: no branches yet)");
+			data.branches.clear();
+			if (firePick == null) data.mastery.remove(com.toast.aurapoints.ability.AuraType.FIRE);
+			else data.mastery.put(com.toast.aurapoints.ability.AuraType.FIRE, firePick);
 			data.tutorialState = 1;
 			com.toast.aurapoints.menu.Tutorial.onLogout(p);
 			com.toast.aurapoints.menu.AuraBook.open(p);

@@ -163,6 +163,12 @@ public final class AuraCommand {
 				.then(Commands.literal("book").executes(AuraCommand::giveAuraBook))
 				.then(Commands.literal("selfhide").executes(AuraCommand::toggleSelfHide))
 				.then(Commands.literal("bloom").executes(AuraCommand::toggleBloom))
+				.then(Commands.literal("branch")
+						.executes(AuraCommand::showBranches)
+						.then(Commands.argument("branch", StringArgumentType.word())
+								.suggests((ctx, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
+										java.util.Arrays.stream(com.toast.aurapoints.ability.Branch.values()).map(com.toast.aurapoints.ability.Branch::id), b))
+								.executes(AuraCommand::pickBranch)))
 				.then(Commands.literal("nightvision").executes(AuraCommand::toggleNightVision))
 				.then(Commands.literal("reload")
 						.requires(src -> src.hasPermission(2))
@@ -326,6 +332,39 @@ public final class AuraCommand {
 		if (!data.nightVisionOn) com.toast.aurapoints.ability.Nightstalker.clearVision(player, data);
 		player.sendSystemMessage(Component.literal("Nightstalker's Night Vision is now " + (data.nightVisionOn ? "on." : "off (the damage bonus stays)."))
 				.withStyle(data.nightVisionOn ? ChatFormatting.DARK_PURPLE : ChatFormatting.GRAY));
+		return 1;
+	}
+
+	/** /aura branch: what your aura's branches are and which one you walk. */
+	private static int showBranches(CommandContext<CommandSourceStack> ctx) {
+		ServerPlayer player = ctx.getSource().getPlayer();
+		if (player == null) return 0;
+		AuraPlayerData data = AuraState.get(ctx.getSource().getServer()).getOrCreate(player.getUUID());
+		String blocker = com.toast.aurapoints.ability.Branch.blocker(data);
+		if (blocker != null) {
+			player.sendSystemMessage(Component.literal(blocker).withStyle(ChatFormatting.GRAY));
+			return 0;
+		}
+		var current = data.branches.get(data.aura);
+		for (var b : com.toast.aurapoints.ability.Branch.of(data.aura)) {
+			player.sendSystemMessage(Component.literal(b.label()).withStyle(b.color, ChatFormatting.BOLD)
+					.append(Component.literal(" - " + b.role + (b == current ? "  (yours)" : "")).withStyle(ChatFormatting.GRAY)));
+			for (String line : b.description()) player.sendSystemMessage(Component.literal("  " + line).withStyle(ChatFormatting.DARK_GRAY));
+		}
+		player.sendSystemMessage(Component.literal(current == null ? "Pick one with /aura branch <name> (free the first time)."
+				: "Switching costs " + com.toast.aurapoints.config.AuraConfig.BRANCH_SWITCH_COST + " Aura.").withStyle(ChatFormatting.YELLOW));
+		return 1;
+	}
+
+	private static int pickBranch(CommandContext<CommandSourceStack> ctx) {
+		ServerPlayer player = ctx.getSource().getPlayer();
+		if (player == null) return 0;
+		var branch = com.toast.aurapoints.ability.Branch.byId(StringArgumentType.getString(ctx, "branch"));
+		if (branch == null) {
+			player.sendSystemMessage(Component.literal("No such branch. /aura branch lists yours.").withStyle(ChatFormatting.RED));
+			return 0;
+		}
+		player.sendSystemMessage(com.toast.aurapoints.ability.Branch.pick(player, branch));
 		return 1;
 	}
 
