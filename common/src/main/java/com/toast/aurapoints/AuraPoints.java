@@ -652,6 +652,8 @@ public class AuraPoints {
 				com.toast.aurapoints.shim.neoforge.network.PacketDistributor.sendToPlayer(player, new com.toast.aurapoints.network.RootedPacket(false, false));
 			}
 			com.toast.aurapoints.network.NetworkHandler.sendFrozen(player, 0);
+			// dying empties the blood bar (respawn, not the death event: the arena cancels its deaths)
+			com.toast.aurapoints.ability.Blood.onDeath(player);
 		}
 
 		@SubscribeEvent

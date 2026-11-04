@@ -99,6 +99,8 @@ public class AuraPlayerData {
 	public int tutorialStepTicks = 0;
 	/** The free Aura Book was handed out (first join after 5.1.0). */
 	public boolean bookGiven = false;
+	/** Blood aura's blood bar (see Blood.addBlood). */
+	public int bloodBar = 0;
 
 	public CompoundTag writeNbt() {
 		CompoundTag nbt = new CompoundTag();
@@ -120,6 +122,7 @@ public class AuraPlayerData {
 		nbt.putInt("tutorialState", tutorialState);
 		nbt.putInt("tutorialStep", tutorialStep);
 		nbt.putBoolean("bookGiven", bookGiven);
+		if (bloodBar > 0) nbt.putInt("bloodBar", bloodBar);
 		if (!arenaReturnDim.isEmpty()) {
 			CompoundTag back = new CompoundTag();
 			back.putString("dim", arenaReturnDim);
@@ -171,6 +174,7 @@ public class AuraPlayerData {
 		data.tutorialState = nbt.getInt("tutorialState");
 		data.tutorialStep = nbt.getInt("tutorialStep");
 		data.bookGiven = nbt.getBoolean("bookGiven");
+		data.bloodBar = nbt.getInt("bloodBar");
 		data.shopSpent = nbt.getInt("shopSpent");
 		data.shopMigrated = nbt.getBoolean("shopMigrated");
 		data.changelogSeen = nbt.getString("changelogSeen");

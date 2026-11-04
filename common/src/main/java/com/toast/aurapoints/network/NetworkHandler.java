@@ -28,7 +28,7 @@ public final class NetworkHandler {
 
 	@SubscribeEvent
 	public static void register(RegisterPayloadHandlersEvent event) {
-		PayloadRegistrar registrar = event.registrar("41");
+		PayloadRegistrar registrar = event.registrar("42");
 		registrar.playToServer(
 				AbilityKeyPacket.TYPE,
 				AbilityKeyPacket.STREAM_CODEC,
@@ -108,6 +108,11 @@ public final class NetworkHandler {
 				FireBendingPacket.TYPE,
 				FireBendingPacket.STREAM_CODEC,
 				(packet, context) -> context.enqueueWork(() -> ClientAuraState.setFireBending(packet.active(), packet.charge(), packet.readyAt()))
+		);
+		registrar.playToClient(
+				BloodBarPacket.TYPE,
+				BloodBarPacket.STREAM_CODEC,
+				(packet, context) -> context.enqueueWork(() -> ClientAuraState.setBloodBar(packet.blood(), packet.max(), packet.moonCost()))
 		);
 		registrar.playToClient(
 				BubblePacket.TYPE,
@@ -194,6 +199,7 @@ public final class NetworkHandler {
 	public static void syncAura(ServerPlayer player, AuraPlayerData data) {
 		PacketDistributor.sendToPlayer(player, new AuraHudPacket(data.aura == null ? "" : data.aura.id()));
 		com.toast.aurapoints.AuraHooks.syncAura(player, data);
+		sendBloodBar(player, data.bloodBar);
 		// and the label over their name, for them and everyone who sees them
 		PacketDistributor.sendToPlayersTrackingEntityAndSelf(player, new PlayerAuraPacket(player.getId(), labelOf(data)));
 	}
@@ -271,6 +277,12 @@ public final class NetworkHandler {
 	/** Updates the Fire Bending charge bar (active=false hides it). */
 	public static void sendFireBending(ServerPlayer player, boolean active, float charge, float readyAt) {
 		PacketDistributor.sendToPlayer(player, new FireBendingPacket(active, charge, readyAt));
+	}
+
+	/** The Blood aura's blood bar for the player's own client. */
+	public static void sendBloodBar(ServerPlayer player, int blood) {
+		PacketDistributor.sendToPlayer(player, new BloodBarPacket(blood, com.toast.aurapoints.config.AuraConfig.BLOOD_BAR_MAX,
+				com.toast.aurapoints.config.AuraConfig.BLOOD_BAR_MOON_COST));
 	}
 
 	/** Abyssal Bubble on/off for the holder's own client (camera shake and the stability bar), with the shake settings. */

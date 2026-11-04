@@ -187,7 +187,9 @@ public final class AuraAbilities {
 						+ (AuraConfig.BLOOD_TETHER_COOLDOWN_TICKS / 20) + "s cooldown."),
 		CRIMSON_SACRIFICE("Crimson Sacrifice", true, () ->
 				"Give " + fmt(AuraConfig.BLOOD_SACRIFICE_COST / 2f) + " hearts of your own blood: your next " + AuraConfig.BLOOD_SACRIFICE_HITS + " melee hits (within "
-						+ fmt(AuraConfig.BLOOD_SACRIFICE_TICKS / 20f) + "s) deal " + fmt((float) AuraConfig.BLOOD_SACRIFICE_MULTIPLIER) + "x damage. "
+						+ fmt(AuraConfig.BLOOD_SACRIFICE_TICKS / 20f) + "s) deal " + fmt((float) AuraConfig.BLOOD_SACRIFICE_MULTIPLIER) + "x damage. Up to "
+						+ AuraConfig.BLOOD_BAR_SACRIFICE_SPEND + " blood from your blood bar pays for it: with that much it costs only "
+						+ fmt((float) (AuraConfig.BLOOD_SACRIFICE_COST * (1 - AuraConfig.BLOOD_SACRIFICE_MAX_REDUCTION)) / 2f) + " hearts. "
 						+ (AuraConfig.BLOOD_SACRIFICE_COOLDOWN_TICKS / 20) + "s cooldown."),
 		VOID_PULL("Void Pull", true, () ->
 				"The void opens in your palm: every mob and player in front of you (up to " + Math.round(AuraConfig.VOID_PULL_RANGE) + " blocks) is dragged right up to you ("
@@ -388,7 +390,9 @@ public final class AuraAbilities {
 						+ Math.round(AuraConfig.LIGHT_SUN_RANGE) + " blocks (" + fmt(AuraConfig.LIGHT_SUN_LANCE_DAMAGE) + " each) and warms every player near it back to health - "
 						+ "then it bursts: " + fmt(AuraConfig.LIGHT_SUN_BURST_DAMAGE) + " damage and blindness all around. " + AuraConfig.ULTIMATE_COOLDOWN_SECONDS + "s cooldown."),
 		BLOOD_MOON("Blood Moon", true, () ->
-				"The sky turns red for everyone near you for " + fmt(AuraConfig.BLOOD_MOON_TICKS / 20f) + "s: every hit you land heals you "
+				"Needs " + AuraConfig.BLOOD_BAR_MOON_COST + " blood in your blood bar (of " + AuraConfig.BLOOD_BAR_MAX + "): every second your bleeding cuts fill it - "
+						+ AuraConfig.BLOOD_BAR_PLAYER + " on players, " + AuraConfig.BLOOD_BAR_MONSTER + " on monsters, " + AuraConfig.BLOOD_BAR_MOB
+						+ " on animals; dying empties it. The sky turns red for everyone near you for " + fmt(AuraConfig.BLOOD_MOON_TICKS / 20f) + "s: every hit you land heals you "
 						+ Math.round(AuraConfig.BLOOD_MOON_LIFESTEAL * 100) + "% of its damage, and every enemy within " + Math.round(AuraConfig.BLOOD_MOON_RADIUS)
 						+ " blocks bleeds. " + AuraConfig.ULTIMATE_COOLDOWN_SECONDS + "s cooldown."),
 		SINGULARITY("Singularity", true, () ->

@@ -143,6 +143,8 @@ public final class Ultimates {
 		if (player.isSpectator() || IceSpike.isFrozen(player) || Stun.isBusy(player) || Entanglement.isEntangled(player) || VoidAura.isNulled(player)
 				|| com.toast.aurapoints.arena.Duel.holdsStill(player)) return;
 		if (!AuraAbilities.checkCooldown(player, ult, ult.cooldownTicks(), now)) return;
+		// Blood Moon also needs a (full) blood bar
+		if (ult == Ability.BLOOD_MOON && !AuraAbilities.cooldownsDisabled(player) && !Blood.moonReady(player)) return;
 		float boost = AuraFx.boost;
 		AuraFx.boost = Mastery.particleBoost(player);
 		try {
@@ -961,6 +963,7 @@ public final class Ultimates {
 		ServerLevel level = p.serverLevel();
 		int ticks = Math.max(40, AuraConfig.BLOOD_MOON_TICKS);
 		Blood.MOON.put(p.getUUID(), (long) p.getServer().getTickCount() + ticks);
+		if (!AuraAbilities.cooldownsDisabled(p)) Blood.spendBlood(p, AuraConfig.BLOOD_BAR_MOON_COST);
 		// the sky goes red for everyone near
 		double range = Math.max(8, AuraConfig.BLOOD_MOON_SKY_RANGE);
 		for (ServerPlayer other : level.players()) {

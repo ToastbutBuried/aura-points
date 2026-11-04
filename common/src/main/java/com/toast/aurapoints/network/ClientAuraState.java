@@ -34,6 +34,20 @@ public final class ClientAuraState {
 		if (!active) setHighlighted(java.util.List.of());
 	}
 
+	/** Blood aura's blood bar (Blood Moon needs bloodMoonCost of it). */
+	public static volatile int bloodBar = 0, bloodMax = 100, bloodMoonCost = 100;
+
+	public static void setBloodBar(int blood, int max, int moonCost) {
+		bloodMax = Math.max(1, max);
+		bloodMoonCost = Math.max(0, moonCost);
+		bloodBar = blood;
+	}
+
+	/** 0..1 of what Blood Moon needs (1 = it can be cast once its cooldown is over). */
+	public static float bloodMoonFill() {
+		return bloodMoonCost <= 0 ? 1f : Math.min(1f, bloodBar / (float) bloodMoonCost);
+	}
+
 	/** Abyssal Bubble held by this player: the shake settings and where they looked when it opened. */
 	public static volatile BubblePacket bubble = null;
 	public static volatile long bubbleSince = 0;
@@ -334,6 +348,7 @@ public final class ClientAuraState {
 		clearCloaked();
 		setFireBending(false, 0, 0.5f);
 		clearBendStates();
+		bloodBar = 0;
 		bubble = null;
 		bubblePull = null;
 		bubblePullAt = 0;

@@ -1317,6 +1317,19 @@ public final class AuraConfig {
 	public static double BLOOD_MOON_SKY_RANGE = 48.0;
 	public static double BLOOD_MOON_LIFESTEAL = 0.5;
 	public static double BLOOD_MOON_RADIUS = 12.0;
+	/**
+	 * The blood bar (0..MAX): every bleeding tick your bleeds deal fills it - PLAYER for a player, MONSTER for a monster,
+	 * MOB for anything else (animals, villagers) - except while your own Blood Moon is up. Blood Moon needs MOON_COST and
+	 * spends it; Crimson Sacrifice spends up to SACRIFICE_SPEND, and a full SACRIFICE_SPEND takes MAX_REDUCTION off its cost.
+	 * Kept on logout, emptied on death.
+	 */
+	public static int BLOOD_BAR_MAX = 100;
+	public static int BLOOD_BAR_MOON_COST = 100;
+	public static int BLOOD_BAR_PLAYER = 4;
+	public static int BLOOD_BAR_MONSTER = 2;
+	public static int BLOOD_BAR_MOB = 1;
+	public static int BLOOD_BAR_SACRIFICE_SPEND = 25;
+	public static double BLOOD_SACRIFICE_MAX_REDUCTION = 0.75;
 
 	// ---------------------------------------------------------------
 	// Void: aurapoints-void.json

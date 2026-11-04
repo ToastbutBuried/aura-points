@@ -44,7 +44,7 @@ public final class AuraReset {
 	public enum Part {
 		QUESTS("quests", "Trials/Feats counters, Aura advancements and the FTB quest book (the whole FTB team's)"),
 		TRIALS("trials", "Trials/Feats counters and Aura advancements only (quest book kept)"),
-		AURA("aura", "aura, free roll and held-auras record; bought abilities refunded"),
+		AURA("aura", "aura, free roll, held-auras record and blood bar; bought abilities refunded"),
 		SKILLS("skills", "both skill trees (points refunded, PvP tree locked again)"),
 		BALANCE("balance", "Aura balance set to 0"),
 		MASTERY("mastery", "Mastery levels and XP"),
@@ -81,6 +81,7 @@ public final class AuraReset {
 				data.arenaRealAura = null;
 				data.freeRollUsed = false;
 				data.rolled.clear();
+				data.bloodBar = 0;
 				AuraAbilities.refreshBerserkerModifier(player, false);
 				return "aura cleared, " + refund + " Aura refunded";
 			}

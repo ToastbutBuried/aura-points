@@ -3,6 +3,7 @@ package com.toast.aurapoints.ability;
 import com.toast.aurapoints.ability.AuraAbilities.Ability;
 import com.toast.aurapoints.config.AuraConfig;
 import com.toast.aurapoints.data.AuraPlayerData;
+import com.toast.aurapoints.data.AuraState;
 import com.toast.aurapoints.network.BendingAnimPacket;
 import com.toast.aurapoints.network.NetworkHandler;
 import net.minecraft.ChatFormatting;
@@ -19,6 +20,8 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.ProjectileUtil;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.block.Blocks;
@@ -36,7 +39,8 @@ import java.util.UUID;
 /**
  * Blood: Hemorrhage, Blood Tether and Crimson Sacrifice on the Ability keys, Bloodlust and Thin Blood
  * always on (its Ultimate, Blood Moon, is in Ultimates and uses {@link #bleed} and {@link #moonUntil}). Bleeding is
- * damage over time that doesn't knock its target about.
+ * damage over time that doesn't knock its target about, and every bleeding tick fills the owner's blood bar, which
+ * Blood Moon needs and Crimson Sacrifice spends.
  */
 public final class Blood {
 
@@ -88,7 +92,7 @@ public final class Blood {
 	private static final Map<LivingEntity, Bleed> BLEEDING = new HashMap<>();
 
 	/** Makes {@code e} bleed for {@code ticks} (a fresh cut only ever lengthens it). */
-	static void bleed(ServerPlayer owner, LivingEntity e, int ticks) {
+	public static void bleed(ServerPlayer owner, LivingEntity e, int ticks) {
 		if (ticks <= 0 || !e.isAlive()) return;
 		Bleed b = BLEEDING.get(e);
 		if (b == null) BLEEDING.put(e, new Bleed(owner.getUUID(), ticks));
@@ -114,11 +118,63 @@ public final class Blood {
 			}
 			if (b.left % Math.max(5, AuraConfig.BLOOD_BLEED_EVERY_TICKS) == 0) {
 				ServerPlayer owner = server.getPlayerList().getPlayer(b.owner);
-				if (owner != null) hurtQuietly(owner, e, AuraConfig.BLOOD_BLEED_DAMAGE);
-				else e.hurt(level.damageSources().magic(), AuraConfig.BLOOD_BLEED_DAMAGE);
+				if (owner != null) {
+					hurtQuietly(owner, e, AuraConfig.BLOOD_BLEED_DAMAGE);
+					if (moonUntil(owner) <= server.getTickCount()) addBlood(owner, gain(e));
+				} else e.hurt(level.damageSources().magic(), AuraConfig.BLOOD_BLEED_DAMAGE);
 				AuraFx.particles(level, AuraFx.dust(CRIMSON, 1.1f), e.getX(), e.getY() + e.getBbHeight() * 0.5, e.getZ(), 6, 0.25, 0.3, 0.25, 0);
 			}
 		}
+	}
+
+	// ---------------------------------------------------------------
+	// The blood bar
+	// ---------------------------------------------------------------
+
+	/** What one bleeding tick on {@code e} puts in the bar: players most, monsters less, anything else least. */
+	private static int gain(LivingEntity e) {
+		if (e instanceof Player) return AuraConfig.BLOOD_BAR_PLAYER;
+		if (e instanceof Enemy) return AuraConfig.BLOOD_BAR_MONSTER;
+		return AuraConfig.BLOOD_BAR_MOB;
+	}
+
+	private static AuraPlayerData data(ServerPlayer p) {
+		return AuraState.get(p.getServer()).getOrCreate(p.getUUID());
+	}
+
+	public static int bar(ServerPlayer p) {
+		return data(p).bloodBar;
+	}
+
+	/** Sets the bar (clamped to 0..MAX), saves it and tells the player's client when it changed. */
+	private static void setBar(ServerPlayer p, int blood) {
+		AuraPlayerData data = data(p);
+		blood = Math.max(0, Math.min(Math.max(1, AuraConfig.BLOOD_BAR_MAX), blood));
+		if (blood == data.bloodBar) return;
+		data.bloodBar = blood;
+		AuraState.get(p.getServer()).markDirty();
+		NetworkHandler.sendBloodBar(p, blood);
+	}
+
+	public static void addBlood(ServerPlayer p, int amount) {
+		if (amount > 0) setBar(p, bar(p) + amount);
+	}
+
+	static void spendBlood(ServerPlayer p, int amount) {
+		if (amount > 0) setBar(p, bar(p) - amount);
+	}
+
+	/** Dying empties the bar. */
+	public static void onDeath(ServerPlayer p) {
+		setBar(p, 0);
+	}
+
+	/** True if the bar holds enough for Blood Moon; otherwise tells the player how much is missing. */
+	static boolean moonReady(ServerPlayer p) {
+		int need = Math.max(0, AuraConfig.BLOOD_BAR_MOON_COST), have = bar(p);
+		if (have >= need) return true;
+		p.displayClientMessage(Component.literal("Not enough blood (" + have + "/" + need + ") - make them bleed.").withStyle(ChatFormatting.DARK_RED), true);
+		return false;
 	}
 
 	// ---------------------------------------------------------------
@@ -280,12 +336,17 @@ public final class Blood {
 
 	static boolean sacrifice(ServerPlayer p, long now) {
 		if (!AuraAbilities.checkCooldown(p, Ability.CRIMSON_SACRIFICE, AuraConfig.BLOOD_SACRIFICE_COOLDOWN_TICKS, now)) return false;
-		float cost = Math.max(0, AuraConfig.BLOOD_SACRIFICE_COST);
+		// blood from the bar pays part of the price: a full SACRIFICE_SPEND takes MAX_REDUCTION off
+		int full = Math.max(0, AuraConfig.BLOOD_BAR_SACRIFICE_SPEND);
+		int spend = Math.min(bar(p), full);
+		double cut = full == 0 ? 0 : spend / (double) full * Math.max(0, Math.min(1, AuraConfig.BLOOD_SACRIFICE_MAX_REDUCTION));
+		float cost = Math.max(0, AuraConfig.BLOOD_SACRIFICE_COST) * (float) (1 - cut);
 		if (p.getHealth() <= cost + 1 && !p.getAbilities().invulnerable) {
 			p.displayClientMessage(Component.literal("Not enough blood left to give.").withStyle(ChatFormatting.RED), true);
 			return false;
 		}
 		if (!p.getAbilities().invulnerable) p.setHealth(p.getHealth() - cost);
+		spendBlood(p, spend);
 		EMPOWERED.put(p.getUUID(), new int[]{Math.max(1, AuraConfig.BLOOD_SACRIFICE_HITS), Math.max(20, AuraConfig.BLOOD_SACRIFICE_TICKS)});
 		ServerLevel level = p.serverLevel();
 		Vec3 c = AuraFx.chest(p);

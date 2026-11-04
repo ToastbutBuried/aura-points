@@ -129,7 +129,10 @@ public final class DevAuraShowcase {
 							player.getHealth(), before, cow.getHealth());
 				});
 			}, 1, 3, 8, 14));
-			steps.add(new Step("moon", 0f, -25f, 0f, () -> Ultimates.press(player, server.getTickCount()), 0, 10, 40, 100, 190, 240));
+			steps.add(new Step("moon", 0f, -25f, 0f, () -> {
+				com.toast.aurapoints.ability.Blood.addBlood(player, com.toast.aurapoints.config.AuraConfig.BLOOD_BAR_MOON_COST);
+				Ultimates.press(player, server.getTickCount());
+			}, 0, 10, 40, 100, 190, 240));
 		}
 		if (aura == AuraType.VOID) {
 			steps.add(new Step("pull", 0f, 6f, -35f, () -> press(player, Ability.VOID_PULL), 0, 2, 5, 9, 16));

@@ -23,6 +23,7 @@ final class DevTest {
 		registerResetTest(dispatcher);
 		registerBookTest(dispatcher);
 		registerMastery(dispatcher);
+		registerBloodBar(dispatcher);
 		// balance editor write path: set a value + a switch through AuraBalance.apply, check, then put both back
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("balance").executes(ctx -> {
 			var e = com.toast.aurapoints.config.AuraBalance.entry("FIREBALL_DAMAGE");
@@ -637,6 +638,83 @@ final class DevTest {
 
 	private static void rlog(String what) {
 		AuraPoints.LOGGER.info("[resettest] {}", what);
+	}
+
+	/** /auradev bloodbar: bleed ticks fill the bar (cow 1, zombie 2, player 4), Sacrifice spends it, Blood Moon needs it, death and NBT. */
+	static void registerBloodBar(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("bloodbar").executes(ctx -> {
+			var server = ctx.getSource().getServer();
+			ServerLevel level = server.overworld();
+			var p = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000d0b1"), "Bleeder"));
+			var victim = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000d0b2"), "Bled"));
+			var state = com.toast.aurapoints.data.AuraState.get(server);
+			var data = state.getOrCreate(p.getUUID());
+			data.aura = com.toast.aurapoints.ability.AuraType.BLOOD;
+			data.awakened.add(com.toast.aurapoints.ability.AuraType.BLOOD);
+			data.bloodBar = 0;
+			var spawn = level.getSharedSpawnPos().above(2);
+			p.setPos(spawn.getX() + 0.5, spawn.getY(), spawn.getZ() + 0.5);
+			victim.setPos(spawn.getX() + 3.5, spawn.getY(), spawn.getZ() + 0.5);
+			var cow = EntityType.COW.create(level);
+			var zombie = EntityType.ZOMBIE.create(level);
+			cow.setPos(spawn.getX() - 3.5, spawn.getY(), spawn.getZ() + 0.5);
+			zombie.setPos(spawn.getX() + 0.5, spawn.getY(), spawn.getZ() + 3.5);
+			cow.setNoAi(true);
+			zombie.setNoAi(true);
+			level.addFreshEntity(cow);
+			level.addFreshEntity(zombie);
+			// 41 ticks = 2 bleeding ticks each
+			com.toast.aurapoints.ability.Blood.bleed(p, cow, 41);
+			com.toast.aurapoints.ability.Blood.bleed(p, zombie, 41);
+			com.toast.aurapoints.ability.Blood.bleed(p, victim, 41);
+			com.toast.aurapoints.ability.AuraFx.later(server, 50, () -> {
+				bloodLog("cooldownsDisabled in this world: " + com.toast.aurapoints.data.AuraState.get(server).cooldownsDisabled);
+				// a FakePlayer isn't in the player list, so its bleeds pay nobody: check what each one would pay
+				try {
+					var gain = com.toast.aurapoints.ability.Blood.class.getDeclaredMethod("gain", net.minecraft.world.entity.LivingEntity.class);
+					gain.setAccessible(true);
+					bloodLog("gain per bleed tick: cow " + gain.invoke(null, cow) + " (1), zombie " + gain.invoke(null, zombie) + " (2), player " + gain.invoke(null, victim) + " (4)");
+				} catch (ReflectiveOperationException ex) {
+					bloodLog("gain lookup failed: " + ex);
+				}
+				var st = com.toast.aurapoints.data.AuraState.get(server);
+				boolean wasOff = st.cooldownsDisabled;
+				st.cooldownsDisabled = true;
+				long now = server.getTickCount();
+				int[][] cases = {{30, 2, 5}, {10, 0, 0}, {0, 0, 0}};
+				for (int[] c : cases) {
+					data.bloodBar = c[0];
+					p.setHealth(20f);
+					boolean fired = com.toast.aurapoints.ability.AuraAbilities.tryActivate(p, com.toast.aurapoints.ability.AuraAbilities.Ability.CRIMSON_SACRIFICE, now);
+					bloodLog("sacrifice with bar " + c[0] + ": fired " + fired + ", health 20 -> " + p.getHealth() + ", bar -> " + data.bloodBar);
+				}
+				st.cooldownsDisabled = false;
+				bloodLog("(expected: 18.0/5, ~14.4/0, 12.0/0)");
+				com.toast.aurapoints.ability.AuraAbilities.clearCooldowns(p);
+				data.bloodBar = 63;
+				com.toast.aurapoints.ability.Ultimates.press(p, now);
+				bloodLog("moon with 63: moonUntil " + com.toast.aurapoints.ability.Blood.moonUntil(p) + " (must be 0), bar " + data.bloodBar + " (63)");
+				data.bloodBar = 100;
+				com.toast.aurapoints.ability.Ultimates.press(p, now);
+				bloodLog("moon with 100: running " + (com.toast.aurapoints.ability.Blood.moonUntil(p) > now) + " (true), bar " + data.bloodBar + " (0)");
+				data.bloodBar = 40;
+				var copy = com.toast.aurapoints.data.AuraPlayerData.readNbt(data.writeNbt());
+				bloodLog("nbt round trip: " + copy.bloodBar + " (40)");
+				com.toast.aurapoints.ability.Blood.onDeath(p);
+				bloodLog("after death: " + data.bloodBar + " (0)");
+				st.cooldownsDisabled = wasOff;
+				com.toast.aurapoints.ability.Ultimates.onLogout(p);
+				cow.discard();
+				zombie.discard();
+				com.toast.aurapoints.ability.Blood.onLogout(p);
+				state.markDirty();
+			});
+			return 1;
+		})));
+	}
+
+	private static void bloodLog(String what) {
+		AuraPoints.LOGGER.info("[bloodbartest] {}", what);
 	}
 
 	private static void log(String what) {

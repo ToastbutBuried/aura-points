@@ -301,11 +301,15 @@ public final class ClientAuraHud {
 		AuraAbilities.Slot slot = flight ? AuraAbilities.Slot.FLIGHT : null;
 		long[] cd = ability == Ability.ICE_SHELL ? null : ClientAuraState.cooldown(ability, slot);
 		boolean cooling = cd != null && now < cd[1];
+		// Blood Moon also waits on the blood bar: until it is full the slot isn't ready (no pop, ring or glint)
+		float blood = ability == Ability.BLOOD_MOON ? ClientAuraState.bloodMoonFill() : 1f;
+		boolean thirsty = blood < 1f;
 
 		// how the slot moves: the ready pop, the press punch, the too-early shake
 		float scale = 1f, shakeX = 0f;
 		float deniedFlash = 0f;
 		Long readyAt = ability == Ability.ICE_SHELL ? (Long) ClientCooldowns.shellWholeAt() : ClientCooldowns.readyAt(ability, flight);
+		if (thirsty) readyAt = null;
 		if (!calm()) {
 			if (readyAt != null && now - readyAt < POP_MILLIS && !cooling) {
 				float t = (now - readyAt) / (float) POP_MILLIS;
@@ -347,6 +351,12 @@ public final class ClientAuraHud {
 
 		g.pose().pushPose();
 		g.pose().translate(0, 0, 200); // above the item icon
+		if (thirsty) {
+			// the blood bar: crimson rising from the bottom of the slot
+			int inner = SLOT - 2, h = Math.round(inner * blood);
+			if (h > 0) g.fill(x0 + 1, y0 + 1 + inner - h, x0 + SLOT - 1, y0 + SLOT - 1, 0x908B0A14);
+			if (h > 0 && h < inner) g.fill(x0 + 1, y0 + 1 + inner - h, x0 + SLOT - 1, y0 + 2 + inner - h, 0xD0E0202E);
+		}
 		if (cooling) {
 			float frac = (cd[1] - now) / (float) Math.max(1, cd[1] - cd[0]);
 			// the shade sweeps away clockwise from the top as the cooldown runs out, a bright edge leading it
@@ -368,6 +378,15 @@ public final class ClientAuraHud {
 				g.pose().popPose();
 			}
 			g.renderOutline(x0, y0, SLOT, SLOT, 0xFF3A3A48);
+		} else if (thirsty) {
+			// off cooldown but not enough blood: a dim frame and how full the bar is
+			g.renderOutline(x0, y0, SLOT, SLOT, 0xFF4A2A30);
+			String text = Math.round(blood * 100) + "%";
+			g.pose().pushPose();
+			g.pose().translate(x0 + SLOT / 2f, y0 + SLOT / 2f, 0);
+			g.pose().scale(0.6f, 0.6f, 1);
+			g.drawString(font, text, -font.width(text) / 2, -4, 0xFFFF9090, true);
+			g.pose().popPose();
 		} else {
 			// Ready: a pulsing border in the aura color, plus a fading white flash right after the cooldown ends.
 			double pulse = calm() ? 0.85 : 0.6 + 0.4 * Math.sin(now / 260.0);
@@ -663,8 +682,11 @@ public final class ClientAuraHud {
 			// spread along an arc under the crosshair
 			double ang = Math.toRadians(90 + (i - (n - 1) / 2.0) * 16);
 			int px = Math.round(cx + (float) Math.cos(ang) * 11), py = Math.round(cy + (float) Math.sin(ang) * 11);
-			if (cd != null && now < cd[1]) {
-				float done = 1f - (cd[1] - now) / (float) Math.max(1, cd[1] - cd[0]);
+			boolean cooling = cd != null && now < cd[1];
+			float blood = a == Ability.BLOOD_MOON ? ClientAuraState.bloodMoonFill() : 1f;
+			if (cooling || blood < 1f) {
+				// cooling down, or Blood Moon still filling its blood bar
+				float done = cooling ? 1f - (cd[1] - now) / (float) Math.max(1, cd[1] - cd[0]) : blood;
 				g.fill(px - 1, py - 1, px + 1, py + 1, HudColors.argb(0.25f + 0.35f * done, 0x9A9AA8));
 			} else {
 				Long readyAt = ClientCooldowns.readyAt(a, flight);
