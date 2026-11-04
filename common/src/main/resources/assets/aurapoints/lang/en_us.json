@@ -157,6 +157,8 @@
   "aurapoints.configuration.shimmerDensity.tooltip": "How many shimmer particles (1.0 = normal).",
   "aurapoints.configuration.arenaMessages": "Arena messages",
   "aurapoints.configuration.arenaMessages.tooltip": "How arena announcements (countdowns, round won, wave cleared, knocked out...) appear: TITLE (short, in the middle of the screen) or CHAT (a chat line; countdowns go to the action bar).",
+  "aurapoints.configuration.dragonTransparency": "Dragon transparency (rider)",
+  "aurapoints.configuration.dragonTransparency.tooltip": "How see-through the shadow dragon's head is while YOU ride it, so you can see past it (0 = solid, 0.9 = almost invisible). Only the rider sees this, everyone else sees it solid. In first person the horn in front of you is always faded on top of this.",
   "aurapoints.configuration.keybindWarning": "Keybind hint",
   "aurapoints.configuration.keybindWarning.tooltip": "A hint in chat when one of the mod's keys you need (your aura's ability keys, the Ultimate once awakened, the Item keys for datapack items) is unbound or shares its key with something else.",
   "aurapoints.configuration.sound": "Sound",

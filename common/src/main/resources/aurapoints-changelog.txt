@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.15.1
+- Shadow dragon: when you ride it in first person, the horn right in front of you is now see-through so it no longer blocks your view. New client option "Dragon transparency (rider)" (Options > Mods > Aura Points > Feedback, default 0 = solid) makes the whole head see-through for you; only the rider sees it.
+
 == 5.15.0
 - Mjölnir (owner): spinning it now has its own key, "Mjölnir Swing" in Options > Controls > Aura Points (bind it; Ability 3 is free again). Flight: spin, then HOLD left click - you fly where you point and can change direction mid-air, and you keep flying until you let go of the button. All the new values (flight steering, max flight time) are in the Balance Tome under Thunder.
 

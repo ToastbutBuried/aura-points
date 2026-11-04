@@ -34,7 +34,7 @@ public final class AuraClientConfig {
 
 	// feedback
 	public static final ModConfigSpec.BooleanValue HIT_CONFIRM, STUNT_POPUPS, POINTS_TOAST, ROLL_REEL, STATUS_OVERLAYS, KEYBIND_WARNING;
-	public static final ModConfigSpec.DoubleValue OVERLAY_STRENGTH, CAMERA_SHAKE;
+	public static final ModConfigSpec.DoubleValue OVERLAY_STRENGTH, CAMERA_SHAKE, DRAGON_TRANSPARENCY;
 	public static final ModConfigSpec.BooleanValue FOV_KICK, REDUCED_MOTION;
 	public static final ModConfigSpec.EnumValue<Shimmer> AURA_SHIMMER;
 	public static final ModConfigSpec.EnumValue<ArenaMessages> ARENA_MESSAGES;
@@ -243,6 +243,10 @@ public final class AuraClientConfig {
 		KEYBIND_WARNING = b.comment("A hint in chat when one of the mod's keys you need (your aura's ability keys, the Ultimate once awakened, the Item keys for datapack items) is unbound or shares its key with something else.")
 				.translation("aurapoints.configuration.keybindWarning")
 				.define("keybindWarning", true);
+		DRAGON_TRANSPARENCY = b.comment("How see-through the shadow dragon's head is while YOU ride it, so you can see past it (0 = solid, 0.9 = almost invisible).",
+						"Only the rider sees this, everyone else sees it solid. In first person the horn in front of you is always faded on top of this.")
+				.translation("aurapoints.configuration.dragonTransparency")
+				.defineInRange("dragonTransparency", 0.0, 0.0, 0.9);
 		ARENA_MESSAGES = b.comment("How arena announcements (countdowns, round won, wave cleared, knocked out...) appear:",
 						"TITLE (short, in the middle of the screen) or CHAT (a chat line; countdowns go to the action bar).")
 				.translation("aurapoints.configuration.arenaMessages")
