@@ -377,7 +377,7 @@ public final class VerdantViper {
 		if (AuraConfig.VIPER_DAMAGE > 0) {
 			prey.hurt(level.damageSources().playerAttack(caster), AuraAbilities.vsMob(prey, AuraAbilities.flowDamage(caster, AuraConfig.VIPER_DAMAGE)));
 		}
-		Entanglement.poison(prey, caster, AuraConfig.VIPER_POISON_AMPLIFIER, AuraConfig.VIPER_POISON_TICKS);
+		Entanglement.poison(prey, caster, Branch.is(caster, Branch.GROVE_WARDEN) ? AuraConfig.VERDANT_GROVE_VIPER_POISON_AMPLIFIER : AuraConfig.VIPER_POISON_AMPLIFIER, AuraConfig.VIPER_POISON_TICKS);
 		AuraFx.particles(level, ParticleTypes.ITEM_SLIME, c.x, c.y, c.z, 12, 0.25, 0.3, 0.25, 0.05);
 		AuraFx.particles(level, AuraFx.dust(0x5FA83A, 1.2f), c.x, c.y, c.z, 10, 0.3, 0.3, 0.3, 0.0);
 		level.playSound(null, c.x, c.y, c.z, AuraSounds.PHANTOM_BITE.value(), SoundSource.PLAYERS, 1.2f, 0.7f);

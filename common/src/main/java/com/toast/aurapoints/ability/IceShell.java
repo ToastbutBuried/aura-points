@@ -53,8 +53,16 @@ public final class IceShell {
 
 	private static final Map<UUID, Shell> SHELLS = new HashMap<>();
 
-	private static int maxLayers() {
-		return Math.max(1, Math.min(10, AuraConfig.ICE_SHELL_LAYERS));
+	public static int maxLayers(ServerPlayer player) {
+		int layers = Branch.is(player, Branch.GLACIAL) ? AuraConfig.FROST_GLACIAL_SHELL_LAYERS
+				: Branch.is(player, Branch.FROSTBITE) ? AuraConfig.FROST_BITE_SHELL_LAYERS : AuraConfig.ICE_SHELL_LAYERS;
+		return Math.max(1, Math.min(10, layers));
+	}
+
+	/** Ticks to grow one layer back (Glacial rebuilds slower). */
+	public static int rebuildTicks(ServerPlayer player, boolean cold) {
+		if (Branch.is(player, Branch.GLACIAL)) return cold ? AuraConfig.FROST_GLACIAL_SHELL_COLD_REBUILD_TICKS : AuraConfig.FROST_GLACIAL_SHELL_REBUILD_TICKS;
+		return cold ? AuraConfig.ICE_SHELL_COLD_REBUILD_TICKS : AuraConfig.ICE_SHELL_REBUILD_TICKS;
 	}
 
 	private static float layerHp() {
@@ -62,7 +70,7 @@ public final class IceShell {
 	}
 
 	private static Shell shell(ServerPlayer player) {
-		return SHELLS.computeIfAbsent(player.getUUID(), k -> new Shell(maxLayers(), layerHp()));
+		return SHELLS.computeIfAbsent(player.getUUID(), k -> new Shell(maxLayers(player), layerHp()));
 	}
 
 	private static boolean cold(ServerPlayer player) {
@@ -70,8 +78,8 @@ public final class IceShell {
 		return player.serverLevel().getBiome(pos).value().coldEnoughToSnow(pos);
 	}
 
-	private static boolean whole(Shell s) {
-		return s.layers >= maxLayers() && s.top >= layerHp() - 1.0e-4f;
+	private static boolean whole(ServerPlayer player, Shell s) {
+		return s.layers >= maxLayers(player) && s.top >= layerHp() - 1.0e-4f;
 	}
 
 	/**
@@ -116,7 +124,7 @@ public final class IceShell {
 	/** You hit a player: PLAYER_HIT_TICKS of healing at once (even before the delay is over). */
 	public static void hitPlayer(ServerPlayer player) {
 		Shell s = SHELLS.get(player.getUUID());
-		if (s == null || whole(s) || AuraConfig.ICE_SHELL_PLAYER_HIT_TICKS <= 0) return;
+		if (s == null || whole(player, s) || AuraConfig.ICE_SHELL_PLAYER_HIT_TICKS <= 0) return;
 		heal(player, s, AuraConfig.ICE_SHELL_PLAYER_HIT_TICKS, cold(player));
 		Vec3 c = AuraFx.chest(player);
 		AuraFx.burst(player.serverLevel(), c.x, c.y, c.z, ParticleTypes.SNOWFLAKE, 4, 0.3, 0.01);
@@ -125,9 +133,9 @@ public final class IceShell {
 
 	/** {@code ticks} worth of healing: mend the cracked outer layer first, then grow broken ones back. */
 	private static void heal(ServerPlayer player, Shell s, double ticks, boolean cold) {
-		int max = maxLayers();
+		int max = maxLayers(player);
 		float hp = layerHp();
-		while (ticks > 1.0e-6 && !whole(s)) {
+		while (ticks > 1.0e-6 && !whole(player, s)) {
 			if (s.layers > 0 && s.top < hp) {
 				double perTick = hp / (double) Math.max(1, cold ? AuraConfig.ICE_SHELL_COLD_REPAIR_TICKS : AuraConfig.ICE_SHELL_REPAIR_TICKS);
 				double need = (hp - s.top) / perTick;
@@ -140,7 +148,7 @@ public final class IceShell {
 				continue;
 			}
 			if (s.layers >= max) return;
-			double perTick = 1.0 / Math.max(1, cold ? AuraConfig.ICE_SHELL_COLD_REBUILD_TICKS : AuraConfig.ICE_SHELL_REBUILD_TICKS);
+			double perTick = 1.0 / Math.max(1, rebuildTicks(player, cold));
 			double need = (1.0 - s.rebuild) / perTick;
 			if (need > ticks) {
 				s.rebuild += perTick * ticks;
@@ -162,32 +170,32 @@ public final class IceShell {
 		}
 		Shell s = shell(player);
 		// the config changed: fit the shell to the new number of layers / health
-		if (s.layers > maxLayers()) {
-			s.layers = maxLayers();
+		if (s.layers > maxLayers(player)) {
+			s.layers = maxLayers(player);
 			s.top = Math.min(s.top, layerHp());
 		}
 		if (s.top > layerHp()) s.top = layerHp();
 		if (!player.isAlive() || player.isSpectator()) return;
 		// a heal delay from an earlier session (single player keeps this into the next world, where ticks start over)
 		if (s.healFrom > now + Math.max(0, AuraConfig.ICE_SHELL_REGEN_DELAY_TICKS)) s.healFrom = now;
-		if (!whole(s) && now >= s.healFrom) heal(player, s, 1, cold(player));
+		if (!whole(player, s) && now >= s.healFrom) heal(player, s, 1, cold(player));
 		if (now % 5 == 0) sync(player, s, false);
 		if (s.layers > 0 && now % 2 == 0 && !player.isInvisible()) flakes(player, s, now);
 	}
 
 	/** Ticks until the next layer stands again at the current rate (0 when whole). */
 	private static int nextTicks(ServerPlayer player, Shell s) {
-		if (whole(s)) return 0;
+		if (whole(player, s)) return 0;
 		boolean cold = cold(player);
 		float hp = layerHp();
 		if (s.layers > 0 && s.top < hp) {
 			return (int) Math.ceil((hp - s.top) / hp * Math.max(1, cold ? AuraConfig.ICE_SHELL_COLD_REPAIR_TICKS : AuraConfig.ICE_SHELL_REPAIR_TICKS));
 		}
-		return (int) Math.ceil((1.0 - s.rebuild) * Math.max(1, cold ? AuraConfig.ICE_SHELL_COLD_REBUILD_TICKS : AuraConfig.ICE_SHELL_REBUILD_TICKS));
+		return (int) Math.ceil((1.0 - s.rebuild) * Math.max(1, rebuildTicks(player, cold)));
 	}
 
 	private static void sync(ServerPlayer player, Shell s, boolean force) {
-		int max = maxLayers();
+		int max = maxLayers(player);
 		float top = s.layers > 0 ? s.top / layerHp() : 0;
 		int next = nextTicks(player, s);
 		String key = max + ":" + s.layers + ":" + Math.round(top * 50) + ":" + Math.round(s.rebuild * 50) + ":" + (next / 10);
@@ -234,7 +242,7 @@ public final class IceShell {
 			double r = 0.6 + 0.12 * layer;
 			double dir = layer % 2 == 0 ? 1 : -1;
 			double a = dir * now * (0.12 - 0.02 * layer) + layer * 2.1;
-			double y = player.getY() + 0.35 + 1.3 * ((layer + 0.5) / Math.max(1, maxLayers())) + 0.2 * Math.sin(now * 0.05 + layer);
+			double y = player.getY() + 0.35 + 1.3 * ((layer + 0.5) / Math.max(1, maxLayers(player))) + 0.2 * Math.sin(now * 0.05 + layer);
 			send(level, player, ParticleTypes.SNOWFLAKE, player.getX() + Math.cos(a) * r, y, player.getZ() + Math.sin(a) * r);
 		}
 		double a = -now * 0.1 + Math.PI / 2;

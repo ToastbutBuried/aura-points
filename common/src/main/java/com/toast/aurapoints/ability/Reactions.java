@@ -66,7 +66,7 @@ public final class Reactions {
 		}
 	}
 
-	enum Mark {
+	public enum Mark {
 		WET(0x2E9BFF), BURNING(0xFF5A1F), CHILLED(0xA8E4FF), POISONED(0x4FB848), CHARGED(0xFFE347);
 
 		final int rgb;
@@ -233,6 +233,11 @@ public final class Reactions {
 			if (marks == null) MARKS.put(victim, marks = new Marks());
 			marks.until.put(element.leaves, now + AuraConfig.REACTION_MARK_TICKS);
 		}
+	}
+
+	/** True if the target carries this mark right now (a hit left it, or the world puts it on, like freezing). */
+	public static boolean marked(LivingEntity e, Mark mark) {
+		return has(e, MARKS.get(e), mark, e.level().getGameTime());
 	}
 
 	private static boolean has(LivingEntity e, Marks marks, Mark mark, long now) {

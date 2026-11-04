@@ -62,8 +62,18 @@ public enum AuraType {
 
 	/** The aura's abilities for a branch (a branch with its own kit replaces the list; null = the base kit). */
 	public List<Ability> abilities(Branch branch) {
-		return branch != null && branch.aura == this && branch.abilities() != null ? branch.abilities() : abilities;
+		if (branch == null || branch.aura != this) return abilities;
+		if (branch.abilities() != null) return branch.abilities();
+		if (branch.adds().isEmpty() && branch.removes().isEmpty()) return abilities;
+		return ADJUSTED.computeIfAbsent(branch, b -> {
+			List<Ability> out = new java.util.ArrayList<>(abilities);
+			out.removeAll(b.removes());
+			for (Ability a : b.adds()) if (!out.contains(a)) out.add(a);
+			return List.copyOf(out);
+		});
 	}
+
+	private static final java.util.Map<Branch, List<Ability>> ADJUSTED = new java.util.EnumMap<>(Branch.class);
 
 	public boolean has(Ability ability, Branch branch) {
 		return abilities(branch).contains(ability) || GLOBAL.contains(ability);

@@ -38,6 +38,10 @@ final class BranchDevTest {
 			run(ctx.getSource().getServer());
 			return 1;
 		})));
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("branch2").executes(ctx -> {
+			frostVerdantEarth(ctx.getSource().getServer());
+			return 1;
+		})));
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("dark").executes(ctx -> {
 			dark(ctx.getSource().getServer());
 			return 1;
@@ -145,6 +149,134 @@ final class BranchDevTest {
 			if (wasMastery == null) data.mastery.remove(AuraType.SHADOW);
 			else data.mastery.put(AuraType.SHADOW, wasMastery);
 			log("dark done (state restored)");
+		});
+	}
+
+	/** /auradev branch2: the 5.11.0 branches (Frost, Verdant, Earth): numbers each one changes, prices, Brittle and Virulence hits, poison stacking, Bloom heal, Bulwark absorption. */
+	private static void frostVerdantEarth(net.minecraft.server.MinecraftServer server) {
+		ServerLevel level = server.overworld();
+		var spawn = level.getSharedSpawnPos();
+		Vec3 base = new Vec3(spawn.getX() + 0.5, 120, spawn.getZ() + 0.5);
+		net.minecraft.server.level.ServerPlayer p = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000b4a3"), "Weaver"));
+		net.minecraft.server.level.ServerPlayer friend = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000b4a4"), "Buddy"));
+		var state = com.toast.aurapoints.data.AuraState.get(server);
+		var data = state.getOrCreate(p.getUUID());
+		var wasAura = data.aura;
+		var wasMastery = new java.util.EnumMap<AuraType, Integer>(AuraType.class);
+		wasMastery.putAll(data.mastery);
+		for (AuraType a : new AuraType[]{AuraType.FROST, AuraType.VERDANT, AuraType.EARTH}) data.mastery.put(a, 5);
+		data.branches.clear();
+		AuraAbilities.Ability V = AuraAbilities.Ability.VIRULENCE;
+
+		log("branches of: Frost " + Branch.of(AuraType.FROST) + " Verdant " + Branch.of(AuraType.VERDANT) + " Earth " + Branch.of(AuraType.EARTH) + " (2 each)");
+		StringBuilder icons = new StringBuilder();
+		java.util.Set<net.minecraft.world.item.Item> seen = new java.util.HashSet<>();
+		for (Branch b : Branch.values()) {
+			icons.append(b.id()).append('=').append(b.icon).append(' ');
+			seen.add(b.icon);
+		}
+		log("icons: " + icons + "(distinct " + seen.size() + " of " + Branch.values().length + ", must be equal)");
+
+		// ---- Frost
+		data.aura = AuraType.FROST;
+		data.branches.put(AuraType.FROST, null);
+		data.branches.remove(AuraType.FROST);
+		log("Frost base: Shatter " + com.toast.aurapoints.ability.Shatter.hitsNeeded(p) + " (3) layers " + com.toast.aurapoints.ability.IceShell.maxLayers(p) + " (3) rebuild "
+				+ com.toast.aurapoints.ability.IceShell.rebuildTicks(p, false) + " (600) freeze " + com.toast.aurapoints.ability.IceSpike.freezeTicks(p) + " (60) Brittle "
+				+ AuraAbilities.hasAbility(data, AuraAbilities.Ability.BRITTLE) + " (false)");
+		data.branches.put(AuraType.FROST, Branch.GLACIAL);
+		log("Glacial: Shatter " + com.toast.aurapoints.ability.Shatter.hitsNeeded(p) + " (4) layers " + com.toast.aurapoints.ability.IceShell.maxLayers(p) + " (5) rebuild "
+				+ com.toast.aurapoints.ability.IceShell.rebuildTicks(p, false) + " (900) freeze " + com.toast.aurapoints.ability.IceSpike.freezeTicks(p) + " (100) Brittle "
+				+ AuraAbilities.hasAbility(data, AuraAbilities.Ability.BRITTLE) + " (false)");
+		data.branches.put(AuraType.FROST, Branch.FROSTBITE);
+		log("Frostbite: Shatter " + com.toast.aurapoints.ability.Shatter.hitsNeeded(p) + " (2) layers " + com.toast.aurapoints.ability.IceShell.maxLayers(p) + " (2) freeze "
+				+ com.toast.aurapoints.ability.IceSpike.freezeTicks(p) + " (40) Brittle " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.BRITTLE) + " (true), passives listed "
+				+ AuraType.FROST.abilities(Branch.FROSTBITE).contains(AuraAbilities.Ability.BRITTLE) + " (true)");
+		double[] hit = new double[3];
+		for (int i = 0; i < 3; i++) {
+			data.branches.put(AuraType.FROST, i == 2 ? Branch.GLACIAL : Branch.FROSTBITE);
+			net.minecraft.world.entity.animal.Pig t = pig(level, base.add(80, 0, 0));
+			if (i > 0) t.setTicksFrozen(120);
+			t.invulnerableTime = 0;
+			t.hurt(level.damageSources().playerAttack(p), 10f);
+			hit[i] = 200 - t.getHealth();
+			t.discard();
+		}
+		log("Brittle: Frostbite plain " + hit[0] + ", chilled " + hit[1] + " (must be x" + (1 + AuraConfig.BRITTLE_BONUS) + "), Glacial chilled " + hit[2] + " (must equal plain)");
+
+		// ---- Verdant
+		data.aura = AuraType.VERDANT;
+		data.branches.put(AuraType.VERDANT, Branch.VENOMWEAVER);
+		log("Venomweaver: Virulence " + AuraAbilities.hasAbility(data, V) + " (true), Viper cd " + Branch.cooldown(p, AuraAbilities.Ability.VERDANT_VIPER, AuraConfig.VIPER_COOLDOWN_TICKS)
+				+ " (" + AuraConfig.VERDANT_VENOM_VIPER_COOLDOWN_TICKS + ")");
+		data.branches.put(AuraType.VERDANT, Branch.GROVE_WARDEN);
+		log("Grove Warden: Virulence " + AuraAbilities.hasAbility(data, V) + " (false), still in Verdant's base list " + AuraType.VERDANT.abilities.contains(V) + " (true), in the branch list "
+				+ AuraType.VERDANT.abilities(Branch.GROVE_WARDEN).contains(V) + " (false), Bloom " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.BLOOM) + " (true)");
+		double[] vir = new double[3];
+		for (int i = 0; i < 3; i++) {
+			data.branches.remove(AuraType.VERDANT);
+			if (i == 1) data.branches.put(AuraType.VERDANT, Branch.VENOMWEAVER);
+			if (i == 2) data.branches.put(AuraType.VERDANT, Branch.GROVE_WARDEN);
+			net.minecraft.world.entity.animal.Pig t = pig(level, base.add(80, 0, 10));
+			t.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.POISON, 200, 0));
+			t.invulnerableTime = 0;
+			t.hurt(level.damageSources().playerAttack(p), 10f);
+			vir[i] = 200 - t.getHealth();
+			t.discard();
+		}
+		log("Virulence on a poisoned pig: base " + vir[0] + " (x" + (1 + AuraConfig.VIRULENCE_BONUS) + "), Venomweaver " + vir[1] + " (x" + (1 + AuraConfig.VERDANT_VENOM_VIRULENCE_BONUS) + "), Grove Warden " + vir[2] + " (10, no passive)");
+		int[] amp = new int[4];
+		for (int i = 0; i < 4; i++) {
+			data.branches.put(AuraType.VERDANT, i == 3 ? Branch.GROVE_WARDEN : Branch.VENOMWEAVER);
+			net.minecraft.world.entity.animal.Pig t = pig(level, base.add(80, 0, 20));
+			com.toast.aurapoints.ability.Entanglement.poison(t, p, 1, 200);
+			if (i >= 1) com.toast.aurapoints.ability.Entanglement.poison(t, p, 1, 200);
+			if (i >= 2) com.toast.aurapoints.ability.Entanglement.poison(t, p, 1, 200);
+			if (i == 2) com.toast.aurapoints.ability.Entanglement.poison(t, p, 1, 200);
+			amp[i] = t.getEffect(net.minecraft.world.effect.MobEffects.POISON).getAmplifier();
+			t.discard();
+		}
+		log("poison stacking (Venomweaver, 1 / 2 / 4 bites, Grove Warden with 3): amplifiers " + amp[0] + "/" + amp[1] + "/" + amp[2] + "/" + amp[3] + " (must be 1/2/3/1)");
+		data.branches.put(AuraType.VERDANT, Branch.GROVE_WARDEN);
+		data.bloomOn = true;
+		p.setHealth(10f);
+		friend.setHealth(10f);
+		friend.moveTo(p.getX(), p.getY(), p.getZ()); // Fabric fake players spawn apart, NeoForge's ignore this
+		int healed = com.toast.aurapoints.ability.Bloom.healFriends(p, java.util.List.of(p, friend));
+		log("Bloom heal (the filter, Grove Warden's code): healed " + healed + " (must be 1), friend " + friend.getHealth() + " (must be 10 + " + AuraConfig.VERDANT_GROVE_HEAL + "), you " + p.getHealth() + " (must stay 10; the area query itself is not testable with fake players)");
+		p.setShiftKeyDown(false);
+		friend.setHealth(friend.getMaxHealth());
+		p.setHealth(p.getMaxHealth());
+
+		// ---- Earth
+		data.aura = AuraType.EARTH;
+		var kb = net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE;
+		StringBuilder earth = new StringBuilder();
+		for (Branch b : new Branch[]{null, Branch.BULWARK, Branch.TECTONIC}) {
+			if (b == null) data.branches.remove(AuraType.EARTH);
+			else data.branches.put(AuraType.EARTH, b);
+			com.toast.aurapoints.ability.Earth.tickPassives(p, data, 5);
+			earth.append(b == null ? "base" : b.id()).append(": kb ").append(p.getAttributeValue(kb)).append(" fall x").append(com.toast.aurapoints.ability.Earth.fallDamage(data, 10f) / 10f)
+					.append(" pillar ").append(com.toast.aurapoints.ability.Earth.pillarDamage(p)).append("/").append(com.toast.aurapoints.ability.Earth.pillarLaunch(p))
+					.append(" boulder ").append(com.toast.aurapoints.ability.Earth.boulderDamage(p)).append("/").append(com.toast.aurapoints.ability.Earth.boulderSplash(p)).append(" | ");
+		}
+		log("Earth " + earth);
+		log("(must be: base kb 0.5 fall x0.7 pillar 4.0/1.15 boulder 8.0/4.0 | bulwark kb 0.8 fall x0.5 pillar 3.0/1.15 boulder 6.0/3.0 | tectonic kb 0.25 fall x0.7 pillar 6.0/1.35 boulder 11.0/5.5)");
+		data.branches.put(AuraType.EARTH, Branch.BULWARK);
+		p.setAbsorptionAmount(0);
+		for (int i = 0; i < 5; i++) com.toast.aurapoints.ability.Earth.bulwarkAbsorb(p);
+		float peak = p.getAbsorptionAmount();
+		AuraFx.later(server, AuraConfig.EARTH_BULWARK_QUAKE_ABSORB_TICKS + 20, () -> {
+			log("Bulwark absorption: peak " + peak + " (must be " + AuraConfig.EARTH_BULWARK_QUAKE_ABSORB_MAX + ", capped), effect "
+					+ p.getEffect(net.minecraft.world.effect.MobEffects.ABSORPTION).getAmplifier() + " (must be 1) lasting " + (AuraConfig.EARTH_BULWARK_QUAKE_ABSORB_TICKS / 20)
+					+ "s (a fake player does not tick, so the expiry is not testable here)");
+			data.aura = wasAura;
+			data.branches.clear();
+			data.mastery.clear();
+			data.mastery.putAll(wasMastery);
+			p.removeAllEffects();
+			com.toast.aurapoints.ability.Earth.tickPassives(p, data, 5);
+			log("branch2 done (state restored)");
 		});
 	}
 

@@ -144,9 +144,9 @@ public final class Earth {
 		if (target != null && !riders.contains(target)) riders.add(target);
 		for (LivingEntity e : riders) {
 			if (e == p) continue;
-			Handhelds.hurt(p, e, AuraConfig.EARTH_PILLAR_DAMAGE);
+			Handhelds.hurt(p, e, pillarDamage(p));
 			Vec3 dm = e.getDeltaMovement();
-			e.setDeltaMovement(dm.x * 0.3, AuraConfig.EARTH_PILLAR_LAUNCH, dm.z * 0.3);
+			e.setDeltaMovement(dm.x * 0.3, pillarLaunch(p), dm.z * 0.3);
 			e.hurtMarked = true;
 		}
 		if (target == null || riders.contains(p)) {
@@ -385,14 +385,14 @@ public final class Earth {
 		Vec3 push = flat(b.vel);
 		if (p != null) {
 			if (hit != null) {
-				Handhelds.hurt(p, hit, AuraConfig.EARTH_BOULDER_DAMAGE);
+				Handhelds.hurt(p, hit, boulderDamage(p));
 				double k = AuraConfig.EARTH_BOULDER_KNOCKBACK;
 				hit.setDeltaMovement(hit.getDeltaMovement().scale(0.2).add(push.x * k, 0.45, push.z * k));
 				hit.hurtMarked = true;
 			}
 			for (LivingEntity e : Handhelds.enemies(p, level, at, Math.max(0.5, AuraConfig.EARTH_BOULDER_SPLASH_RADIUS))) {
 				if (e == hit) continue;
-				Handhelds.hurt(p, e, AuraConfig.EARTH_BOULDER_SPLASH_DAMAGE);
+				Handhelds.hurt(p, e, boulderSplash(p));
 				Vec3 out = flat(e.position().subtract(at));
 				e.setDeltaMovement(e.getDeltaMovement().add(out.x * 0.5, 0.3, out.z * 0.5));
 				e.hurtMarked = true;
@@ -460,11 +460,11 @@ public final class Earth {
 	/** Returns false when the ripple has rolled out. */
 	private static boolean tickRipple(MinecraftServer server, Ripple r) {
 		r.t++;
-		double radius = Math.max(2, AuraConfig.EARTH_QUAKE_RADIUS);
+		ServerPlayer quaker = server.getPlayerList().getPlayer(r.owner);
+		double radius = Math.max(2, quaker != null && Branch.is(quaker, Branch.TECTONIC) ? AuraConfig.EARTH_TECTONIC_QUAKE_RADIUS : AuraConfig.EARTH_QUAKE_RADIUS);
 		double at = r.t * RIPPLE_SPEED;
 		if (at > radius + 0.5) return false;
 		ServerLevel level = r.level;
-		ServerPlayer quaker = server.getPlayerList().getPlayer(r.owner);
 		if (quaker != null) Combos.at(quaker, r.c.add(0, 0.5, 0), at);
 		int points = Math.max(8, (int) (Math.PI * 2 * at / 0.8));
 		for (int i = 0; i < points; i++) {
@@ -487,7 +487,8 @@ public final class Earth {
 			double d = Math.hypot(e.getX() - r.c.x, e.getZ() - r.c.z);
 			if (d < at - 0.9 || d > at + 0.9 || Math.abs(e.getY() - r.c.y) > 3) continue;
 			r.hit.add(e);
-			Handhelds.hurt(p, e, AuraConfig.EARTH_QUAKE_DAMAGE);
+			Handhelds.hurt(p, e, Branch.is(p, Branch.TECTONIC) ? AuraConfig.EARTH_TECTONIC_QUAKE_DAMAGE : AuraConfig.EARTH_QUAKE_DAMAGE);
+			if (Branch.is(p, Branch.BULWARK)) bulwarkAbsorb(p);
 			Vec3 out = flat(e.position().subtract(r.c));
 			e.setDeltaMovement(e.getDeltaMovement().scale(0.4).add(out.x * 0.25, AuraConfig.EARTH_QUAKE_LIFT, out.z * 0.25));
 			e.hurtMarked = true;
@@ -529,8 +530,11 @@ public final class Earth {
 		Long last = ON_STONE.get(p.getUUID());
 		boolean skin = skinAbility && last != null && now - last <= 20;
 		boolean was = has(p, Attributes.ARMOR, SKIN_ARMOR);
-		modifier(p, Attributes.ARMOR, SKIN_ARMOR, skin ? AuraConfig.EARTH_STONE_SKIN_ARMOR : 0);
-		modifier(p, Attributes.ARMOR_TOUGHNESS, SKIN_TOUGHNESS, skin ? AuraConfig.EARTH_STONE_SKIN_TOUGHNESS : 0);
+		Branch branch = Branch.current(data);
+		double armor = branch == Branch.BULWARK ? AuraConfig.EARTH_BULWARK_SKIN_ARMOR : branch == Branch.TECTONIC ? AuraConfig.EARTH_TECTONIC_SKIN_ARMOR : AuraConfig.EARTH_STONE_SKIN_ARMOR;
+		double toughness = branch == Branch.BULWARK ? AuraConfig.EARTH_BULWARK_SKIN_TOUGHNESS : AuraConfig.EARTH_STONE_SKIN_TOUGHNESS;
+		modifier(p, Attributes.ARMOR, SKIN_ARMOR, skin ? armor : 0);
+		modifier(p, Attributes.ARMOR_TOUGHNESS, SKIN_TOUGHNESS, skin ? toughness : 0);
 		if (skin && !was && !p.isInvisible()) {
 			// the skin hardening: a little grit off the arms, a dull scrape
 			BlockState under = rock(p.level().getBlockState(p.getOnPos()));
@@ -539,13 +543,55 @@ public final class Earth {
 		}
 		if (!skinAbility) ON_STONE.remove(p.getUUID());
 		boolean grounded = AuraAbilities.hasAbility(data, Ability.GROUNDED);
-		modifier(p, Attributes.KNOCKBACK_RESISTANCE, GROUNDED, grounded ? Math.max(0, Math.min(1, AuraConfig.EARTH_GROUNDED_KNOCKBACK_RESISTANCE)) : 0);
+		double kb = branch == Branch.BULWARK ? AuraConfig.EARTH_BULWARK_KNOCKBACK_RESISTANCE : branch == Branch.TECTONIC ? AuraConfig.EARTH_TECTONIC_KNOCKBACK_RESISTANCE : AuraConfig.EARTH_GROUNDED_KNOCKBACK_RESISTANCE;
+		modifier(p, Attributes.KNOCKBACK_RESISTANCE, GROUNDED, grounded ? Math.max(0, Math.min(1, kb)) : 0);
+	}
+
+	// ---------------------------------------------------------------
+	// Branch numbers (ability/Branch): Bulwark trades attack for defence, Tectonic the other way round
+	// ---------------------------------------------------------------
+
+	public static float pillarDamage(ServerPlayer p) {
+		Branch b = Branch.current(p);
+		return b == Branch.TECTONIC ? AuraConfig.EARTH_TECTONIC_PILLAR_DAMAGE
+				: b == Branch.BULWARK ? (float) (AuraConfig.EARTH_PILLAR_DAMAGE * AuraConfig.EARTH_BULWARK_ATTACK_FACTOR) : AuraConfig.EARTH_PILLAR_DAMAGE;
+	}
+
+	public static double pillarLaunch(ServerPlayer p) {
+		return Branch.is(p, Branch.TECTONIC) ? AuraConfig.EARTH_TECTONIC_PILLAR_LAUNCH : AuraConfig.EARTH_PILLAR_LAUNCH;
+	}
+
+	public static float boulderDamage(ServerPlayer p) {
+		Branch b = Branch.current(p);
+		return b == Branch.TECTONIC ? AuraConfig.EARTH_TECTONIC_BOULDER_DAMAGE
+				: b == Branch.BULWARK ? (float) (AuraConfig.EARTH_BOULDER_DAMAGE * AuraConfig.EARTH_BULWARK_ATTACK_FACTOR) : AuraConfig.EARTH_BOULDER_DAMAGE;
+	}
+
+	public static float boulderSplash(ServerPlayer p) {
+		Branch b = Branch.current(p);
+		return b == Branch.TECTONIC ? AuraConfig.EARTH_TECTONIC_BOULDER_SPLASH
+				: b == Branch.BULWARK ? (float) (AuraConfig.EARTH_BOULDER_SPLASH_DAMAGE * AuraConfig.EARTH_BULWARK_ATTACK_FACTOR) : AuraConfig.EARTH_BOULDER_SPLASH_DAMAGE;
+	}
+
+	/**
+	 * Bulwark: an enemy hit by your Quake gives you a little absorption for a while, up to a cap. It rides on the
+	 * Absorption effect (in 1.21 a bare setAbsorptionAmount is clamped to the max-absorption attribute, which is 0).
+	 */
+	public static void bulwarkAbsorb(ServerPlayer p) {
+		if (AuraConfig.EARTH_BULWARK_QUAKE_ABSORB_TICKS <= 0) return;
+		float target = Math.min(AuraConfig.EARTH_BULWARK_QUAKE_ABSORB_MAX, p.getAbsorptionAmount() + AuraConfig.EARTH_BULWARK_QUAKE_ABSORB);
+		if (target <= p.getAbsorptionAmount()) return;
+		int amplifier = Math.max(0, (int) Math.ceil(target / 4f) - 1); // each level is worth 4 HP of room
+		p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.ABSORPTION, AuraConfig.EARTH_BULWARK_QUAKE_ABSORB_TICKS, amplifier, false, false, true));
+		p.setAbsorptionAmount(target);
+		AuraFx.particles(p.serverLevel(), new BlockParticleOption(ParticleTypes.BLOCK, Blocks.STONE.defaultBlockState()), p.getX(), p.getY() + 1.0, p.getZ(), 8, 0.4, 0.6, 0.4, 0);
 	}
 
 	/** Grounded: fall damage taken (the incoming-damage event). */
 	public static float fallDamage(AuraPlayerData data, float amount) {
 		if (!AuraAbilities.hasAbility(data, Ability.GROUNDED)) return amount;
-		return amount * (float) (1 - Math.max(0, Math.min(1, AuraConfig.EARTH_GROUNDED_FALL_REDUCTION)));
+		double cut = Branch.current(data) == Branch.BULWARK ? AuraConfig.EARTH_BULWARK_FALL_REDUCTION : AuraConfig.EARTH_GROUNDED_FALL_REDUCTION;
+		return amount * (float) (1 - Math.max(0, Math.min(1, cut)));
 	}
 
 	private static boolean has(ServerPlayer p, Holder<Attribute> attribute, ResourceLocation id) {

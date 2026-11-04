@@ -533,7 +533,7 @@ public final class AuraBook {
 				for (String line : b.description()) lore.addAll(wrap(line, 38, ChatFormatting.GRAY));
 				if (b == mine) lore.add(text("✔ Your branch", ChatFormatting.GREEN));
 				else if (blocker == null) lore.add(text(mine == null ? "Click: choose (free)" : "Click: switch for " + AuraConfig.BRANCH_SWITCH_COST + " Aura", ChatFormatting.YELLOW));
-				slots[SPOTS[i]] = icon(b == com.toast.aurapoints.ability.Branch.BLUE_FLAME ? Items.SOUL_CAMPFIRE : Items.MAGMA_BLOCK,
+				slots[SPOTS[i]] = icon(b.icon,
 						text(b.displayName, b.color, ChatFormatting.BOLD), lore, b == mine);
 			}
 		}

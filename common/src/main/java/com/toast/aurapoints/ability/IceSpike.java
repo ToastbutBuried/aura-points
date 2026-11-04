@@ -402,11 +402,12 @@ public final class IceSpike {
 		target.hurt(level.damageSources().playerAttack(owner), AuraAbilities.vsMob(target, damage));
 		if (AuraConfig.ICE_SPIKE_KNOCKBACK > 0) target.knockback(AuraConfig.ICE_SPIKE_KNOCKBACK, -s.dir.x, -s.dir.z);
 		if (s.full) {
-			freeze(target, level.getServer().getTickCount());
+			freeze(target, level.getServer().getTickCount(), freezeTicks(owner));
 			AuraStats.add(owner, AuraStats.ICE_SPIKE_FREEZES, 1);
 			owner.displayClientMessage(Component.literal("❄ Frozen! ❄").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), true);
 		} else if (AuraConfig.ICE_SPIKE_SLOW_AMPLIFIER >= 0) {
 			int ticks = (int) Math.round(AuraConfig.ICE_SPIKE_SLOW_TICKS_MIN + (AuraConfig.ICE_SPIKE_SLOW_TICKS_MAX - AuraConfig.ICE_SPIKE_SLOW_TICKS_MIN) * s.charge);
+			if (Branch.is(owner, Branch.GLACIAL)) ticks = (int) Math.round(ticks * AuraConfig.FROST_GLACIAL_SLOW_FACTOR);
 			if (ticks > 0) target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, ticks, AuraConfig.ICE_SPIKE_SLOW_AMPLIFIER, false, true, true), owner);
 		}
 		if (AuraConfig.ICE_SPIKE_HOLDER_SPEED_TICKS > 0 && AuraConfig.ICE_SPIKE_HOLDER_SPEED_AMPLIFIER >= 0) {
@@ -434,6 +435,12 @@ public final class IceSpike {
 					AuraConfig.ICE_SPIKE_THAW_SPEED_AMPLIFIER, false, true, true));
 		}
 		shatter((ServerLevel) target.level(), AuraFx.chest(target), true);
+	}
+
+	/** How long a full-charge Ice Spike freezes: Glacial longer, Frostbite shorter. */
+	public static int freezeTicks(ServerPlayer owner) {
+		return Branch.is(owner, Branch.GLACIAL) ? AuraConfig.FROST_GLACIAL_FREEZE_TICKS
+				: Branch.is(owner, Branch.FROSTBITE) ? AuraConfig.FROST_BITE_FREEZE_TICKS : AuraConfig.ICE_SPIKE_FREEZE_TICKS;
 	}
 
 	/** The powder snow freeze, held at full for FREEZE_TICKS, plus heavy Slowness; it thaws by itself after. */

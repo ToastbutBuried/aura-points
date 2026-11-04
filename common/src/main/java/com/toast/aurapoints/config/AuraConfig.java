@@ -388,6 +388,49 @@ public final class AuraConfig {
 	public static double PHANTOM_STEP_INVIS_FACTOR = 1.5;
 	public static int PHANTOM_VANISH_STEP_BONUS_TICKS = 20;
 
+	/** Frost - Glacial (ability/Branch): longer Ice Spike freeze and slow, more Ice Shell layers that rebuild slower, Shatter needs more hits. */
+	public static int FROST_GLACIAL_FREEZE_TICKS = 100;
+	public static double FROST_GLACIAL_SLOW_FACTOR = 1.5;
+	public static int FROST_GLACIAL_SHELL_LAYERS = 5;
+	public static int FROST_GLACIAL_SHELL_REBUILD_TICKS = 20 * 45;
+	public static int FROST_GLACIAL_SHELL_COLD_REBUILD_TICKS = 450;
+	public static int FROST_GLACIAL_SHATTER_HITS = 4;
+	/** Frost - Frostbite: Shatter needs fewer hits, Brittle (Chilled targets take BRITTLE_BONUS more from you), a thinner shell and shorter freeze. */
+	public static int FROST_BITE_SHATTER_HITS = 2;
+	public static double BRITTLE_BONUS = 0.15;
+	public static int FROST_BITE_SHELL_LAYERS = 2;
+	public static int FROST_BITE_FREEZE_TICKS = 40;
+
+	/** Verdant - Venomweaver: stronger Virulence, poison that stacks up to this amplifier, a slower Viper. */
+	public static double VERDANT_VENOM_VIRULENCE_BONUS = 0.40;
+	public static int VERDANT_VENOM_POISON_MAX_AMPLIFIER = 3;
+	public static int VERDANT_VENOM_VIPER_COOLDOWN_TICKS = 20 * 35;
+	/** Verdant - Grove Warden: Bloom heals friends within the radius (HP per pulse, a pulse is BLOOM_INTERVAL_TICKS), tougher and longer Entanglement, a weaker Viper (no Virulence). */
+	public static float VERDANT_GROVE_HEAL = 1.0f;
+	public static int VERDANT_GROVE_HEAL_RADIUS = 6;
+	public static int VERDANT_GROVE_TRAP_TICKS = 20 * 25;
+	public static int VERDANT_GROVE_MASH_PRESSES = 34;
+	public static int VERDANT_GROVE_VIPER_POISON_AMPLIFIER = 0;
+
+	/** Earth - Bulwark: tougher Stone Skin and Grounded, Quake gives absorption (per enemy hit, capped), Pillar Lift and Boulder Toss deal ATTACK_FACTOR of their damage. */
+	public static double EARTH_BULWARK_SKIN_ARMOR = 6.0;
+	public static double EARTH_BULWARK_SKIN_TOUGHNESS = 3.0;
+	public static double EARTH_BULWARK_KNOCKBACK_RESISTANCE = 0.8;
+	public static double EARTH_BULWARK_FALL_REDUCTION = 0.5;
+	public static float EARTH_BULWARK_QUAKE_ABSORB = 2.0f;
+	public static float EARTH_BULWARK_QUAKE_ABSORB_MAX = 8.0f;
+	public static int EARTH_BULWARK_QUAKE_ABSORB_TICKS = 20 * 8;
+	public static double EARTH_BULWARK_ATTACK_FACTOR = 0.75;
+	/** Earth - Tectonic: harder Pillar Lift, Boulder Toss and Quake; weaker Stone Skin and Grounded. */
+	public static float EARTH_TECTONIC_PILLAR_DAMAGE = 6.0f;
+	public static double EARTH_TECTONIC_PILLAR_LAUNCH = 1.35;
+	public static float EARTH_TECTONIC_BOULDER_DAMAGE = 11.0f;
+	public static float EARTH_TECTONIC_BOULDER_SPLASH = 5.5f;
+	public static double EARTH_TECTONIC_QUAKE_RADIUS = 9.0;
+	public static float EARTH_TECTONIC_QUAKE_DAMAGE = 6.0f;
+	public static double EARTH_TECTONIC_SKIN_ARMOR = 2.0;
+	public static double EARTH_TECTONIC_KNOCKBACK_RESISTANCE = 0.25;
+
 	/** Fireborn: how far you see while in lava, in blocks (vanilla: about 1, with Fire Resistance 5; 0 = like vanilla). */
 	public static float FIREBORN_LAVA_SIGHT = 16f;
 	/** Fireball damage on a hit - the same however far it flew. */

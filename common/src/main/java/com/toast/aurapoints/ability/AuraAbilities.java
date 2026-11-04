@@ -100,6 +100,9 @@ public final class AuraAbilities {
 		// Blue Flame branch only (ability/Branch.grants): not in the Fire aura's own list
 		SCORCH("Scorch", false, () ->
 				"Anything burning takes " + Math.round(AuraConfig.SCORCH_BONUS * 100) + "% more damage from you. Blue Flame branch."),
+		// Frostbite branch only (ability/Branch.adds): not in the Frost aura's own list
+		BRITTLE("Brittle", false, () ->
+				"Anything Chilled takes " + Math.round(AuraConfig.BRITTLE_BONUS * 100) + "% more damage from you. Frostbite branch."),
 		STATIC_CHARGE("Static Charge", false, () ->
 				"Your charged melee hits build static: every " + AuraConfig.STATIC_CHARGE_HITS + "th one discharges - "
 						+ fmt(AuraConfig.STATIC_CHARGE_DAMAGE) + " damage that arcs on to up to " + AuraConfig.STATIC_CHARGE_ARC_TARGETS
@@ -510,7 +513,7 @@ public final class AuraAbilities {
 			return data.aura != null && !data.locked && !allLocked && Ultimates.of(data.aura, Branch.current(data)) == ability && data.awakened.contains(data.aura)
 					&& !DISABLED.contains(ability);
 		}
-		return data.aura != null && !data.locked && !allLocked && (data.aura.has(ability, Branch.current(data)) || Branch.grants(data, ability)) && !DISABLED.contains(ability)
+		return data.aura != null && !data.locked && !allLocked && data.aura.has(ability, Branch.current(data)) && !DISABLED.contains(ability)
 				&& (!ability.active || data.owned.contains(ability));
 	}
 

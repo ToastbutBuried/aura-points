@@ -81,7 +81,7 @@ public final class Shatter {
 			reset(player);
 			return;
 		}
-		int need = Math.max(2, AuraConfig.SHATTER_HITS);
+		int need = hitsNeeded(player);
 		Item item = player.getMainHandItem().getItem();
 		int slot = player.getInventory().selected;
 		Combo c = COMBOS.get(player.getUUID());
@@ -132,9 +132,16 @@ public final class Shatter {
 				|| now < c.firstTick || now - c.firstTick > c.window) reset(player);
 	}
 
+	/** Charged hits a Shatter takes: Glacial needs more, Frostbite fewer. */
+	public static int hitsNeeded(ServerPlayer player) {
+		int hits = Branch.is(player, Branch.GLACIAL) ? AuraConfig.FROST_GLACIAL_SHATTER_HITS
+				: Branch.is(player, Branch.FROSTBITE) ? AuraConfig.FROST_BITE_SHATTER_HITS : AuraConfig.SHATTER_HITS;
+		return Math.max(2, hits);
+	}
+
 	/** A small marker above the hotbar: one snowflake per hit landed. {@code hits} -1 = shattered, 0 = broken. */
 	private static void progress(ServerPlayer player, int hits) {
-		int need = Math.max(2, AuraConfig.SHATTER_HITS);
+		int need = hitsNeeded(player);
 		if (hits < 0) {
 			player.displayClientMessage(Component.literal("❄ SHATTER ❄").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), true);
 			return;

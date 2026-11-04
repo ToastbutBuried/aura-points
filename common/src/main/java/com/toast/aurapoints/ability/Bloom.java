@@ -25,10 +25,30 @@ public final class Bloom {
 	private Bloom() {
 	}
 
+	/** Grove Warden: friends near a sneaking Bloom heal a little every pulse (not you). */
+	private static void healFriends(ServerPlayer player, ServerLevel level) {
+		double r = Math.max(1, AuraConfig.VERDANT_GROVE_HEAL_RADIUS);
+		healFriends(player, level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, player.getBoundingBox().inflate(r)));
+	}
+
+	/** The heal itself, for the entities near the player: friends within the radius that are hurt. Returns how many it healed. */
+	public static int healFriends(ServerPlayer player, java.util.Collection<? extends net.minecraft.world.entity.LivingEntity> near) {
+		double r = Math.max(1, AuraConfig.VERDANT_GROVE_HEAL_RADIUS);
+		int healed = 0;
+		for (net.minecraft.world.entity.LivingEntity e : near) {
+			if (e == player || e.distanceToSqr(player) > r * r || e.getHealth() >= e.getMaxHealth() || !Light.friend(player, e)) continue;
+			e.heal(AuraConfig.VERDANT_GROVE_HEAL);
+			healed++;
+			if (e.level() instanceof ServerLevel level) AuraFx.particles(level, ParticleTypes.HAPPY_VILLAGER, e.getX(), e.getY() + e.getBbHeight() * 0.6, e.getZ(), 4, 0.3, 0.4, 0.3, 0.0);
+		}
+		return healed;
+	}
+
 	public static void tick(ServerPlayer player, AuraPlayerData data, long now) {
 		if (!data.bloomOn || !player.isShiftKeyDown() || !AuraAbilities.hasAbility(data, Ability.BLOOM)) return;
 		if (now % Math.max(1, AuraConfig.BLOOM_INTERVAL_TICKS) != 0 || !player.isAlive() || player.isSpectator() || !player.mayBuild()) return;
 		ServerLevel level = player.serverLevel();
+		if (Branch.is(player, Branch.GROVE_WARDEN)) healFriends(player, level);
 		int r = Math.max(1, AuraConfig.BLOOM_RADIUS);
 		BlockPos center = player.blockPosition();
 		int grown = 0;

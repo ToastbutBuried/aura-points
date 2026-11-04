@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.11.0
+- Branches for three more auras (pick at Mastery V, Aura Book > your aura > Branches): Frost (Glacial: longer freeze and a 5-layer Ice Shell; Frostbite: Shatter in 2 hits and +15% damage to Chilled targets), Verdant (Venomweaver: stronger Virulence and stacking poison; Grove Warden: Bloom heals friends, tougher Entanglement) and Earth (Bulwark: tougher Stone Skin and Quake absorption; Tectonic: harder Pillar Lift, Boulder Toss and Quake). Every branch has a price, see the Branches page.
+- Fixed: the Branches page showed a magma block for Phantom and Dark.
+
 == 5.10.0
 - Shadow gets two branches at Mastery V: Phantom (shorter Vanish and Dash cooldowns, Dash leaves a shadow clone that makes mobs lose you, longer Phantom Step and Vanish Step) and Dark, the former Void aura (Void Pull, Rift Step, Null Orb, Event Horizon, Entropy and Singularity, with Bloodrush and Nightstalker). Void is no longer an aura of its own: anyone who held it is now Shadow with the Dark branch.
 - Everyone must update the mod (new network version).

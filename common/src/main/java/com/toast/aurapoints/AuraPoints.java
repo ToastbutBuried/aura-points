@@ -411,12 +411,22 @@ public class AuraPoints {
 			}
 
 			// Virulence: poisoned targets take more
-			if (AuraConfig.VIRULENCE_BONUS > 0 && victim.hasEffect(net.minecraft.world.effect.MobEffects.POISON)
+			double virulence = com.toast.aurapoints.ability.Branch.current(attackerData) == com.toast.aurapoints.ability.Branch.VENOMWEAVER
+					? AuraConfig.VERDANT_VENOM_VIRULENCE_BONUS : AuraConfig.VIRULENCE_BONUS;
+			if (virulence > 0 && victim.hasEffect(net.minecraft.world.effect.MobEffects.POISON)
 					&& AuraAbilities.hasAbility(attackerData, AuraAbilities.Ability.VIRULENCE)) {
-				event.setAmount((float) (event.getAmount() * (1.0 + AuraConfig.VIRULENCE_BONUS)));
+				event.setAmount((float) (event.getAmount() * (1.0 + virulence)));
 				AuraStats.add(attacker, AuraStats.VIRULENCE_HITS, 1);
 				AuraFx.particles((net.minecraft.server.level.ServerLevel) victim.level(), net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER,
 						victim.getX(), victim.getY() + victim.getBbHeight() * 0.6, victim.getZ(), 3, 0.25, 0.3, 0.25, 0.0);
+			}
+
+			// Brittle (Frostbite branch): Chilled targets take more
+			if (AuraConfig.BRITTLE_BONUS > 0 && AuraAbilities.hasAbility(attackerData, AuraAbilities.Ability.BRITTLE)
+					&& com.toast.aurapoints.ability.Reactions.marked(victim, com.toast.aurapoints.ability.Reactions.Mark.CHILLED)) {
+				event.setAmount((float) (event.getAmount() * (1.0 + AuraConfig.BRITTLE_BONUS)));
+				AuraFx.particles((net.minecraft.server.level.ServerLevel) victim.level(), net.minecraft.core.particles.ParticleTypes.SNOWFLAKE,
+						victim.getX(), victim.getY() + victim.getBbHeight() * 0.6, victim.getZ(), 4, 0.25, 0.3, 0.25, 0.01);
 			}
 
 			// Scorch (Blue Flame branch): burning targets take more

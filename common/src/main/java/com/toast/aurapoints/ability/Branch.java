@@ -5,6 +5,8 @@ import com.toast.aurapoints.data.AuraPlayerData;
 import com.toast.aurapoints.data.AuraState;
 import net.minecraft.ChatFormatting;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,16 +21,21 @@ import java.util.function.Supplier;
  */
 public enum Branch {
 
-	BLUE_FLAME(AuraType.FIRE, "Blue Flame", ChatFormatting.AQUA, "Precision",
+	BLUE_FLAME(AuraType.FIRE, "Blue Flame", ChatFormatting.AQUA, "Precision", Items.SOUL_CAMPFIRE,
 			() -> List.of(
 					"Fireball flies " + Math.round((AuraConfig.FIRE_BLUE_FLAME_FIREBALL_SPEED - 1) * 100) + "% faster and pierces the first target it hits.",
 					"Fireball cooldown " + (AuraConfig.FIRE_BLUE_FLAME_FIREBALL_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.FIREBALL_COOLDOWN_TICKS / 20) + "s).",
 					"Scorch: burning targets take " + Math.round(AuraConfig.SCORCH_BONUS * 100) + "% more damage from you.",
 					"Fire Bending shots hit for " + AuraAbilities.fmt(AuraConfig.FIRE_BLUE_FLAME_BENDING_DAMAGE_CLOSE) + " close up, "
 							+ AuraAbilities.fmt(AuraConfig.FIRE_BLUE_FLAME_BENDING_DAMAGE_FAR) + " far away.",
-					"Price: Heat Wave cooldown " + (AuraConfig.FIRE_BLUE_FLAME_HEAT_WAVE_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.HEAT_WAVE_COOLDOWN_TICKS / 20) + "s).")),
+					"Price: Heat Wave cooldown " + (AuraConfig.FIRE_BLUE_FLAME_HEAT_WAVE_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.HEAT_WAVE_COOLDOWN_TICKS / 20) + "s).")) {
+		@Override
+		List<AuraAbilities.Ability> adds() {
+			return List.of(AuraAbilities.Ability.SCORCH);
+		}
+	},
 
-	MAGMA(AuraType.FIRE, "Magma", ChatFormatting.GOLD, "Zone control",
+	MAGMA(AuraType.FIRE, "Magma", ChatFormatting.GOLD, "Zone control", Items.MAGMA_BLOCK,
 			() -> List.of(
 					"Fireball hits, Heat Wave and the Inferno Slam leave magma pools that burn and hurt enemies standing in them for "
 							+ AuraAbilities.fmt(AuraConfig.FIRE_MAGMA_POOL_TICKS / 20f) + "s.",
@@ -36,7 +43,7 @@ public enum Branch {
 					"The pools are fire and heat only: no lava blocks, nothing to clean up.",
 					"Price: Fireball cooldown " + (AuraConfig.FIRE_MAGMA_FIREBALL_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.FIREBALL_COOLDOWN_TICKS / 20) + "s).")),
 
-	PHANTOM(AuraType.SHADOW, "Phantom", ChatFormatting.LIGHT_PURPLE, "Evasion and tricks",
+	PHANTOM(AuraType.SHADOW, "Phantom", ChatFormatting.LIGHT_PURPLE, "Evasion and tricks", Items.PHANTOM_MEMBRANE,
 			() -> List.of(
 					"Vanish and Dash cooldowns " + Math.round((1 - AuraConfig.PHANTOM_COOLDOWN_FACTOR) * 100) + "% shorter.",
 					"Dash leaves a shadow clone where you started it for " + AuraAbilities.fmt(AuraConfig.PHANTOM_DECOY_TICKS / 20f)
@@ -44,7 +51,64 @@ public enum Branch {
 					"Phantom Step keeps you invisible " + Math.round((AuraConfig.PHANTOM_STEP_INVIS_FACTOR - 1) * 100) + "% longer, Vanish Step "
 							+ AuraAbilities.fmt(AuraConfig.PHANTOM_VANISH_STEP_BONUS_TICKS / 20f) + "s longer.")),
 
-	DARK(AuraType.SHADOW, "Dark", ChatFormatting.DARK_PURPLE, "Pull, rift and null",
+	GLACIAL(AuraType.FROST, "Glacial", ChatFormatting.AQUA, "Defensive lockdown", Items.BLUE_ICE,
+			() -> List.of(
+					"Ice Spike freezes for " + AuraAbilities.fmt(AuraConfig.FROST_GLACIAL_FREEZE_TICKS / 20f) + "s (was " + AuraAbilities.fmt(AuraConfig.ICE_SPIKE_FREEZE_TICKS / 20f)
+							+ "s) and its slow lasts " + Math.round((AuraConfig.FROST_GLACIAL_SLOW_FACTOR - 1) * 100) + "% longer.",
+					"Ice Shell has " + AuraConfig.FROST_GLACIAL_SHELL_LAYERS + " layers (was " + AuraConfig.ICE_SHELL_LAYERS + ").",
+					"Price: the shell rebuilds in " + (AuraConfig.FROST_GLACIAL_SHELL_REBUILD_TICKS / 20) + "s (was " + (AuraConfig.ICE_SHELL_REBUILD_TICKS / 20)
+							+ "s) and Shatter needs " + AuraConfig.FROST_GLACIAL_SHATTER_HITS + " hits.")),
+
+	FROSTBITE(AuraType.FROST, "Frostbite", ChatFormatting.DARK_AQUA, "Burst around the combo", Items.PRISMARINE_SHARD,
+			() -> List.of(
+					"Shatter needs only " + AuraConfig.FROST_BITE_SHATTER_HITS + " hits (was " + AuraConfig.SHATTER_HITS + ").",
+					"Brittle: Chilled targets take " + Math.round(AuraConfig.BRITTLE_BONUS * 100) + "% more damage from you.",
+					"Price: Ice Shell has " + AuraConfig.FROST_BITE_SHELL_LAYERS + " layers and Ice Spike freezes for "
+							+ AuraAbilities.fmt(AuraConfig.FROST_BITE_FREEZE_TICKS / 20f) + "s.")) {
+		@Override
+		List<AuraAbilities.Ability> adds() {
+			return List.of(AuraAbilities.Ability.BRITTLE);
+		}
+	},
+
+	VENOMWEAVER(AuraType.VERDANT, "Venomweaver", ChatFormatting.GREEN, "Damage over time", Items.SPIDER_EYE,
+			() -> List.of(
+					"Virulence: poisoned targets take " + Math.round(AuraConfig.VERDANT_VENOM_VIRULENCE_BONUS * 100) + "% more damage from you (was "
+							+ Math.round(AuraConfig.VIRULENCE_BONUS * 100) + "%).",
+					"Poison stacks: a bite or a trap catch on a poisoned target raises its Poison level by one, up to " + (AuraConfig.VERDANT_VENOM_POISON_MAX_AMPLIFIER + 1) + ".",
+					"Price: Verdant Viper cooldown " + (AuraConfig.VERDANT_VENOM_VIPER_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.VIPER_COOLDOWN_TICKS / 20) + "s).")),
+
+	GROVE_WARDEN(AuraType.VERDANT, "Grove Warden", ChatFormatting.DARK_GREEN, "Support and trapper", Items.OAK_SAPLING,
+			() -> List.of(
+					"While Bloom is on and you sneak, friends within " + AuraConfig.VERDANT_GROVE_HEAL_RADIUS + " blocks heal "
+							+ AuraAbilities.fmt(AuraConfig.VERDANT_GROVE_HEAL) + " HP a second.",
+					"Entanglement traps last " + (AuraConfig.VERDANT_GROVE_TRAP_TICKS / 20) + "s (was " + (AuraConfig.ENTANGLE_TRAP_TICKS / 20) + "s) and the roots need "
+							+ AuraConfig.VERDANT_GROVE_MASH_PRESSES + " key presses to break (was " + AuraConfig.ENTANGLE_MASH_PRESSES + ").",
+					"Price: no Virulence, and the Viper's poison is level " + (AuraConfig.VERDANT_GROVE_VIPER_POISON_AMPLIFIER + 1) + ".")) {
+		@Override
+		List<AuraAbilities.Ability> removes() {
+			return List.of(AuraAbilities.Ability.VIRULENCE);
+		}
+	},
+
+	BULWARK(AuraType.EARTH, "Bulwark", ChatFormatting.DARK_GRAY, "Tank", Items.STONE_BRICKS,
+			() -> List.of(
+					"Stone Skin gives " + AuraAbilities.fmt((float) AuraConfig.EARTH_BULWARK_SKIN_ARMOR) + " armor and " + AuraAbilities.fmt((float) AuraConfig.EARTH_BULWARK_SKIN_TOUGHNESS)
+							+ " toughness; Grounded resists " + Math.round(AuraConfig.EARTH_BULWARK_KNOCKBACK_RESISTANCE * 100) + "% knockback and "
+							+ Math.round(AuraConfig.EARTH_BULWARK_FALL_REDUCTION * 100) + "% fall damage.",
+					"Every enemy your Quake hits gives you " + AuraAbilities.fmt(AuraConfig.EARTH_BULWARK_QUAKE_ABSORB) + " absorption HP for "
+							+ (AuraConfig.EARTH_BULWARK_QUAKE_ABSORB_TICKS / 20) + "s (up to " + AuraAbilities.fmt(AuraConfig.EARTH_BULWARK_QUAKE_ABSORB_MAX) + ").",
+					"Price: Pillar Lift and Boulder Toss deal " + Math.round((1 - AuraConfig.EARTH_BULWARK_ATTACK_FACTOR) * 100) + "% less.")),
+
+	TECTONIC(AuraType.EARTH, "Tectonic", ChatFormatting.GOLD, "Offense and terrain", Items.DEEPSLATE_BRICKS,
+			() -> List.of(
+					"Pillar Lift hits for " + AuraAbilities.fmt(AuraConfig.EARTH_TECTONIC_PILLAR_DAMAGE) + " and throws higher; Boulder Toss for "
+							+ AuraAbilities.fmt(AuraConfig.EARTH_TECTONIC_BOULDER_DAMAGE) + " (splash " + AuraAbilities.fmt(AuraConfig.EARTH_TECTONIC_BOULDER_SPLASH) + ").",
+					"Quake reaches " + AuraAbilities.fmt((float) AuraConfig.EARTH_TECTONIC_QUAKE_RADIUS) + " blocks and hits for " + AuraAbilities.fmt(AuraConfig.EARTH_TECTONIC_QUAKE_DAMAGE) + ".",
+					"Price: Stone Skin gives only " + AuraAbilities.fmt((float) AuraConfig.EARTH_TECTONIC_SKIN_ARMOR) + " armor and Grounded resists "
+							+ Math.round(AuraConfig.EARTH_TECTONIC_KNOCKBACK_RESISTANCE * 100) + "% knockback.")),
+
+	DARK(AuraType.SHADOW, "Dark", ChatFormatting.DARK_PURPLE, "Pull, rift and null", Items.ENDER_PEARL,
 			() -> List.of(
 					"Your actives become Void Pull, Rift Step and Null Orb; Dash and Vanish are given up.",
 					"Event Horizon and Entropy come with it, and Singularity replaces Eclipse as your Ultimate.",
@@ -61,14 +125,26 @@ public enum Branch {
 	public final ChatFormatting color;
 	/** One or two words on how the branch plays. */
 	public final String role;
+	/** The Aura Book's icon for the branch. */
+	public final Item icon;
 	private final Supplier<List<String>> lines;
 
-	Branch(AuraType aura, String displayName, ChatFormatting color, String role, Supplier<List<String>> lines) {
+	Branch(AuraType aura, String displayName, ChatFormatting color, String role, Item icon, Supplier<List<String>> lines) {
 		this.aura = aura;
 		this.displayName = displayName;
 		this.color = color;
 		this.role = role;
+		this.icon = icon;
 		this.lines = lines;
+	}
+
+	/** Passives (or abilities) the branch adds to the aura's kit, and ones it takes away. */
+	List<AuraAbilities.Ability> adds() {
+		return List.of();
+	}
+
+	List<AuraAbilities.Ability> removes() {
+		return List.of();
 	}
 
 	/** True for a branch that replaces the aura's whole kit (Dark); the others bend the base kit. */
@@ -158,12 +234,6 @@ public enum Branch {
 		return current(player) == branch;
 	}
 
-	/** A passive this branch hands out on top of the aura's own (hasAbility asks). */
-	public static boolean grants(AuraPlayerData data, AuraAbilities.Ability ability) {
-		Branch b = current(data);
-		return b == BLUE_FLAME && ability == AuraAbilities.Ability.SCORCH;
-	}
-
 	/** An ability's cooldown after the branch's change (before Mastery and Flow). */
 	public static int cooldown(ServerPlayer player, AuraAbilities.Ability ability, int ticks) {
 		Branch b = current(player);
@@ -177,7 +247,8 @@ public enum Branch {
 			case MAGMA -> ability == AuraAbilities.Ability.FIREBALL ? AuraConfig.FIRE_MAGMA_FIREBALL_COOLDOWN_TICKS : ticks;
 			case PHANTOM -> ability == AuraAbilities.Ability.VANISH || ability == AuraAbilities.Ability.DASH
 					? Math.max(1, (int) Math.round(ticks * AuraConfig.PHANTOM_COOLDOWN_FACTOR)) : ticks;
-			case DARK -> ticks;
+			case VENOMWEAVER -> ability == AuraAbilities.Ability.VERDANT_VIPER ? AuraConfig.VERDANT_VENOM_VIPER_COOLDOWN_TICKS : ticks;
+			case DARK, GLACIAL, FROSTBITE, GROVE_WARDEN, BULWARK, TECTONIC -> ticks;
 		};
 	}
 

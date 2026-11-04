@@ -442,8 +442,13 @@ public final class Entanglement {
 		p.connection.send(new ClientboundSetTitleTextPacket(Component.literal(title).withStyle(color, ChatFormatting.BOLD)));
 	}
 
+	/** Key presses it takes to break the roots: Grove Warden's are tougher. */
+	private static int pressesNeeded(Snare s) {
+		return Math.max(4, Branch.is(s.caster, Branch.GROVE_WARDEN) ? AuraConfig.VERDANT_GROVE_MASH_PRESSES : AuraConfig.ENTANGLE_MASH_PRESSES);
+	}
+
 	private static Component mashProgress(Snare s) {
-		int need = Math.max(4, AuraConfig.ENTANGLE_MASH_PRESSES), min = Math.max(1, AuraConfig.ENTANGLE_MASH_MIN_PER_KEY);
+		int need = pressesNeeded(s), min = Math.max(1, AuraConfig.ENTANGLE_MASH_MIN_PER_KEY);
 		int total = 0;
 		for (int n : s.presses) total += n;
 		int bars = 20, filled = Math.min(bars, total * bars / need);
@@ -476,7 +481,7 @@ public final class Entanglement {
 				AuraFx.particles(s.canvas.level, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.MANGROVE_ROOTS.defaultBlockState()), c.x, c.y, c.z, 4, 0.4, 0.5, 0.4, 0.05);
 				s.canvas.level.playSound(null, c.x, c.y, c.z, AuraSounds.MANGROVE_ROOTS_HIT.value(), SoundSource.PLAYERS, 0.7f, 0.8f + key * 0.1f);
 			}
-			if (total >= Math.max(4, AuraConfig.ENTANGLE_MASH_PRESSES) && min >= Math.max(1, AuraConfig.ENTANGLE_MASH_MIN_PER_KEY)) free(s);
+			if (total >= pressesNeeded(s) && min >= Math.max(1, AuraConfig.ENTANGLE_MASH_MIN_PER_KEY)) free(s);
 			return;
 		}
 	}
@@ -599,12 +604,17 @@ public final class Entanglement {
 			total += n;
 			min = Math.min(min, n);
 		}
-		return total >= Math.max(4, AuraConfig.ENTANGLE_MASH_PRESSES) && min >= Math.max(1, AuraConfig.ENTANGLE_MASH_MIN_PER_KEY);
+		return total >= pressesNeeded(s) && min >= Math.max(1, AuraConfig.ENTANGLE_MASH_MIN_PER_KEY);
 	}
 
 	/** Poison from Verdant (the Viper's bite, the trap's cloud uses its own). */
-	static void poison(LivingEntity target, Entity source, int amplifier, int ticks) {
+	public static void poison(LivingEntity target, Entity source, int amplifier, int ticks) {
 		if (amplifier < 0 || ticks <= 0) return;
+		// Venomweaver: poison on an already poisoned target stacks one level higher, up to the cap
+		if (source instanceof ServerPlayer sp && Branch.is(sp, Branch.VENOMWEAVER)) {
+			var current = target.getEffect(MobEffects.POISON);
+			if (current != null) amplifier = Math.min(AuraConfig.VERDANT_VENOM_POISON_MAX_AMPLIFIER, Math.max(amplifier, current.getAmplifier() + 1));
+		}
 		target.addEffect(new MobEffectInstance(MobEffects.POISON, ticks, amplifier, false, true, true), source);
 	}
 
@@ -723,7 +733,7 @@ public final class Entanglement {
 				sink(false);
 				return false;
 			}
-			if (stateAge >= arm + Math.max(1, AuraConfig.ENTANGLE_TRAP_TICKS)) {
+			if (stateAge >= arm + Math.max(1, Branch.is(caster, Branch.GROVE_WARDEN) ? AuraConfig.VERDANT_GROVE_TRAP_TICKS : AuraConfig.ENTANGLE_TRAP_TICKS)) {
 				sink(true); // nobody came: poison into the air instead
 				return false;
 			}
