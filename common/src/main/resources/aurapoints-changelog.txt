@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.13.1
+- The shadow dragon's body (the item displays holding its segments) is drawn from up to 160 blocks away instead of 64, so a long dragon no longer loses its far half when you look up at it from the ground.
+
 == 5.13.0
 - The last four auras get their branches (pick at Mastery V in the Aura Book): Water (Tidecaller: bigger Healing Tide that soaks enemies Wet; Leviathan: Iron Skin stacks while you are hit), Thunder (Surge: faster Thunderbolt, Chidori and Static Charge; Conductor: wider chains, Chidori arcs, Charged targets spread damage), Wind (Skyrunner: two-use Dash and Double Jump, Gale Rider lingers; Cyclone: the wind blast pulls enemies in, harder Firestorm and Storm) and Resonance (Dirge: harder darts that deafen; Chorus: longer trees, 5 blossoms, Echolocation shows friends). Every aura has branches now.
 - Fixed: Frostbite's Brittle bonus now sees Chilled marks left by Frost hits.

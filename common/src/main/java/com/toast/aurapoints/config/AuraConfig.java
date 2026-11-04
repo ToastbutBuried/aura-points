@@ -518,6 +518,9 @@ public final class AuraConfig {
 	public static int RESONANCE_CHORUS_GRASP_COOLDOWN_TICKS = 20 * 32;
 	public static float NOISE_DEAF_LEVEL = 60.0f;
 
+	/** Shadow dragon: view range of the item displays that make up its body (x 64 blocks; 2.5 is the most the server sends, 0 = leave them alone). */
+	public static float SHADOW_DRAGON_SEGMENT_VIEW_RANGE = 2.5f;
+
 	/** Fireborn: how far you see while in lava, in blocks (vanilla: about 1, with Fire Resistance 5; 0 = like vanilla). */
 	public static float FIREBORN_LAVA_SIGHT = 16f;
 	/** Fireball damage on a hit - the same however far it flew. */

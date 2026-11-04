@@ -9,6 +9,8 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 /** Item displays' private setters, for the thrown Mjölnir (ability/Mjolnir). */
 @Mixin(Display.ItemDisplay.class)
 public interface ItemDisplayAccessor {
+	@Invoker("getItemStack")
+	ItemStack aurapoints$getItemStack();
 	@Invoker("setItemStack")
 	void aurapoints$setItemStack(ItemStack stack);
 

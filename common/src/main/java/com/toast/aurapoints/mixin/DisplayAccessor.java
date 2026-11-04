@@ -25,6 +25,8 @@ public interface DisplayAccessor {
 
 	@Invoker("setViewRange")
 	void aurapoints$setViewRange(float range);
+	@Invoker("getViewRange")
+	float aurapoints$getViewRange();
 
 	@Invoker("setPosRotInterpolationDuration")
 	void aurapoints$setPosRotInterpolationDuration(int ticks);

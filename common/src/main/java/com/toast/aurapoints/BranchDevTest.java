@@ -38,6 +38,10 @@ final class BranchDevTest {
 			run(ctx.getSource().getServer());
 			return 1;
 		})));
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("segments").executes(ctx -> {
+			segments(ctx.getSource().getServer());
+			return 1;
+		})));
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("branch4").executes(ctx -> {
 			lastEight(ctx.getSource().getServer());
 			return 1;
@@ -370,6 +374,31 @@ final class BranchDevTest {
 		data.mastery.clear();
 		data.mastery.putAll(wasMastery);
 		log("branch3 done (state restored)");
+	}
+
+	/** /auradev segments: dragon segment item displays get a longer view range, other displays and bigger datapack values are left alone. */
+	private static void segments(net.minecraft.server.MinecraftServer server) {
+		ServerLevel level = server.overworld();
+		var spawn = level.getSharedSpawnPos();
+		Vec3 base = new Vec3(spawn.getX() + 0.5, 120, spawn.getZ() + 0.5);
+		var items = new net.minecraft.world.item.ItemStack[]{new net.minecraft.world.item.ItemStack(AuraPoints.DRAGON_SEGMENT_A.get()), new net.minecraft.world.item.ItemStack(AuraPoints.DRAGON_SEGMENT_B.get()),
+				new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STONE), new net.minecraft.world.item.ItemStack(AuraPoints.DRAGON_SEGMENT_A.get()), net.minecraft.world.item.ItemStack.EMPTY};
+		net.minecraft.world.entity.Display.ItemDisplay[] d = new net.minecraft.world.entity.Display.ItemDisplay[items.length];
+		for (int i = 0; i < items.length; i++) {
+			d[i] = new net.minecraft.world.entity.Display.ItemDisplay(EntityType.ITEM_DISPLAY, level);
+			d[i].setPos(base.x + i * 2, base.y, base.z);
+			if (i < 4) ((com.toast.aurapoints.mixin.ItemDisplayAccessor) d[i]).aurapoints$setItemStack(items[i]);
+			if (i == 3) ((com.toast.aurapoints.mixin.DisplayAccessor) d[i]).aurapoints$setViewRange(4.0f); // a datapack's own bigger value
+			level.addFreshEntity(d[i]);
+		}
+		// the segment item arrives after the spawn, like a datapack's data modify
+		((com.toast.aurapoints.mixin.ItemDisplayAccessor) d[4]).aurapoints$setItemStack(new net.minecraft.world.item.ItemStack(AuraPoints.DRAGON_SEGMENT_B.get()));
+		AuraFx.later(server, 40, () -> {
+			StringBuilder sb = new StringBuilder();
+			for (var e : d) sb.append(((com.toast.aurapoints.mixin.DisplayAccessor) e).aurapoints$getViewRange()).append(' ');
+			log("segment view ranges: " + sb + "(must be 2.5 2.5 1.0 4.0 2.5: segments raised, a stone display untouched, a datapack's 4.0 kept, a late item caught)");
+			for (var e : d) e.discard();
+		});
 	}
 
 	/** /auradev branch4: the 5.13.0 branches (Water, Thunder, Wind, Resonance). */

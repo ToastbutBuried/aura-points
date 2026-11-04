@@ -614,6 +614,12 @@ public class AuraPoints {
 					|| com.toast.aurapoints.ability.Earth.isLeftover(event.getEntity()))) event.setCanceled(true);
 		}
 
+		/** The shadow dragon's body (item displays holding its segments) is drawn from further away. */
+		@SubscribeEvent
+		public static void onDisplayJoins(com.toast.aurapoints.shim.neoforge.event.entity.EntityJoinLevelEvent event) {
+			if (!event.getLevel().isClientSide()) com.toast.aurapoints.ability.DragonSegments.onJoin(event.getEntity());
+		}
+
 		/** Steering a Verdant Viper: no knockback, no healing, no eating or drinking. */
 		@SubscribeEvent
 		public static void onKnockback(com.toast.aurapoints.shim.neoforge.event.entity.living.LivingKnockBackEvent event) {
