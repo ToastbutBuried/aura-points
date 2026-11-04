@@ -61,6 +61,7 @@ public final class Stun {
 		STUNNED.put(player.getUUID(), (long) server.getTickCount() + ticks);
 		com.toast.aurapoints.network.NetworkHandler.sendFx(player, com.toast.aurapoints.network.FxPacket.STUNNED, ticks, "");
 		modifiers(player, true);
+		breakHolds(player);
 	}
 
 	/**
