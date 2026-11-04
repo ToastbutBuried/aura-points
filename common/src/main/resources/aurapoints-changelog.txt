@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.14.0
+- Balance Tome (admins): every aura's page has a Branches item. It shows the aura's two branches; click one to see and change its values (cooldowns, damage, prices, ...). The general switches (branches on/off, Mastery needed, switch price) are on the General page under "Branches".
+
 == 5.13.2
 - Blood, Sacrificial branch: Crimson Sacrifice always costs the full 10 HP. The blood bar no longer takes any off it (and is no longer spent on it).
 

@@ -152,6 +152,19 @@ public final class AuraBalance {
 		return byKey.get(key);
 	}
 
+	/** Groups "BRANCH:<NAME>" hold one branch's values (see Branch.configPrefixes); the tome shows them under the aura's Branches item. */
+	public static final String BRANCH_GROUP = "BRANCH:";
+
+	/** The branch a group stands for, or null. */
+	public static com.toast.aurapoints.ability.Branch branchOf(String group) {
+		if (!group.startsWith(BRANCH_GROUP)) return null;
+		try {
+			return com.toast.aurapoints.ability.Branch.valueOf(group.substring(BRANCH_GROUP.length()));
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
+
 	/** The group of an aura's "rollable" switch (FROST_ROLLABLE ...). */
 	public static final String ROLLABLE_GROUP = "ROLLABLE";
 
@@ -200,7 +213,7 @@ public final class AuraBalance {
 			Map.entry("COMBO_SHOCK_", "Electrified Bubble (Bubble + Thunder)"), Map.entry("COMBO_GALE_", "Toxic Gale (Poison cloud + Wind)"),
 			Map.entry("COMBO_GLACIER_", "Glacier (Bubble + Frost)"), Map.entry("COMBO_MAGMA_", "Magma Field (Fire + Earth)"),
 			Map.entry("COMBO_BOIL_", "Boiling Bubble (Bubble + Fire)"), Map.entry("COMBO_PRISM_", "Prism Burst (Bubble + Light)"),
-			Map.entry("WEEKLY_", "Weekly Challenges"), Map.entry("COSMETIC", "Cosmetics"));
+			Map.entry("WEEKLY_", "Weekly Challenges"), Map.entry("COSMETIC", "Cosmetics"), Map.entry("BRANCH_", "Branches (all auras)"));
 
 	/** The Ultimates kept in their aura's file: shown on the Ultimates page anyway. */
 	private static final java.util.Set<String> ULTIMATE_GROUPS = java.util.Set.of("EARTH_RIFT_", "LIGHT_SUN_", "BLOOD_MOON_", "VOID_HOLE_");
@@ -213,6 +226,8 @@ public final class AuraBalance {
 	public static String groupTitle(String group) {
 		if (group.equals(ENABLED_KEY)) return "Abilities On / Off";
 		if (GROUP_TITLES.containsKey(group)) return GROUP_TITLES.get(group);
+		com.toast.aurapoints.ability.Branch branch = branchOf(group);
+		if (branch != null) return branch.label();
 		for (AuraAbilities.Ability a : AuraAbilities.Ability.values()) {
 			if (group.equals(ABILITY_GROUPS.getOrDefault(a.name(), a.name() + "_"))) return a.displayName;
 		}
@@ -227,6 +242,11 @@ public final class AuraBalance {
 
 	/** The prefix a value shares with the rest of its ability: the longest known one, else its first word. */
 	private static String groupOf(String name) {
+		// a branch's own values, and the switches that apply to every branch
+		for (com.toast.aurapoints.ability.Branch b : com.toast.aurapoints.ability.Branch.values()) {
+			for (String p : b.configPrefixes()) if (name.startsWith(p)) return BRANCH_GROUP + b.name();
+		}
+		if (name.startsWith("BRANCHES_") || name.startsWith("BRANCH_")) return "BRANCH_";
 		String best = null;
 		for (String p : SUBGROUPS) if (name.startsWith(p) && (best == null || p.length() > best.length())) best = p;
 		for (String p : PREFIXES.keySet()) if (name.startsWith(p) && (best == null || p.length() > best.length())) best = p;

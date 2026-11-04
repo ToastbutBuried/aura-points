@@ -380,6 +380,12 @@ public final class BalanceEditor {
 
 	static String label(Entry e) {
 		if (e.isSwitch()) return pretty(e.ability().name()) + " enabled";
+		var branch = AuraBalance.branchOf(e.group());
+		if (branch != null) {
+			String rest = e.key();
+			for (String p : branch.configPrefixes()) if (rest.startsWith(p) && p.endsWith("_")) rest = rest.substring(p.length());
+			return pretty(rest);
+		}
 		String rest = e.key().startsWith(e.group()) ? e.key().substring(e.group().length()) : e.key();
 		return pretty(rest.isEmpty() ? e.key() : rest);
 	}
@@ -725,6 +731,35 @@ public final class BalanceEditor {
 	}
 
 	private static final int ROLLABLE_SLOT = 46;
+	private static final int BRANCHES_SLOT = 52;
+
+	/** The branches whose values this section shows (an aura's two; none for sections that are no aura). */
+	private static List<com.toast.aurapoints.ability.Branch> branchesOf(String section) {
+		AuraType t = aura(section);
+		return t == null ? List.of() : com.toast.aurapoints.ability.Branch.of(t);
+	}
+
+	/** One branch's values: its own group, or for Dark the whole Void kit (it has no values of its own). */
+	private static List<Entry> branchEntries(String section, com.toast.aurapoints.ability.Branch b) {
+		if (b == com.toast.aurapoints.ability.Branch.DARK) return inSection("void");
+		String group = AuraBalance.BRANCH_GROUP + b.name();
+		return inSection(section).stream().filter(e -> e.group().equals(group)).toList();
+	}
+
+	private static List<Component> wrap(String text, ChatFormatting color) {
+		List<Component> out = new ArrayList<>();
+		StringBuilder line = new StringBuilder();
+		for (String word : text.split(" ")) {
+			if (line.length() + word.length() + 1 > 38 && !line.isEmpty()) {
+				out.add(Component.literal(line.toString()).withStyle(Style.EMPTY.withItalic(false).withColor(color)));
+				line.setLength(0);
+			}
+			if (!line.isEmpty()) line.append(' ');
+			line.append(word);
+		}
+		if (!line.isEmpty()) out.add(Component.literal(line.toString()).withStyle(Style.EMPTY.withItalic(false).withColor(color)));
+		return out;
+	}
 
 	private static List<Component> counts(Session s, List<Entry> entries) {
 		int changed = 0;
@@ -806,7 +841,8 @@ public final class BalanceEditor {
 		/** The ability submenus (each ability's switch and values), in ability order; the rollable switch is a dye instead. */
 		private List<String> groups() {
 			LinkedHashSet<String> out = new LinkedHashSet<>();
-			for (Entry e : inSection(section)) if (!e.group().equals(AuraBalance.ROLLABLE_GROUP)) out.add(e.group());
+			// one branch's values live under the Branches item, not as a group of their own
+			for (Entry e : inSection(section)) if (!e.group().equals(AuraBalance.ROLLABLE_GROUP) && !e.group().startsWith(AuraBalance.BRANCH_GROUP)) out.add(e.group());
 			return new ArrayList<>(out);
 		}
 
@@ -839,6 +875,18 @@ public final class BalanceEditor {
 								text("(/aura setaura works either way)", ChatFormatting.DARK_GRAY),
 								text("Click to switch.", ChatFormatting.DARK_GRAY)), s.pending.containsKey(roll.key()));
 			}
+			List<com.toast.aurapoints.ability.Branch> branches = branchesOf(section);
+			if (!branches.isEmpty()) {
+				List<Component> lore = new ArrayList<>();
+				List<Entry> all = new ArrayList<>();
+				for (var b : branches) {
+					lore.add(Component.literal(b.displayName).withStyle(Style.EMPTY.withItalic(false).withColor(b.color)));
+					all.addAll(branchEntries(section, b));
+				}
+				lore.addAll(counts(s, all));
+				lore.add(text("Click: pick a branch, then its values.", ChatFormatting.DARK_GRAY));
+				slots[BRANCHES_SLOT] = icon(Items.PRISMARINE_SHARD, text("Branches", ChatFormatting.GOLD), lore, all.stream().anyMatch(e -> s.pending.containsKey(e.key())));
+			}
 		}
 
 		@Override
@@ -849,31 +897,123 @@ public final class BalanceEditor {
 				set(player, s, roll, !(Boolean) shown(s, roll));
 				return;
 			}
+			if (slot == BRANCHES_SLOT && !branchesOf(section).isEmpty()) {
+				open(player, new BranchesPage(section, this));
+				return;
+			}
 			if (barClick(player, s, slot, groups.size())) return;
 			List<String> shown = pageOf(groups, page);
 			if (slot < shown.size()) open(player, new GroupPage(section, shown.get(slot), this));
 		}
 	}
 
+	/** An aura's branches: pick one to see and change its values. */
+	private static final class BranchesPage extends Page {
+		private static final int[] SPOTS = {20, 24};
+		private final String section;
+		private final SectionPage parent;
+
+		BranchesPage(String section, SectionPage parent) {
+			this.section = section;
+			this.parent = parent;
+		}
+
+		@Override
+		Component title(ServerPlayer player, Session s) {
+			return Component.literal("Balance: " + sectionName(section) + " branches");
+		}
+
+		@Override
+		Page back() {
+			return parent;
+		}
+
+		@Override
+		void fill(ServerPlayer player, Session s, ItemStack[] slots) {
+			slots[4] = icon(Items.PRISMARINE_SHARD, text("Branches", ChatFormatting.GOLD), List.of(
+					text("At Mastery V a player picks one.", ChatFormatting.GRAY),
+					text("Click a branch for its values.", ChatFormatting.GRAY)), false);
+			var branches = branchesOf(section);
+			for (int i = 0; i < branches.size() && i < SPOTS.length; i++) {
+				var b = branches.get(i);
+				List<Entry> entries = branchEntries(section, b);
+				List<Component> lore = new ArrayList<>();
+				lore.add(text(b.role, ChatFormatting.DARK_AQUA));
+				for (String line : b.description()) lore.addAll(wrap(line, ChatFormatting.GRAY));
+				if (b == com.toast.aurapoints.ability.Branch.DARK) lore.addAll(wrap("Its values are the Void kit's (the abilities Dark gets).", ChatFormatting.DARK_GRAY));
+				lore.addAll(counts(s, entries));
+				slots[SPOTS[i]] = icon(b.icon, Component.literal(b.displayName).withStyle(Style.EMPTY.withItalic(false).withColor(b.color).withBold(true)), lore,
+						entries.stream().anyMatch(e -> s.pending.containsKey(e.key())));
+			}
+			bar(player, s, slots, 0);
+		}
+
+		@Override
+		void click(ServerPlayer player, Session s, int slot, int button, ClickType type) {
+			if (barClick(player, s, slot, 0)) return;
+			var branches = branchesOf(section);
+			for (int i = 0; i < branches.size() && i < SPOTS.length; i++) {
+				if (SPOTS[i] == slot) {
+					open(player, new GroupPage(section, AuraBalance.BRANCH_GROUP + branches.get(i).name(), this));
+					return;
+				}
+			}
+		}
+	}
+
+	/** DEV ONLY: what the section page, the branches page and a branch's values page show for this section. */
+	public static String devBranchPages(ServerPlayer player, String section) {
+		Session s = session(player);
+		StringBuilder out = new StringBuilder(section + ": ");
+		SectionPage sp = new SectionPage(section);
+		ItemStack[] slots = new ItemStack[54];
+		java.util.Arrays.fill(slots, ItemStack.EMPTY);
+		sp.fill(player, s, slots);
+		out.append("branches item ").append(slots[BRANCHES_SLOT].isEmpty() ? "none" : slots[BRANCHES_SLOT].getHoverName().getString());
+		BranchesPage bp = new BranchesPage(section, sp);
+		java.util.Arrays.fill(slots, ItemStack.EMPTY);
+		bp.fill(player, s, slots);
+		for (int spot : BranchesPage.SPOTS) {
+			if (slots[spot].isEmpty()) continue;
+			out.append(" | ").append(slots[spot].getHoverName().getString());
+		}
+		for (var b : branchesOf(section)) {
+			GroupPage gp = new GroupPage(section, AuraBalance.BRANCH_GROUP + b.name(), bp);
+			ItemStack[] vals = new ItemStack[54];
+			java.util.Arrays.fill(vals, ItemStack.EMPTY);
+			gp.fill(player, s, vals);
+			int n = 0;
+			StringBuilder first = new StringBuilder();
+			for (int i = 0; i < 45; i++) {
+				if (vals[i].isEmpty()) continue;
+				if (n++ == 0) first.append(vals[i].getHoverName().getString());
+			}
+			out.append(" [").append(b.displayName).append(": ").append(n).append(" values, first ").append(first).append("]");
+		}
+		return out.toString();
+	}
+
 	/** One ability's values: click to change. */
 	private static final class GroupPage extends Page {
 		private final String section;
 		private final String group;
-		private final SectionPage parent;
+		private final Page parent;
 
-		GroupPage(String section, String group, SectionPage parent) {
+		GroupPage(String section, String group, Page parent) {
 			this.section = section;
 			this.group = group;
 			this.parent = parent;
 		}
 
 		private List<Entry> entries() {
+			var branch = AuraBalance.branchOf(group);
+			if (branch != null) return branchEntries(section, branch);
 			return inSection(section).stream().filter(e -> e.group().equals(group)).toList();
 		}
 
 		@Override
 		Component title(ServerPlayer player, Session s) {
-			return Component.literal(sectionName(section) + " > " + groupName(group));
+			return Component.literal(AuraBalance.branchOf(group) != null ? "Branch: " + groupName(group) : sectionName(section) + " > " + groupName(group));
 		}
 
 		@Override

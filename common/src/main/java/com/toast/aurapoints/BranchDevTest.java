@@ -38,6 +38,10 @@ final class BranchDevTest {
 			run(ctx.getSource().getServer());
 			return 1;
 		})));
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("tome").executes(ctx -> {
+			tome(ctx.getSource().getServer());
+			return 1;
+		})));
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("segments").executes(ctx -> {
 			segments(ctx.getSource().getServer());
 			return 1;
@@ -388,6 +392,35 @@ final class BranchDevTest {
 		data.mastery.clear();
 		data.mastery.putAll(wasMastery);
 		log("branch3 done (state restored)");
+	}
+
+	/** /auradev tome: the Balance Tome's Branches item, the branch pages and every branch's values (5.14.0). */
+	private static void tome(net.minecraft.server.MinecraftServer server) {
+		ServerLevel level = server.overworld();
+		net.minecraft.server.level.ServerPlayer p = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000b4a9"), "Tomer"));
+		var entries = com.toast.aurapoints.config.AuraBalance.entries();
+		int missing = 0, stray = 0, branchValues = 0;
+		StringBuilder per = new StringBuilder();
+		for (Branch b : Branch.values()) {
+			String g = com.toast.aurapoints.config.AuraBalance.BRANCH_GROUP + b.name();
+			long n = entries.stream().filter(e -> e.group().equals(g)).count();
+			branchValues += n;
+			if (b != Branch.DARK && n == 0) missing++;
+			per.append(b.id()).append('=').append(n).append(' ');
+			// every config key starting with one of the branch's prefixes must be in that group
+			for (var e : entries) {
+				if (e.isSwitch()) continue;
+				for (String pre : b.configPrefixes()) if (e.key().startsWith(pre) && !e.group().equals(g)) stray++;
+			}
+		}
+		log("tome branch values per branch: " + per + "(each non-Dark one > 0; Dark 0 because it shows the Void kit), branches without values " + missing + " (0), keys outside their branch group " + stray + " (0), total " + branchValues);
+		long general = entries.stream().filter(e -> e.group().equals("BRANCH_")).count();
+		log("general Branches group: " + general + " values (must be 3: BRANCHES_ENABLED, BRANCH_MASTERY_REQUIRED, BRANCH_SWITCH_COST) on page " + entries.stream().filter(e -> e.group().equals("BRANCH_")).map(e -> e.page()).distinct().toList() + " (general)");
+		for (String section : new String[]{"fire", "shadow", "frost", "verdant", "earth", "light", "blood", "water", "thunder", "wind", "resonance", "void", "general"}) {
+			log("tome " + com.toast.aurapoints.editor.BalanceEditor.devBranchPages(p, section));
+		}
+		var sample = entries.stream().filter(e -> e.group().equals(com.toast.aurapoints.config.AuraBalance.BRANCH_GROUP + "SACRIFICIAL")).map(e -> e.key()).toList();
+		log("Sacrificial keys: " + sample);
 	}
 
 	/** /auradev segments: dragon segment item displays get a longer view range, other displays and bigger datapack values are left alone. */

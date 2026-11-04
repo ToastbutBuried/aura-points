@@ -237,6 +237,37 @@ public enum Branch {
 		return List.of();
 	}
 
+	/**
+	 * The config field names (prefixes, or whole names) that belong to this branch: the Balance Tome groups them under
+	 * the aura's Branches item. Dark has none of its own: its values are the Void kit's (the tome shows those).
+	 */
+	public List<String> configPrefixes() {
+		return switch (this) {
+			case BLUE_FLAME -> List.of("FIRE_BLUE_FLAME_", "SCORCH_");
+			case MAGMA -> List.of("FIRE_MAGMA_");
+			case PHANTOM -> List.of("PHANTOM_COOLDOWN_FACTOR", "PHANTOM_DECOY_TICKS", "PHANTOM_STEP_INVIS_FACTOR", "PHANTOM_VANISH_STEP_BONUS_TICKS");
+			case DARK -> List.of();
+			case GLACIAL -> List.of("FROST_GLACIAL_");
+			case FROSTBITE -> List.of("FROST_BITE_", "BRITTLE_");
+			case VENOMWEAVER -> List.of("VERDANT_VENOM_");
+			case GROVE_WARDEN -> List.of("VERDANT_GROVE_");
+			case BULWARK -> List.of("EARTH_BULWARK_");
+			case TECTONIC -> List.of("EARTH_TECTONIC_");
+			case RADIANT -> List.of("LIGHT_RADIANT_");
+			case PRISMATIC -> List.of("LIGHT_PRISM_");
+			case SANGUINE -> List.of("BLOOD_SANGUINE_");
+			case SACRIFICIAL -> List.of("BLOOD_SACRIFICIAL_");
+			case TIDECALLER -> List.of("WATER_TIDECALLER_");
+			case LEVIATHAN -> List.of("WATER_LEVIATHAN_");
+			case SURGE -> List.of("THUNDER_SURGE_");
+			case CONDUCTOR -> List.of("THUNDER_CONDUCTOR_");
+			case SKYRUNNER -> List.of("WIND_SKYRUNNER_");
+			case CYCLONE -> List.of("WIND_CYCLONE_");
+			case DIRGE -> List.of("RESONANCE_DIRGE_", "NOISE_DEAF_LEVEL");
+			case CHORUS -> List.of("RESONANCE_CHORUS_");
+		};
+	}
+
 	/** True for a branch that replaces the aura's whole kit (Dark); the others bend the base kit. */
 	boolean kit() {
 		return false;
