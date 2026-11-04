@@ -37,9 +37,8 @@ public enum AuraType {
 	LIGHT("Light", ChatFormatting.YELLOW, 0xFFE9A8,
 			Ability.RADIANT_PULSE, Ability.SOLAR_FLASH, Ability.PRISM_BEAM, Ability.HALO, Ability.LUMINOUS),
 	BLOOD("Blood", ChatFormatting.DARK_RED, 0xB0121B,
-			Ability.HEMORRHAGE, Ability.BLOOD_TETHER, Ability.CRIMSON_SACRIFICE, Ability.BLOODLUST, Ability.THIN_BLOOD),
-	VOID("Void", ChatFormatting.DARK_PURPLE, 0x4B1C8C,
-			Ability.VOID_PULL, Ability.RIFT_STEP, Ability.NULL_ORB, Ability.EVENT_HORIZON, Ability.ENTROPY);
+			Ability.HEMORRHAGE, Ability.BLOOD_TETHER, Ability.CRIMSON_SACRIFICE, Ability.BLOODLUST, Ability.THIN_BLOOD);
+	// Void was an aura until 5.10.0: it is Shadow's Dark branch now (ability/Branch.DARK); old saves are migrated on load
 
 	/** Abilities every aura has. */
 	public static final Set<Ability> GLOBAL = EnumSet.of(Ability.LIFESTEAL);
@@ -59,6 +58,15 @@ public enum AuraType {
 
 	public boolean has(Ability ability) {
 		return abilities.contains(ability) || GLOBAL.contains(ability);
+	}
+
+	/** The aura's abilities for a branch (a branch with its own kit replaces the list; null = the base kit). */
+	public List<Ability> abilities(Branch branch) {
+		return branch != null && branch.aura == this && branch.abilities() != null ? branch.abilities() : abilities;
+	}
+
+	public boolean has(Ability ability, Branch branch) {
+		return abilities(branch).contains(ability) || GLOBAL.contains(ability);
 	}
 
 	/** Lowercase id used in commands and predicates, e.g. "shadow". */
@@ -83,13 +91,21 @@ public enum AuraType {
 			case EARTH -> java.util.List.of(Ability.PILLAR_LIFT, Ability.BOULDER_TOSS, Ability.QUAKE);
 			case LIGHT -> java.util.List.of(Ability.RADIANT_PULSE, Ability.SOLAR_FLASH, Ability.PRISM_BEAM);
 			case BLOOD -> java.util.List.of(Ability.HEMORRHAGE, Ability.BLOOD_TETHER, Ability.CRIMSON_SACRIFICE);
-			case VOID -> java.util.List.of(Ability.RIFT_STEP, Ability.VOID_PULL, Ability.NULL_ORB);
 		};
+	}
+
+	/** The key slots for a branch (Dark has its own). */
+	public java.util.List<Ability> keySlots(Branch branch) {
+		return branch != null && branch.aura == this && branch.keySlots() != null ? branch.keySlots() : keySlots();
 	}
 
 	/** The ability on key slot {@code slot} (0-based), or null. */
 	public Ability slot(int slot) {
-		var slots = keySlots();
+		return slot(slot, null);
+	}
+
+	public Ability slot(int slot, Branch branch) {
+		var slots = keySlots(branch);
 		return slot >= 0 && slot < slots.size() ? slots.get(slot) : null;
 	}
 
@@ -103,16 +119,35 @@ public enum AuraType {
 			case EARTH -> java.util.List.of(THUNDER);
 			case LIGHT -> java.util.List.of(SHADOW);
 			case BLOOD -> java.util.List.of(VERDANT);
-			case VOID -> java.util.List.of(LIGHT, WIND);
 			default -> java.util.List.of();
 		};
 	}
 
+	/** The auras this one is strong against with a branch (Dark plays the old Void matchups). */
+	public java.util.List<AuraType> strongAgainst(Branch branch) {
+		return branch != null && branch.aura == this && branch.strongAgainst() != null ? branch.strongAgainst() : strongAgainst();
+	}
+
 	/** The auras strong against this one. */
 	public java.util.List<AuraType> weakAgainst() {
+		return weakAgainst(null);
+	}
+
+	/** The auras strong against this one with a branch: a kit branch (Dark) has matchups of its own, so nobody counters it as plain Shadow. */
+	public java.util.List<AuraType> weakAgainst(Branch branch) {
 		java.util.List<AuraType> out = new java.util.ArrayList<>();
+		if (branch != null && branch.aura == this && branch.strongAgainst() != null) return out;
 		for (AuraType t : values()) if (t.strongAgainst().contains(this)) out.add(t);
 		return out;
+	}
+
+	/** True if an attacker holding {@code attacker}/{@code attackerBranch} is strong against a victim holding {@code victim}/{@code victimBranch}. */
+	public static boolean beats(AuraType attacker, Branch attackerBranch, AuraType victim, Branch victimBranch) {
+		if (!attacker.strongAgainst(attackerBranch).contains(victim)) return false;
+		// a kit branch (Dark) has matchups of its own: the plain aura's counters (Light beats Shadow) don't reach it
+		boolean victimKit = victimBranch != null && victimBranch.aura == victim && victimBranch.strongAgainst() != null;
+		boolean attackerKit = attackerBranch != null && attackerBranch.aura == attacker && attackerBranch.strongAgainst() != null;
+		return attackerKit || !victimKit;
 	}
 
 	/** Whether /aura roll can land on it (Frost only once FROST_ROLLABLE is on). */
@@ -125,7 +160,6 @@ public enum AuraType {
 			case EARTH -> com.toast.aurapoints.config.AuraConfig.EARTH_ROLLABLE;
 			case LIGHT -> com.toast.aurapoints.config.AuraConfig.LIGHT_ROLLABLE;
 			case BLOOD -> com.toast.aurapoints.config.AuraConfig.BLOOD_ROLLABLE;
-			case VOID -> com.toast.aurapoints.config.AuraConfig.VOID_ROLLABLE;
 			case SHADOW -> com.toast.aurapoints.config.AuraConfig.SHADOW_ROLLABLE;
 			case WATER -> com.toast.aurapoints.config.AuraConfig.WATER_ROLLABLE;
 			case FIRE -> com.toast.aurapoints.config.AuraConfig.FIRE_ROLLABLE;

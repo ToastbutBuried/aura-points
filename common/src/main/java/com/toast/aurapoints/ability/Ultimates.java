@@ -74,14 +74,20 @@ public final class Ultimates {
 			case EARTH -> Ability.TECTONIC_RIFT;
 			case LIGHT -> Ability.SUNBURST;
 			case BLOOD -> Ability.BLOOD_MOON;
-			case VOID -> Ability.SINGULARITY;
 			default -> null;
 		};
+	}
+
+	/** The Ultimate for an aura with a branch (Dark swaps Eclipse for Singularity). */
+	public static Ability of(AuraType aura, Branch branch) {
+		if (aura != null && branch != null && branch.aura == aura && branch.ultimate() != null) return branch.ultimate();
+		return of(aura);
 	}
 
 	/** The aura an Ultimate belongs to, or null if it isn't one. */
 	public static AuraType auraOf(Ability ability) {
 		for (AuraType aura : AuraType.values()) if (of(aura) == ability) return aura;
+		for (Branch b : Branch.values()) if (b.ultimate() == ability) return b.aura;
 		return null;
 	}
 
@@ -132,7 +138,7 @@ public final class Ultimates {
 		MinecraftServer server = player.getServer();
 		if (server == null) return;
 		AuraPlayerData data = AuraState.get(server).getOrCreate(player.getUUID());
-		Ability ult = of(data.aura);
+		Ability ult = of(data.aura, Branch.current(data));
 		if (ult == null) return;
 		if (!data.awakened.contains(data.aura)) {
 			player.displayClientMessage(Component.literal("Your aura isn't awakened yet - complete its Awakening in the quest book (needs Mastery V).")
@@ -1169,7 +1175,7 @@ public final class Ultimates {
 	/** Lifted into a beam of the aura's light, the Ultimate's name in the sky, then set down again. */
 	private static void ceremony(ServerPlayer player, AuraType aura) {
 		MinecraftServer server = player.getServer();
-		Ability ult = of(aura);
+		Ability ult = of(aura, Branch.current(player));
 		hold(player);
 		AuraFx.helix(player, AuraFx.dust(aura.rgb, 1.6f), 60, 1.1, 3.0);
 		AuraFx.helix(player, AuraFx.dust(0xFFC83D, 1.3f), 60, 1.5, 3.2);

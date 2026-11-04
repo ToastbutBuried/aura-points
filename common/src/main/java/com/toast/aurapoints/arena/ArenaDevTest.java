@@ -89,7 +89,7 @@ public final class ArenaDevTest {
 			Match.Mode mode = Match.Mode.byId(com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "mode"));
 			if (arena == null || mode == null) return 0;
 			int n = mode == Match.Mode.TEAMS ? 4 : mode == Match.Mode.FFA ? 3 : 2;
-			AuraType[] auras = {AuraType.FIRE, AuraType.FROST, AuraType.WIND, AuraType.VOID};
+			AuraType[] auras = {AuraType.FIRE, AuraType.FROST, AuraType.WIND, AuraType.SHADOW};
 			net.minecraft.server.level.ServerPlayer[] ps = new net.minecraft.server.level.ServerPlayer[n];
 			AuraState state = AuraState.get(server);
 			for (int i = 0; i < n; i++) {

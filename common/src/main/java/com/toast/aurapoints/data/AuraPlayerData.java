@@ -171,8 +171,26 @@ public class AuraPlayerData {
 		return nbt;
 	}
 
+	/**
+	 * Void was an aura until 5.10.0 and is Shadow's Dark branch now: old saves read it as Shadow (voidSeen is set so the
+	 * caller can hand out the branch). Null for an aura that no longer exists.
+	 */
+	private static AuraType parseAura(String name, boolean[] voidSeen) {
+		if (name.equals("VOID")) {
+			voidSeen[0] = true;
+			return AuraType.SHADOW;
+		}
+		try {
+			return AuraType.valueOf(name);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
+
 	public static AuraPlayerData readNbt(CompoundTag nbt) {
 		AuraPlayerData data = new AuraPlayerData();
+		boolean[] voidAura = {false}; // the held aura was Void
+		boolean[] voidAny = {false};
 		data.freeRollUsed = nbt.getBoolean("freeRollUsed");
 		data.skillPointsBought = nbt.getInt("skillPointsBought");
 		data.pvpUnlocked = nbt.getBoolean("pvpUnlocked");
@@ -201,20 +219,14 @@ public class AuraPlayerData {
 		data.trainingCooldowns = nbt.getBoolean("trainingCooldowns");
 		var awakenedList = nbt.getList("awakened", net.minecraft.nbt.Tag.TAG_STRING);
 		for (int i = 0; i < awakenedList.size(); i++) {
-			try {
-				data.awakened.add(AuraType.valueOf(awakenedList.getString(i)));
-			} catch (IllegalArgumentException ignored) {
-				// aura no longer exists
-			}
+			AuraType a = parseAura(awakenedList.getString(i), voidAny);
+			if (a != null) data.awakened.add(a); // Void's awakening is Shadow's now
 		}
 		CompoundTag masteryTag = nbt.getCompound("mastery");
 		for (String key : masteryTag.getAllKeys()) {
-			try {
-				int level = masteryTag.getInt(key);
-				if (level > 0) data.mastery.put(AuraType.valueOf(key), Math.min(5, level));
-			} catch (IllegalArgumentException ignored) {
-				// aura no longer exists
-			}
+			int level = masteryTag.getInt(key);
+			AuraType a = parseAura(key, voidAny);
+			if (a != null && level > 0) data.mastery.merge(a, Math.min(5, level), Math::max);
 		}
 		var cosmeticList = nbt.getList("cosmetics", net.minecraft.nbt.Tag.TAG_STRING);
 		for (int i = 0; i < cosmeticList.size(); i++) data.cosmetics.add(cosmeticList.getString(i));
@@ -251,23 +263,18 @@ public class AuraPlayerData {
 		}
 		var rolledList = nbt.getList("rolled", net.minecraft.nbt.Tag.TAG_STRING);
 		for (int i = 0; i < rolledList.size(); i++) {
-			try {
-				data.rolled.add(AuraType.valueOf(rolledList.getString(i)));
-			} catch (IllegalArgumentException ignored) {
-			}
+			AuraType a = parseAura(rolledList.getString(i), voidAny);
+			if (a != null) data.rolled.add(a);
 		}
-		if (nbt.contains("arenaRealAura")) {
-			try {
-				data.arenaRealAura = AuraType.valueOf(nbt.getString("arenaRealAura"));
-			} catch (IllegalArgumentException ignored) {
-			}
-		}
+		if (nbt.contains("arenaRealAura")) data.arenaRealAura = parseAura(nbt.getString("arenaRealAura"), voidAny);
 		if (nbt.contains("aura")) {
-			try {
-				data.aura = AuraType.valueOf(nbt.getString("aura"));
-			} catch (IllegalArgumentException ignored) {
-				// aura no longer exists - the player rolls again
-			}
+			data.aura = parseAura(nbt.getString("aura"), voidAura); // null: the aura no longer exists, the player rolls again
+		}
+		// Void -> Shadow Dark: a player who held Void keeps its kit (Shadow Mastery V is the price of the branch, so it is granted)
+		if (voidAura[0]) {
+			data.branches.put(AuraType.SHADOW, com.toast.aurapoints.ability.Branch.DARK);
+			data.mastery.merge(AuraType.SHADOW, 5, Math::max);
+			data.rolled.add(AuraType.SHADOW);
 		}
 		return data;
 	}

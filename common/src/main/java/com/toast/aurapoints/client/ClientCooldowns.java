@@ -86,7 +86,7 @@ public final class ClientCooldowns {
 		boolean whole = shell == null || (shell.layers() >= Math.max(1, shell.maxLayers()) && shell.top() >= 0.999f);
 		if (whole && !shellWasWhole) {
 			shellWholeAt = now;
-			if (aura != null && aura.has(Ability.ICE_SHELL)) ClientSounds.readyChime(aura);
+			if (aura != null && aura.has(Ability.ICE_SHELL, ClientAuraState.branch)) ClientSounds.readyChime(aura);
 		}
 		shellWasWhole = whole;
 	}
@@ -108,7 +108,7 @@ public final class ClientCooldowns {
 			readyAt.put(a, now);
 			if (slot == null) TICKED.remove(a);
 			// only for abilities this aura shows; leftovers from an old aura stay quiet
-			if (aura != null && aura.has(a)) ClientSounds.readyChime(aura);
+			if (aura != null && aura.has(a, ClientAuraState.branch)) ClientSounds.readyChime(aura);
 		}
 	}
 
@@ -117,7 +117,7 @@ public final class ClientCooldowns {
 		AuraType aura = ClientAuraState.aura;
 		Minecraft mc = Minecraft.getInstance();
 		if (aura == null || mc.player == null) return;
-		Ability ability = aura.slot(index);
+		Ability ability = aura.slot(index, ClientAuraState.branch);
 		if (ability == null || !ClientAuraState.isOwned(ability) || ClientAuraState.isDisabled(ability)) return;
 		boolean flight = mc.player.isFallFlying() && ClientAuraState.hasFlightVersion(ability);
 		long[] cd = ClientAuraState.cooldown(ability, flight ? AuraAbilities.Slot.FLIGHT : null);

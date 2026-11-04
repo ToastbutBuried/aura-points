@@ -143,7 +143,7 @@ public final class AuraStats {
 	}
 
 	/** The auras whose trials are a plain use count per active ("aurapoints:pillar_lift_uses" ...), fed by AuraHooks.abilityUsed. */
-	private static final java.util.Set<AuraType> USE_COUNTED = java.util.EnumSet.of(AuraType.RESONANCE, AuraType.EARTH, AuraType.LIGHT, AuraType.BLOOD, AuraType.VOID);
+	private static final java.util.Set<AuraType> USE_COUNTED = java.util.EnumSet.of(AuraType.RESONANCE, AuraType.EARTH, AuraType.LIGHT, AuraType.BLOOD);
 	private static final java.util.Map<AuraAbilities.Ability, ResourceLocation> USES = new java.util.EnumMap<>(AuraAbilities.Ability.class);
 
 	static {

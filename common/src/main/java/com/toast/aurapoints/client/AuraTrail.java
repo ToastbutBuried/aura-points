@@ -32,8 +32,7 @@ public final class AuraTrail {
 
 	private static final DustParticleOptions SHADOW = dust(0x5A2A8C, 1.0f), WATER = dust(0x5FC8FF, 0.8f), FIRE = dust(0xFF8A2A, 0.7f),
 			WIND = dust(0xF4FBFF, 0.7f), FROST = dust(0xBDEBFF, 0.8f), VERDANT = dust(0x7CD957, 0.9f), THUNDER = dust(0xFFE347, 0.6f),
-			RESONANCE = dust(0xB01CE0, 0.8f), EARTH = dust(0x9A7148, 1.0f), LIGHT = dust(0xFFF1C2, 0.7f), BLOOD = dust(0xB0121B, 0.8f),
-			VOID = dust(0x4B1C8C, 1.0f);
+			RESONANCE = dust(0xB01CE0, 0.8f), EARTH = dust(0x9A7148, 1.0f), LIGHT = dust(0xFFF1C2, 0.7f), BLOOD = dust(0xB0121B, 0.8f);
 
 	@SubscribeEvent
 	public static void onClientTick(ClientTickEvent.Post event) {
@@ -100,10 +99,6 @@ public final class AuraTrail {
 			case BLOOD -> {
 				level.addParticle(BLOOD, x, y, z, 0, 0, 0);
 				if (r.nextInt(4) == 0) level.addParticle(ParticleTypes.DRIPPING_DRIPSTONE_LAVA, x, y + 0.3, z, 0, 0, 0);
-			}
-			case VOID -> {
-				level.addParticle(VOID, x, y + 0.1, z, 0, 0, 0);
-				if (r.nextInt(3) == 0) level.addParticle(ParticleTypes.REVERSE_PORTAL, x, y + 0.1, z, 0, 0.01, 0);
 			}
 		}
 	}

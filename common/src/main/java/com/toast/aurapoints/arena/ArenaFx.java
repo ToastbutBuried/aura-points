@@ -241,7 +241,6 @@ public final class ArenaFx {
 			case EARTH -> 8;
 			case LIGHT -> 9;
 			case BLOOD -> 10;
-			case VOID -> 11;
 		};
 	}
 

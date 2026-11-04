@@ -271,6 +271,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.FireBending.tickShots(server);
 			com.toast.aurapoints.ability.AuraFire.tick(server);
 			com.toast.aurapoints.ability.MagmaPools.tickAll(server);
+			com.toast.aurapoints.ability.PhantomDecoy.tickAll(server);
 			com.toast.aurapoints.ability.Stun.tick(server);
 			com.toast.aurapoints.ability.WindLaunch.tick(server);
 			com.toast.aurapoints.ability.IceSpike.tickAll(server);
@@ -454,10 +455,12 @@ public class AuraPoints {
 			if (victim instanceof ServerPlayer victimPlayer && victimPlayer != attacker && attackerData.aura != null && event.getAmount() > 0) {
 				AuraPlayerData victimData = AuraState.get(server).getOrCreate(victimPlayer.getUUID());
 				if (victimData.aura != null) {
-					if (attackerData.aura.strongAgainst().contains(victimData.aura)) {
+					var attackerBranch = com.toast.aurapoints.ability.Branch.current(attackerData);
+					var victimBranch = com.toast.aurapoints.ability.Branch.current(victimData);
+					if (com.toast.aurapoints.ability.AuraType.beats(attackerData.aura, attackerBranch, victimData.aura, victimBranch)) {
 						event.setAmount((float) (event.getAmount() * AuraConfig.AURA_EFFECTIVE_MULTIPLIER));
 						AuraAbilities.effectiveFx(attacker, victimPlayer, attackerData.aura);
-					} else if (victimData.aura.strongAgainst().contains(attackerData.aura)) {
+					} else if (com.toast.aurapoints.ability.AuraType.beats(victimData.aura, victimBranch, attackerData.aura, attackerBranch)) {
 						event.setAmount((float) (event.getAmount() * AuraConfig.AURA_RESISTED_MULTIPLIER));
 					}
 				}

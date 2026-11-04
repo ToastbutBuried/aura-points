@@ -61,7 +61,7 @@ public final class AuraCommand {
 		if (player != null) {
 			AuraPlayerData data = AuraState.get(context.getSource().getServer()).getOrCreate(player.getUUID());
 			if (data.aura != null) {
-				for (AuraAbilities.Ability a : data.aura.abilities) if (a.active && !data.owned.contains(a)) builder.suggest(a.name().toLowerCase(java.util.Locale.ROOT));
+				for (AuraAbilities.Ability a : data.aura.abilities(com.toast.aurapoints.ability.Branch.current(data))) if (a.active && !data.owned.contains(a)) builder.suggest(a.name().toLowerCase(java.util.Locale.ROOT));
 			}
 		}
 		return builder.buildFuture();
@@ -265,7 +265,7 @@ public final class AuraCommand {
 	/** With {@code data}: actives the player hasn't bought yet are marked. */
 	private static String names(AuraType aura, boolean active, AuraPlayerData data) {
 		StringBuilder out = new StringBuilder();
-		List<AuraAbilities.Ability> all = new ArrayList<>(aura.abilities);
+		List<AuraAbilities.Ability> all = new ArrayList<>(aura.abilities(data == null ? null : com.toast.aurapoints.ability.Branch.current(data)));
 		all.addAll(AuraType.GLOBAL);
 		for (AuraAbilities.Ability ability : all) {
 			if (ability.active != active) continue;
@@ -394,7 +394,6 @@ public final class AuraCommand {
 			case EARTH -> "Immovable: raise pillars, tear boulders out of the ground and make it heave under your enemies.";
 			case LIGHT -> "Radiance: heal everyone around you, blind your enemies and burn them with a beam of pure light.";
 			case BLOOD -> "Hunger: cut them open, drain them dry, and spend your own blood for the hits that count.";
-			case VOID -> "Nothingness: pull them in, step through space and silence their auras.";
 		};
 	}
 
@@ -413,6 +412,7 @@ public final class AuraCommand {
 			return 1;
 		}
 		boolean mine = data != null && data.aura == aura;
+		com.toast.aurapoints.ability.Branch br = mine ? com.toast.aurapoints.ability.Branch.current(data) : null;
 		int accent = com.toast.aurapoints.ability.AuraLabel.accent(aura);
 
 		source.sendSystemMessage(Component.literal(""));
@@ -421,22 +421,22 @@ public final class AuraCommand {
 				.append(Component.literal(" ━━━━").withStyle(style -> style.withColor(accent))));
 		source.sendSystemMessage(Component.literal(role(aura)).withStyle(ChatFormatting.ITALIC, ChatFormatting.GRAY));
 		if (!aura.rollable()) source.sendSystemMessage(Component.literal("Not in /aura roll yet.").withStyle(ChatFormatting.DARK_GRAY));
-		if (!aura.strongAgainst().isEmpty() || !aura.weakAgainst().isEmpty()) {
+		if (!aura.strongAgainst(br).isEmpty() || !aura.weakAgainst(br).isEmpty()) {
 			MutableComponent matchups = Component.empty();
-			if (!aura.strongAgainst().isEmpty()) {
+			if (!aura.strongAgainst(br).isEmpty()) {
 				matchups.append(Component.literal("Strong against ").withStyle(ChatFormatting.GREEN));
-				for (AuraType t : aura.strongAgainst()) matchups.append(com.toast.aurapoints.ability.AuraLabel.of(t)).append(Component.literal(" "));
+				for (AuraType t : aura.strongAgainst(br)) matchups.append(com.toast.aurapoints.ability.AuraLabel.of(t)).append(Component.literal(" "));
 				matchups.append(Component.literal("(+" + Math.round((AuraConfig.AURA_EFFECTIVE_MULTIPLIER - 1) * 100) + "% damage)  ").withStyle(ChatFormatting.DARK_GRAY));
 			}
-			if (!aura.weakAgainst().isEmpty()) {
+			if (!aura.weakAgainst(br).isEmpty()) {
 				matchups.append(Component.literal("Weak against ").withStyle(ChatFormatting.RED));
-				for (AuraType t : aura.weakAgainst()) matchups.append(com.toast.aurapoints.ability.AuraLabel.of(t)).append(Component.literal(" "));
+				for (AuraType t : aura.weakAgainst(br)) matchups.append(com.toast.aurapoints.ability.AuraLabel.of(t)).append(Component.literal(" "));
 			}
 			source.sendSystemMessage(matchups);
 		}
 
 		List<AuraAbilities.Ability> actives = new ArrayList<>(), passives = new ArrayList<>();
-		for (AuraAbilities.Ability a : aura.abilities) (a.active ? actives : passives).add(a);
+		for (AuraAbilities.Ability a : aura.abilities(br)) (a.active ? actives : passives).add(a);
 		passives.addAll(AuraType.GLOBAL);
 
 		if (!actives.isEmpty()) {
@@ -445,7 +445,7 @@ public final class AuraCommand {
 			for (AuraAbilities.Ability a : actives) {
 				MutableComponent line = Component.literal(" • ").withStyle(style -> style.withColor(accent))
 						.append(Component.literal(a.displayName).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD));
-				int slot = aura.keySlots().indexOf(a);
+				int slot = aura.keySlots(br).indexOf(a);
 				line.append(Component.literal(slot >= 0 ? "  [Ability " + (slot + 1) + " key]" : "  [jump key]").withStyle(ChatFormatting.DARK_AQUA));
 				if (AuraAbilities.DISABLED.contains(a)) {
 					line.append(Component.literal("  switched off").withStyle(ChatFormatting.RED));
@@ -701,7 +701,7 @@ public final class AuraCommand {
 	public static int nextShopPrice(AuraPlayerData data) {
 		int owned = 0;
 		if (data.aura != null) {
-			for (AuraAbilities.Ability a : data.aura.abilities) if (a.active && data.owned.contains(a)) owned++;
+			for (AuraAbilities.Ability a : data.aura.abilities(com.toast.aurapoints.ability.Branch.current(data))) if (a.active && data.owned.contains(a)) owned++;
 		}
 		return AuraConfig.SHOP_BASE_PRICE + owned * AuraConfig.SHOP_PRICE_STEP;
 	}
@@ -723,7 +723,7 @@ public final class AuraCommand {
 		player.sendSystemMessage(Component.literal("=== Ability Shop: ").withStyle(ChatFormatting.GOLD)
 				.append(Component.literal(data.aura.displayName).withStyle(data.aura.color, ChatFormatting.BOLD))
 				.append(Component.literal(" ===").withStyle(ChatFormatting.GOLD)));
-		for (AuraAbilities.Ability ability : data.aura.abilities) {
+		for (AuraAbilities.Ability ability : data.aura.abilities(com.toast.aurapoints.ability.Branch.current(data))) {
 			if (!ability.active) continue;
 			MutableComponent line = Component.literal("- " + ability.displayName).withStyle(ChatFormatting.AQUA);
 			if (data.owned.contains(ability)) {
@@ -766,7 +766,7 @@ public final class AuraCommand {
 			source.sendFailure(Component.literal("Unknown ability. Use /aura shop."));
 			return 0;
 		}
-		if (data.aura == null || !data.aura.abilities.contains(ability) || !ability.active) {
+		if (data.aura == null || !data.aura.abilities(com.toast.aurapoints.ability.Branch.current(data)).contains(ability) || !ability.active) {
 			source.sendFailure(Component.literal(ability.displayName + " isn't an active ability of your aura. Use /aura shop."));
 			return 0;
 		}
@@ -1109,7 +1109,7 @@ public final class AuraCommand {
 			case FROST -> com.toast.aurapoints.AuraPoints.ABSOLUTE_ZERO;
 			case VERDANT -> com.toast.aurapoints.AuraPoints.WORLD_TREE_BOW;
 			case THUNDER -> com.toast.aurapoints.AuraPoints.ZEUS_GAUNTLETS;
-			case RESONANCE, EARTH, LIGHT, BLOOD, VOID -> null;
+			case RESONANCE, EARTH, LIGHT, BLOOD -> null;
 		});
 	}
 

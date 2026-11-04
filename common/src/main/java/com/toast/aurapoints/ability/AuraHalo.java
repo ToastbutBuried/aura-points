@@ -47,8 +47,6 @@ public final class AuraHalo {
 					AuraFx.dust(0xFFD966, 0.65f), 0.15);
 			case BLOOD -> new Style(0xB0121B, 0x4A0008, null, Blood.DROPS, 0.2,
 					AuraFx.dust(0x8B0A14, 0.7f), 0.08);
-			case VOID -> new Style(0x2A0A4A, 0x7A2BD6, ParticleTypes.REVERSE_PORTAL, ParticleTypes.REVERSE_PORTAL, 0.25,
-					AuraFx.dust(0x1A0630, 0.75f), -0.1);
 		};
 	}
 

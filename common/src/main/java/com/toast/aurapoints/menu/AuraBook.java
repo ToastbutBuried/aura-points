@@ -189,7 +189,6 @@ public final class AuraBook {
 			case EARTH -> Items.MOSSY_COBBLESTONE;
 			case LIGHT -> Items.GLOWSTONE_DUST;
 			case BLOOD -> Items.REDSTONE;
-			case VOID -> Items.ENDER_PEARL;
 		};
 	}
 
@@ -419,12 +418,12 @@ public final class AuraBook {
 			Tutorial.visited(player, data, Tutorial.Step.AURA);
 		}
 
-		private static List<AuraAbilities.Ability> actives(AuraType aura) {
-			return aura.abilities.stream().filter(a -> a.active).toList();
+		private static List<AuraAbilities.Ability> actives(AuraType aura, com.toast.aurapoints.ability.Branch branch) {
+			return aura.abilities(branch).stream().filter(a -> a.active).toList();
 		}
 
-		private static List<AuraAbilities.Ability> passives(AuraType aura) {
-			List<AuraAbilities.Ability> out = new ArrayList<>(aura.abilities.stream().filter(a -> !a.active).toList());
+		private static List<AuraAbilities.Ability> passives(AuraType aura, com.toast.aurapoints.ability.Branch branch) {
+			List<AuraAbilities.Ability> out = new ArrayList<>(aura.abilities(branch).stream().filter(a -> !a.active).toList());
 			out.addAll(AuraType.GLOBAL);
 			return out;
 		}
@@ -434,12 +433,13 @@ public final class AuraBook {
 			AuraType aura = data.aura;
 			bar(slots, true);
 			if (aura == null) return;
+			com.toast.aurapoints.ability.Branch branch = com.toast.aurapoints.ability.Branch.current(data);
 			List<Component> head = new ArrayList<>(wrap(AuraCommand.role(aura), 36, ChatFormatting.GRAY));
-			if (!aura.strongAgainst().isEmpty()) {
-				head.add(text("Strong against: " + String.join(", ", aura.strongAgainst().stream().map(t -> t.displayName).toList()), ChatFormatting.GREEN));
+			if (!aura.strongAgainst(branch).isEmpty()) {
+				head.add(text("Strong against: " + String.join(", ", aura.strongAgainst(branch).stream().map(t -> t.displayName).toList()), ChatFormatting.GREEN));
 			}
-			if (!aura.weakAgainst().isEmpty()) {
-				head.add(text("Weak against: " + String.join(", ", aura.weakAgainst().stream().map(t -> t.displayName).toList()), ChatFormatting.RED));
+			if (!aura.weakAgainst(branch).isEmpty()) {
+				head.add(text("Weak against: " + String.join(", ", aura.weakAgainst(branch).stream().map(t -> t.displayName).toList()), ChatFormatting.RED));
 			}
 			head.add(text("Aura: " + AuraCurrency.get(player), ChatFormatting.LIGHT_PURPLE));
 			slots[4] = icon(auraIcon(aura), auraName(aura), head, data.awakened.contains(aura));
@@ -454,13 +454,13 @@ public final class AuraBook {
 
 			slots[10] = icon(Items.BLAZE_ROD, text("Actives", ChatFormatting.GOLD), List.of(
 					text("Bought once, used with your keys.", ChatFormatting.GRAY)), false);
-			List<AuraAbilities.Ability> actives = actives(aura);
+			List<AuraAbilities.Ability> actives = actives(aura, branch);
 			int price = AuraCommand.nextShopPrice(data);
 			for (int i = 0; i < actives.size() && i < ACTIVE_SLOTS.length; i++) {
 				AuraAbilities.Ability a = actives.get(i);
 				boolean owned = data.owned.contains(a), off = AuraAbilities.DISABLED.contains(a);
 				List<Component> lore = new ArrayList<>(wrap(a.description(), 38, ChatFormatting.GRAY));
-				int key = aura.keySlots().indexOf(a);
+				int key = aura.keySlots(branch).indexOf(a);
 				lore.add(text(key >= 0 ? "Key: Ability " + (key + 1) : "Key: jump", ChatFormatting.DARK_AQUA));
 				if (a.cooldownTicks() > 0) lore.add(text("Cooldown: " + AuraAbilities.fmt(a.cooldownTicks() / 20f) + "s", ChatFormatting.DARK_GRAY));
 				if (off) lore.add(text("Switched off on this server", ChatFormatting.RED));
@@ -471,7 +471,7 @@ public final class AuraBook {
 			}
 			slots[28] = icon(Items.GLOWSTONE_DUST, text("Passives", ChatFormatting.AQUA), List.of(
 					text("Always on, free.", ChatFormatting.GRAY)), false);
-			List<AuraAbilities.Ability> passives = passives(aura);
+			List<AuraAbilities.Ability> passives = passives(aura, branch);
 			for (int i = 0; i < passives.size() && i < PASSIVE_SLOTS.length; i++) {
 				AuraAbilities.Ability a = passives.get(i);
 				List<Component> lore = new ArrayList<>(wrap(a.description(), 38, ChatFormatting.GRAY));
@@ -494,7 +494,7 @@ public final class AuraBook {
 				open(player, new BranchPage());
 				return;
 			}
-			List<AuraAbilities.Ability> actives = actives(data.aura);
+			List<AuraAbilities.Ability> actives = actives(data.aura, com.toast.aurapoints.ability.Branch.current(data));
 			for (int i = 0; i < actives.size() && i < ACTIVE_SLOTS.length; i++) {
 				AuraAbilities.Ability a = actives.get(i);
 				if (ACTIVE_SLOTS[i] == slot && !data.owned.contains(a) && !AuraAbilities.DISABLED.contains(a)) {

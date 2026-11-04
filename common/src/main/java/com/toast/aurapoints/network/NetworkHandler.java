@@ -28,7 +28,7 @@ public final class NetworkHandler {
 
 	@SubscribeEvent
 	public static void register(RegisterPayloadHandlersEvent event) {
-		PayloadRegistrar registrar = event.registrar("42");
+		PayloadRegistrar registrar = event.registrar("43");
 		registrar.playToServer(
 				AbilityKeyPacket.TYPE,
 				AbilityKeyPacket.STREAM_CODEC,
@@ -197,7 +197,7 @@ public final class NetworkHandler {
 
 	/** Tells the player's HUD which aura they hold now (call whenever it changes, and on login). */
 	public static void syncAura(ServerPlayer player, AuraPlayerData data) {
-		PacketDistributor.sendToPlayer(player, new AuraHudPacket(data.aura == null ? "" : data.aura.id()));
+		PacketDistributor.sendToPlayer(player, new AuraHudPacket(com.toast.aurapoints.ability.Branch.wire(data.aura, com.toast.aurapoints.ability.Branch.current(data))));
 		com.toast.aurapoints.AuraHooks.syncAura(player, data);
 		sendBloodBar(player, data.bloodBar);
 		// and the label over their name, for them and everyone who sees them
@@ -224,7 +224,7 @@ public final class NetworkHandler {
 			names.append(a.name());
 		}
 		// the Ultimate of an awakened aura shows on the HUD like an owned ability
-		AuraAbilities.Ability ult = com.toast.aurapoints.ability.Ultimates.of(data.aura);
+		AuraAbilities.Ability ult = com.toast.aurapoints.ability.Ultimates.of(data.aura, com.toast.aurapoints.ability.Branch.current(data));
 		if (ult != null && data.awakened.contains(data.aura)) {
 			if (!names.isEmpty()) names.append(',');
 			names.append(ult.name());
@@ -436,7 +436,7 @@ public final class NetworkHandler {
 			AuraAbilities.Ability[] held = HELD_SLOTS.computeIfAbsent(player.getUUID(), k -> new AuraAbilities.Ability[slots]);
 			AuraAbilities.Ability ability;
 			if (packet.down()) {
-				ability = data.aura == null ? null : data.aura.slot(packet.key());
+				ability = data.aura == null ? null : data.aura.slot(packet.key(), com.toast.aurapoints.ability.Branch.current(data));
 				held[packet.key()] = ability;
 			} else {
 				ability = held[packet.key()];
@@ -466,7 +466,7 @@ public final class NetworkHandler {
 					return;
 				}
 				// Your aura has it, you just haven't bought it: say so instead of doing nothing.
-				if (packet.down() && data.aura != null && data.aura.has(ability) && !AuraAbilities.DISABLED.contains(ability)) {
+				if (packet.down() && data.aura != null && data.aura.has(ability, com.toast.aurapoints.ability.Branch.current(data)) && !AuraAbilities.DISABLED.contains(ability)) {
 					player.displayClientMessage(net.minecraft.network.chat.Component.literal(
 							"You don't own " + ability.displayName + " yet - buy it in /aura shop")
 							.withStyle(net.minecraft.ChatFormatting.YELLOW), true);

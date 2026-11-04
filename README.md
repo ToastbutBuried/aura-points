@@ -3,8 +3,9 @@
 A Minecraft 1.21.1 mod (NeoForge and Fabric) about elemental auras. Roll one of 12 auras, buy its abilities, level them up, and test
 yourself in a built-in arena.
 
-**Auras:** Shadow, Water, Fire, Wind, Frost, Verdant, Thunder, Resonance, Earth, Light, Blood, Void. Each has
-active abilities on rebindable keys, passives, an awakenable Ultimate and a Mastery level.
+**Auras:** Shadow, Water, Fire, Wind, Frost, Verdant, Thunder, Resonance, Earth, Light, Blood. Each has
+active abilities on rebindable keys, passives, an awakenable Ultimate and a Mastery level. At Mastery V an aura
+can pick one of two branches (Fire: Blue Flame or Magma, Shadow: Phantom or Dark, the former Void aura) that bend its kit.
 
 ## Features
 - **Aura Book**: every player gets one. Right-click it for your aura and abilities (buy them there), rolling,

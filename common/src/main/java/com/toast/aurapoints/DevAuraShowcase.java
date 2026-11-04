@@ -134,7 +134,7 @@ public final class DevAuraShowcase {
 				Ultimates.press(player, server.getTickCount());
 			}, 0, 10, 40, 100, 190, 240));
 		}
-		if (aura == AuraType.VOID) {
+		if (aura == AuraType.SHADOW && Boolean.getBoolean("aurapoints.showcasedark")) { // the Void kit steps (Dark branch): run with the Dark pick set
 			steps.add(new Step("pull", 0f, 6f, -35f, () -> press(player, Ability.VOID_PULL), 0, 2, 5, 9, 16));
 			steps.add(new Step("riftstep", 0f, 5f, 150f, () -> press(player, Ability.RIFT_STEP), 0, 4, 12, 40));
 			steps.add(new Step("orb", 0f, 6f, -35f, () -> press(player, Ability.NULL_ORB), 0, 5, 10, 15, 19));

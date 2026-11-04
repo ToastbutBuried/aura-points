@@ -186,12 +186,6 @@ public final class HudParticles {
 			// drops of blood running down off the bottom edge
 			case BLOOD -> add(ex, bottom, 0, 8 + RANDOM.nextFloat() * 8, 0.9f + RANDOM.nextFloat() * 0.5f, 1 + RANDOM.nextInt(2),
 					RANDOM.nextBoolean() ? 0x6A0410 : rgb, 0);
-			// specks drawn in from the edges toward the middle
-			case VOID -> {
-				float[] pt = onFrame(left, top, right, bottom);
-				float cx = (left + right) / 2f, cy = (top + bottom) / 2f;
-				add(pt[0], pt[1], (cx - pt[0]) * 0.8f, (cy - pt[1]) * 0.8f, 0.8f + RANDOM.nextFloat() * 0.4f, 1, RANDOM.nextBoolean() ? 0x1A0630 : rgb, 0);
-			}
 		}
 	}
 

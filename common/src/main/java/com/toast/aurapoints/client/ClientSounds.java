@@ -57,7 +57,6 @@ public final class ClientSounds {
 			case EARTH -> net.minecraft.sounds.SoundEvents.BASALT_PLACE;
 			case LIGHT -> net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME;
 			case BLOOD -> net.minecraft.sounds.SoundEvents.WARDEN_HEARTBEAT;
-			case VOID -> net.minecraft.sounds.SoundEvents.ENDER_EYE_DEATH;
 		};
 		if (voice != null) ui(voice, 1.0f, 1.0f);
 	}

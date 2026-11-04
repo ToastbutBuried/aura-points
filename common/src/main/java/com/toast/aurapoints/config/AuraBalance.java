@@ -55,7 +55,7 @@ public final class AuraBalance {
 	static {
 		// Wind's Dash Dive before the shared DASH_ prefix
 		for (String p : List.of("WIND_ROLLABLE", "DASH_DIVE_", "DOUBLE_JUMP_", "SUPER_WIND_CHARGE_", "GALE_RIDER_", "FEATHERFALL_", "WIND_LAUNCH_", "AIR_BENDING_")) PREFIXES.put(p, "wind");
-		for (String p : List.of("VANISH_", "SHADOW_", "PHANTOM_STEP_", "BLOODRUSH_")) PREFIXES.put(p, "shadow");
+		for (String p : List.of("VANISH_", "SHADOW_", "PHANTOM_", "BLOODRUSH_")) PREFIXES.put(p, "shadow");
 		for (String p : List.of("WATER_ROLLABLE", "SHOCKWAVE_", "HEALING_TIDE_", "IRON_SKIN_", "FLOW_", "BUBBLE_")) PREFIXES.put(p, "water");
 		for (String p : List.of("FROST_", "ICE_SHELL_", "SHATTER_", "ICE_SPIKE_")) PREFIXES.put(p, "frost");
 		for (String p : List.of("VERDANT_", "VINE_HOOK_", "BLOOM_", "VIRULENCE_", "ENTANGLE_", "VIPER_")) PREFIXES.put(p, "verdant");
@@ -328,7 +328,11 @@ public final class AuraBalance {
 		if (com.toast.aurapoints.ability.Handhelds.auraOf(ability) != null) return "handhelds";
 		// the Ultimates of the auras that started out secret stay in that aura's own file (where they always were)
 		AuraType ultOf = com.toast.aurapoints.ability.Ultimates.auraOf(ability);
-		if (ultOf != null) return java.util.EnumSet.of(AuraType.EARTH, AuraType.LIGHT, AuraType.BLOOD, AuraType.VOID).contains(ultOf) ? ultOf.id() : "ultimates";
+		// Singularity (the Dark branch's Ultimate) stays in the file it always had
+		if (ability == AuraAbilities.Ability.SINGULARITY) return "void";
+		if (ultOf != null) return java.util.EnumSet.of(AuraType.EARTH, AuraType.LIGHT, AuraType.BLOOD).contains(ultOf) ? ultOf.id() : "ultimates";
+		// the Dark branch's own abilities (the former Void aura) stay in the void file
+		if (com.toast.aurapoints.ability.Branch.DARK.abilities().contains(ability) && !AuraType.SHADOW.abilities.contains(ability)) return "void";
 		AuraType only = null;
 		for (AuraType type : AuraType.values()) {
 			if (!type.abilities.contains(ability)) continue;

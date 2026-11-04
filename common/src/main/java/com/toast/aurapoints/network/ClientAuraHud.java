@@ -115,12 +115,12 @@ public final class ClientAuraHud {
 
 	public static List<Ability> shownAbilities(AuraType aura) {
 		List<Ability> out = new ArrayList<>();
-		for (Ability a : aura.abilities) {
+		for (Ability a : aura.abilities(aura == ClientAuraState.aura ? ClientAuraState.branch : null)) {
 			// Ice Shell is a passive, but it has a rebuild timer worth showing
 			if (ICON_ORDER.contains(a) && !ClientAuraState.isDisabled(a) && (ClientAuraState.isOwned(a) || a == Ability.ICE_SHELL)) out.add(a);
 		}
 		// an awakened aura's Ultimate (the server lists it with the owned abilities)
-		Ability ult = com.toast.aurapoints.ability.Ultimates.of(aura);
+		Ability ult = com.toast.aurapoints.ability.Ultimates.of(aura, aura == ClientAuraState.aura ? ClientAuraState.branch : null);
 		if (ult != null && ClientAuraState.isOwned(ult) && !ClientAuraState.isDisabled(ult)) out.add(ult);
 		return out;
 	}
@@ -794,7 +794,7 @@ public final class ClientAuraHud {
 			return name.length() > 8 ? name.substring(0, 8) : name;
 		}
 		AuraType aura = ClientAuraState.aura;
-		int index = aura == null ? -1 : aura.keySlots().indexOf(ability);
+		int index = aura == null ? -1 : aura.keySlots(ClientAuraState.branch).indexOf(ability);
 		if (index < 0) return null;
 		KeyMapping key = ClientKeyHandler.KEYS[index];
 		if (key.isUnbound()) return null;

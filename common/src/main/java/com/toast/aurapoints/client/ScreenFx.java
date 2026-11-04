@@ -377,6 +377,7 @@ public final class ScreenFx {
 
 	/** The aura the hint was last checked for (once per aura per session), and since when it's been held. */
 	private static AuraType warnedFor = null;
+	private static com.toast.aurapoints.ability.Branch warnedBranch = null;
 	private static AuraType pending = null;
 	private static int pendingTicks = 0;
 	/** The Item Use / Secondary / Tertiary keys are checked once per session (they don't depend on the aura). */
@@ -390,21 +391,22 @@ public final class ScreenFx {
 			pending = aura;
 			pendingTicks = 0;
 		}
-		if (!AuraClientConfig.KEYBIND_WARNING.get() || ((aura == null || aura == warnedFor) && itemKeysChecked)) return;
+		if (!AuraClientConfig.KEYBIND_WARNING.get() || ((aura == null || (aura == warnedFor && ClientAuraState.branch == warnedBranch)) && itemKeysChecked)) return;
 		// wait a moment after joining or rolling, and for no screen to be open
 		if (++pendingTicks < 60 || mc.screen != null || mc.player == null) return;
 
 		List<String> problems = new ArrayList<>();
-		if (aura != null && aura != warnedFor) {
+		if (aura != null && (aura != warnedFor || ClientAuraState.branch != warnedBranch)) {
 			warnedFor = aura;
-			List<Ability> slots = aura.keySlots();
+			warnedBranch = ClientAuraState.branch;
+			List<Ability> slots = aura.keySlots(ClientAuraState.branch);
 			for (int i = 0; i < slots.size(); i++) {
 				Ability a = slots.get(i);
 				if (ClientAuraState.isOwned(a) && !ClientAuraState.isDisabled(a))
 					keyProblem(mc, ClientKeyHandler.KEYS[i], "Ability " + (i + 1) + " (" + a.displayName + ")", problems);
 			}
 			// an awakened aura's Ultimate (the server lists it with the owned abilities)
-			Ability ult = com.toast.aurapoints.ability.Ultimates.of(aura);
+			Ability ult = com.toast.aurapoints.ability.Ultimates.of(aura, ClientAuraState.branch);
 			if (ult != null && ClientAuraState.isOwned(ult) && !ClientAuraState.isDisabled(ult))
 				keyProblem(mc, ClientKeyHandler.KEYS[com.toast.aurapoints.network.AbilityKeyPacket.ULTIMATE], "Ultimate (" + ult.displayName + ")", problems);
 		}

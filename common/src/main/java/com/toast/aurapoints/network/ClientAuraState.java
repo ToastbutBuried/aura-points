@@ -239,7 +239,13 @@ public final class ClientAuraState {
 		return slot == null ? COOLDOWNS : EXTRA_COOLDOWNS.get(slot);
 	}
 
-	public static synchronized void setAura(String id) {
+	/** The branch of the held aura (null = base kit), from the HUD packet's "shadow:dark". */
+	public static com.toast.aurapoints.ability.Branch branch = null;
+
+	public static synchronized void setAura(String wire) {
+		int sep = wire.indexOf(':');
+		String id = sep < 0 ? wire : wire.substring(0, sep);
+		branch = sep < 0 ? null : com.toast.aurapoints.ability.Branch.byId(wire.substring(sep + 1));
 		aura = id.isEmpty() ? null : AuraType.byId(id);
 		COOLDOWNS.clear();
 		EXTRA_COOLDOWNS.values().forEach(Map::clear);

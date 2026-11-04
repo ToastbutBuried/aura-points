@@ -34,7 +34,27 @@ public enum Branch {
 							+ AuraAbilities.fmt(AuraConfig.FIRE_MAGMA_POOL_TICKS / 20f) + "s.",
 					"Standing in your own pool gives you Resistance " + (AuraConfig.FIRE_MAGMA_RESISTANCE_AMPLIFIER + 1) + ".",
 					"The pools are fire and heat only: no lava blocks, nothing to clean up.",
-					"Price: Fireball cooldown " + (AuraConfig.FIRE_MAGMA_FIREBALL_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.FIREBALL_COOLDOWN_TICKS / 20) + "s)."));
+					"Price: Fireball cooldown " + (AuraConfig.FIRE_MAGMA_FIREBALL_COOLDOWN_TICKS / 20) + "s (was " + (AuraConfig.FIREBALL_COOLDOWN_TICKS / 20) + "s).")),
+
+	PHANTOM(AuraType.SHADOW, "Phantom", ChatFormatting.LIGHT_PURPLE, "Evasion and tricks",
+			() -> List.of(
+					"Vanish and Dash cooldowns " + Math.round((1 - AuraConfig.PHANTOM_COOLDOWN_FACTOR) * 100) + "% shorter.",
+					"Dash leaves a shadow clone where you started it for " + AuraAbilities.fmt(AuraConfig.PHANTOM_DECOY_TICKS / 20f)
+							+ "s: mobs hunting you lose you.",
+					"Phantom Step keeps you invisible " + Math.round((AuraConfig.PHANTOM_STEP_INVIS_FACTOR - 1) * 100) + "% longer, Vanish Step "
+							+ AuraAbilities.fmt(AuraConfig.PHANTOM_VANISH_STEP_BONUS_TICKS / 20f) + "s longer.")),
+
+	DARK(AuraType.SHADOW, "Dark", ChatFormatting.DARK_PURPLE, "Pull, rift and null",
+			() -> List.of(
+					"Your actives become Void Pull, Rift Step and Null Orb; Dash and Vanish are given up.",
+					"Event Horizon and Entropy come with it, and Singularity replaces Eclipse as your Ultimate.",
+					"You deal more damage to Light and Wind auras. Bloodrush and Nightstalker stay.",
+					"The three Void actives are yours free when you pick it.")) {
+		@Override
+		boolean kit() {
+			return true;
+		}
+	};
 
 	public final AuraType aura;
 	public final String displayName;
@@ -50,6 +70,35 @@ public enum Branch {
 		this.role = role;
 		this.lines = lines;
 	}
+
+	/** True for a branch that replaces the aura's whole kit (Dark); the others bend the base kit. */
+	boolean kit() {
+		return false;
+	}
+
+	/** Dark's own kit: its abilities, key slots (Ability 1-3), Ultimate and matchups. Null lists for kit-less branches. */
+	public List<AuraAbilities.Ability> abilities() {
+		return kit() ? DARK_ABILITIES : null;
+	}
+
+	public List<AuraAbilities.Ability> keySlots() {
+		return kit() ? DARK_KEYS : null;
+	}
+
+	public AuraAbilities.Ability ultimate() {
+		return kit() ? AuraAbilities.Ability.SINGULARITY : null;
+	}
+
+	public List<AuraType> strongAgainst() {
+		return kit() ? List.of(AuraType.LIGHT, AuraType.WIND) : null;
+	}
+
+	private static final List<AuraAbilities.Ability> DARK_ABILITIES = List.of(
+			AuraAbilities.Ability.VOID_PULL, AuraAbilities.Ability.RIFT_STEP, AuraAbilities.Ability.NULL_ORB,
+			AuraAbilities.Ability.EVENT_HORIZON, AuraAbilities.Ability.ENTROPY,
+			AuraAbilities.Ability.BLOODRUSH, AuraAbilities.Ability.NIGHTSTALKER);
+	private static final List<AuraAbilities.Ability> DARK_KEYS = List.of(
+			AuraAbilities.Ability.RIFT_STEP, AuraAbilities.Ability.VOID_PULL, AuraAbilities.Ability.NULL_ORB);
 
 	/** Lowercase id used in commands, e.g. "blue_flame". */
 	public String id() {
@@ -76,6 +125,11 @@ public enum Branch {
 		List<Branch> out = new ArrayList<>();
 		for (Branch b : values()) if (b.aura == aura) out.add(b);
 		return out;
+	}
+
+	/** The aura id plus ":" and the branch id, what the HUD packet carries ("fire", "shadow:dark"). */
+	public static String wire(AuraType aura, Branch branch) {
+		return aura == null ? "" : branch == null ? aura.id() : aura.id() + ":" + branch.id();
 	}
 
 	public static Branch byId(String id) {
@@ -121,6 +175,9 @@ public enum Branch {
 				default -> ticks;
 			};
 			case MAGMA -> ability == AuraAbilities.Ability.FIREBALL ? AuraConfig.FIRE_MAGMA_FIREBALL_COOLDOWN_TICKS : ticks;
+			case PHANTOM -> ability == AuraAbilities.Ability.VANISH || ability == AuraAbilities.Ability.DASH
+					? Math.max(1, (int) Math.round(ticks * AuraConfig.PHANTOM_COOLDOWN_FACTOR)) : ticks;
+			case DARK -> ticks;
 		};
 	}
 
@@ -144,10 +201,13 @@ public enum Branch {
 			}
 		}
 		data.branches.put(data.aura, branch);
+		// a branch with its own kit (Dark) hands over its actives, so the pick is never a shop trip
+		if (branch.kit()) for (AuraAbilities.Ability a : branch.abilities()) if (a.active) data.owned.add(a);
 		state.markDirty();
 		com.toast.aurapoints.network.NetworkHandler.syncAura(player, data);
+		com.toast.aurapoints.network.NetworkHandler.syncOwned(player, data);
 		var level = player.serverLevel();
-		AuraFx.ring(level, player.getX(), player.getY() + 0.1, player.getZ(), 1.0, AuraFx.dust(branch == BLUE_FLAME ? 0x4FC3FF : 0xFF7A1A, 1.4f), 24);
+		AuraFx.ring(level, player.getX(), player.getY() + 0.1, player.getZ(), 1.0, AuraFx.dust(branch.color.getColor() == null ? 0xFFFFFF : branch.color.getColor(), 1.4f), 24);
 		AuraFx.particles(level, net.minecraft.core.particles.ParticleTypes.FLAME, player.getX(), player.getY() + 1.0, player.getZ(), 20, 0.4, 0.6, 0.4, 0.05);
 		return net.minecraft.network.chat.Component.literal(old == null ? "Branch chosen: " : "Branch switched: ").withStyle(ChatFormatting.GRAY)
 				.append(net.minecraft.network.chat.Component.literal(branch.label()).withStyle(branch.color, ChatFormatting.BOLD));

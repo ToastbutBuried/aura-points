@@ -30,7 +30,6 @@ public final class AuraLabel {
 			case EARTH -> new Look("▲", 0x7A5230, 0xD9B27A, 0xB08850);
 			case LIGHT -> new Look("☀", 0xFFC24A, 0xFFFBE0, 0xFFD966);
 			case BLOOD -> new Look("♥", 0x6A0410, 0xFF3A44, 0xD01828);
-			case VOID -> new Look("◉", 0x2A0A4A, 0xA060F0, 0x7A2BD6);
 		};
 	}
 

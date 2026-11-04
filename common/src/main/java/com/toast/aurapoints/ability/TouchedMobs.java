@@ -272,14 +272,6 @@ public final class TouchedMobs {
 				AuraFx.line(level, tc, c, AuraFx.dust(0xB0121B, 1.0f), (int) (dist * 4));
 				AuraFx.sound(level, mob, AuraSounds.WARDEN_HEARTBEAT.value(), 1.0f, 1.2f);
 			}
-			case VOID -> { // Pull: drags the target in
-				if (dist < 3) return false;
-				Vec3 pull = c.subtract(tc).normalize().scale(Math.min(1.3, dist * 0.15));
-				t.setDeltaMovement(pull.x, 0.25, pull.z);
-				t.hurtMarked = true;
-				AuraFx.line(level, tc, c, ParticleTypes.REVERSE_PORTAL, (int) (dist * 3));
-				AuraFx.sound(level, mob, AuraSounds.ILLUSIONER_MIRROR_MOVE.value(), 1.0f, 0.6f);
-			}
 		}
 		return true;
 	}

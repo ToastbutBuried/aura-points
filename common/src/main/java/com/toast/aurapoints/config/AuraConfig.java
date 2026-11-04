@@ -382,6 +382,12 @@ public final class AuraConfig {
 	public static double FIRE_MAGMA_HEAT_WAVE_POOL_RADIUS = 1.6;
 	public static double FIRE_MAGMA_INFERNO_POOL_RADIUS = 4.0;
 
+	/** Shadow - Phantom (ability/Branch, PhantomDecoy): Vanish and Dash cooldown x this, decoy lifetime, Phantom Step invisibility x this, Vanish Step extension added. */
+	public static double PHANTOM_COOLDOWN_FACTOR = 0.75;
+	public static int PHANTOM_DECOY_TICKS = 20 * 3;
+	public static double PHANTOM_STEP_INVIS_FACTOR = 1.5;
+	public static int PHANTOM_VANISH_STEP_BONUS_TICKS = 20;
+
 	/** Fireborn: how far you see while in lava, in blocks (vanilla: about 1, with Fire Resistance 5; 0 = like vanilla). */
 	public static float FIREBORN_LAVA_SIGHT = 16f;
 	/** Fireball damage on a hit - the same however far it flew. */
@@ -1378,9 +1384,6 @@ public final class AuraConfig {
 	// ---------------------------------------------------------------
 	// Void: aurapoints-void.json
 	// ---------------------------------------------------------------
-
-	/** Whether /aura roll can give Void (/aura setaura works either way). */
-	public static boolean VOID_ROLLABLE = true;
 
 	/** Void Pull: a cone (ANGLE: full width in degrees) that drags enemies to you. */
 	public static double VOID_PULL_RANGE = 12.0;

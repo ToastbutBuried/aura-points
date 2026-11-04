@@ -507,10 +507,10 @@ public final class AuraAbilities {
 	public static boolean hasAbility(AuraPlayerData data, Ability ability) {
 		// an Ultimate: the aura's own, and awakened
 		if (Ultimates.auraOf(ability) != null) {
-			return data.aura != null && !data.locked && !allLocked && Ultimates.of(data.aura) == ability && data.awakened.contains(data.aura)
+			return data.aura != null && !data.locked && !allLocked && Ultimates.of(data.aura, Branch.current(data)) == ability && data.awakened.contains(data.aura)
 					&& !DISABLED.contains(ability);
 		}
-		return data.aura != null && !data.locked && !allLocked && (data.aura.has(ability) || Branch.grants(data, ability)) && !DISABLED.contains(ability)
+		return data.aura != null && !data.locked && !allLocked && (data.aura.has(ability, Branch.current(data)) || Branch.grants(data, ability)) && !DISABLED.contains(ability)
 				&& (!ability.active || data.owned.contains(ability));
 	}
 
@@ -917,8 +917,9 @@ public final class AuraAbilities {
 		if (!player.isCrouching()) return false;
 
 		// no swirl particles: the Shadow cloak's floor trail is the only tell
+		int invis = Branch.is(player, Branch.PHANTOM) ? (int) Math.round(AuraConfig.PHANTOM_STEP_INVIS_TICKS * AuraConfig.PHANTOM_STEP_INVIS_FACTOR) : AuraConfig.PHANTOM_STEP_INVIS_TICKS;
 		player.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY,
-				AuraConfig.PHANTOM_STEP_INVIS_TICKS, 0, false, false, true));
+				invis, 0, false, false, true));
 
 		ServerLevel level = player.serverLevel();
 		AuraFx.particles(level, ParticleTypes.POOF, player.getX(), player.getY(), player.getZ(),
@@ -1094,7 +1095,7 @@ public final class AuraAbilities {
 		// the speed check catches a vanish cut short (death, milk) before its end tick
 		if (until == null || now >= until || !player.hasEffect(MobEffects.MOVEMENT_SPEED)) return false;
 
-		long newUntil = until + AuraConfig.VANISH_STEP_EXTEND_TICKS;
+		long newUntil = until + AuraConfig.VANISH_STEP_EXTEND_TICKS + (Branch.is(player, Branch.PHANTOM) ? AuraConfig.PHANTOM_VANISH_STEP_BONUS_TICKS : 0);
 		int ticks = (int) (newUntil - now);
 		player.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, ticks, 0, false, false, true));
 		player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, ticks, AuraConfig.VANISH_SPEED_AMPLIFIER, false, false, true));
@@ -1120,6 +1121,7 @@ public final class AuraAbilities {
 		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_DASH, where(player) == 1 ? 1 : 0);
 		AuraFx.sound(player.serverLevel(), player, AuraSounds.SWEET_WHOOSH.value(), 0.9f, 1.0f);
 
+		PhantomDecoy.spawn(player, player.position());
 		Vec3 look = player.getLookAngle();
 		double s = AuraConfig.DASH_STRENGTH;
 		player.setDeltaMovement(look.x * s, look.y * s * 0.6 + 0.15, look.z * s);

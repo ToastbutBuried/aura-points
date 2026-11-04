@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.10.0
+- Shadow gets two branches at Mastery V: Phantom (shorter Vanish and Dash cooldowns, Dash leaves a shadow clone that makes mobs lose you, longer Phantom Step and Vanish Step) and Dark, the former Void aura (Void Pull, Rift Step, Null Orb, Event Horizon, Entropy and Singularity, with Bloodrush and Nightstalker). Void is no longer an aura of its own: anyone who held it is now Shadow with the Dark branch.
+- Everyone must update the mod (new network version).
+
 == 5.9.0
 - Aura branches: at Mastery V you pick one of two branches of your aura (Aura Book > your aura > Branches, or /aura branch). The first pick is free, switching costs 300 Aura. Fire goes first: Blue Flame (faster piercing Fireball, +20% damage to burning targets, harder Fire Bending shots) or Magma (pools of heat from Fireball, Heat Wave and Inferno Slam that burn enemies and shield you).
 

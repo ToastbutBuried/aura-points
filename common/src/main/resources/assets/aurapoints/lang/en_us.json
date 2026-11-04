@@ -183,7 +183,6 @@
   "stat.aurapoints.hemorrhage_uses": "Hemorrhage Uses",
   "stat.aurapoints.blood_tether_uses": "Blood Tether Uses",
   "stat.aurapoints.crimson_sacrifice_uses": "Crimson Sacrifice Uses",
-  "stat.aurapoints.void_pull_uses": "Void Pull Uses",
   "stat.aurapoints.rift_step_uses": "Rift Step Uses",
   "stat.aurapoints.null_orb_uses": "Null Orb Uses",
   "stat.aurapoints.mastery_shadow": "Shadow Mastery XP",
@@ -196,6 +195,5 @@
   "stat.aurapoints.mastery_resonance": "Resonance Mastery XP",
   "stat.aurapoints.mastery_earth": "Earth Mastery XP",
   "stat.aurapoints.mastery_light": "Light Mastery XP",
-  "stat.aurapoints.mastery_blood": "Blood Mastery XP",
-  "stat.aurapoints.mastery_void": "Void Mastery XP"
+  "stat.aurapoints.mastery_blood": "Blood Mastery XP"
 }

@@ -123,7 +123,6 @@ final class DuelLines {
 			case EARTH -> Kind.EARTH;
 			case LIGHT -> Kind.LIGHT;
 			case BLOOD -> Kind.BLOOD;
-			case VOID -> Kind.VOID;
 		};
 	}
 
