@@ -67,6 +67,11 @@ public class AuraPoints {
 			ENTITY_TYPES.register("viper_head", () -> net.minecraft.world.entity.EntityType.Builder
 					.<com.toast.aurapoints.geo.ViperHead>of(com.toast.aurapoints.geo.ViperHead::new, net.minecraft.world.entity.MobCategory.MISC)
 					.sized(0.5f, 0.75f).noSave().noSummon().fireImmune().clientTrackingRange(10).updateInterval(1).build("viper_head"));
+	/** The shadow eastern dragon's head (geo/DragonHead): a saved, summonable entity a datapack drives by Motion/Rotation; no player interaction. */
+	public static final java.util.function.Supplier<net.minecraft.world.entity.EntityType<com.toast.aurapoints.geo.DragonHead>> DRAGON_HEAD =
+			ENTITY_TYPES.register("dragon_head", () -> net.minecraft.world.entity.EntityType.Builder
+					.<com.toast.aurapoints.geo.DragonHead>of(com.toast.aurapoints.geo.DragonHead::new, net.minecraft.world.entity.MobCategory.MISC)
+					.sized(1.0f, 1.0f).fireImmune().clientTrackingRange(10).updateInterval(1).build("dragon_head"));
 	/** Umbral Ambush's shadow clone, the Thorn Sentinel's tree and Maelstrom's tentacles, drawn by GeckoLib (geo/). */
 	public static final java.util.function.Supplier<net.minecraft.world.entity.EntityType<com.toast.aurapoints.geo.ShadowClone>> SHADOW_CLONE =
 			ENTITY_TYPES.register("shadow_clone", () -> net.minecraft.world.entity.EntityType.Builder
@@ -132,6 +137,9 @@ public class AuraPoints {
 
 	/** Not obtainable: only the frost shard model the Frost aura's Ice Spike shows in the hand and in flight (ability/IceSpike). */
 	public static final DeferredItem<Item> ICE_SPIKE_SHARD = ITEMS.registerSimpleItem("ice_spike_shard");
+	/** Not obtainable: the shadow dragon's body segments, shown by datapacks as item displays (16 px long on Z, 8x8 cross-section). */
+	public static final DeferredItem<Item> DRAGON_SEGMENT_A = ITEMS.registerSimpleItem("dragon_segment_a");
+	public static final DeferredItem<Item> DRAGON_SEGMENT_B = ITEMS.registerSimpleItem("dragon_segment_b");
 	/** Not obtainable: the Thorn Sentinel seed in flight . */
 	public static final DeferredItem<Item> THORN_SEED = ITEMS.registerSimpleItem("thorn_seed");
 	/** Not obtainable: the HUD's ability icons, one per custom_model_data (network/ClientAuraHud.icon). */

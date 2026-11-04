@@ -22,7 +22,12 @@ public class AuraGeoRenderer<T extends AuraGeoEntity> extends GeoEntityRenderer<
 
 	/** {@code glow}: textures/entity/NAME_glowmask.png marks pixels drawn full-bright (the shadow clone's eyes). */
 	public AuraGeoRenderer(EntityRendererProvider.Context context, String name, boolean glow) {
-		super(context, new DefaultedEntityGeoModel<>(ResourceLocation.fromNamespaceAndPath("aurapoints", name)));
+		this(context, new DefaultedEntityGeoModel<>(ResourceLocation.fromNamespaceAndPath("aurapoints", name)), glow);
+	}
+
+	/** A renderer with its own model class (the dragon head pitches its root bone). */
+	protected AuraGeoRenderer(EntityRendererProvider.Context context, software.bernie.geckolib.model.GeoModel<T> model, boolean glow) {
+		super(context, model);
 		this.shadowRadius = 0;
 		if (glow) addRenderLayer(new software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer<>(this));
 	}

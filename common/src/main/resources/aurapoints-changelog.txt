@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.6.0
+- New for datapacks: a dark shadow dragon head entity (aurapoints:dragon_head) plus two body segment models, built for the shadow serpent. Update your game: this adds a new entity.
+
 == 5.5.1
 - Small fixes: Blood Moon's blood cost can no longer be set higher than the bar holds, and a few leftover effect marks are cleaned up properly.
 

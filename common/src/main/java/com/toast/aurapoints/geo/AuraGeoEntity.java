@@ -78,6 +78,11 @@ public abstract class AuraGeoEntity extends Entity implements GeoEntity {
 		return s;
 	}
 
+	/** False for an entity that lives on its own (the dragon head): no keepalive needed. */
+	protected boolean watchdog() {
+		return true;
+	}
+
 	/** The owning ability still runs this one. */
 	public void keepAlive() {
 		unattended = 0;
@@ -86,7 +91,7 @@ public abstract class AuraGeoEntity extends Entity implements GeoEntity {
 	@Override
 	public void tick() {
 		super.tick();
-		if (!level().isClientSide && ++unattended > KEEPALIVE_TICKS) discard();
+		if (!level().isClientSide && watchdog() && ++unattended > KEEPALIVE_TICKS) discard();
 	}
 
 	@Override

@@ -38,6 +38,7 @@ public final class DevGeoTest {
 	private static List<Row> rows() {
 		return List.of(new Row(AuraPoints.VIPER_HEAD, ViperHead.GONE + 1, 1.6f),
 				new Row(AuraPoints.SHADOW_CLONE, com.toast.aurapoints.geo.ShadowClone.GONE + 1, 1f),
+				new Row(AuraPoints.DRAGON_HEAD, 1, 1f),
 				new Row(AuraPoints.SENTINEL_TREE, com.toast.aurapoints.geo.SentinelTree.GONE + 1, 1f),
 				new Row(AuraPoints.KRAKEN_TENTACLE, com.toast.aurapoints.geo.KrakenTentacle.GONE + 1, 0.6f),
 				new Row(AuraPoints.SONIC_BLOSSOM, com.toast.aurapoints.geo.SonicBlossom.GONE + 1, 1.5f),
@@ -81,7 +82,7 @@ public final class DevGeoTest {
 			// and a skeleton holding the bow that draws it again every 2.5 s
 			// dummies from an earlier run were saved with the world
 			if (!only.isEmpty()) level.getEntities((net.minecraft.world.entity.Entity) null, new net.minecraft.world.phys.AABB(-10, y - 5, -10, 10, y + 5, 15),
-					e -> e instanceof com.toast.aurapoints.arena.TrainingDummy || e instanceof net.minecraft.world.entity.Display.ItemDisplay
+					e -> e instanceof com.toast.aurapoints.arena.TrainingDummy || e instanceof net.minecraft.world.entity.decoration.ArmorStand || e instanceof com.toast.aurapoints.geo.DragonHead || e instanceof net.minecraft.world.entity.Display.ItemDisplay
 							|| e instanceof net.minecraft.world.entity.monster.AbstractSkeleton).forEach(net.minecraft.world.entity.Entity::discard);
 			if (List.of(only.split(",")).contains("items")) {
 				var ctxs = new net.minecraft.world.item.ItemDisplayContext[]{net.minecraft.world.item.ItemDisplayContext.FIXED,
@@ -124,6 +125,33 @@ public final class DevGeoTest {
 					dummy.setYHeadRot(180f);
 					level.addFreshEntity(dummy);
 					hitLoop(server, dummy, 0);
+				}
+			}
+			// -Pgeoonly=dragon: five dragon heads side-on at pitches -70..70, each with an armor-stand rider, one with a segment chain
+			if (List.of(only.split(",")).contains("dragon")) {
+				player.teleportTo(level, 1.5, y + 1.2, 8.3, 180f, 8f);
+				float[] pitches = {-60f, 0f, 60f};
+				for (int i = 0; i < pitches.length; i++) {
+					var head = AuraPoints.DRAGON_HEAD.get().create(level);
+					if (head == null) continue;
+					head.moveTo(-0.7 + i * 2.2, y + 0.5, 6, 90f, pitches[i]);
+					level.addFreshEntity(head);
+					var rider = net.minecraft.world.entity.EntityType.ARMOR_STAND.create(level);
+					if (rider != null) {
+						rider.moveTo(head.getX(), head.getY(), head.getZ());
+						level.addFreshEntity(rider);
+						rider.startRiding(head, true);
+					}
+				}
+				for (int k = 1; k <= 4; k++) {
+					var d = new net.minecraft.world.entity.Display.ItemDisplay(net.minecraft.world.entity.EntityType.ITEM_DISPLAY, level);
+					((com.toast.aurapoints.mixin.ItemDisplayAccessor) d).aurapoints$setItemStack(new net.minecraft.world.item.ItemStack(
+							(k % 2 == 1 ? AuraPoints.DRAGON_SEGMENT_A : AuraPoints.DRAGON_SEGMENT_B).get()));
+					((com.toast.aurapoints.mixin.ItemDisplayAccessor) d).aurapoints$setItemTransform(net.minecraft.world.item.ItemDisplayContext.FIXED);
+					((com.toast.aurapoints.mixin.DisplayAccessor) d).aurapoints$setTransformation(new com.mojang.math.Transformation(new org.joml.Vector3f(),
+							new org.joml.Quaternionf().rotateY((float) Math.PI / 2), new org.joml.Vector3f(1f), null));
+					d.setPos(1.5 + k * 1.0, y + 1.0, 6.0 + 1.6); // behind the middle head (facing -X, so behind = +X)
+					level.addFreshEntity(d);
 				}
 			}
 			AuraPoints.LOGGER.info("[geotest] scene built: {} models", all.size());

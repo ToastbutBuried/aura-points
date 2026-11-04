@@ -45,6 +45,7 @@ public final class ClientAnimations {
 		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.ARENA_NPC.get(), ArenaNpcRenderer::new);
 		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.VIPER_HEAD.get(), ctx -> new com.toast.aurapoints.geo.AuraGeoRenderer<>(ctx, "verdant_viper"));
 		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.SHADOW_CLONE.get(), ctx -> new com.toast.aurapoints.geo.AuraGeoRenderer<>(ctx, "shadow_clone", true));
+		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.DRAGON_HEAD.get(), DragonHeadRenderer::new);
 		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.SENTINEL_TREE.get(), ctx -> new com.toast.aurapoints.geo.AuraGeoRenderer<>(ctx, "thorn_sentinel"));
 		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.KRAKEN_TENTACLE.get(), ctx -> new com.toast.aurapoints.geo.AuraGeoRenderer<>(ctx, "maelstrom_tentacle"));
 		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.SONIC_BLOSSOM.get(), ctx -> new com.toast.aurapoints.geo.AuraGeoRenderer<>(ctx, "sonic_blossom", true));
