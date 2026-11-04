@@ -868,9 +868,13 @@ public final class Resonance {
 		for (ServerPlayer p : server.getPlayerList().getPlayers()) {
 			AuraPlayerData data = AuraState.get(server).getOrCreate(p.getUUID());
 			Set<Integer> ids = new HashSet<>();
+			// purged for everyone: a player who dropped Echolocation must not keep dead or expired mobs alive here
+			Map<LivingEntity, Long> marks = MARKS.get(p.getUUID());
+			if (marks != null) {
+				marks.entrySet().removeIf(m -> m.getValue() <= now || !m.getKey().isAlive());
+				if (marks.isEmpty()) MARKS.remove(p.getUUID());
+			}
 			if (isResonant(p, data) && AuraAbilities.hasAbility(data, Ability.ECHOLOCATION)) {
-				Map<LivingEntity, Long> marks = MARKS.get(p.getUUID());
-				if (marks != null) marks.entrySet().removeIf(m -> m.getValue() <= now || !m.getKey().isAlive());
 				double r = AuraConfig.ECHO_RANGE;
 				List<LivingEntity> heard = p.serverLevel().getEntitiesOfClass(LivingEntity.class, p.getBoundingBox().inflate(r),
 						e -> e != p && e.isAlive() && !e.isSpectator() && e.distanceToSqr(p) <= r * r
