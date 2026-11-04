@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.5.0
+- Blood aura: a new blood bar fills as your bleeds tick (players most, then monsters, then animals). Blood Moon now needs a full bar and spends it.
+- Crimson Sacrifice can spend blood from the bar to cost far less health. The bar empties when you die. Update the mod on your client.
+
 == 5.4.1
 - Aura keys start unbound now: pick your own in Options > Controls > Aura Points (keys you already set stay). On Fabric they also work when another mod uses the same key.
 - Fixed: the red/blue screen-edge effects (Lifesteal, Blood Moon, frost...) no longer wipe parts of a minimap.
