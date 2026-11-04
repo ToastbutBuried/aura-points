@@ -611,9 +611,10 @@ public final class AuraConfig {
 
 	/**
 	 * Entanglement (active): a trap set within RANGE blocks (see TRAP_* below). Whoever it catches - roots grab it where it
-	 * stands (it can still stagger on, GRAB_SLOWNESS slower, for GRAB_TICKS), close over its view, whip it
-	 * back to that spot over WHIP_TICKS and wall it up in a cocoon, with Poison (AMPLIFIER 0 = I, 1 = II) for
-	 * POISON_TICKS. A player stays stuck until they break free: CUT_CHANCE of the time by cutting 3 green
+	 * stands for GRAB_TICKS, whip it back to that spot over WHIP_TICKS and wind it up in the arms. If nobody is
+	 * caught in time, the trap leaves a cloud of Poison (AMPLIFIER 0 = I, 1 = II, for POISON_TICKS; see CLOUD_*).
+	 * GRAB_SLOWNESS is unused (left over from an older grab; kept so existing config files stay valid).
+	 * A player stays stuck until they break free: CUT_CHANCE of the time by cutting 3 green
 	 * roots, else by mashing W A S D - MASH_PRESSES in all, at least MASH_MIN_PER_KEY of each key.
 	 * Mobs break free after MOB_TICKS.
 	 */
