@@ -87,6 +87,13 @@ public final class Reactions {
 		}
 	}
 
+	/** For the Aura Book: the name of the mark this aura's hits leave, or null (Wind and the auras without a reaction element). */
+	public static String markLeftBy(AuraType aura) {
+		Element e = Element.of(aura);
+		if (e == null || e.leaves == null) return null;
+		return e.leaves.name().charAt(0) + e.leaves.name().substring(1).toLowerCase(java.util.Locale.ROOT);
+	}
+
 	/** Checked in this order: the first enabled one whose mark the target has goes off. */
 	public enum Reaction {
 		FREEZE("Freeze", "❄", 0xA8E4FF, Mark.WET, Element.FROST),
@@ -114,6 +121,53 @@ public final class Reactions {
 
 		public String id() {
 			return name().toLowerCase(java.util.Locale.ROOT);
+		}
+
+		/** For the Aura Book: the icon character, the colour, the mark it needs and the aura whose hit sets it off. */
+		public String symbol() {
+			return symbol;
+		}
+
+		public int rgb() {
+			return rgb;
+		}
+
+		public String markName() {
+			return mark.name().charAt(0) + mark.name().substring(1).toLowerCase(java.util.Locale.ROOT);
+		}
+
+		public int markRgb() {
+			return mark.rgb;
+		}
+
+		public AuraType triggerAura() {
+			return AuraType.valueOf(trigger.name());
+		}
+
+		/** What it does, with the numbers as configured. */
+		public String effect() {
+			return switch (this) {
+				case FREEZE -> "Freezes the target for " + secs(AuraConfig.REACTION_FREEZE_TICKS) + "s and deals " + dmg(AuraConfig.REACTION_FREEZE_DAMAGE) + ".";
+				case CONDUCT -> dmg(AuraConfig.REACTION_CONDUCT_DAMAGE) + ", and it arcs on to up to " + AuraConfig.REACTION_CONDUCT_CHAIN_MAX
+						+ " wet enemies within " + Math.round(AuraConfig.REACTION_CONDUCT_CHAIN_RADIUS) + " blocks.";
+				case FIRESTORM -> "A burst of fire in " + Math.round(AuraConfig.REACTION_FIRESTORM_RADIUS) + " blocks: " + dmg(AuraConfig.REACTION_FIRESTORM_DAMAGE)
+						+ " and everyone burns for " + AuraConfig.REACTION_FIRESTORM_FIRE_SECONDS + "s.";
+				case TOXIC_CLOUD -> "A poison cloud (" + Math.round(AuraConfig.REACTION_TOXIC_RADIUS) + " blocks, " + secs(AuraConfig.REACTION_TOXIC_TICKS) + "s): "
+						+ dmg(AuraConfig.REACTION_TOXIC_DAMAGE) + " and Poison.";
+				case STEAM -> "Scalding steam in " + Math.round(AuraConfig.REACTION_STEAM_RADIUS) + " blocks: " + dmg(AuraConfig.REACTION_STEAM_DAMAGE)
+						+ " and blindness for " + secs(AuraConfig.REACTION_STEAM_BLIND_TICKS) + "s.";
+				case MELT -> "The hit deals " + Math.round(AuraConfig.REACTION_MELT_MULTIPLIER * 100) + "% damage.";
+				case OVERGROWTH -> "Roots hold the target for " + secs(AuraConfig.REACTION_OVERGROWTH_ROOT_TICKS) + "s and deal " + dmg(AuraConfig.REACTION_OVERGROWTH_DAMAGE) + ".";
+				case STORM -> "A gust in " + Math.round(AuraConfig.REACTION_STORM_RADIUS) + " blocks lifts enemies and deals " + dmg(AuraConfig.REACTION_STORM_DAMAGE) + ".";
+			};
+		}
+
+		private static String secs(int ticks) {
+			return String.format(java.util.Locale.ROOT, "%.1f", ticks / 20.0).replace(".0", "");
+		}
+
+		private static String dmg(float amount) {
+			return String.format(java.util.Locale.ROOT, "%.1f", amount).replace(".0", "") + " damage";
 		}
 
 		public boolean enabled() {

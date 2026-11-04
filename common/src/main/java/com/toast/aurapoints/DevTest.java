@@ -22,6 +22,7 @@ final class DevTest {
 		com.toast.aurapoints.arena.ArenaDevTest.register(dispatcher);
 		registerResetTest(dispatcher);
 		registerBookTest(dispatcher);
+		registerVirulenceTest(dispatcher);
 		registerMastery(dispatcher);
 		registerBloodBar(dispatcher);
 		// balance editor write path: set a value + a switch through AuraBalance.apply, check, then put both back
@@ -647,6 +648,22 @@ final class DevTest {
 			rlog("earn back: " + at.apply(4) + " (must be Booker's Aura)");
 			click.accept(4);
 			rlog("header click: " + at.apply(4) + " (must be Earn Aura)");
+			// Reactions and Arena pages (5.8.0)
+			data.aura = com.toast.aurapoints.ability.AuraType.FROST;
+			com.toast.aurapoints.menu.AuraBook.open(p);
+			rlog("main: arena " + at.apply(29) + " | reactions " + at.apply(33) + " (must be Arena | Reactions)");
+			click.accept(33);
+			StringBuilder rs = new StringBuilder();
+			for (int s : com.toast.aurapoints.menu.AuraBook.reactionSlots()) rs.append(at.apply(s)).append(" | ");
+			rlog("reactions page: " + at.apply(4) + " -> " + rs + "your aura " + at.apply(40));
+			rlog("freeze lore: " + p.containerMenu.getSlot(19).getItem().get(net.minecraft.core.component.DataComponents.LORE).lines().stream().map(c -> c.getString()).toList());
+			click.accept(45);
+			click.accept(29);
+			rlog("arena page: " + at.apply(4) + " | " + at.apply(20) + " | " + at.apply(22) + " | " + at.apply(24) + " | " + at.apply(29) + " | " + at.apply(31) + " | " + at.apply(33) + " (must be Join the lobby ... Leave)");
+			click.accept(45);
+			click.accept(31);
+			click.accept(29);
+			rlog("earn arena click opens: " + at.apply(4) + " (must be The Aura Arena)");
 			data.tutorialState = 1;
 			com.toast.aurapoints.menu.Tutorial.onLogout(p);
 			com.toast.aurapoints.menu.AuraBook.open(p);
@@ -654,6 +671,36 @@ final class DevTest {
 			p.closeContainer();
 			data.aura = null;
 			});
+			return 1;
+		})));
+	}
+
+	/** /auradev virulence: the same hit on a poisoned and an unpoisoned pig, Verdant with and without the passive. */
+	static void registerVirulenceTest(CommandDispatcher<CommandSourceStack> dispatcher) {
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("virulence").executes(ctx -> {
+			var server = ctx.getSource().getServer();
+			ServerLevel level = server.overworld();
+			net.minecraft.server.level.ServerPlayer p = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000b00d"), "Venom"));
+			var data = com.toast.aurapoints.data.AuraState.get(server).getOrCreate(p.getUUID());
+			var was = data.aura;
+			double[] dealt = new double[3];
+			for (int i = 0; i < 3; i++) {
+				data.aura = i == 2 ? com.toast.aurapoints.ability.AuraType.FIRE : com.toast.aurapoints.ability.AuraType.VERDANT;
+				net.minecraft.world.entity.animal.Pig pig = new net.minecraft.world.entity.animal.Pig(EntityType.PIG, level);
+				pig.moveTo(0.5, 100, 0.5);
+				pig.setNoAi(true);
+				pig.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(200);
+				pig.setHealth(200);
+				level.addFreshEntity(pig);
+				// 0: plain Verdant hit, 1: Verdant hit on a poisoned pig, 2: Fire hit on a poisoned pig
+				if (i > 0) pig.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.POISON, 200, 0));
+				pig.invulnerableTime = 0;
+				pig.hurt(level.damageSources().playerAttack(p), 10f);
+				dealt[i] = 200 - pig.getHealth();
+				pig.discard();
+			}
+			data.aura = was;
+			rlog("virulence: plain " + dealt[0] + ", poisoned " + dealt[1] + " (must be x" + (1.0 + com.toast.aurapoints.config.AuraConfig.VIRULENCE_BONUS) + "), poisoned but Fire " + dealt[2] + " (must equal plain)");
 			return 1;
 		})));
 	}

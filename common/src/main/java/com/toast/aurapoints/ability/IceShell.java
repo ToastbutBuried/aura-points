@@ -254,6 +254,11 @@ public final class IceShell {
 		}
 	}
 
+	/** Dying breaks the shell for good: the next life starts with a whole one (called on respawn; the arena cancels its deaths, so knockouts there keep it). */
+	public static void onDeath(ServerPlayer player) {
+		SHELLS.remove(player.getUUID());
+	}
+
 	/** The shell stays as it was through a relog (no relogging for a fresh one); the HUD is told again after. */
 	public static void onLogout(ServerPlayer player) {
 		Shell s = SHELLS.get(player.getUUID());

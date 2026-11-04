@@ -110,10 +110,32 @@ public final class Holograms {
 		List<AuraState.ArenaRecord> dps = TrainingHall.top(state.dpsRecords, r -> r.best);
 		set("board_duels", board("⚔ TOP DUELISTS", ChatFormatting.RED, duels, r -> r.wins + " W  ·  " + r.losses + " L"));
 		set("board_weekly", com.toast.aurapoints.cosmetic.Weekly.board());
-		List<AuraState.ArenaRecord> waves = TrainingHall.top(state.waveRecords, r -> r.best);
-		set("board_waves", board("☠ WAVE RECORDS", ChatFormatting.DARK_RED, waves, r -> "wave " + (int) r.best
-				+ (r.party.isEmpty() || r.party.equals(r.name) ? "" : "  ·  " + shortParty(r))));
+		set("board_waves", waveBoard(TrainingHall.top(state.waveRecords, r -> r.best), TrainingHall.top(state.partyWaveRecords, r -> r.best)));
 		set("board_dps", board("★ DPS RECORDS", ChatFormatting.GOLD, dps, r -> String.format(java.util.Locale.ROOT, "%.1f DPS", r.best)));
+	}
+
+	/** Wave records: the best solo runs on top, the best party runs under them. */
+	private static Component waveBoard(List<AuraState.ArenaRecord> solo, List<AuraState.ArenaRecord> party) {
+		MutableComponent text = Component.literal("☠ WAVE RECORDS").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD);
+		waveSection(text, "SOLO", solo, false);
+		waveSection(text, "PARTY", party, true);
+		return text;
+	}
+
+	private static void waveSection(MutableComponent text, String title, List<AuraState.ArenaRecord> list, boolean withParty) {
+		text.append(Component.literal("\n" + title).withStyle(ChatFormatting.GRAY, ChatFormatting.BOLD));
+		for (int i = 0; i < 5; i++) {
+			text.append(Component.literal("\n"));
+			ChatFormatting rank = i == 0 ? ChatFormatting.GOLD : i == 1 ? ChatFormatting.WHITE : i == 2 ? ChatFormatting.RED : ChatFormatting.GRAY;
+			text.append(Component.literal((i + 1) + ". ").withStyle(rank));
+			if (i < list.size()) {
+				var r = list.get(i);
+				text.append(Component.literal(r.name).withStyle(ChatFormatting.YELLOW))
+						.append(Component.literal("  wave " + (int) r.best + (withParty && !r.party.isEmpty() ? "  ·  " + shortParty(r) : "")).withStyle(ChatFormatting.GRAY));
+			} else {
+				text.append(Component.literal("-").withStyle(ChatFormatting.DARK_GRAY));
+			}
+		}
 	}
 
 	private static Component board(String title, ChatFormatting color, List<AuraState.ArenaRecord> list,

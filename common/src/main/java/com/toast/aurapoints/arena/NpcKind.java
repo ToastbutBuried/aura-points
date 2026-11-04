@@ -148,6 +148,18 @@ public enum NpcKind {
 				.append(button("[King of the Hill]", ChatFormatting.AQUA, "/aura arena match create koth", "Hold the hill in the middle (2-8)"))
 				.append(Component.literal(" "))
 				.append(button("[Wave Survival]", ChatFormatting.DARK_RED, "/aura arena match create waves", "Together against endless waves of mobs (1-8, solo works)")));
+		player.sendSystemMessage(Component.literal("  Wave Survival with a twist: ").withStyle(ChatFormatting.YELLOW)
+				.append(button("[Swift]", ChatFormatting.AQUA, "/aura arena match create waves swift", hoverFor(com.toast.aurapoints.arena.Waves.Modifier.SWIFT)))
+				.append(Component.literal(" "))
+				.append(button("[Brutal]", ChatFormatting.RED, "/aura arena match create waves brutal", hoverFor(com.toast.aurapoints.arena.Waves.Modifier.BRUTAL)))
+				.append(Component.literal(" "))
+				.append(button("[Tough]", ChatFormatting.GOLD, "/aura arena match create waves tough", hoverFor(com.toast.aurapoints.arena.Waves.Modifier.TOUGH)))
+				.append(Component.literal(" "))
+				.append(button("[Flow]", ChatFormatting.LIGHT_PURPLE, "/aura arena match create waves flow", hoverFor(com.toast.aurapoints.arena.Waves.Modifier.FLOW))));
+	}
+
+	private static String hoverFor(com.toast.aurapoints.arena.Waves.Modifier mod) {
+		return mod.blurb + (mod.hard() ? " +" + Math.round(com.toast.aurapoints.config.AuraConfig.WAVES_MOD_AURA_BONUS * 100) + "% Aura per wave." : "") + " No records.";
 	}
 
 	private static void stats(ServerPlayer player) {

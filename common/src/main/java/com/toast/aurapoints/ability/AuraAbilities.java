@@ -94,6 +94,9 @@ public final class AuraAbilities {
 		BLOOM("Bloom", false, () ->
 				"While you sneak, crops, saplings and other plants within " + AuraConfig.BLOOM_RADIUS
 						+ " blocks grow as if bone-mealed. Switch it off and on with /aura bloom."),
+		VIRULENCE("Virulence", false, () ->
+				"Anything poisoned takes " + Math.round(AuraConfig.VIRULENCE_BONUS * 100) + "% more damage from you. Your Entanglement, bites and "
+						+ "Toxic Clouds all poison, and so does anything else that does."),
 		STATIC_CHARGE("Static Charge", false, () ->
 				"Your charged melee hits build static: every " + AuraConfig.STATIC_CHARGE_HITS + "th one discharges - "
 						+ fmt(AuraConfig.STATIC_CHARGE_DAMAGE) + " damage that arcs on to up to " + AuraConfig.STATIC_CHARGE_ARC_TARGETS

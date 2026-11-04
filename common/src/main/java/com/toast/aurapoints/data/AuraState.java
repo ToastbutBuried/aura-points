@@ -56,6 +56,8 @@ public class AuraState extends SavedData {
 	public final Map<UUID, ArenaRecord> duelRecords = new HashMap<>();
 	/** Wave Survival: best wave cleared (best), runs (wins), with whom (party). */
 	public final Map<UUID, ArenaRecord> waveRecords = new HashMap<>();
+	/** Wave Survival with two or more players: its own board, so solo and party records stay apart (waveRecords = solo). */
+	public final Map<UUID, ArenaRecord> partyWaveRecords = new HashMap<>();
 
 	public static AuraState create() {
 		return new AuraState();
@@ -70,6 +72,15 @@ public class AuraState extends SavedData {
 		readRecords(tag.getList("dpsRecords", CompoundTag.TAG_COMPOUND), state.dpsRecords);
 		readRecords(tag.getList("duelRecords", CompoundTag.TAG_COMPOUND), state.duelRecords);
 		readRecords(tag.getList("waveRecords", CompoundTag.TAG_COMPOUND), state.waveRecords);
+		readRecords(tag.getList("partyWaveRecords", CompoundTag.TAG_COMPOUND), state.partyWaveRecords);
+		// before 5.8.0 one board held both: a best that came from a party moves over
+		for (var it = state.waveRecords.entrySet().iterator(); it.hasNext(); ) {
+			var e = it.next();
+			if (e.getValue().party.contains(", ") && !state.partyWaveRecords.containsKey(e.getKey())) {
+				state.partyWaveRecords.put(e.getKey(), e.getValue());
+				it.remove();
+			}
+		}
 		ListTag list = tag.getList("players", CompoundTag.TAG_COMPOUND);
 		for (int i = 0; i < list.size(); i++) {
 			CompoundTag entry = list.getCompound(i);
@@ -139,6 +150,7 @@ public class AuraState extends SavedData {
 		tag.put("dpsRecords", writeRecords(dpsRecords));
 		tag.put("duelRecords", writeRecords(duelRecords));
 		tag.put("waveRecords", writeRecords(waveRecords));
+		tag.put("partyWaveRecords", writeRecords(partyWaveRecords));
 		return tag;
 	}
 

@@ -26,7 +26,7 @@ public enum AuraType {
 	FROST("Frost", ChatFormatting.DARK_AQUA, 0xA8E4FF,
 			Ability.ICE_SPIKE, Ability.SURE_FOOTED, Ability.ICE_SHELL, Ability.SHATTER),
 	VERDANT("Verdant", ChatFormatting.GREEN, 0x4FB848,
-			Ability.VINE_HOOK, Ability.ENTANGLEMENT, Ability.VERDANT_VIPER, Ability.BLOOM),
+			Ability.VINE_HOOK, Ability.ENTANGLEMENT, Ability.VERDANT_VIPER, Ability.BLOOM, Ability.VIRULENCE),
 	THUNDER("Thunder", ChatFormatting.YELLOW, 0xFFE347,
 			Ability.THUNDERBOLT, Ability.CHIDORI, Ability.STATIC_CHARGE, Ability.STORMBORN),
 	RESONANCE("Resonance", ChatFormatting.DARK_PURPLE, 0xB01CE0,

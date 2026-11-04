@@ -45,6 +45,8 @@ public final class ArenaDevTest {
 			}
 			log("challenge: " + Duel.challenge(red, blue, 3, 0));
 			log("accept: " + Duel.accept(blue) + " -> " + Duel.debugState() + " red at " + red.position() + " blue at " + blue.position());
+			// both pick a map at once, so the vote ends on the next tick
+			log("vote: red " + Duel.vote(red, "random") + ", blue " + Duel.vote(blue, "random") + " (must be 1, 1)");
 			int countdown = Math.max(1, com.toast.aurapoints.config.AuraConfig.DUEL_COUNTDOWN_SECONDS) * 20;
 			int intro = Duel.INTRO_TICKS;
 			int knockout = Math.max(1, com.toast.aurapoints.config.AuraConfig.DUEL_KNOCKOUT_SECONDS) * 20;
@@ -264,6 +266,108 @@ public final class ArenaDevTest {
 			blue.moveTo(1.5, Arena.FLOOR, Arena.SPAR_Z + 1.5);
 			red.moveTo(Arena.LOBBY.x, Arena.LOBBY.y, Arena.LOBBY.z);
 			log("hall victim, attacker in lobby: hit blocked " + Arena.blocksDamage(blue, hit) + " (must be true)");
+			return 1;
+		})).then(Commands.literal("duelvote").executes(ctx -> {
+			// /auradev duelvote: both agree = that map; different picks = one of the two; no votes = the time runs out; a forced layout skips the vote
+			MinecraftServer server = ctx.getSource().getServer();
+			ServerLevel arena = Arena.level(server);
+			if (arena == null) return 0;
+			net.minecraft.server.level.ServerPlayer red = FakePlayerFactory.get(arena, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000a001"), "Red"));
+			net.minecraft.server.level.ServerPlayer blue = FakePlayerFactory.get(arena, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000b002"), "Blue"));
+			AuraState state = AuraState.get(server);
+			state.getOrCreate(red.getUUID()).aura = AuraType.FIRE;
+			state.getOrCreate(blue.getUUID()).aura = AuraType.FROST;
+			int oldVote = com.toast.aurapoints.config.AuraConfig.DUEL_VOTE_SECONDS;
+			com.toast.aurapoints.config.AuraConfig.DUEL_VOTE_SECONDS = 3;
+			Runnable[] steps = new Runnable[5];
+			java.util.function.Consumer<Integer> next = i -> AuraFx.later(server, 5, steps[i]);
+			Runnable open = () -> {
+				Duel.stop(server);
+				for (net.minecraft.server.level.ServerPlayer p : new net.minecraft.server.level.ServerPlayer[]{red, blue}) {
+					Duel.TEST_PLAYERS.put(p.getUUID(), p);
+					p.moveTo(Arena.LOBBY.x, Arena.LOBBY.y, Arena.LOBBY.z);
+				}
+				Duel.challenge(red, blue, 1, 0);
+				Duel.accept(blue);
+			};
+			steps[0] = () -> {
+				open.run();
+				log("A (both terraces): phase " + Duel.debugState() + " (must be VOTE); bad map " + Duel.vote(red, "castle") + " (must be 0)");
+				Duel.vote(red, "terraces");
+				Duel.vote(blue, "terraces");
+				next.accept(1);
+			};
+			steps[1] = () -> {
+				log("A result: " + Duel.debugState() + ", layout " + RingLayout.current + " (must be INTRO, TERRACES)");
+				open.run();
+				Duel.vote(red, "pillars");
+				Duel.vote(blue, "shattered");
+				next.accept(2);
+			};
+			steps[2] = () -> {
+				log("B (pillars vs shattered): " + Duel.debugState() + ", layout " + RingLayout.current + " (must be INTRO, PILLARS or SHATTERED)");
+				open.run();
+				Duel.vote(red, "terraces");
+				next.accept(3);
+			};
+			steps[3] = () -> {
+				log("C (one vote, the other silent): " + Duel.debugState() + " (must still be VOTE)");
+				AuraFx.later(server, 3 * 20 + 10, () -> {
+					log("C after the time: " + Duel.debugState() + ", layout " + RingLayout.current + " (must be INTRO, TERRACES)");
+					RingLayout.forced = RingLayout.SHATTERED;
+					open.run();
+					log("D (forced shattered): " + Duel.debugState() + ", layout " + RingLayout.current + " (must be INTRO, SHATTERED, no vote)");
+					RingLayout.forced = null;
+					Duel.stop(server);
+					Duel.TEST_PLAYERS.clear();
+					com.toast.aurapoints.config.AuraConfig.DUEL_VOTE_SECONDS = oldVote;
+				});
+			};
+			steps[0].run();
+			return 1;
+		})).then(Commands.literal("wavemod").executes(ctx -> {
+			// /auradev wavemod: a Brutal run - the hit mods, the Aura bonus, no record; then the solo / party record boards
+			MinecraftServer server = ctx.getSource().getServer();
+			ServerLevel arena = Arena.level(server);
+			if (arena == null) return 0;
+			AuraState state = AuraState.get(server);
+			net.minecraft.server.level.ServerPlayer p = FakePlayerFactory.get(arena, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000e010"), "W1"));
+			state.getOrCreate(p.getUUID()).aura = AuraType.FIRE;
+			Duel.TEST_PLAYERS.put(p.getUUID(), p);
+			p.moveTo(Arena.LOBBY.x, Arena.LOBBY.y, Arena.LOBBY.z);
+			Match.stop(server);
+			log("create brutal: " + Match.create(p, Match.Mode.WAVES, Waves.Modifier.BRUTAL) + ", " + Match.describe() + ", modifier " + Match.waveModifier() + " (must be BRUTAL)");
+			log("start: " + Match.start(p));
+			AuraFx.later(server, Math.max(1, com.toast.aurapoints.config.AuraConfig.DUEL_COUNTDOWN_SECONDS) * 20 + 60, () -> {
+				Waves.Run run = Match.devRun();
+				for (var mob : run.alive) {
+					var dmg = mob.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE);
+					if (dmg == null) continue;
+					log("mob " + mob.getType().getDescriptionId() + " attack " + dmg.getValue() + " base " + dmg.getBaseValue() + " (must be base x "
+							+ (1.0 + com.toast.aurapoints.config.AuraConfig.WAVES_MOD_DAMAGE) + ")");
+					break;
+				}
+				Waves.devClear(run);
+			});
+			AuraFx.later(server, Math.max(1, com.toast.aurapoints.config.AuraConfig.DUEL_COUNTDOWN_SECONDS) * 20 + 100, () -> {
+				int per = com.toast.aurapoints.config.AuraConfig.WAVES_AURA_PER_WAVE;
+				log("wave 1 earned " + Match.devRun().earned.getOrDefault(p.getUUID(), 0) + " (must be " + Math.round(per * (1.0 + com.toast.aurapoints.config.AuraConfig.WAVES_MOD_AURA_BONUS)) + ")");
+				Match.stop(server);
+				state.waveRecords.remove(p.getUUID());
+				state.partyWaveRecords.remove(p.getUUID());
+				var two = new java.util.LinkedHashMap<UUID, String>();
+				two.put(p.getUUID(), "W1");
+				two.put(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000e011"), "W2");
+				var one = new java.util.LinkedHashMap<UUID, String>();
+				one.put(p.getUUID(), "W1");
+				log("record with a modifier: " + Waves.record(server, 7, one, Waves.Modifier.BRUTAL) + " (must be false)");
+				log("party record: " + Waves.record(server, 8, two, Waves.Modifier.NONE) + " (must be true), party board " + state.partyWaveRecords.get(p.getUUID()).best
+						+ " (must be 8), solo board " + (state.waveRecords.get(p.getUUID()) == null ? "none" : "set") + " (must be none)");
+				log("solo record: " + Waves.record(server, 5, one, Waves.Modifier.NONE) + " (must be true), solo board " + state.waveRecords.get(p.getUUID()).best + " (must be 5)");
+				state.waveRecords.remove(p.getUUID());
+				state.partyWaveRecords.remove(p.getUUID());
+				Duel.TEST_PLAYERS.clear();
+			});
 			return 1;
 		})).then(Commands.literal("npc").executes(ctx -> {
 			// every NPC's click, by a fake player (teleports don't move it; this is for errors and the menus' logic)

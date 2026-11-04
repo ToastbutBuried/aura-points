@@ -37,6 +37,13 @@ public final class ArenaCommand {
 		LiteralArgumentBuilder<CommandSourceStack> duel = Commands.literal("duel")
 				.then(Commands.literal("accept").executes(ctx -> Duel.accept(ctx.getSource().getPlayerOrException())))
 				.then(Commands.literal("decline").executes(ctx -> Duel.decline(ctx.getSource().getPlayerOrException())))
+				.then(Commands.literal("vote").then(Commands.argument("map", com.mojang.brigadier.arguments.StringArgumentType.word())
+						.suggests((c, b) -> {
+							for (RingLayout l : RingLayout.values()) b.suggest(l.id());
+							b.suggest("random");
+							return b.buildFuture();
+						})
+						.executes(ctx -> Duel.vote(ctx.getSource().getPlayerOrException(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "map")))))
 				.then(Commands.literal("stop").requires(ArenaCommand::owner).executes(ctx -> {
 					int stopped = Duel.stop(ctx.getSource().getServer());
 					ctx.getSource().sendSuccess(() -> Component.literal(stopped > 0 ? "Duel stopped, wagers returned." : "No duel running."), false);
@@ -88,7 +95,25 @@ public final class ArenaCommand {
 										return 0;
 									}
 									return Match.create(ctx.getSource().getPlayerOrException(), mode);
-								})))
+								})
+								.then(Commands.argument("modifier", com.mojang.brigadier.arguments.StringArgumentType.word())
+										.suggests((c, b) -> {
+											for (Waves.Modifier m : Waves.Modifier.values()) b.suggest(m.id);
+											return b.buildFuture();
+										})
+										.executes(ctx -> {
+											Match.Mode mode = Match.Mode.byId(com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "mode"));
+											Waves.Modifier mod = Waves.Modifier.byId(com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "modifier"));
+											if (mode == null) {
+												ctx.getSource().sendFailure(Component.literal("Modes: teams, ffa, koth, waves."));
+												return 0;
+											}
+											if (mod == null || (mode != Match.Mode.WAVES && mod != Waves.Modifier.NONE)) {
+												ctx.getSource().sendFailure(Component.literal("Twists (Wave Survival only): standard, swift, brutal, tough, flow."));
+												return 0;
+											}
+											return Match.create(ctx.getSource().getPlayerOrException(), mode, mod);
+										}))))
 						.then(Commands.literal("join").executes(ctx -> Match.join(ctx.getSource().getPlayerOrException())))
 						.then(Commands.literal("leave").executes(ctx -> Match.leave(ctx.getSource().getPlayerOrException())))
 						.then(Commands.literal("start").executes(ctx -> Match.start(ctx.getSource().getPlayerOrException())))

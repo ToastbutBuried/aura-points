@@ -20,8 +20,10 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -36,7 +38,7 @@ public final class Duel {
 	private Duel() {
 	}
 
-	private enum Phase { INTRO, COUNTDOWN, FIGHT, KNOCKOUT }
+	private enum Phase { VOTE, INTRO, COUNTDOWN, FIGHT, KNOCKOUT }
 
 	/** The intro's camera flight round the ring, before the first round. */
 	static final int INTRO_TICKS = 110;
@@ -59,6 +61,9 @@ public final class Duel {
 		int ticks;
 		/** The intro's camera while it flies, else null. */
 		ArenaCamera camera;
+		/** VOTE: each fighter's pick (a random pick = no preference), and who has answered. */
+		final Map<UUID, RingLayout> votes = new HashMap<>();
+		final java.util.Set<UUID> voted = new java.util.HashSet<>();
 
 		Match(ServerPlayer a, ServerPlayer b, int rounds, int wager) {
 			this.a = a.getUUID();
@@ -146,8 +151,61 @@ public final class Duel {
 		server.getPlayerList().broadcastSystemMessage(Component.literal("⚔ " + current.nameA + " vs " + current.nameB + " in the Aura Arena - " + c.rounds
 				+ (c.rounds == 1 ? " round" : " rounds") + (c.wager > 0 ? ", " + c.wager * 2 + " Aura pot" : "") + "! ").withStyle(ChatFormatting.GOLD)
 				.append(button("[Watch]", ChatFormatting.AQUA, "/aura arena spectate", "Spectate the duel")), false);
-		startIntro(server);
+		startVote(server);
 		return 1;
+	}
+
+	// ---------------------------------------------------------------
+	// The map vote: both fighters pick a ring layout before the intro
+	// ---------------------------------------------------------------
+
+	private static void startVote(MinecraftServer server) {
+		Match m = current;
+		int seconds = Math.max(0, AuraConfig.DUEL_VOTE_SECONDS);
+		// nothing to vote on when an owner forced one layout
+		if (seconds <= 0 || RingLayout.forced != null) {
+			startIntro(server, null);
+			return;
+		}
+		m.phase = Phase.VOTE;
+		m.ticks = seconds * 20;
+		for (UUID id : new UUID[]{m.a, m.b}) {
+			ServerPlayer p = player(server, id);
+			if (p == null) continue;
+			MutableComponent line = Component.literal("⚔ Vote for the map: ").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD);
+			for (RingLayout l : RingLayout.values()) {
+				line.append(button("[" + l.displayName + "]", ChatFormatting.AQUA, "/aura arena duel vote " + l.id(), l.blurb())).append(Component.literal(" "));
+			}
+			line.append(button("[Random]", ChatFormatting.GRAY, "/aura arena duel vote random", "No preference"));
+			p.sendSystemMessage(line);
+			p.sendSystemMessage(Component.literal("  If you pick different maps, one of the two is chosen at random. " + seconds + " s.").withStyle(ChatFormatting.GRAY));
+		}
+	}
+
+	/** /aura arena duel vote <layout|random> */
+	public static int vote(ServerPlayer voter, String id) {
+		Match m = current;
+		if (m == null || m.phase != Phase.VOTE || !m.has(voter.getUUID())) return fail(voter, "There's no map vote for you right now.");
+		RingLayout layout = id.equalsIgnoreCase("random") ? null : RingLayout.byId(id.toLowerCase(java.util.Locale.ROOT));
+		if (layout == null && !id.equalsIgnoreCase("random")) return fail(voter, "Maps: pillars, shattered, terraces, random.");
+		if (layout == null) m.votes.remove(voter.getUUID());
+		else m.votes.put(voter.getUUID(), layout);
+		// a random pick still counts as "done" so the vote can end early
+		m.voted.add(voter.getUUID());
+		String what = layout == null ? "random" : layout.displayName;
+		MinecraftServer server = voter.getServer();
+		for (UUID pid : new UUID[]{m.a, m.b}) {
+			ServerPlayer p = player(server, pid);
+			if (p == null) continue;
+			p.sendSystemMessage(Component.literal(p == voter ? "You voted: " + what : voter.getGameProfile().getName() + " voted: " + what).withStyle(ChatFormatting.YELLOW));
+		}
+		return 1;
+	}
+
+	/** The winning layout: one of the picks (a coin flip when they differ), null when nobody named one. */
+	private static RingLayout tally(Match m, net.minecraft.util.RandomSource random) {
+		List<RingLayout> picks = new ArrayList<>(m.votes.values());
+		return picks.isEmpty() ? null : picks.get(random.nextInt(picks.size()));
 	}
 
 	public static int decline(ServerPlayer to) {
@@ -172,12 +230,12 @@ public final class Duel {
 	// The intro: both watch a camera fly round the ring (sneak to skip), names up in their aura colors
 	// ---------------------------------------------------------------
 
-	private static void startIntro(MinecraftServer server) {
+	private static void startIntro(MinecraftServer server, RingLayout wanted) {
 		Match m = current;
 		ServerLevel arena = Arena.level(server);
 		ServerPlayer a = player(server, m.a), b = player(server, m.b);
 		if (arena == null || a == null || b == null) return;
-		RingLayout layout = RingLayout.roll(arena.getRandom(), false);
+		RingLayout layout = RingLayout.roll(arena.getRandom(), false, wanted);
 		ArenaBuilder.resetRing(arena);
 		RingPillars.reset(arena.getGameTime());
 		RingPillars.stop();
@@ -284,6 +342,21 @@ public final class Duel {
 		m.ticks--;
 		ServerLevel arena = Arena.level(server);
 		switch (m.phase) {
+			case VOTE -> {
+				// everyone has answered, or the time is up
+				int left = m.ticks;
+				if (m.voted.size() >= 2 || left <= 0) {
+					RingLayout winner = tally(m, arena.getRandom());
+					if (winner != null && m.votes.size() > 1 && new java.util.HashSet<>(m.votes.values()).size() > 1) {
+						for (ServerPlayer p : new ServerPlayer[]{a, b}) p.sendSystemMessage(Component.literal("Different picks - the dice chose " + winner.displayName + ".").withStyle(ChatFormatting.GRAY));
+					}
+					startIntro(server, winner);
+				} else if (left % 20 == 0) {
+					for (ServerPlayer p : new ServerPlayer[]{a, b}) {
+						p.displayClientMessage(Component.literal("Vote for the map: " + (left / 20) + " s  (" + m.voted.size() + "/2 voted)").withStyle(ChatFormatting.GOLD), true);
+					}
+				}
+			}
 			case INTRO -> {
 				if (m.camera != null) m.camera.aim(cameraAt(1 - m.ticks / (double) INTRO_TICKS), ringCentre());
 				// on the camera once their game knows it (a camera packet for an entity it hasn't seen yet is dropped)
@@ -547,7 +620,7 @@ public final class Duel {
 		if (m == null) return null;
 		ServerPlayer a = player(server, m.a), b = player(server, m.b);
 		return Component.literal("⚔ " + m.nameA + "  " + hearts(a) + "   vs   " + hearts(b) + "  " + m.nameB).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
-				.append(Component.literal("\n" + (m.phase == Phase.INTRO ? "about to start" : "round " + Math.max(1, m.round) + "/" + m.rounds)
+				.append(Component.literal("\n" + (m.phase == Phase.VOTE ? "voting for the map" : m.phase == Phase.INTRO ? "about to start" : "round " + Math.max(1, m.round) + "/" + m.rounds)
 						+ " · " + m.winsA + "–" + m.winsB + " · " + RingLayout.current.displayName).withStyle(ChatFormatting.GRAY));
 	}
 

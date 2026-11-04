@@ -293,7 +293,7 @@ public final class AuraBook {
 	}
 
 	static final class MainPage extends Page {
-		static final int HEADER = 4, AURA = 20, ROLL = 21, SKILLS = 22, COSMETICS = 23, WEEKLY = 24, SETTINGS = 30, EARN = 31, TUTORIAL = 32;
+		static final int HEADER = 4, AURA = 20, ROLL = 21, SKILLS = 22, COSMETICS = 23, WEEKLY = 24, SETTINGS = 30, EARN = 31, TUTORIAL = 32, ARENA = 29, REACTIONS = 33;
 
 		@Override
 		Component title(ServerPlayer player) {
@@ -341,6 +341,13 @@ public final class AuraBook {
 					text(EarnPage.questsLoaded() ? "Quest book, aura-touched mobs," : "Aura-touched mobs,", ChatFormatting.GRAY),
 					text("weekly challenges, arena and more", ChatFormatting.GRAY),
 					text("Click: see every way to earn", ChatFormatting.YELLOW)), EarnPage.questsLoaded());
+			slots[ARENA] = icon(Items.IRON_SWORD, text("Arena", ChatFormatting.RED), List.of(
+					text("Duels, team matches, Wave Survival", ChatFormatting.GRAY),
+					text("and the Training Hall.", ChatFormatting.GRAY),
+					text("Click: join the Arena lobby", ChatFormatting.YELLOW)), false);
+			slots[REACTIONS] = icon(Items.BLAZE_POWDER, text("Reactions", ChatFormatting.GOLD), List.of(
+					text("What happens when two elements meet.", ChatFormatting.GRAY),
+					text("Click: all reactions", ChatFormatting.YELLOW)), false);
 			slots[TUTORIAL] = Tutorial.menuIcon(data);
 			bar(slots, false);
 			Tutorial.highlight(data, slots);
@@ -379,6 +386,14 @@ public final class AuraBook {
 				case SETTINGS -> {
 					pageSound(player);
 					open(player, new SettingsPage());
+				}
+				case ARENA -> {
+					pageSound(player);
+					open(player, new ArenaPage());
+				}
+				case REACTIONS -> {
+					pageSound(player);
+					open(player, new ReactionsPage());
 				}
 				case TUTORIAL -> Tutorial.menuClick(player, data);
 				default -> {
@@ -625,7 +640,7 @@ public final class AuraBook {
 			slots[ARENA] = icon(Items.IRON_SWORD, text("Arena", ChatFormatting.RED), List.of(
 					text("Win a duel: " + AuraConfig.DUEL_PRIZE_AURA + " Aura + the wager pot", ChatFormatting.GREEN),
 					text("Win a match: " + AuraConfig.MATCH_PRIZE_AURA + " Aura", ChatFormatting.GREEN),
-					text("Click: go to the arena", ChatFormatting.YELLOW)), false);
+					text("Click: open the arena menu", ChatFormatting.YELLOW)), false);
 			slots[WAVES] = icon(Items.ZOMBIE_HEAD, text("Wave Survival", ChatFormatting.DARK_GREEN), List.of(
 					text("Arena mode: fight waves of monsters.", ChatFormatting.GRAY),
 					text(AuraConfig.WAVES_AURA_PER_WAVE + " Aura per wave, +" + AuraConfig.WAVES_BOSS_BONUS + " per boss wave", ChatFormatting.GREEN)), false);
@@ -657,12 +672,139 @@ public final class AuraBook {
 					run(player, "aura weekly");
 				}
 				case ARENA -> {
-					player.closeContainer();
-					run(player, "aura arena");
+					pageSound(player);
+					open(player, new ArenaPage());
 				}
 				default -> {
 				}
 			}
+		}
+	}
+
+	/** Dev tests: where the reaction icons sit. */
+	public static int[] reactionSlots() {
+		return ReactionsPage.SPOTS;
+	}
+
+	/** The Aura Arena: one click to its lobby, then the NPCs there explain the rest. */
+	static final class ArenaPage extends Page {
+		static final int LOBBY = 20, HALL = 22, RING = 24, MATCH = 29, SPECTATE = 31, LEAVE = 33;
+
+		@Override
+		Component title(ServerPlayer player) {
+			return Component.literal("Arena");
+		}
+
+		@Override
+		void fill(ServerPlayer player, AuraPlayerData data, ItemStack[] slots) {
+			boolean in = com.toast.aurapoints.arena.Arena.in(player);
+			slots[4] = icon(Items.IRON_SWORD, text("The Aura Arena", ChatFormatting.RED, ChatFormatting.BOLD), List.of(
+					text("Its own dimension. Your items and spot", ChatFormatting.GRAY),
+					text("outside are safe; /aura leave brings you back.", ChatFormatting.GRAY),
+					text(in ? "You are in the arena right now." : "You are not in the arena.", in ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY)), false);
+			slots[LOBBY] = icon(Items.ENDER_PEARL, text("Join the lobby", ChatFormatting.GREEN, ChatFormatting.BOLD), List.of(
+					text("Start here. The NPCs in the lobby set up", ChatFormatting.GRAY),
+					text("duels, team matches and Wave Survival.", ChatFormatting.GRAY),
+					text("Click: go to the lobby", ChatFormatting.YELLOW)), true);
+			slots[HALL] = icon(Items.TARGET, text("Training Hall", ChatFormatting.AQUA), List.of(
+					text("Dummies, a 30 s damage test and the", ChatFormatting.GRAY),
+					text("Spar Pit for free PvP.", ChatFormatting.GRAY),
+					text("Click: go to the hall", ChatFormatting.YELLOW)), false);
+			slots[RING] = icon(Items.SHIELD, text("The ring", ChatFormatting.GOLD), List.of(
+					text("Where duels and matches are fought.", ChatFormatting.GRAY),
+					text("Click: go to the ring's rim", ChatFormatting.YELLOW)), false);
+			slots[MATCH] = icon(Items.WRITABLE_BOOK, text("Join an open match", ChatFormatting.LIGHT_PURPLE), List.of(
+					text("If someone opened a match lobby,", ChatFormatting.GRAY),
+					text("sign up from anywhere.", ChatFormatting.GRAY),
+					text("Click: join", ChatFormatting.YELLOW)), false);
+			slots[SPECTATE] = icon(Items.ENDER_EYE, text("Spectate", ChatFormatting.WHITE), List.of(
+					text("Watch the running fight.", ChatFormatting.GRAY),
+					text("Click: spectate", ChatFormatting.YELLOW)), false);
+			slots[LEAVE] = icon(Items.OAK_DOOR, text("Leave", ChatFormatting.RED), List.of(
+					text("Out of the arena or a match", ChatFormatting.GRAY),
+					text("and back to where you were.", ChatFormatting.GRAY),
+					text("Click: /aura leave", ChatFormatting.YELLOW)), false);
+			bar(slots, true);
+		}
+
+		@Override
+		void click(ServerPlayer player, AuraPlayerData data, int slot) {
+			if (barClick(player, slot)) return;
+			String command = switch (slot) {
+				case LOBBY -> "aura arena lobby";
+				case HALL -> "aura arena hall";
+				case RING -> "aura arena ring";
+				case MATCH -> "aura arena match join";
+				case SPECTATE -> "aura arena spectate";
+				case LEAVE -> "aura leave";
+				default -> null;
+			};
+			if (command == null) return;
+			player.closeContainer();
+			run(player, command);
+		}
+	}
+
+	/** Every elemental reaction: what sets it off and what it does. Your own aura's part is marked. */
+	static final class ReactionsPage extends Page {
+		static final int[] SPOTS = {19, 21, 23, 25, 28, 30, 32, 34};
+
+		@Override
+		Component title(ServerPlayer player) {
+			return Component.literal("Reactions");
+		}
+
+		private static Item iconFor(com.toast.aurapoints.ability.Reactions.Reaction r) {
+			return switch (r) {
+				case FREEZE -> Items.PACKED_ICE;
+				case CONDUCT -> Items.LIGHTNING_ROD;
+				case FIRESTORM -> Items.FIRE_CHARGE;
+				case TOXIC_CLOUD -> Items.FERMENTED_SPIDER_EYE;
+				case STEAM -> Items.WATER_BUCKET;
+				case MELT -> Items.MAGMA_CREAM;
+				case OVERGROWTH -> Items.VINE;
+				case STORM -> Items.WIND_CHARGE;
+			};
+		}
+
+		@Override
+		void fill(ServerPlayer player, AuraPlayerData data, ItemStack[] slots) {
+			var reactions = com.toast.aurapoints.ability.Reactions.Reaction.values();
+			slots[4] = icon(Items.BLAZE_POWDER, text("Elemental reactions", ChatFormatting.GOLD, ChatFormatting.BOLD), List.of(
+					text("Water, Fire, Frost, Verdant and Thunder hits", ChatFormatting.GRAY),
+					text("leave a mark on the target for " + (AuraConfig.REACTION_MARK_TICKS / 20) + "s.", ChatFormatting.GRAY),
+					text("Hit a marked enemy with the right element", ChatFormatting.GRAY),
+					text("and the reaction goes off, using the mark up.", ChatFormatting.GRAY),
+					text("Wind sets reactions off but leaves no mark.", ChatFormatting.GRAY),
+					text("Enemies only; a reaction has a short cooldown", ChatFormatting.DARK_GRAY),
+					text("per target.", ChatFormatting.DARK_GRAY)), false);
+			AuraType mine = data.aura;
+			for (int i = 0; i < reactions.length && i < SPOTS.length; i++) {
+				var r = reactions[i];
+				AuraType trigger = r.triggerAura();
+				boolean yours = mine != null && mine == trigger;
+				List<Component> lore = new ArrayList<>();
+				lore.add(Component.literal("Needs: ").withStyle(ChatFormatting.GRAY)
+						.append(Component.literal(r.markName()).withStyle(s -> s.withColor(r.markRgb()))));
+				lore.add(Component.literal("Then hit with: ").withStyle(ChatFormatting.GRAY)
+						.append(Component.literal(trigger.displayName).withStyle(trigger.color)));
+				lore.add(text(r.effect(), ChatFormatting.WHITE));
+				if (yours) lore.add(text("Your aura sets this off.", ChatFormatting.GREEN));
+				if (!r.enabled() || !AuraConfig.REACTION_ENABLED) lore.add(text("Switched off on this server.", ChatFormatting.RED));
+				slots[SPOTS[i]] = icon(iconFor(r), Component.literal(r.symbol() + " " + r.displayName).withStyle(s -> s.withColor(r.rgb()).withBold(true)), lore, yours);
+			}
+			if (mine != null) {
+				String leaves = com.toast.aurapoints.ability.Reactions.markLeftBy(mine);
+				slots[40] = icon(auraIcon(mine), auraName(mine), List.of(
+						text(leaves != null ? "Your hits leave: " + leaves : "Your hits leave no mark,", leaves != null ? ChatFormatting.AQUA : ChatFormatting.GRAY),
+						text(leaves != null ? "so allies' elements can react to them." : "but they set off reactions.", ChatFormatting.GRAY)), false);
+			}
+			bar(slots, true);
+		}
+
+		@Override
+		void click(ServerPlayer player, AuraPlayerData data, int slot) {
+			barClick(player, slot);
 		}
 	}
 

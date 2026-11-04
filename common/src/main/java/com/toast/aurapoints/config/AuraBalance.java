@@ -58,7 +58,7 @@ public final class AuraBalance {
 		for (String p : List.of("VANISH_", "SHADOW_", "PHANTOM_STEP_", "BLOODRUSH_")) PREFIXES.put(p, "shadow");
 		for (String p : List.of("WATER_ROLLABLE", "SHOCKWAVE_", "HEALING_TIDE_", "IRON_SKIN_", "FLOW_", "BUBBLE_")) PREFIXES.put(p, "water");
 		for (String p : List.of("FROST_", "ICE_SHELL_", "SHATTER_", "ICE_SPIKE_")) PREFIXES.put(p, "frost");
-		for (String p : List.of("VERDANT_", "VINE_HOOK_", "BLOOM_", "ENTANGLE_", "VIPER_")) PREFIXES.put(p, "verdant");
+		for (String p : List.of("VERDANT_", "VINE_HOOK_", "BLOOM_", "VIRULENCE_", "ENTANGLE_", "VIPER_")) PREFIXES.put(p, "verdant");
 		for (String p : List.of("THUNDER_", "THUNDERBOLT_", "STATIC_CHARGE_", "STORMBORN_", "CHIDORI_", "MJOLNIR_")) PREFIXES.put(p, "thunder");
 		for (String p : List.of("RESONANCE_", "NOISE_", "ECHO_", "BLOSSOM_", "LISTENING_TREE_", "GRASP_")) PREFIXES.put(p, "resonance");
 		for (String p : List.of("HANDHELD_", "MAELSTROM_", "SUNFALL_", "STORM_EYE_", "UMBRAL_", "THORN_SENTINEL_", "WINTERS_GATE_", "CHAIN_STRIKE_")) PREFIXES.put(p, "handhelds");

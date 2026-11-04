@@ -121,8 +121,11 @@ public final class Cosmetics {
 	}
 
 	private static int bestWave(ServerPlayer p) {
-		var r = p.getServer() == null ? null : AuraState.get(p.getServer()).waveRecords.get(p.getUUID());
-		return r == null ? 0 : (int) r.best;
+		if (p.getServer() == null) return 0;
+		var state = AuraState.get(p.getServer());
+		var solo = state.waveRecords.get(p.getUUID());
+		var party = state.partyWaveRecords.get(p.getUUID());
+		return (int) Math.max(solo == null ? 0 : solo.best, party == null ? 0 : party.best);
 	}
 
 	private static int stat(ServerPlayer p, net.minecraft.resources.ResourceLocation id) {

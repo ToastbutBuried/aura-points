@@ -30,6 +30,15 @@ public enum RingLayout {
 		this.displayName = displayName;
 	}
 
+	/** One line for the vote buttons' hover. */
+	String blurb() {
+		return switch (this) {
+			case PILLARS -> "Pillars rise and fall in the ring";
+			case SHATTERED -> "A broken floor over lava";
+			case TERRACES -> "A raised dais in the middle";
+		};
+	}
+
 	/** What the ring is built as right now. */
 	static RingLayout current = PILLARS;
 	/** /aura arena layout: every match uses this one until set back to random (null). */
@@ -51,7 +60,13 @@ public enum RingLayout {
 
 	/** A layout for a new duel or match (the forced one if it fits), made current. */
 	static RingLayout roll(RandomSource random, boolean waves) {
+		return roll(random, waves, null);
+	}
+
+	/** Same, but {@code wanted} (a vote's winner) is used when no layout is forced and it fits. */
+	static RingLayout roll(RandomSource random, boolean waves, RingLayout wanted) {
 		RingLayout pick = forced;
+		if (pick == null && wanted != null && (!waves || wanted.fitsWaves())) pick = wanted;
 		if (pick == null || waves && !pick.fitsWaves()) {
 			do pick = values()[random.nextInt(values().length)];
 			while (waves && !pick.fitsWaves());

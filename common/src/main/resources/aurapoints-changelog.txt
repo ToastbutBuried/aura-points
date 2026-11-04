@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.8.0
+- Verdant gets a new passive, Virulence: poisoned targets take 25% more damage from you. Aura Book: new Arena page (one click to the lobby) and a Reactions page that explains every elemental reaction. Ice Shell breaks for good when you die.
+- Duels: both fighters vote for the map (ring layout) before the intro. Wave Survival: pick a twist (Swift, Brutal, Tough, Flow) when you open a run, and the record board now keeps solo and party runs apart.
+
 == 5.7.1
 - Wave Survival: everyone in a run is a teammate (no damage to each other, heals reach them) and the mobs no longer fight each other. Healing Tide only heals friends now (in the arena: your teammates).
 - Getting frozen or paralyzed breaks whatever you hold (flame, wind ball, bubble, Prism Beam, boulder, grasp). Fixed fires that could stay forever.

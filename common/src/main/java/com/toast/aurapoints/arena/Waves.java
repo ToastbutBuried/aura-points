@@ -71,6 +71,37 @@ public final class Waves {
 	private static final ResourceLocation BOSS_ID = ResourceLocation.fromNamespaceAndPath(AuraPoints.MOD_ID, "wave_boss");
 	private static final ResourceLocation BOSS_SIZE_ID = ResourceLocation.fromNamespaceAndPath(AuraPoints.MOD_ID, "wave_boss_size");
 
+	/** An optional twist on a run, chosen when it is opened. Only a standard run sets records; the hard ones pay extra Aura. */
+	public enum Modifier {
+		NONE("standard", "Standard", "The normal run. The only kind that sets records."),
+		SWIFT("swift", "Swift", "Mobs move faster."),
+		BRUTAL("brutal", "Brutal", "Mobs hit harder."),
+		TOUGH("tough", "Tough", "Mobs have more health."),
+		FLOW("flow", "Flow", "Your cooldowns are much shorter. Just for fun.");
+
+		public final String id;
+		public final String displayName;
+		public final String blurb;
+
+		Modifier(String id, String displayName, String blurb) {
+			this.id = id;
+			this.displayName = displayName;
+			this.blurb = blurb;
+		}
+
+		public static Modifier byId(String id) {
+			for (Modifier m : values()) if (m.id.equalsIgnoreCase(id)) return m;
+			return null;
+		}
+
+		/** The three that make the run harder and pay for it. */
+		public boolean hard() {
+			return this == SWIFT || this == BRUTAL || this == TOUGH;
+		}
+	}
+
+	private static final ResourceLocation MOD_ID = ResourceLocation.fromNamespaceAndPath(AuraPoints.MOD_ID, "wave_modifier");
+
 	/** A mob a wave can buy: its cost and the first wave it shows up in. */
 	record Kind(EntityType<? extends Mob> type, int cost, int fromWave) {
 	}
@@ -92,6 +123,7 @@ public final class Waves {
 	/** One run's mob side. */
 	static final class Run {
 		final long seed;
+		Modifier mod = Modifier.NONE;
 		int wave;
 		/** Mobs still to come this wave (spawned as room frees up). */
 		final List<EntityType<? extends Mob>> queue = new ArrayList<>();
@@ -205,8 +237,9 @@ public final class Waves {
 	// A run
 	// ---------------------------------------------------------------
 
-	static Run newRun(MinecraftServer server) {
+	static Run newRun(MinecraftServer server, Modifier mod) {
 		Run run = new Run(server.overworld().getRandom().nextLong());
+		run.mod = mod == null ? Modifier.NONE : mod;
 		active = run;
 		return run;
 	}
@@ -302,6 +335,7 @@ public final class Waves {
 	/** Cleared: everyone who was in it gets paid. */
 	static void payWave(Run run, List<ServerPlayer> players) {
 		int aura = Math.max(0, AuraConfig.WAVES_AURA_PER_WAVE) + (run.bossWave() ? Math.max(0, AuraConfig.WAVES_BOSS_BONUS) : 0);
+		if (run.mod.hard()) aura = (int) Math.round(aura * (1.0 + Math.max(0.0, AuraConfig.WAVES_MOD_AURA_BONUS)));
 		for (ServerPlayer p : players) {
 			if (run.joinedAt.getOrDefault(p.getUUID(), Integer.MAX_VALUE) > run.wave) continue;
 			if (aura > 0) AuraCurrency.add(p, aura);
@@ -357,6 +391,25 @@ public final class Waves {
 		return new Vec3(0.5 + Math.cos(a) * r, Arena.RING_FLOOR + 1, Arena.RING_Z + 0.5 + Math.sin(a) * r);
 	}
 
+	/** The run modifier's part of a mob: speed, damage or health on top of the wave scaling. */
+	private static void applyModifier(Mob m, Modifier mod) {
+		var attribute = switch (mod) {
+			case SWIFT -> m.getAttribute(Attributes.MOVEMENT_SPEED);
+			case BRUTAL -> m.getAttribute(Attributes.ATTACK_DAMAGE);
+			case TOUGH -> m.getAttribute(Attributes.MAX_HEALTH);
+			default -> null;
+		};
+		double amount = switch (mod) {
+			case SWIFT -> AuraConfig.WAVES_MOD_SPEED;
+			case BRUTAL -> AuraConfig.WAVES_MOD_DAMAGE;
+			case TOUGH -> AuraConfig.WAVES_MOD_HEALTH;
+			default -> 0;
+		};
+		if (attribute == null || amount <= 0) return;
+		attribute.addPermanentModifier(new AttributeModifier(MOD_ID, amount, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
+		if (mod == Modifier.TOUGH) m.setHealth(m.getMaxHealth());
+	}
+
 	private static Mob spawn(ServerLevel arena, Run run, EntityType<? extends Mob> type, AuraType aura, Vec3 at) {
 		Mob m = type.create(arena);
 		if (m == null) return null;
@@ -381,6 +434,7 @@ public final class Waves {
 				if (dmg != null) dmg.addPermanentModifier(new AttributeModifier(SCALE_ID, scale, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
 				m.setHealth(m.getMaxHealth());
 			}
+			applyModifier(m, run.mod);
 			if (aura != null) TouchedMobs.touch(m, aura);
 			cap(m, aura == null ? 0xFFC83D : aura.rgb);
 			arena.addFreshEntityWithPassengers(m);
@@ -461,17 +515,20 @@ public final class Waves {
 	public static int cooldown(ServerPlayer player, int ticks) {
 		if (ticks <= 0 || !Match.inWaves(player)) return ticks;
 		double mult = Math.max(0.0, AuraConfig.WAVES_COOLDOWN_MULTIPLIER);
+		if (Match.waveModifier() == Modifier.FLOW) mult *= Math.max(0.0, AuraConfig.WAVES_MOD_FLOW_COOLDOWN);
 		return mult == 1.0 ? ticks : (int) Math.round(ticks * mult);
 	}
 
 	/** Records the run's score for each player: best wave (and the party it was with). Returns true if any record broke. */
-	static boolean record(MinecraftServer server, int cleared, Map<UUID, String> players) {
-		if (cleared <= 0) return false;
+	static boolean record(MinecraftServer server, int cleared, Map<UUID, String> players, Modifier mod) {
+		if (cleared <= 0 || mod != Modifier.NONE) return false;
 		AuraState state = AuraState.get(server);
+		// solo and party runs have their own boards
+		Map<UUID, AuraState.ArenaRecord> board = players.size() > 1 ? state.partyWaveRecords : state.waveRecords;
 		String party = String.join(", ", players.values());
 		boolean any = false;
 		for (var e : players.entrySet()) {
-			AuraState.ArenaRecord r = state.waveRecords.computeIfAbsent(e.getKey(), id -> new AuraState.ArenaRecord(e.getValue()));
+			AuraState.ArenaRecord r = board.computeIfAbsent(e.getKey(), id -> new AuraState.ArenaRecord(e.getValue()));
 			r.name = e.getValue();
 			r.wins++; // runs played
 			if (cleared > r.best) {

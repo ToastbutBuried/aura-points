@@ -408,6 +408,15 @@ public class AuraPoints {
 				AuraAbilities.executionerFx(attacker, victim, berserker > 1.0001);
 			}
 
+			// Virulence: poisoned targets take more
+			if (AuraConfig.VIRULENCE_BONUS > 0 && victim.hasEffect(net.minecraft.world.effect.MobEffects.POISON)
+					&& AuraAbilities.hasAbility(attackerData, AuraAbilities.Ability.VIRULENCE)) {
+				event.setAmount((float) (event.getAmount() * (1.0 + AuraConfig.VIRULENCE_BONUS)));
+				AuraStats.add(attacker, AuraStats.VIRULENCE_HITS, 1);
+				AuraFx.particles((net.minecraft.server.level.ServerLevel) victim.level(), net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER,
+						victim.getX(), victim.getY() + victim.getBbHeight() * 0.6, victim.getZ(), 3, 0.25, 0.3, 0.25, 0.0);
+			}
+
 			// Umbral Ambush: the hit right after it
 			if (melee) {
 				float bonus = com.toast.aurapoints.ability.UmbralAmbush.takeBonus(attacker, victim);
@@ -663,6 +672,8 @@ public class AuraPoints {
 			com.toast.aurapoints.network.NetworkHandler.sendFrozen(player, 0);
 			// dying empties the blood bar (respawn, not the death event: the arena cancels its deaths)
 			com.toast.aurapoints.ability.Blood.onDeath(player);
+			// dying also breaks the Ice Shell: the new life gets a whole one
+			com.toast.aurapoints.ability.IceShell.onDeath(player);
 		}
 
 		@SubscribeEvent

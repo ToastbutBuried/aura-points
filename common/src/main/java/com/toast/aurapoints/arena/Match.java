@@ -95,6 +95,8 @@ public final class Match {
 		long lobbyEnds;
 		/** WAVES: the mob side of the run. */
 		Waves.Run run;
+		/** WAVES: the twist picked when the run was opened. */
+		Waves.Modifier mod = Waves.Modifier.NONE;
 		/** WAVES: the break after a boss wave, when players may switch aura (WaveAuras). */
 		boolean auraSwitch;
 
@@ -134,14 +136,19 @@ public final class Match {
 	// ---------------------------------------------------------------
 
 	public static int create(ServerPlayer host, Mode mode) {
+		return create(host, mode, Waves.Modifier.NONE);
+	}
+
+	public static int create(ServerPlayer host, Mode mode, Waves.Modifier mod) {
 		if (!AuraConfig.ARENA_ENABLED || !AuraConfig.MATCH_ENABLED) return fail(host, "Arena matches are switched off right now.");
 		if (mode == Mode.WAVES && !AuraConfig.WAVES_ENABLED) return fail(host, "Wave Survival is switched off right now.");
 		if (current != null) return fail(host, "A " + current.mode.displayName + " is already " + (current.phase == Phase.LOBBY ? "open - " : "on - ") + "one at a time.");
 		if (Duel.running()) return fail(host, "The ring is busy with a duel. Try again after.");
 		if (Duel.isIn(host)) return fail(host, "You're in a duel.");
 		current = new Game(mode, host, host.getServer().getTickCount());
+		if (mode == Mode.WAVES && mod != null) current.mod = mod;
 		host.getServer().getPlayerList().broadcastSystemMessage(Component.literal("⚔ " + host.getGameProfile().getName() + " opened a "
-				+ mode.displayName + " in the Aura Arena (" + mode.minPlayers + "-" + maxPlayers() + " players)! ").withStyle(ChatFormatting.GOLD)
+				+ (current.mod == Waves.Modifier.NONE ? "" : current.mod.displayName + " ") + mode.displayName + " in the Aura Arena (" + mode.minPlayers + "-" + maxPlayers() + " players)! ").withStyle(ChatFormatting.GOLD)
 				.append(button("[Join]", ChatFormatting.GREEN, "/aura arena match join", "Join the " + mode.displayName)), false);
 		host.sendSystemMessage(Component.literal("Start it once enough have joined: ").withStyle(ChatFormatting.GRAY)
 				.append(button("[Start]", ChatFormatting.GREEN, "/aura arena match start", "Start the match"))
@@ -231,7 +238,7 @@ public final class Match {
 		int i = 0;
 		for (UUID id : g.players.keySet()) g.side.put(id, g.mode == Mode.TEAMS ? i++ % 2 : g.mode == Mode.WAVES ? 0 : i++);
 		if (g.mode == Mode.WAVES) {
-			g.run = Waves.newRun(server);
+			g.run = Waves.newRun(server, g.mod);
 			for (UUID id : g.players.keySet()) g.run.joinedAt.put(id, 1);
 		}
 		g.wins = new int[g.sides()];
@@ -500,7 +507,7 @@ public final class Match {
 		ServerLevel arena = Arena.level(server);
 		int cleared = g.run == null ? 0 : g.phase == Phase.BREAK ? g.run.wave : g.run.wave - 1;
 		Waves.cleanup(arena, g.run);
-		boolean record = Waves.record(server, cleared, g.players);
+		boolean record = Waves.record(server, cleared, g.players, g.mod);
 		for (UUID id : g.players.keySet()) {
 			ServerPlayer p = player(server, id);
 			if (p == null) continue;
@@ -542,6 +549,12 @@ public final class Match {
 	}
 
 	/** Fighting the waves right now (a running Wave Survival, standing or not). */
+	/** The twist of the Wave Survival run that is on (NONE when there is none). */
+	public static Waves.Modifier waveModifier() {
+		Game g = current;
+		return g != null && g.mode == Mode.WAVES ? g.mod : Waves.Modifier.NONE;
+	}
+
 	public static boolean inWaves(ServerPlayer player) {
 		Game g = current;
 		return g != null && g.mode == Mode.WAVES && g.phase != Phase.LOBBY && g.players.containsKey(player.getUUID());
@@ -816,8 +829,9 @@ public final class Match {
 	public static String describe() {
 		Game g = current;
 		if (g == null) return "";
-		if (g.phase == Phase.LOBBY) return g.mode.displayName + " (open, " + g.players.size() + " joined)";
-		return g.mode.displayName + " · " + (g.mode == Mode.KOTH ? hillScores(g) : standing(g));
+		String twist = g.mod == Waves.Modifier.NONE ? "" : g.mod.displayName + " ";
+		if (g.phase == Phase.LOBBY) return twist + g.mode.displayName + " (open, " + g.players.size() + " joined)";
+		return twist + g.mode.displayName + " · " + (g.mode == Mode.KOTH ? hillScores(g) : standing(g));
 	}
 
 	/** In a match that has started. */

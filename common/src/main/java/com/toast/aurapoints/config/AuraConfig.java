@@ -694,6 +694,9 @@ public final class AuraConfig {
 	public static int BLOOM_RADIUS = 4;
 	public static int BLOOM_PLANTS_PER_PULSE = 2;
 
+	/** Virulence (passive): poisoned targets take this much more damage (0.25 = +25%) from the Verdant player's hits and abilities. */
+	public static double VIRULENCE_BONUS = 0.25;
+
 	// ---------------------------------------------------------------
 	// Thunder (all in aurapoints-thunder.json) - first test version
 	// ---------------------------------------------------------------
@@ -1053,6 +1056,8 @@ public final class AuraConfig {
 	/** Duels: rounds when none are given, and the most a challenge may ask for. A tie after the last one adds a sudden-death round. */
 	public static int DUEL_DEFAULT_ROUNDS = 3;
 	public static int DUEL_MAX_ROUNDS = 9;
+	/** After a duel is accepted both fighters vote for the map (ring layout) for this many seconds; 0 = no vote, a random layout. */
+	public static int DUEL_VOTE_SECONDS = 15;
 	/** Aura the winner of a duel gets on top of the wager pot (0 = only the pot). */
 	public static int DUEL_PRIZE_AURA = 50;
 	/** The highest wager a challenge may name (each player puts it in; the winner takes both). */
@@ -1105,6 +1110,14 @@ public final class AuraConfig {
 	public static int WAVES_BOSS_BONUS = 10;
 	public static int WAVES_MASTERY_XP = 15;
 	public static double WAVES_COOLDOWN_MULTIPLIER = 0.5;
+	/** Run modifiers (picked when the run is opened): Swift = mobs this much faster, Brutal = this much more damage, Tough = this much more health. */
+	public static double WAVES_MOD_SPEED = 0.3;
+	public static double WAVES_MOD_DAMAGE = 0.5;
+	public static double WAVES_MOD_HEALTH = 0.5;
+	/** Extra Aura per wave for the three hard modifiers (0.25 = +25%). Modified runs never set records. */
+	public static double WAVES_MOD_AURA_BONUS = 0.25;
+	/** Flow: the cooldown multiplier is multiplied by this on top of WAVES_COOLDOWN_MULTIPLIER. */
+	public static double WAVES_MOD_FLOW_COOLDOWN = 0.5;
 	public static int WAVES_GLOW_AFTER_SECONDS = 30;
 	/** The 3-2-1 countdown on the pads before each round. */
 	public static int DUEL_COUNTDOWN_SECONDS = 3;
