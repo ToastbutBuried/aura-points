@@ -11,9 +11,10 @@ import net.minecraft.world.item.ItemStack;
 /**
  * The shadow dragon's body is a chain of item displays (items dragon_segment_a / b, spawned by a datapack). A display is
  * only drawn within its view_range x 64 blocks (1.0 by default), so a long dragon seen from far away loses its far half.
- * Any item display holding a segment gets its view range raised to SHADOW_DRAGON_SEGMENT_VIEW_RANGE (2.5 = 160 blocks,
- * the most the server sends an item display at all). A larger value a datapack set itself is left alone. The change is
- * saved with the entity, so it only has to happen once.
+ * Any item display holding a segment gets its view range raised to SHADOW_DRAGON_SEGMENT_VIEW_RANGE (6 = 384 blocks), and
+ * the server sends it from SHADOW_DRAGON_SEGMENT_TRACK_BLOCKS away (mixin/TrackedEntityMixin; vanilla stops at 160 blocks
+ * for item displays). The server's view-distance and the player's own render distance still cap what they see. A larger
+ * view range a datapack set itself is left alone. The view range is saved with the entity, so it only has to happen once.
  */
 public final class DragonSegments {
 
@@ -24,6 +25,11 @@ public final class DragonSegments {
 		if (!(e instanceof Display.ItemDisplay display)) return false;
 		ItemStack stack = ((ItemDisplayAccessor) display).aurapoints$getItemStack();
 		return stack.is(AuraPoints.DRAGON_SEGMENT_A.get()) || stack.is(AuraPoints.DRAGON_SEGMENT_B.get());
+	}
+
+	/** How far (blocks) the server sends this entity to players: SHADOW_DRAGON_SEGMENT_TRACK_BLOCKS for a dragon segment, else 0 (vanilla range). */
+	public static int trackingBlocks(Entity e) {
+		return AuraConfig.SHADOW_DRAGON_SEGMENT_TRACK_BLOCKS > 0 && isSegment(e) ? AuraConfig.SHADOW_DRAGON_SEGMENT_TRACK_BLOCKS : 0;
 	}
 
 	/** Raises the view range of a dragon segment; returns true if it changed anything. */

@@ -38,6 +38,10 @@ final class BranchDevTest {
 			run(ctx.getSource().getServer());
 			return 1;
 		})));
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("tracking").executes(ctx -> {
+			tracking(ctx.getSource().getServer());
+			return 1;
+		})));
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("tome").executes(ctx -> {
 			tome(ctx.getSource().getServer());
 			return 1;
@@ -394,6 +398,44 @@ final class BranchDevTest {
 		log("branch3 done (state restored)");
 	}
 
+	/** /auradev tracking: the server's effective tracking range of a dragon segment display vs a plain item display (reflection into ChunkMap.TrackedEntity). */
+	private static void tracking(net.minecraft.server.MinecraftServer server) {
+		ServerLevel level = server.overworld();
+		var spawn = level.getSharedSpawnPos();
+		Vec3 base = new Vec3(spawn.getX() + 0.5, 120, spawn.getZ() + 0.5);
+		var seg = new net.minecraft.world.entity.Display.ItemDisplay(EntityType.ITEM_DISPLAY, level);
+		var plain = new net.minecraft.world.entity.Display.ItemDisplay(EntityType.ITEM_DISPLAY, level);
+		seg.setPos(base.x, base.y, base.z);
+		plain.setPos(base.x + 2, base.y, base.z);
+		((com.toast.aurapoints.mixin.ItemDisplayAccessor) seg).aurapoints$setItemStack(new net.minecraft.world.item.ItemStack(AuraPoints.DRAGON_SEGMENT_A.get()));
+		((com.toast.aurapoints.mixin.ItemDisplayAccessor) plain).aurapoints$setItemStack(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.STONE));
+		level.addFreshEntity(seg);
+		level.addFreshEntity(plain);
+		AuraFx.later(server, 5, () -> {
+			try {
+				var chunkMapField = net.minecraft.server.level.ServerChunkCache.class.getDeclaredField("chunkMap");
+				chunkMapField.setAccessible(true);
+				Object chunkMap = chunkMapField.get(level.getChunkSource());
+				var mapField = net.minecraft.server.level.ChunkMap.class.getDeclaredField("entityMap");
+				mapField.setAccessible(true);
+				var map = (it.unimi.dsi.fastutil.ints.Int2ObjectMap<?>) mapField.get(chunkMap);
+				int[] range = new int[2];
+				var entities = new net.minecraft.world.entity.Entity[]{seg, plain};
+				for (int i = 0; i < 2; i++) {
+					Object tracked = map.get(entities[i].getId());
+					var m = tracked.getClass().getDeclaredMethod("getEffectiveRange");
+					m.setAccessible(true);
+					range[i] = (Integer) m.invoke(tracked);
+				}
+				log("effective tracking range: dragon segment " + range[0] + " blocks (must be " + AuraConfig.SHADOW_DRAGON_SEGMENT_TRACK_BLOCKS + "), plain item display " + range[1] + " (must be 160)");
+			} catch (Exception e) {
+				log("tracking test failed: " + e);
+			}
+			seg.discard();
+			plain.discard();
+		});
+	}
+
 	/** /auradev tome: the Balance Tome's Branches item, the branch pages and every branch's values (5.14.0). */
 	private static void tome(net.minecraft.server.MinecraftServer server) {
 		ServerLevel level = server.overworld();
@@ -443,7 +485,7 @@ final class BranchDevTest {
 		AuraFx.later(server, 40, () -> {
 			StringBuilder sb = new StringBuilder();
 			for (var e : d) sb.append(((com.toast.aurapoints.mixin.DisplayAccessor) e).aurapoints$getViewRange()).append(' ');
-			log("segment view ranges: " + sb + "(must be 2.5 2.5 1.0 4.0 2.5: segments raised, a stone display untouched, a datapack's 4.0 kept, a late item caught)");
+			log("segment view ranges: " + sb + "(must be 6.0 6.0 1.0 6.0 6.0: segments raised to SHADOW_DRAGON_SEGMENT_VIEW_RANGE, a stone display untouched, a late item caught; the 4.0 a datapack set is raised too because 4.0 < 6.0)");
 			for (var e : d) e.discard();
 		});
 	}

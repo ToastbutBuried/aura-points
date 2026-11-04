@@ -519,7 +519,9 @@ public final class AuraConfig {
 	public static float NOISE_DEAF_LEVEL = 60.0f;
 
 	/** Shadow dragon: view range of the item displays that make up its body (x 64 blocks; 2.5 is the most the server sends, 0 = leave them alone). */
-	public static float SHADOW_DRAGON_SEGMENT_VIEW_RANGE = 2.5f;
+	public static float SHADOW_DRAGON_SEGMENT_VIEW_RANGE = 6.0f;
+	/** How far (blocks) the server sends a dragon segment to players (0 = vanilla 160). The server's view-distance (chunks x 16, minus 16) caps it. */
+	public static int SHADOW_DRAGON_SEGMENT_TRACK_BLOCKS = 384;
 
 	/** Fireborn: how far you see while in lava, in blocks (vanilla: about 1, with Fire Resistance 5; 0 = like vanilla). */
 	public static float FIREBORN_LAVA_SIGHT = 16f;
