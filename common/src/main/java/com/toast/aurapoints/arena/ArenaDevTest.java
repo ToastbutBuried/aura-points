@@ -189,6 +189,16 @@ public final class ArenaDevTest {
 				Waves.Run run = Match.devRun();
 				log("wave 5: " + Match.debugState() + ", boss " + (run.boss == null ? "none" : run.boss.getName().getString() + " hp " + run.boss.getMaxHealth())
 						+ ", bar " + (run.bar != null));
+				// teammates: W1 can't hurt W2; wave mobs never take each other as their target
+				var hit = arena.damageSources().playerAttack(ps[0]);
+				log("teammates: W1 hurts W2 blocked=" + Arena.blocksDamage(ps[1], hit) + " (must be true), teammates=" + Match.teammates(ps[0], ps[1]) + " (must be true)");
+				java.util.List<net.minecraft.world.entity.Mob> mobs = new java.util.ArrayList<>(run.alive);
+				if (run.boss != null) mobs.add(run.boss);
+				if (mobs.size() >= 2) {
+					net.minecraft.world.entity.Mob a = mobs.get(0), b2 = mobs.get(1);
+					a.setTarget(b2);
+					log("infighting: " + a.getType().toShortString() + " told to target " + b2.getType().toShortString() + " -> target is a wave mob=" + (a.getTarget() != null && Waves.isWaveMob(a.getTarget())) + " (must be false)");
+				} else log("infighting: fewer than 2 mobs, skipped");
 				// a mob knocks W1 out; W2 still stands
 				net.minecraft.world.entity.Mob by = run.boss != null ? run.boss : run.alive.isEmpty() ? null : run.alive.get(0);
 				var src = by == null ? arena.damageSources().generic() : arena.damageSources().mobAttack(by);
