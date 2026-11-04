@@ -35,7 +35,7 @@ public final class AuraClientConfig {
 	// feedback
 	public static final ModConfigSpec.BooleanValue HIT_CONFIRM, STUNT_POPUPS, POINTS_TOAST, ROLL_REEL, STATUS_OVERLAYS, KEYBIND_WARNING;
 	public static final ModConfigSpec.DoubleValue OVERLAY_STRENGTH, CAMERA_SHAKE, DRAGON_TRANSPARENCY;
-	public static final ModConfigSpec.BooleanValue DRAGON_SHADER_SUPPORT;
+	public static final ModConfigSpec.BooleanValue DRAGON_SHADER_SUPPORT, DRAGON_HIDE_FIRST_PERSON;
 	public static final ModConfigSpec.BooleanValue FOV_KICK, REDUCED_MOTION;
 	public static final ModConfigSpec.EnumValue<Shimmer> AURA_SHIMMER;
 	public static final ModConfigSpec.EnumValue<ArenaMessages> ARENA_MESSAGES;
@@ -248,9 +248,14 @@ public final class AuraClientConfig {
 						"Only the rider sees this, everyone else sees it solid. In first person the mane and nose horn are always hidden on top of this.")
 				.translation("aurapoints.configuration.dragonTransparency")
 				.defineInRange("dragonTransparency", 0.0, 0.0, 0.9);
-		DRAGON_SHADER_SUPPORT = b.comment("Force shader mode (it also switches on by itself when Iris/Oculus reports a shader pack, e.g. Photon, Bliss, Complementary/Euphoria): shader packs handle alpha blending unpredictably, so the transparency cuts a fine checker of holes into the head instead (the higher, the more holes).")
+		DRAGON_SHADER_SUPPORT = b.comment("Dither mode for the dragon transparency: instead of blending it cuts a fine checker of holes into the head (the higher the transparency, the more holes).",
+						"For shader packs that cannot blend entities (Photon cannot on 1.21.1). Packs that can blend do not need it; this is not switched on automatically.")
 				.translation("aurapoints.configuration.dragonShaderSupport")
 				.define("dragonShaderSupport", false);
+		DRAGON_HIDE_FIRST_PERSON = b.comment("Do not draw the shadow dragon's head at all while you ride it in first person (you see the world, not the dragon).",
+						"The clean way to a clear view with a shader pack that cannot show transparency. Third person is unchanged.")
+				.translation("aurapoints.configuration.dragonHideFirstPerson")
+				.define("dragonHideFirstPerson", false);
 		ARENA_MESSAGES = b.comment("How arena announcements (countdowns, round won, wave cleared, knocked out...) appear:",
 						"TITLE (short, in the middle of the screen) or CHAT (a chat line; countdowns go to the action bar).")
 				.translation("aurapoints.configuration.arenaMessages")

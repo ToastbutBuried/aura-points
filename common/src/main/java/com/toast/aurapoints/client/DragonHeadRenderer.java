@@ -23,9 +23,11 @@ import software.bernie.geckolib.util.Color;
  * living entities by their generic.scale attribute; the eyes and glowing tips come from dragon_head_glowmask.png.
  * The RIDER's view is eased: in first person the mane along the top of the skull and the nose horn (the parts at eye
  * level of a big dragon) are not drawn at all, and the whole head can be made see-through with the client option
- * dragonTransparency. With a shader pack (Iris/Oculus: detected, or forced by dragonShaderSupport) alpha blending can't be
- * trusted, so the head is drawn as a cutout with a dithered copy of its texture (a checker of fully transparent texels,
- * denser the higher the transparency): every shader pack discards those texels. Nobody else's view changes.
+ * dragonTransparency, and optionally be left out in first person (dragonHideFirstPerson). Transparency is real alpha
+ * blending. Some shader packs cannot blend entities: Photon turns blending off and disables its translucent entity
+ * program on 1.21.1 (its shaders.properties), so there the head is drawn as a cutout with a dithered copy of its texture
+ * instead (a checker of fully transparent texels, denser the higher the transparency) when dragonShaderSupport is on.
+ * Nobody else's view changes.
  */
 public class DragonHeadRenderer extends GeoEntityRenderer<DragonHead> {
 
@@ -79,36 +81,9 @@ public class DragonHeadRenderer extends GeoEntityRenderer<DragonHead> {
 		return ridden(head) ? 1f - (float) (double) com.toast.aurapoints.config.AuraClientConfig.DRAGON_TRANSPARENCY.get() : 1f;
 	}
 
-	private static java.lang.reflect.Method irisInUse;
-	private static Object irisApi;
-	private static boolean irisChecked;
-
-	/** A shader pack is on (Iris, or Oculus which has the same API)? Best effort by reflection; false if neither is there. */
-	private static boolean irisShaders() {
-		if (!irisChecked) {
-			irisChecked = true;
-			for (ClassLoader loader : new ClassLoader[]{DragonHeadRenderer.class.getClassLoader(), Thread.currentThread().getContextClassLoader(), ClassLoader.getSystemClassLoader()}) {
-				try {
-					Class<?> c = Class.forName("net.irisshaders.iris.api.v0.IrisApi", false, loader);
-					irisApi = c.getMethod("getInstance").invoke(null);
-					irisInUse = c.getMethod("isShaderPackInUse");
-					break;
-				} catch (Throwable ignored) {
-					// not this loader / no Iris
-				}
-			}
-		}
-		if (irisInUse == null) return false;
-		try {
-			return Boolean.TRUE.equals(irisInUse.invoke(irisApi));
-		} catch (Throwable t) {
-			return false;
-		}
-	}
-
-	/** Shader mode: no alpha blending at all (packs handle it unpredictably), the transparency hides parts instead. */
+	/** Dither mode (config dragonShaderSupport): no alpha blending, holes instead. For shader packs that cannot blend entities. */
 	private static boolean shaderMode() {
-		return com.toast.aurapoints.config.AuraClientConfig.DRAGON_SHADER_SUPPORT.get() || irisShaders();
+		return com.toast.aurapoints.config.AuraClientConfig.DRAGON_SHADER_SUPPORT.get();
 	}
 
 	private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("aurapoints", "textures/entity/dragon_head.png");
@@ -164,7 +139,10 @@ public class DragonHeadRenderer extends GeoEntityRenderer<DragonHead> {
 	@Override
 	public void renderRecursively(PoseStack poseStack, DragonHead head, GeoBone bone, RenderType renderType, MultiBufferSource bufferSource,
 			VertexConsumer buffer, boolean isReRender, float partialTick, int packedLight, int packedOverlay, int colour) {
-		if (blocksView(bone.getName()) && firstPersonRider(head)) return;
+		if (firstPersonRider(head)) {
+			// the whole head is left out if the rider asked for it (the root bone holds everything), else just the parts in the way
+			if (com.toast.aurapoints.config.AuraClientConfig.DRAGON_HIDE_FIRST_PERSON.get() ? "root".equals(bone.getName()) : blocksView(bone.getName())) return;
+		}
 		super.renderRecursively(poseStack, head, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, colour);
 	}
 }

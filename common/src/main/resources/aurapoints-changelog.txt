@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.15.5
+- Dragon transparency: real see-through (alpha blending) is the default again, also with shader packs. Photon cannot blend entities on 1.21.1 (it turns blending off), so there the transparency does nothing; the old holes (dither) are an opt-in: "Dragon transparency: dither mode". New client option "Dragon: hide head in first person" leaves the head out completely while you ride in first person: a clear view with any shader pack.
+
 == 5.15.4
 - Dragon transparency with shader packs (Photon...) now really works: with a shader pack on (or "Dragon transparency: shader mode" forced in the client config) the rider's dragon head gets a fine checker of holes instead of blending, more holes the higher the value (0.4-0.6 is a good start). Only the rider sees it.
 
