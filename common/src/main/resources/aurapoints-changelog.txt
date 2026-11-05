@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.17.1
+- Server owners: new setting SERVER_ONLINE_NOTIFY_URL (Balance Tome, General page). When the server has finished starting it sends one small packet to that address, so a deploy script knows right away that it is up. Empty = off.
+
 == 5.17.0
 - New boss: the Frost Bear (Frost Bear Sigil, or /aura frostbear for the owner). A huge polar bear in four colours with an ice spike man inside it: spikes at first, then a BOOM when he is thrown out, then it goes mad, gets tired and runs. It never dies; everyone who hurt it gets a Blue Bell. Its size follows the normal scale attribute. New ice particles too. Everybody must update (new entity, items and particles).
 - The Blue Bell flies out and strikes your enemies, every strike harder than the last, and the final one calls a blizzard. Numbers: FROST_BEAR_ and BLUE_BELL_ in the Frost page of the Balance Tome.
