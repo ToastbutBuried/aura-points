@@ -28,7 +28,7 @@ public final class NetworkHandler {
 
 	@SubscribeEvent
 	public static void register(RegisterPayloadHandlersEvent event) {
-		PayloadRegistrar registrar = event.registrar("43");
+		PayloadRegistrar registrar = event.registrar("44");
 		registrar.playToServer(
 				AbilityKeyPacket.TYPE,
 				AbilityKeyPacket.STREAM_CODEC,

@@ -65,6 +65,14 @@ final class NeoClientBridge {
 								e.registerEntityRenderer(type, provider);
 							}
 						}), NeoBridge::none);
+		bridge(mod, net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent.class, com.toast.aurapoints.shim.neoforge.client.event.RegisterParticleProvidersEvent.class,
+				e -> new com.toast.aurapoints.shim.neoforge.client.event.RegisterParticleProvidersEvent(new com.toast.aurapoints.shim.neoforge.client.event.RegisterParticleProvidersEvent.SpriteSink() {
+					@Override
+					public <T extends net.minecraft.core.particles.ParticleOptions> void accept(net.minecraft.core.particles.ParticleType<T> type,
+							com.toast.aurapoints.shim.neoforge.client.event.RegisterParticleProvidersEvent.Factory<T> registration) {
+						e.registerSpriteSet(type, registration::create);
+					}
+				}), NeoBridge::none);
 		bridge(mod, ModelEvent.RegisterAdditional.class, com.toast.aurapoints.shim.neoforge.client.event.ModelEvent.RegisterAdditional.class,
 				e -> new com.toast.aurapoints.shim.neoforge.client.event.ModelEvent.RegisterAdditional(e::register), NeoBridge::none);
 		bridge(mod, RegisterClientExtensionsEvent.class, com.toast.aurapoints.shim.neoforge.client.extensions.common.RegisterClientExtensionsEvent.class,

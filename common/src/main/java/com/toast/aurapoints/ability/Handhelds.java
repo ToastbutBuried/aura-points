@@ -186,6 +186,7 @@ public final class Handhelds {
 		Maelstrom.tickAll(server);
 		Sunfall.tickAll(server);
 		StormEye.tickAll(server);
+		BlueBell.tickAll(server);
 		UmbralAmbush.tickAll(server);
 		ThornSentinel.tickAll(server);
 		WintersGate.tickAll(server);
@@ -196,6 +197,7 @@ public final class Handhelds {
 		Maelstrom.clearAll();
 		Sunfall.clearAll();
 		StormEye.clearAll();
+		BlueBell.clearAll();
 		UmbralAmbush.clearAll();
 		ThornSentinel.clearAll();
 		WintersGate.clearAll();

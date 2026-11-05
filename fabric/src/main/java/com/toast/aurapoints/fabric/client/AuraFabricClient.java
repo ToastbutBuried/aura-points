@@ -60,6 +60,13 @@ public final class AuraFabricClient implements ClientModInitializer {
 				EntityRendererRegistry.register((EntityType<T>) type, provider);
 			}
 		}));
+		AuraBus.BUS.post(new com.toast.aurapoints.shim.neoforge.client.event.RegisterParticleProvidersEvent(new com.toast.aurapoints.shim.neoforge.client.event.RegisterParticleProvidersEvent.SpriteSink() {
+			@Override
+			public <T extends net.minecraft.core.particles.ParticleOptions> void accept(net.minecraft.core.particles.ParticleType<T> type,
+					com.toast.aurapoints.shim.neoforge.client.event.RegisterParticleProvidersEvent.Factory<T> registration) {
+				net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry.getInstance().register(type, registration::create);
+			}
+		}));
 		List<ModelResourceLocation> models = new ArrayList<>();
 		AuraBus.BUS.post(new ModelEvent.RegisterAdditional(models::add));
 		ModelLoadingPlugin.register(ctx -> ctx.addModels(models.stream().map(ModelResourceLocation::id).toList()));

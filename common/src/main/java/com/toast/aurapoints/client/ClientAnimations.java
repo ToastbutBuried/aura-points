@@ -36,6 +36,14 @@ public final class ClientAnimations {
 		event.registerLayerDefinition(ScarecrowModel.LAYER, ScarecrowModel::createBodyLayer);
 	}
 
+	/** Frost's own particles (AuraPoints.FROST_SHARD / FROST_BURST / SNOW_GUST). */
+	@SubscribeEvent
+	public static void onRegisterParticles(com.toast.aurapoints.shim.neoforge.client.event.RegisterParticleProvidersEvent event) {
+		event.registerSpriteSet(com.toast.aurapoints.AuraPoints.FROST_SHARD.get(), s -> new FrostParticle.Provider(s, FrostParticle.Kind.SHARD));
+		event.registerSpriteSet(com.toast.aurapoints.AuraPoints.FROST_BURST.get(), s -> new FrostParticle.Provider(s, FrostParticle.Kind.BURST));
+		event.registerSpriteSet(com.toast.aurapoints.AuraPoints.SNOW_GUST.get(), s -> new FrostParticle.Provider(s, FrostParticle.Kind.GUST));
+	}
+
 	/** Wind charges drawn by ShaderSafeWindChargeRenderer (vanilla unless shaderSafeWindCharges is on). */
 	@SubscribeEvent
 	public static void onRegisterRenderers(com.toast.aurapoints.shim.neoforge.client.event.EntityRenderersEvent.RegisterRenderers event) {
@@ -46,6 +54,7 @@ public final class ClientAnimations {
 		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.VIPER_HEAD.get(), ctx -> new com.toast.aurapoints.geo.AuraGeoRenderer<>(ctx, "verdant_viper"));
 		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.SHADOW_CLONE.get(), ctx -> new com.toast.aurapoints.geo.AuraGeoRenderer<>(ctx, "shadow_clone", true));
 		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.DRAGON_HEAD.get(), DragonHeadRenderer::new);
+		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.FROST_BEAR.get(), FrostBearRenderer::new);
 		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.SENTINEL_TREE.get(), ctx -> new com.toast.aurapoints.geo.AuraGeoRenderer<>(ctx, "thorn_sentinel"));
 		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.KRAKEN_TENTACLE.get(), ctx -> new com.toast.aurapoints.geo.AuraGeoRenderer<>(ctx, "maelstrom_tentacle"));
 		event.registerEntityRenderer(com.toast.aurapoints.AuraPoints.SONIC_BLOSSOM.get(), ctx -> new com.toast.aurapoints.geo.AuraGeoRenderer<>(ctx, "sonic_blossom", true));

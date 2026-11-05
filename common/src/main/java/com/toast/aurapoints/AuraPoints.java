@@ -44,6 +44,22 @@ public class AuraPoints {
 	public static final DeferredRegister<net.minecraft.world.entity.EntityType<?>> ENTITY_TYPES =
 			DeferredRegister.create(net.minecraft.core.registries.Registries.ENTITY_TYPE, MOD_ID);
 
+	/** Frost's own particles (client/FrostParticle): shard = flying ice splinter, burst = flash ring, gust = drifting snow. */
+	public static final DeferredRegister<net.minecraft.core.particles.ParticleType<?>> PARTICLE_TYPES =
+			DeferredRegister.create(net.minecraft.core.registries.Registries.PARTICLE_TYPE, MOD_ID);
+	public static final java.util.function.Supplier<net.minecraft.core.particles.SimpleParticleType> FROST_SHARD =
+			PARTICLE_TYPES.register("frost_shard", () -> new net.minecraft.core.particles.SimpleParticleType(false) {});
+	public static final java.util.function.Supplier<net.minecraft.core.particles.SimpleParticleType> FROST_BURST =
+			PARTICLE_TYPES.register("frost_burst", () -> new net.minecraft.core.particles.SimpleParticleType(false) {});
+	public static final java.util.function.Supplier<net.minecraft.core.particles.SimpleParticleType> SNOW_GUST =
+			PARTICLE_TYPES.register("snow_gust", () -> new net.minecraft.core.particles.SimpleParticleType(false) {});
+
+	/** The Frost Bear boss (geo/FrostBear): saved, summonable, scales with generic.scale. */
+	public static final java.util.function.Supplier<net.minecraft.world.entity.EntityType<com.toast.aurapoints.geo.FrostBear>> FROST_BEAR =
+			ENTITY_TYPES.register("frost_bear", () -> net.minecraft.world.entity.EntityType.Builder
+					.<com.toast.aurapoints.geo.FrostBear>of(com.toast.aurapoints.geo.FrostBear::new, net.minecraft.world.entity.MobCategory.MONSTER)
+					.sized(1.4f, 1.5f).fireImmune().clientTrackingRange(16).updateInterval(2).build("frost_bear"));
+
 	/** The Aura Arena's training dummy (arena/TrainingDummy). */
 	public static final java.util.function.Supplier<net.minecraft.world.entity.EntityType<com.toast.aurapoints.arena.TrainingDummy>> TRAINING_DUMMY =
 			ENTITY_TYPES.register("training_dummy", () -> net.minecraft.world.entity.EntityType.Builder
@@ -135,6 +151,11 @@ public class AuraPoints {
 			new Item.Properties()
 	);
 
+	/** Wakes the Frost Bear (item/FrostBearSigilItem). */
+	public static final DeferredItem<Item> FROST_BEAR_SIGIL = ITEMS.registerItem("frost_bear_sigil", com.toast.aurapoints.item.FrostBearSigilItem::new, new Item.Properties());
+	/** Dropped by the Frost Bear when it flees; flies and strikes, then a blizzard (item/BlueBellItem). */
+	public static final DeferredItem<Item> BLUE_BELL = ITEMS.registerItem("blue_bell", com.toast.aurapoints.item.BlueBellItem::new, new Item.Properties());
+
 	/** Not obtainable: only the frost shard model the Frost aura's Ice Spike shows in the hand and in flight (ability/IceSpike). */
 	public static final DeferredItem<Item> ICE_SPIKE_SHARD = ITEMS.registerSimpleItem("ice_spike_shard");
 	/** Not obtainable: the shadow dragon's body segments, shown by datapacks as item displays (16 px long on Z, 8x8 cross-section). */
@@ -187,10 +208,12 @@ public class AuraPoints {
 		ITEMS.register(modEventBus);
 		BLOCKS.register(modEventBus);
 		ENTITY_TYPES.register(modEventBus);
+		PARTICLE_TYPES.register(modEventBus);
 		modEventBus.addListener(com.toast.aurapoints.shim.neoforge.event.entity.EntityAttributeCreationEvent.class, event -> {
 			event.put(TRAINING_DUMMY.get(), com.toast.aurapoints.arena.TrainingDummy.createAttributes().build());
 			event.put(ARENA_NPC.get(), com.toast.aurapoints.arena.ArenaNpc.createAttributes().build());
 			event.put(DRAGON_HEAD.get(), com.toast.aurapoints.geo.DragonHead.createAttributes().build());
+			event.put(FROST_BEAR.get(), com.toast.aurapoints.geo.FrostBear.createAttributes().build());
 		});
 		com.toast.aurapoints.ability.AuraSounds.SOUNDS.register(modEventBus);
 		AuraConditions.CONDITIONS.register(modEventBus);
@@ -215,6 +238,8 @@ public class AuraPoints {
 		if (event.getTabKey().equals(tab("ingredients"))) {
 			event.accept(ROKAKA_FRUIT_ITEM);
 			event.accept(BOSS_SIGIL_ITEM);
+			event.accept(FROST_BEAR_SIGIL);
+			event.accept(BLUE_BELL);
 		}
 		if (event.getTabKey().equals(tab("tools_and_utilities"))) event.accept(AURA_BOOK);
 

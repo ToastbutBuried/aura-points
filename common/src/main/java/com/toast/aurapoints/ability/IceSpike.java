@@ -516,6 +516,9 @@ public final class IceSpike {
 		AuraFx.burst(level, p.x, p.y, p.z, ice, full ? 30 : 15, 0.3, 0.15);
 		AuraFx.burst(level, p.x, p.y, p.z, ParticleTypes.SNOWFLAKE, full ? 20 : 10, 0.35, 0.05);
 		AuraFx.burst(level, p.x, p.y, p.z, AuraFx.dust(ICE_BLUE, 1.3f), full ? 14 : 8, 0.35, 0.0);
+		AuraFx.burst(level, p.x, p.y, p.z, com.toast.aurapoints.AuraPoints.FROST_SHARD.get(), full ? 26 : 12, 0.15, 0.32);
+		AuraFx.burst(level, p.x, p.y, p.z, com.toast.aurapoints.AuraPoints.FROST_BURST.get(), full ? 3 : 1, 0.1, 0.0);
+		if (full) AuraFx.burst(level, p.x, p.y, p.z, com.toast.aurapoints.AuraPoints.SNOW_GUST.get(), 6, 0.4, 0.06);
 		level.playSound(null, p.x, p.y, p.z, AuraSounds.GLASS_BREAK.value(), SoundSource.PLAYERS, full ? 1.0f : 0.7f, 1.4f);
 		if (full) level.playSound(null, p.x, p.y, p.z, AuraSounds.AMETHYST_CLUSTER_BREAK.value(), SoundSource.PLAYERS, 1.0f, 0.9f);
 	}
@@ -523,6 +526,7 @@ public final class IceSpike {
 	private static void fizzle(ServerLevel level, Vec3 p) {
 		AuraFx.burst(level, p.x, p.y, p.z, ParticleTypes.SNOWFLAKE, 8, 0.2, 0.02);
 		AuraFx.burst(level, p.x, p.y, p.z, AuraFx.dust(FLAKE_WHITE, 0.8f), 5, 0.2, 0.0);
+		AuraFx.burst(level, p.x, p.y, p.z, com.toast.aurapoints.AuraPoints.FROST_SHARD.get(), 4, 0.1, 0.12);
 	}
 
 	public static void onLogout(ServerPlayer player) {

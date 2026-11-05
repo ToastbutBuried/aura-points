@@ -57,7 +57,7 @@ public final class AuraBalance {
 		for (String p : List.of("WIND_ROLLABLE", "DASH_DIVE_", "DOUBLE_JUMP_", "SUPER_WIND_CHARGE_", "GALE_RIDER_", "FEATHERFALL_", "WIND_LAUNCH_", "AIR_BENDING_", "WIND_SKYRUNNER_", "WIND_CYCLONE_")) PREFIXES.put(p, "wind");
 		for (String p : List.of("VANISH_", "SHADOW_", "PHANTOM_", "BLOODRUSH_")) PREFIXES.put(p, "shadow");
 		for (String p : List.of("WATER_ROLLABLE", "SHOCKWAVE_", "HEALING_TIDE_", "IRON_SKIN_", "FLOW_", "BUBBLE_", "WATER_TIDECALLER_", "WATER_LEVIATHAN_")) PREFIXES.put(p, "water");
-		for (String p : List.of("FROST_", "ICE_SHELL_", "SHATTER_", "ICE_SPIKE_", "BRITTLE_")) PREFIXES.put(p, "frost");
+		for (String p : List.of("FROST_", "ICE_SHELL_", "SHATTER_", "ICE_SPIKE_", "BRITTLE_", "BLUE_BELL_")) PREFIXES.put(p, "frost");
 		for (String p : List.of("VERDANT_", "VINE_HOOK_", "BLOOM_", "VIRULENCE_", "ENTANGLE_", "VIPER_")) PREFIXES.put(p, "verdant");
 		for (String p : List.of("THUNDER_", "THUNDERBOLT_", "STATIC_CHARGE_", "STORMBORN_", "CHIDORI_", "MJOLNIR_")) PREFIXES.put(p, "thunder");
 		for (String p : List.of("RESONANCE_", "NOISE_", "ECHO_", "BLOSSOM_", "LISTENING_TREE_", "GRASP_")) PREFIXES.put(p, "resonance");

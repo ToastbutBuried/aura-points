@@ -220,6 +220,16 @@ public final class AuraCommand {
 										.then(Commands.argument("player", StringArgumentType.word())
 												.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(com.toast.aurapoints.editor.BalanceEditors.whitelist(), b))
 												.executes(ctx -> editBalanceWhitelist(ctx, StringArgumentType.getString(ctx, "player"), false))))))
+				// the Frost Bear boss: /aura frostbear [0-3] spawns it where you look, /aura frostbear sigil gives the summon item, /aura bluebell its drop (owner only)
+				.then(Commands.literal("frostbear")
+						.requires(AuraCommand::isOwner)
+						.executes(ctx -> spawnFrostBear(ctx, -1))
+						.then(Commands.argument("variant", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, com.toast.aurapoints.geo.FrostBear.VARIANTS - 1))
+								.executes(ctx -> spawnFrostBear(ctx, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "variant"))))
+						.then(Commands.literal("sigil").executes(ctx -> giveItem(ctx, com.toast.aurapoints.AuraPoints.FROST_BEAR_SIGIL.get()))))
+				.then(Commands.literal("bluebell")
+						.requires(AuraCommand::isOwner)
+						.executes(ctx -> giveItem(ctx, com.toast.aurapoints.AuraPoints.BLUE_BELL.get())))
 				.then(Commands.literal("mjolnir")
 						.requires(src -> isOwner(src.getPlayer()))
 						.executes(AuraCommand::giveMjolnir)
@@ -1122,6 +1132,25 @@ public final class AuraCommand {
 	}
 
 	/** /aura mjolnir: the test hammer, for its one worthy wielder. */
+	private static int spawnFrostBear(CommandContext<CommandSourceStack> ctx, int variant) {
+		ServerPlayer player = ctx.getSource().getPlayer();
+		if (player == null) return 0;
+		net.minecraft.world.phys.HitResult hit = player.pick(40, 1f, false);
+		net.minecraft.world.phys.Vec3 at = hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS ? player.position().add(player.getLookAngle().multiply(6, 0, 6)) : hit.getLocation();
+		var bear = com.toast.aurapoints.geo.FrostBear.spawn(player.serverLevel(), at, variant);
+		if (bear == null) return 0;
+		ctx.getSource().sendSuccess(() -> Component.literal("The Frost Bear rises.").withStyle(ChatFormatting.AQUA), false);
+		return 1;
+	}
+
+	private static int giveItem(CommandContext<CommandSourceStack> ctx, net.minecraft.world.item.Item item) {
+		ServerPlayer player = ctx.getSource().getPlayer();
+		if (player == null) return 0;
+		net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(item);
+		if (!player.getInventory().add(stack)) player.drop(stack, false);
+		return 1;
+	}
+
 	private static int giveMjolnir(CommandContext<CommandSourceStack> ctx) {
 		ServerPlayer player = ctx.getSource().getPlayer();
 		if (player == null) return 0;

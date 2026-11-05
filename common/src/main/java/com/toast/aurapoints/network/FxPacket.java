@@ -26,6 +26,8 @@ public record FxPacket(byte kind, int value, String text) implements CustomPacke
 	public static final byte LIFESTEAL = 6;
 	/** Someone's Blood Moon: the sky turns red for value ticks. */
 	public static final byte BLOOD_MOON = 7;
+	/** The Blue Bell's blizzard nearby: whiteout and driving snow for value ticks. */
+	public static final byte BLIZZARD = 8;
 
 	public static final Type<FxPacket> TYPE =
 			new Type<>(ResourceLocation.fromNamespaceAndPath("aurapoints", "fx"));

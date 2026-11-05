@@ -203,5 +203,8 @@
   "stat.aurapoints.mastery_resonance": "Resonance Mastery XP",
   "stat.aurapoints.mastery_earth": "Earth Mastery XP",
   "stat.aurapoints.mastery_light": "Light Mastery XP",
-  "stat.aurapoints.mastery_blood": "Blood Mastery XP"
+  "stat.aurapoints.mastery_blood": "Blood Mastery XP",
+  "item.aurapoints.frost_bear_sigil": "Frost Bear Sigil",
+  "item.aurapoints.blue_bell": "Blue Bell",
+  "entity.aurapoints.frost_bear": "Frost Bear"
 }

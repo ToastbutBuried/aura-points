@@ -737,6 +737,54 @@ public final class AuraConfig {
 	public static int ICE_SPIKE_HOLDER_SPEED_TICKS = 60;
 	public static int ICE_SPIKE_HOLDER_SPEED_AMPLIFIER = 0;
 
+	/**
+	 * The Frost Bear (geo/FrostBear), a boss from the Frost Bear Sigil. Three stages: with the spike man inside it, then
+	 * (below EJECT_HEALTH_PCT of its health) the spike man is thrown out with a BOOM and it goes mad (faster, harder),
+	 * then (at FLEE_HEALTH_PCT) it gets tired for TIRED_TICKS and runs for FLEE_TICKS - it never dies, it leaves, and
+	 * everybody who hurt it gets a Blue Bell. SCALE is its generic.scale (also changeable with /attribute).
+	 */
+	public static double FROST_BEAR_HEALTH = 400.0;
+	public static double FROST_BEAR_DAMAGE = 10.0;
+	public static double FROST_BEAR_SPEED = 0.27;
+	public static double FROST_BEAR_SCALE = 3.0;
+	public static double FROST_BEAR_EJECT_HEALTH_PCT = 0.6;
+	public static double FROST_BEAR_FLEE_HEALTH_PCT = 0.15;
+	public static double FROST_BEAR_MAD_SPEED_MULT = 1.35;
+	public static double FROST_BEAR_MAD_DAMAGE_MULT = 1.5;
+	public static int FROST_BEAR_SPIKE_COOLDOWN_TICKS = 110;
+	public static int FROST_BEAR_SPIKE_WARN_TICKS = 24;
+	public static float FROST_BEAR_SPIKE_DAMAGE = 8.0f;
+	public static double FROST_BEAR_SPIKE_RADIUS = 2.5;
+	public static int FROST_BEAR_SLOW_TICKS = 40;
+	public static float FROST_BEAR_BOOM_DAMAGE = 10.0f;
+	public static double FROST_BEAR_BOOM_RADIUS = 9.0;
+	public static double FROST_BEAR_BOOM_KNOCKBACK = 1.8;
+	public static int FROST_BEAR_TIRED_TICKS = 80;
+	public static int FROST_BEAR_FLEE_TICKS = 100;
+	public static int FROST_BEAR_BELLS_PER_PLAYER = 1;
+
+	/**
+	 * The Blue Bell (ability/BlueBell, dropped by the Frost Bear): it flies out of your hand and strikes the nearest enemies
+	 * within RANGE, STRIKES times. Every strike is more violent: damage = DAMAGE_BASE + DAMAGE_STEP x strike number, it flies
+	 * faster (SPEED grows SPEED_GROWTH per strike) and waits less (DELAY down to MIN_DELAY). After the last strike a
+	 * BLIZZARD rages round you for BLIZZARD_TICKS (radius BLIZZARD_RADIUS): enemies in it are slowed, frozen and take
+	 * BLIZZARD_DAMAGE every second. Without a target for IDLE_TICKS it comes back early. COOLDOWN starts when it is thrown.
+	 */
+	public static int BLUE_BELL_COOLDOWN_TICKS = 20 * 60;
+	public static int BLUE_BELL_STRIKES = 7;
+	public static double BLUE_BELL_RANGE = 24.0;
+	public static float BLUE_BELL_DAMAGE_BASE = 4.0f;
+	public static float BLUE_BELL_DAMAGE_STEP = 1.5f;
+	public static double BLUE_BELL_SPEED = 1.0;
+	public static double BLUE_BELL_SPEED_GROWTH = 0.18;
+	public static int BLUE_BELL_DELAY_TICKS = 16;
+	public static int BLUE_BELL_MIN_DELAY_TICKS = 4;
+	public static int BLUE_BELL_IDLE_TICKS = 80;
+	public static int BLUE_BELL_BLIZZARD_TICKS = 160;
+	public static double BLUE_BELL_BLIZZARD_RADIUS = 14.0;
+	public static float BLUE_BELL_BLIZZARD_DAMAGE = 3.0f;
+	public static int BLUE_BELL_BLIZZARD_SLOW_AMPLIFIER = 2;
+
 	// ---------------------------------------------------------------
 	// Verdant (all in aurapoints-verdant.json) - first test version
 	// ---------------------------------------------------------------
