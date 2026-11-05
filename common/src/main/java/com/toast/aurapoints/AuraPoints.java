@@ -587,6 +587,8 @@ public class AuraPoints {
 		@SubscribeEvent
 		public static void onRightClickItem(com.toast.aurapoints.shim.neoforge.event.entity.player.PlayerInteractEvent.RightClickItem event) {
 			if (com.toast.aurapoints.ability.IceSpike.isFrozen(event.getEntity())) event.setCanceled(true);
+			// the wave twist vote items (hotbar mode)
+			else if (event.getEntity() instanceof ServerPlayer sp && com.toast.aurapoints.arena.WaveTwists.onUse(sp, sp.getItemInHand(event.getHand()))) event.setCanceled(true);
 		}
 
 		@SubscribeEvent
@@ -1061,6 +1063,8 @@ public class AuraPoints {
 				LOGGER.info("Wiped Aura data for {} (wipe version {})", player.getGameProfile().getName(), AuraConfig.WIPE_VERSION);
 			}
 
+			// a twist vote that was cut short (crash, restart): the real hotbar comes back
+			com.toast.aurapoints.arena.WaveTwists.restore(player);
 			// a Wave Survival run that ended while they were away (crash, restart): the borrowed aura goes
 			if (data.arenaRealAura != null) {
 				data.aura = data.arenaRealAura;

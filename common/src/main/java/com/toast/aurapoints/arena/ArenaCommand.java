@@ -127,6 +127,9 @@ public final class ArenaCommand {
 								})
 								.executes(ctx -> Match.switchAura(ctx.getSource().getPlayerOrException(),
 										com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "aura")))))
+						.then(Commands.literal("twist").then(Commands.argument("n", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 3))
+								.executes(ctx -> Match.voteTwist(ctx.getSource().getPlayerOrException(),
+										com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "n")))))
 						.then(Commands.literal("stop").requires(ArenaCommand::owner).executes(ctx -> {
 							int stopped = Match.stop(ctx.getSource().getServer());
 							ctx.getSource().sendSuccess(() -> Component.literal(stopped > 0 ? "Match stopped." : "No match running."), false);

@@ -74,6 +74,8 @@ public class AuraPlayerData {
 
 	/** Wave Survival aura switch: the real aura while a borrowed one is held (null = none borrowed), see arena/WaveAuras. */
 	public AuraType arenaRealAura = null;
+	/** Wave twist vote in hotbar mode: the real hotbar, kept here (saved) until the vote ends (arena/WaveTwists). */
+	public CompoundTag twistHotbar = null;
 
 	/** Aura Mastery level per aura (ability/Mastery), kept when rerolling. Saved by aura name. */
 	public final java.util.Map<AuraType, Integer> mastery = new java.util.EnumMap<>(AuraType.class);
@@ -153,6 +155,7 @@ public class AuraPlayerData {
 			nbt.put("branches", picked);
 		}
 		if (arenaRealAura != null) nbt.putString("arenaRealAura", arenaRealAura.name());
+		if (twistHotbar != null) nbt.put("twistHotbar", twistHotbar);
 		net.minecraft.nbt.ListTag cosmeticList = new net.minecraft.nbt.ListTag();
 		for (String c : cosmetics) cosmeticList.add(net.minecraft.nbt.StringTag.valueOf(c));
 		nbt.put("cosmetics", cosmeticList);
@@ -266,6 +269,7 @@ public class AuraPlayerData {
 			AuraType a = parseAura(rolledList.getString(i), voidAny);
 			if (a != null) data.rolled.add(a);
 		}
+		if (nbt.contains("twistHotbar")) data.twistHotbar = nbt.getCompound("twistHotbar");
 		if (nbt.contains("arenaRealAura")) data.arenaRealAura = parseAura(nbt.getString("arenaRealAura"), voidAny);
 		if (nbt.contains("aura")) {
 			data.aura = parseAura(nbt.getString("aura"), voidAura); // null: the aura no longer exists, the player rolls again

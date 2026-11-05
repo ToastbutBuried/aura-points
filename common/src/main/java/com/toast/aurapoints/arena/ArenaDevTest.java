@@ -369,6 +369,109 @@ public final class ArenaDevTest {
 				Duel.TEST_PLAYERS.clear();
 			});
 			return 1;
+		})).then(Commands.literal("twists").executes(ctx -> {
+			// /auradev twists: the wave twist vote without a run - due, offers, hotbar stash + restore, stacking, once-only, pay, record
+			MinecraftServer server = ctx.getSource().getServer();
+			ServerLevel arena = Arena.level(server);
+			if (arena == null) return 0;
+			String oldMode = com.toast.aurapoints.config.AuraConfig.WAVES_TWIST_VOTE_MODE;
+			net.minecraft.server.level.ServerPlayer p = FakePlayerFactory.get(arena, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000e020"), "T1"));
+			AuraState state = AuraState.get(server);
+			state.getOrCreate(p.getUUID()).aura = AuraType.FIRE;
+			var inv = p.getInventory();
+			for (int i = 0; i < 9; i++) inv.setItem(i, net.minecraft.world.item.ItemStack.EMPTY);
+			inv.setItem(0, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND_SWORD));
+			inv.setItem(3, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.BREAD, 7));
+			Waves.Run run = new Waves.Run(7);
+			var ps = java.util.List.of(p);
+			run.wave = 3;
+			log("due at wave 3: " + WaveTwists.due(run) + " (must be false); at 4: " + (run.wave = 4) + " " + WaveTwists.due(run) + " (must be true)");
+			com.toast.aurapoints.config.AuraConfig.WAVES_TWIST_VOTE_MODE = "hotbar";
+			log("open: " + WaveTwists.open(server, run, ps, 18) + " (must be true), offered " + run.twists.offered);
+			boolean items = true;
+			for (int slot : new int[]{1, 3, 5}) items &= !inv.getItem(slot).isEmpty() && inv.getItem(slot).get(net.minecraft.core.component.DataComponents.CUSTOM_DATA) != null;
+			log("vote items in slots 2/4/6: " + items + " (must be true), slot 1 empty " + inv.getItem(0).isEmpty() + " (must be true), saved stash " + (state.getOrCreate(p.getUUID()).twistHotbar != null) + " (must be true)");
+			log("use item in slot 4: " + WaveTwists.onUse(p, inv.getItem(3)) + " (must be true); use a sword: " + WaveTwists.onUse(p, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.DIAMOND_SWORD)) + " (must be false)");
+			WaveTwists.vote(p, run.twists, 2);
+			log("votes " + run.twists.votes + " (must be {" + p.getUUID() + "=1}) all voted " + WaveTwists.allVoted(run.twists, ps) + " (must be true)");
+			var picked = run.twists.offered.get(1);
+			WaveTwists.resolve(server, run, ps);
+			log("winner " + picked + " stacks " + run.twists.stacks(picked) + " (must be 1), open " + run.twists.open + " (must be false)");
+			boolean back = inv.getItem(0).is(net.minecraft.world.item.Items.DIAMOND_SWORD) && inv.getItem(3).is(net.minecraft.world.item.Items.BREAD) && inv.getItem(3).getCount() == 7
+					&& inv.getItem(1).isEmpty() && inv.getItem(5).isEmpty() && state.getOrCreate(p.getUUID()).twistHotbar == null;
+			log("hotbar back: " + back + " (must be true)");
+			// leaving mid-vote also gives it back
+			log("open 2: " + WaveTwists.open(server, run, ps, 18));
+			WaveTwists.dropped(run, p);
+			log("after drop: sword back " + inv.getItem(0).is(net.minecraft.world.item.Items.DIAMOND_SWORD) + " (must be true), vote items gone " + inv.getItem(1).isEmpty() + " (must be true)");
+			run.twists.open = false;
+			// stacking + once-only: take every twist 3 times over by force
+			com.toast.aurapoints.config.AuraConfig.WAVES_TWIST_VOTE_MODE = "chat";
+			boolean onceOk = true;
+			for (int i = 0; i < 12; i++) {
+				run.wave += 4;
+				if (!WaveTwists.open(server, run, ps, 18)) {
+					log("round " + i + ": nothing to offer");
+					break;
+				}
+				for (var t : run.twists.offered) if (!t.repeatable && run.twists.stacks(t) > 0) onceOk = false;
+				WaveTwists.vote(p, run.twists, 1);
+				WaveTwists.resolve(server, run, ps);
+			}
+			log("stacks " + WaveTwists.summary(run) + "; one-offs never offered twice: " + onceOk + " (must be true); hard taken " + WaveTwists.hardTaken(run));
+			for (var t : WaveTwists.Twist.values()) if (!t.repeatable && run.twists.stacks(t) > 1) log("ONE-OFF STACKED: " + t);
+			// pay
+			Waves.Run pay = new Waves.Run(1);
+			pay.twists.stacks.put(WaveTwists.Twist.HALF_PAY, 1);
+			pay.twists.stacks.put(WaveTwists.Twist.BONUS_XP, 2);
+			pay.twists.stacks.put(WaveTwists.Twist.STRONGER, 1);
+			pay.wave = 3;
+			int[] odd = WaveTwists.pay(pay, 2, 15);
+			pay.wave = 4;
+			int[] even = WaveTwists.pay(pay, 2, 15);
+			log("half pay odd " + java.util.Arrays.toString(odd) + " (must be [0, 0]); even " + java.util.Arrays.toString(even) + " (must be [6, 34]: (2+1)x2, (15+2)x2)");
+			log("record with a hard twist: " + Waves.record(server, 6, java.util.Map.of(p.getUUID(), "T1"), Waves.Modifier.NONE, true) + " (must be false)");
+			com.toast.aurapoints.config.AuraConfig.WAVES_TWIST_VOTE_MODE = oldMode;
+			return 1;
+		})).then(Commands.literal("twistrun").executes(ctx -> {
+			// /auradev twistrun: a real solo run - clear waves until the vote opens (wave 4), vote 1, check wave 5's mobs
+			MinecraftServer server = ctx.getSource().getServer();
+			ServerLevel arena = Arena.level(server);
+			if (arena == null) return 0;
+			net.minecraft.server.level.ServerPlayer p = FakePlayerFactory.get(arena, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000e030"), "T2"));
+			AuraState.get(server).getOrCreate(p.getUUID()).aura = AuraType.FIRE;
+			Duel.TEST_PLAYERS.put(p.getUUID(), p);
+			p.moveTo(Arena.LOBBY.x, Arena.LOBBY.y, Arena.LOBBY.z);
+			Match.stop(server);
+			log("create: " + Match.create(p, Match.Mode.WAVES, Waves.Modifier.NONE) + ", start: " + Match.start(p));
+			final boolean[] voted = {false};
+			final int[] guard = {0};
+			final Runnable[] loop = new Runnable[1];
+			loop[0] = () -> {
+				Waves.Run run = Match.waveRun();
+				if (run == null || ++guard[0] > 90) {
+					log("twistrun ended (guard " + guard[0] + ")");
+					Match.stop(server);
+					Duel.TEST_PLAYERS.clear();
+					return;
+				}
+				if (run.twists.open && !voted[0]) {
+					log("vote open at wave " + run.wave + ": offered " + run.twists.offered + " (must be 3 of them)");
+					log("vote cmd: " + Match.voteTwist(p, 1));
+					voted[0] = true;
+				} else if (voted[0] && run.wave == 5 && !run.alive.isEmpty()) {
+					var mob = run.alive.get(0);
+					var hp = mob.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH);
+					log("wave 5 twists: " + WaveTwists.summary(run) + "; first mob " + mob.getType().getDescriptionId() + " max health " + hp.getValue() + " base " + hp.getBaseValue() + "; queue " + (run.alive.size() + run.queue.size()));
+					Match.stop(server);
+					Duel.TEST_PLAYERS.clear();
+					log("after stop: stash " + (AuraState.get(server).getOrCreate(p.getUUID()).twistHotbar == null) + " (must be true)");
+					return;
+				} else if (run.wave > 0) Waves.devClear(run);
+				AuraFx.later(server, 20, loop[0]);
+			};
+			AuraFx.later(server, Math.max(1, com.toast.aurapoints.config.AuraConfig.DUEL_COUNTDOWN_SECONDS) * 20 + 60, loop[0]);
+			return 1;
 		})).then(Commands.literal("npc").executes(ctx -> {
 			// every NPC's click, by a fake player (teleports don't move it; this is for errors and the menus' logic)
 			ServerLevel arena = Arena.level(ctx.getSource().getServer());

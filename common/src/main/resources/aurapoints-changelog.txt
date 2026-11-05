@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.18.0
+- Wave Survival twists: after every 4th cleared wave the party votes for one of three twists (clickable chat buttons, or three items in hotbar slots 2, 4 and 6 - set WAVES_TWIST_VOTE_MODE). Stronger monsters, Swarm, Swift monsters and Bonus XP stack and can come back; No cooldowns and Half time pay can be taken once. They last the rest of the run, and a run with a hard twist sets no record. Numbers: WAVES_TWIST_ in the Arena page of the Balance Tome. Server side only.
+
 == 5.17.1
 - Server owners: new setting SERVER_ONLINE_NOTIFY_URL (Balance Tome, General page). When the server has finished starting it sends one small packet to that address, so a deploy script knows right away that it is up. Empty = off.
 

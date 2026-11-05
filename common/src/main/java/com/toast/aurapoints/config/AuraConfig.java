@@ -1356,6 +1356,29 @@ public final class AuraConfig {
 	/** Flow: the cooldown multiplier is multiplied by this on top of WAVES_COOLDOWN_MULTIPLIER. */
 	public static double WAVES_MOD_FLOW_COOLDOWN = 0.5;
 	public static int WAVES_GLOW_AFTER_SECONDS = 30;
+	/**
+	 * Wave twists (5.15.0): after every TWIST_EVERY-th cleared wave the party votes for one of three twists, which then
+	 * last the rest of the run. TWIST_VOTE_MODE "chat" = clickable buttons, "hotbar" = three items in slots 2, 4 and 6
+	 * (the real hotbar is kept safe and comes back). Repeatable twists stack (TWIST_MAX_STACKS, 0 = no limit), the one-offs
+	 * can be taken once per run. Hard twists (Stronger, Swarm, Swift, No cooldowns) stop a run from setting records.
+	 */
+	public static boolean WAVES_TWIST_ENABLED = true;
+	public static int WAVES_TWIST_EVERY = 4;
+	public static int WAVES_TWIST_VOTE_SECONDS = 15;
+	public static String WAVES_TWIST_VOTE_MODE = "chat";
+	public static int WAVES_TWIST_MAX_STACKS = 0;
+	/** Stronger monsters: extra health and damage per stack (0.25 = +25%). */
+	public static double WAVES_TWIST_STRONGER = 0.25;
+	/** Swarm: extra mobs per stack. */
+	public static double WAVES_TWIST_SWARM = 0.25;
+	/** Swift: extra mob speed per stack. */
+	public static double WAVES_TWIST_SWIFT = 0.15;
+	/** Bonus XP: extra Mastery XP per cleared wave, per stack. */
+	public static int WAVES_TWIST_XP_BONUS = 1;
+	/** Extra Aura per cleared wave for each stack of a hard repeatable twist. */
+	public static int WAVES_TWIST_HARD_AURA = 1;
+	/** No cooldowns: the price, extra mob health. */
+	public static double WAVES_TWIST_NO_COOLDOWN_HEALTH = 0.3;
 	/** The 3-2-1 countdown on the pads before each round. */
 	public static int DUEL_COUNTDOWN_SECONDS = 3;
 	/** A challenge nobody answers runs out after this long. */

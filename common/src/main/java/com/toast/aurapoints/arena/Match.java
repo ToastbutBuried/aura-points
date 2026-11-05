@@ -407,7 +407,15 @@ public final class Match {
 				}
 			}
 			case BREAK -> {
-				if (g.ticks % 20 == 0 && g.ticks > 0) {
+				var tw = g.run.twists;
+				if (tw.open) {
+					List<ServerPlayer> here = online(server, g, false);
+					// the vote ends 3s before the break does, or as soon as everyone has voted
+					if (g.ticks <= 60 || WaveTwists.allVoted(tw, here)) {
+						WaveTwists.resolve(server, g.run, here);
+						g.ticks = Math.min(g.ticks, 60);
+					} else if (g.ticks % 10 == 0) WaveTwists.bar(tw, here, g.ticks);
+				} else if (g.ticks % 20 == 0 && g.ticks > 0) {
 					Component bar = Component.literal("☠ Wave " + (g.run.wave + 1) + " in " + g.ticks / 20 + "s").withStyle(ChatFormatting.YELLOW);
 					for (ServerPlayer p : online(server, g, false)) p.displayClientMessage(bar, true);
 				}
@@ -473,7 +481,9 @@ public final class Match {
 		Waves.payWave(g.run, online(server, g, false));
 		ArenaBuilder.setGates(arena, true);
 		g.phase = Phase.BREAK;
+		boolean twistVote = WaveTwists.due(g.run);
 		int breakSecs = Waves.breakSeconds(g.run);
+		if (twistVote) breakSecs = Math.max(breakSecs, Math.max(1, AuraConfig.WAVES_TWIST_VOTE_SECONDS) + 3);
 		g.ticks = breakSecs * 20;
 		g.auraSwitch = AuraConfig.WAVES_AURA_SWITCH && g.run.bossWave();
 		for (UUID id : g.players.keySet()) {
@@ -490,6 +500,7 @@ public final class Match {
 			}
 		}
 		g.out.clear();
+		if (twistVote) WaveTwists.open(server, g.run, online(server, g, false), breakSecs);
 		if (g.auraSwitch) for (ServerPlayer p : online(server, g, false)) offerAuras(p, breakSecs);
 		ArenaFx.flashRing(net.minecraft.world.level.block.Blocks.LIME_STAINED_GLASS, 30, arena.getGameTime());
 		if (g.players.size() < maxPlayers()) {
@@ -507,12 +518,13 @@ public final class Match {
 		ServerLevel arena = Arena.level(server);
 		int cleared = g.run == null ? 0 : g.phase == Phase.BREAK ? g.run.wave : g.run.wave - 1;
 		Waves.cleanup(arena, g.run);
-		boolean record = Waves.record(server, cleared, g.players, g.mod);
+		boolean record = Waves.record(server, cleared, g.players, g.mod, WaveTwists.hardTaken(g.run));
 		for (UUID id : g.players.keySet()) {
 			ServerPlayer p = player(server, id);
 			if (p == null) continue;
 			if (p.isSpectator() && Arena.in(p)) p.setGameMode(GameType.ADVENTURE);
 			WaveAuras.restore(p);
+			WaveTwists.restore(p);
 			int earned = g.run == null ? 0 : g.run.earned.getOrDefault(id, 0);
 			ArenaFx.title(p, Component.literal(cleared > 0 ? "WAVE " + cleared + " CLEARED" : "OVERRUN").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
 					Component.literal((earned > 0 ? "+" + earned + " Aura this run" : "No wave cleared") + (record ? " · new record!" : "")).withStyle(ChatFormatting.YELLOW));
@@ -553,6 +565,21 @@ public final class Match {
 	public static Waves.Modifier waveModifier() {
 		Game g = current;
 		return g != null && g.mode == Mode.WAVES ? g.mod : Waves.Modifier.NONE;
+	}
+
+	/** The mob side of the Wave Survival run that is on (null when there is none). */
+	public static Waves.Run waveRun() {
+		Game g = current;
+		return g != null && g.mode == Mode.WAVES ? g.run : null;
+	}
+
+	/** /aura arena match twist N: vote in the twist vote of the break. */
+	public static int voteTwist(ServerPlayer player, int n) {
+		Game g = current;
+		if (g == null || g.mode != Mode.WAVES || g.run == null || !g.players.containsKey(player.getUUID()) || !g.run.twists.open) {
+			return fail(player, "There's no twist vote for you right now.");
+		}
+		return WaveTwists.vote(player, g.run.twists, n);
 	}
 
 	public static boolean inWaves(ServerPlayer player) {
@@ -777,6 +804,7 @@ public final class Match {
 		toPlayers(server, g, Component.literal("☠ " + quitter.getGameProfile().getName() + " " + why + " and is out of the match.").withStyle(ChatFormatting.GRAY));
 		if (g.mode == Mode.WAVES) {
 			WaveAuras.restore(quitter);
+			WaveTwists.dropped(g.run, quitter);
 			if (g.run != null && g.run.bar != null) g.run.bar.removePlayer(quitter);
 			boolean anyone = false;
 			for (UUID id : g.players.keySet()) if (g.alive(id) && player(server, id) != null) anyone = true;
@@ -807,6 +835,7 @@ public final class Match {
 			if (p.isSpectator() && Arena.in(p)) p.setGameMode(GameType.ADVENTURE);
 			if (g.phase != Phase.LOBBY && Arena.in(p)) Arena.toLobby(p);
 			WaveAuras.restore(p);
+			WaveTwists.restore(p);
 			p.sendSystemMessage(Component.literal("The " + g.mode.displayName + " was called off.").withStyle(ChatFormatting.GRAY));
 		}
 		return 1;

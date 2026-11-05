@@ -140,6 +140,8 @@ public final class Waves {
 		final Map<UUID, Integer> joinedAt = new HashMap<>();
 		/** Player -> Aura earned this run. */
 		final Map<UUID, Integer> earned = new HashMap<>();
+		/** The twists voted in so far (5.15.0). */
+		final WaveTwists.State twists = new WaveTwists.State();
 
 		Run(long seed) {
 			this.seed = seed;
@@ -194,7 +196,7 @@ public final class Waves {
 		Random r = new Random(run.seed * 31L + run.wave);
 		run.queue.clear();
 		run.queueAura.clear();
-		int left = budget(run.wave, players);
+		int left = Math.max(1, (int) Math.round(budget(run.wave, players) * WaveTwists.swarm(run)));
 		List<Kind> open = new ArrayList<>();
 		for (Kind k : KINDS) if (run.wave >= k.fromWave) open.add(k);
 		while (left > 0) {
@@ -336,11 +338,14 @@ public final class Waves {
 	static void payWave(Run run, List<ServerPlayer> players) {
 		int aura = Math.max(0, AuraConfig.WAVES_AURA_PER_WAVE) + (run.bossWave() ? Math.max(0, AuraConfig.WAVES_BOSS_BONUS) : 0);
 		if (run.mod.hard()) aura = (int) Math.round(aura * (1.0 + Math.max(0.0, AuraConfig.WAVES_MOD_AURA_BONUS)));
+		int[] paid = WaveTwists.pay(run, aura, AuraConfig.WAVES_MASTERY_XP);
+		aura = paid[0];
+		int xp = paid[1];
 		for (ServerPlayer p : players) {
 			if (run.joinedAt.getOrDefault(p.getUUID(), Integer.MAX_VALUE) > run.wave) continue;
 			if (aura > 0) AuraCurrency.add(p, aura);
 			run.earned.merge(p.getUUID(), aura, Integer::sum);
-			Mastery.addXp(p, AuraConfig.WAVES_MASTERY_XP);
+			if (xp > 0) Mastery.addXp(p, xp);
 			p.awardStat(AuraStats.WAVES_CLEARED);
 			var best = Stats.CUSTOM.get(AuraStats.BEST_WAVE);
 			if (p.getStats().getValue(best) < run.wave) p.getStats().setValue(p, best, run.wave);
@@ -435,6 +440,7 @@ public final class Waves {
 				m.setHealth(m.getMaxHealth());
 			}
 			applyModifier(m, run.mod);
+			WaveTwists.applyToMob(m, run);
 			if (aura != null) TouchedMobs.touch(m, aura);
 			cap(m, aura == null ? 0xFFC83D : aura.rgb);
 			arena.addFreshEntityWithPassengers(m);
@@ -514,6 +520,7 @@ public final class Waves {
 	/** Shorter cooldowns for players fighting the waves (WAVES_COOLDOWN_MULTIPLIER). */
 	public static int cooldown(ServerPlayer player, int ticks) {
 		if (ticks <= 0 || !Match.inWaves(player)) return ticks;
+		if (WaveTwists.noCooldowns(Match.waveRun())) return 0;
 		double mult = Math.max(0.0, AuraConfig.WAVES_COOLDOWN_MULTIPLIER);
 		if (Match.waveModifier() == Modifier.FLOW) mult *= Math.max(0.0, AuraConfig.WAVES_MOD_FLOW_COOLDOWN);
 		return mult == 1.0 ? ticks : (int) Math.round(ticks * mult);
@@ -521,7 +528,12 @@ public final class Waves {
 
 	/** Records the run's score for each player: best wave (and the party it was with). Returns true if any record broke. */
 	static boolean record(MinecraftServer server, int cleared, Map<UUID, String> players, Modifier mod) {
-		if (cleared <= 0 || mod != Modifier.NONE) return false;
+		return record(server, cleared, players, mod, false);
+	}
+
+	/** twisted: a hard wave twist was voted in, so the run sets no record. */
+	static boolean record(MinecraftServer server, int cleared, Map<UUID, String> players, Modifier mod, boolean twisted) {
+		if (cleared <= 0 || mod != Modifier.NONE || twisted) return false;
 		AuraState state = AuraState.get(server);
 		// solo and party runs have their own boards
 		Map<UUID, AuraState.ArenaRecord> board = players.size() > 1 ? state.partyWaveRecords : state.waveRecords;
