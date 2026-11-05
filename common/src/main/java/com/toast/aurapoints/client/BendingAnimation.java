@@ -57,6 +57,8 @@ public class BendingAnimation implements IAnimation {
 	private float side, sideO;
 	/** how far the arm is raised into the Air Bending pose, and how far it was when the throw began */
 	private float raise, raiseO, fromRaise;
+	/** Mjölnir flight: how far the body banks into a turn, this tick and last tick (follows the turning rate). */
+	private float bank, bankO;
 	/** ticks since the throw started (-1 = no throw) */
 	private int throwTick = -1;
 	/** ticks since the Inferno Slam started (-1 = none) */
@@ -96,6 +98,10 @@ public class BendingAnimation implements IAnimation {
 		weightO = weight;
 		sideO = side;
 		raiseO = raise;
+		bankO = bank;
+		float bankTarget = state == BendingAnimPacket.MJOLNIR_FLY
+				? Mth.clamp(Mth.wrapDegrees(player.yHeadRot - player.yHeadRotO) * Mth.DEG_TO_RAD * 2.5f, -0.5f, 0.5f) : 0f;
+		bank += (bankTarget - bank) * 0.25f;
 
 		if (state == BendingAnimPacket.SLAM) {
 			if (slamTick < 0) {
@@ -259,7 +265,7 @@ public class BendingAnimation implements IAnimation {
 				if (type == TransformType.ROTATION) return new Vec3f(value0.getX() - body[0], value0.getY() + body[1], value0.getZ() + body[2]);
 				// legs swung out of plumb reach less far down: sink by exactly that, so the feet stay on the ground
 				// (a quarter of the authored crouch on top - stiff block legs can't bend at the knee)
-				if (type == TransformType.POSITION) return new Vec3f(value0.getX(), value0.getY() - (player.onGround() ? feetDrop(body) + 0.25f * body[3] : 0f), value0.getZ());
+				if (type == TransformType.POSITION) return new Vec3f(value0.getX(), value0.getY() - (player.onGround() && heldShown() != BendingAnimPacket.MJOLNIR_FLY ? feetDrop(body) + 0.25f * body[3] : 0f), value0.getZ());
 				return value0;
 			}
 			// the head turns back against it, so it keeps looking where the player looks (or where an idle has it look)
@@ -276,7 +282,8 @@ public class BendingAnimation implements IAnimation {
 				float tx = rightLeg ? -body[4] * 0.8f : body[4] * 0.6f;
 				float tz = rightLeg ? body[5] : -body[5];
 				// in the air (gliding, diving, flying with Mjölnir) the legs stay in line with the body
-				float hip = player.onGround() ? body[0] : 0f;
+				// (Mjölnir flight too, touching the ground or not: the legs must not snap at take-off and landing)
+			float hip = player.onGround() && heldShown() != BendingAnimPacket.MJOLNIR_FLY ? body[0] : 0f;
 				return new Vec3f(Mth.lerp(body[6], value0.getX(), tx) - hip, Mth.lerp(body[6], value0.getY(), 0f), Mth.lerp(body[6], value0.getZ(), tz));
 			}
 			default -> {
@@ -578,6 +585,27 @@ public class BendingAnimation implements IAnimation {
 	}
 
 	/**
+	 * Mjölnir spin: a near-together stance while standing, handed back to the vanilla leg swing as soon as the
+	 * player walks (a constant full plant froze the legs apart, so they slid along splayed sideways).
+	 */
+	private float[] spinBody(float tickDelta) {
+		float walk = Mth.clamp(player.walkAnimation.speed(tickDelta) / 0.4f, 0f, 1f);
+		float moving = walk * walk * (3 - 2 * walk);
+		return new float[]{-0.05f, 0, 0, 0, 0, 0.05f, 1f - moving};
+	}
+
+	/**
+	 * Mjölnir flight: the body lies along the aim like Superman - level aim = horizontal, aiming down tips it head
+	 * first, aiming up brings it upright - banking a little into turns. The legs trail in line with it.
+	 */
+	private float[] flyBody(float tickDelta) {
+		float pitch = player.getViewXRot(tickDelta) * Mth.DEG_TO_RAD;
+		float lean = Mth.clamp(HALF_PI + pitch, 0.25f, 2.9f);
+		float tilt = Mth.lerp(tickDelta, bankO, bank);
+		return new float[]{lean, 0, tilt, 0, 0, 0.05f, 1};
+	}
+
+	/**
 	 * The body for this frame, {lean, twist, tilt, drop, stride, spread, plant} (see Gestures.body), already
 	 * blended in like the arms. Null when it stays as it is.
 	 */
@@ -621,8 +649,8 @@ public class BendingAnimation implements IAnimation {
 					case BendingAnimPacket.DIVE -> new float[]{0.6f, 0, 0, 0, 0, 0.05f, 1};
 					case BendingAnimPacket.ICE_AIM -> new float[]{-0.05f, -0.35f, 0, 0, -0.3f, 0, 1};
 					case BendingAnimPacket.CHIDORI_HOLD -> new float[]{0.25f, 0, 0, 0.08f, 0.35f, 0, 1};
-					case BendingAnimPacket.MJOLNIR_SPIN -> new float[]{-0.05f, 0, 0, 0, 0, 0.2f, 1};
-					case BendingAnimPacket.MJOLNIR_FLY -> new float[]{1.1f, 0, 0, 0, 0, 0.05f, 1};
+					case BendingAnimPacket.MJOLNIR_SPIN -> spinBody(tickDelta);
+					case BendingAnimPacket.MJOLNIR_FLY -> flyBody(tickDelta);
 					case BendingAnimPacket.VIPER_STEER -> new float[]{0.12f, 0.1f, 0, 0, 0.25f, 0, 1};
 					case BendingAnimPacket.BOULDER_HOLD -> new float[]{-0.08f, 0, 0, 0.05f, 0, 0.32f, 1};
 					case BendingAnimPacket.PRISM_AIM -> new float[]{0.08f, 0.15f, 0, 0.03f, 0.3f, 0, 1};

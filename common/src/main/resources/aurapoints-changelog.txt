@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.19.2
+- Mjölnir: the spin no longer splays the legs, and they swing normally when you walk with it.
+- Mjölnir flight: your body now lies along where you aim (level, up or down) and banks into turns.
+
 == 5.19.1
 - Fixed a server crash when an aura-touched mob used its ability while others spawned or died.
 - The Blue Bell is blockier now, like a vanilla bell with a frosty cap. Update to see the new model.

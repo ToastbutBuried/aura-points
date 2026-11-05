@@ -29,6 +29,11 @@ neoForge {
 			}
 			// gradle runClient -Pfrosttest: joins the dev server on localhost:25565 (screenshots of the Frost Bear / Blue Bell)
 			if (project.hasProperty('frosttest')) programArguments.addAll '--quickPlayMultiplayer', 'localhost:25565'
+			// gradle runClient -Pmjtest: the showcase world, Mjölnir spin/flight poses from a side camera (DevMjolnirTestClient)
+			if (project.hasProperty('mjtest')) {
+				systemProperty 'aurapoints.mjtest', 'true'
+				programArguments.addAll '--quickPlaySingleplayer', 'aura_showcase'
+			}
 			// gradle runClient -Picetest: the showcase world, an Ice Spike held charging, third person (DevIceTest)
 			if (project.hasProperty('icetest')) {
 				systemProperty 'aurapoints.icetest', 'true'
