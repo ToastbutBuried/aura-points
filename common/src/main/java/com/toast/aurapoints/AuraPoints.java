@@ -269,7 +269,6 @@ public class AuraPoints {
 			AuraHooks.createObjectives(event.getServer());
 			com.toast.aurapoints.arena.ArenaBuilder.buildIfNeeded(event.getServer());
 			Tickets.load();
-			com.toast.aurapoints.ServerOnlineNotify.send(event.getServer());
 		}
 
 		/** Ticket mode: the next chat message becomes the ticket. */

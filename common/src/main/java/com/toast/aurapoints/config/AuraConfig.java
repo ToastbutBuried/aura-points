@@ -38,12 +38,6 @@ public final class AuraConfig {
 	 */
 	public static String PROGRESS_FOLDER = "aura-progress";
 
-	/**
-	 * Server owners: when the server has finished starting it sends one small HTTP POST (JSON {"event":"online"}) to this
-	 * URL, e.g. http://192.168.1.50:9876/ , so a deploy script can wait for that packet instead of polling the log.
-	 * Empty = off. Sent in the background with a short timeout; failures are ignored.
-	 */
-	public static String SERVER_ONLINE_NOTIFY_URL = "";
 
 	/** Every player's first roll is free; each reroll after that costs this much Aura. */
 	public static int REROLL_COST = 500;
