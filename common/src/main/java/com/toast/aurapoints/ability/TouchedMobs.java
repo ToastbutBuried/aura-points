@@ -160,11 +160,11 @@ public final class TouchedMobs {
 		long now = server.getTickCount();
 		boolean halo = now % 4 == 0;
 		boolean think = now % 10 == 0;
-		for (Iterator<Map.Entry<Mob, AuraType>> it = TOUCHED.entrySet().iterator(); it.hasNext(); ) {
-			var entry = it.next();
+		// Snapshot: an ability can add or remove touched mobs (summons, kills) while we loop.
+		for (var entry : new java.util.ArrayList<>(TOUCHED.entrySet())) {
 			Mob mob = entry.getKey();
 			if (mob.isRemoved()) {
-				it.remove();
+				TOUCHED.remove(mob);
 				READY.remove(mob);
 				continue;
 			}
