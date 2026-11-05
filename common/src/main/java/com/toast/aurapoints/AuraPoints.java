@@ -151,8 +151,6 @@ public class AuraPoints {
 			new Item.Properties()
 	);
 
-	/** Wakes the Frost Bear (item/FrostBearSigilItem). */
-	public static final DeferredItem<Item> FROST_BEAR_SIGIL = ITEMS.registerItem("frost_bear_sigil", com.toast.aurapoints.item.FrostBearSigilItem::new, new Item.Properties());
 	/** Dropped by the Frost Bear when it flees; flies and strikes, then a blizzard (item/BlueBellItem). */
 	public static final DeferredItem<Item> BLUE_BELL = ITEMS.registerItem("blue_bell", com.toast.aurapoints.item.BlueBellItem::new, new Item.Properties());
 
@@ -238,7 +236,6 @@ public class AuraPoints {
 		if (event.getTabKey().equals(tab("ingredients"))) {
 			event.accept(ROKAKA_FRUIT_ITEM);
 			event.accept(BOSS_SIGIL_ITEM);
-			event.accept(FROST_BEAR_SIGIL);
 			event.accept(BLUE_BELL);
 		}
 		if (event.getTabKey().equals(tab("tools_and_utilities"))) event.accept(AURA_BOOK);

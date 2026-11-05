@@ -1,6 +1,11 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.19.0
+- Frost Bear: the Frost Bear Sigil is gone (the owner calls the bear with /aura frostbear). The bear no longer leaves a Blue Bell by default (FROST_BEAR_BELLS_PER_PLAYER is 0; set it to 1 or more to bring the drop back).
+- The Blue Bell is a 3D model now, in your hand, in your inventory and while it flies.
+- New owner commands: /aura frostbear ai on|off [bears] switches the bear's AI and abilities, /aura frostbear anim <idle|walk|run|swipe|spikes|eject|tired|stop> [bears] plays one animation on its own, without particles or sounds. Everybody must update (new model, removed item).
+
 == 5.18.1
 - Server owners: the SERVER_ONLINE_NOTIFY_URL setting from 5.17.1 is gone again. The server host announces that it is up on its own, the mod no longer sends anything.
 

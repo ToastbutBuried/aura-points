@@ -472,6 +472,35 @@ public final class ArenaDevTest {
 			};
 			AuraFx.later(server, Math.max(1, com.toast.aurapoints.config.AuraConfig.DUEL_COUNTDOWN_SECONDS) * 20 + 60, loop[0]);
 			return 1;
+		})).then(Commands.literal("bear").executes(ctx -> {
+			// /auradev bear: AI off = it stays in its first stage even when hurt; AI on = it goes on to eject; command animations
+			MinecraftServer server = ctx.getSource().getServer();
+			ServerLevel arena = Arena.level(server);
+			if (arena == null) return 0;
+			net.minecraft.world.phys.Vec3 at = new net.minecraft.world.phys.Vec3(0.5, Arena.RING_FLOOR + 1, Arena.RING_Z + 0.5);
+			int cx = net.minecraft.core.SectionPos.blockToSectionCoord(at.x), cz = net.minecraft.core.SectionPos.blockToSectionCoord(at.z);
+			arena.setChunkForced(cx, cz, true);
+			// a bear in an unticked chunk does nothing: wait for the chunk, then spawn
+			AuraFx.later(server, 20, () -> {
+				var bear = com.toast.aurapoints.geo.FrostBear.spawn(arena, at, 0);
+				if (bear == null) return;
+				bear.setAiEnabled(false);
+				bear.setHealth(bear.getMaxHealth() * 0.5f);
+				log("bear AI off: noAi " + bear.isNoAi() + " (must be true), stage " + bear.phase() + ", bells per player default " + com.toast.aurapoints.config.AuraConfig.FROST_BEAR_BELLS_PER_PLAYER + " (must be 0)");
+				StringBuilder anims = new StringBuilder();
+				for (String a : com.toast.aurapoints.geo.FrostBear.ANIMS) anims.append(a).append('=').append(bear.playShow(a)).append(' ');
+				log("anims " + anims + "(all must be true); bogus " + bear.playShow("bogus") + " (must be false); stop " + bear.playShow(null) + " (must be true)");
+				AuraFx.later(server, 60, () -> {
+					log("60 ticks later with AI off: stage " + bear.phase() + " (must stay 0), alive " + bear.isAlive() + ", ticks " + bear.tickCount + " (must be > 0)");
+					bear.setAiEnabled(true);
+					AuraFx.later(server, 60, () -> {
+						log("AI on again, 60 ticks later: noAi " + bear.isNoAi() + " (must be false), stage " + bear.phase() + " (must be 1 = eject or later), health " + bear.getHealth() + "/" + bear.getMaxHealth());
+						bear.discard();
+						arena.setChunkForced(cx, cz, false);
+					});
+				});
+			});
+			return 1;
 		})).then(Commands.literal("npc").executes(ctx -> {
 			// every NPC's click, by a fake player (teleports don't move it; this is for errors and the menus' logic)
 			ServerLevel arena = Arena.level(ctx.getSource().getServer());

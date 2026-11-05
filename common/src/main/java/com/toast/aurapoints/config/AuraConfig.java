@@ -762,7 +762,7 @@ public final class AuraConfig {
 	public static double FROST_BEAR_BOOM_KNOCKBACK = 1.8;
 	public static int FROST_BEAR_TIRED_TICKS = 80;
 	public static int FROST_BEAR_FLEE_TICKS = 100;
-	public static int FROST_BEAR_BELLS_PER_PLAYER = 1;
+	public static int FROST_BEAR_BELLS_PER_PLAYER = 0;
 
 	/**
 	 * The Blue Bell (ability/BlueBell, dropped by the Frost Bear): it flies out of your hand and strikes the nearest enemies

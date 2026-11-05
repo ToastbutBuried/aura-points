@@ -433,6 +433,8 @@ public class FrostBear extends PathfinderMob implements GeoEntity {
 		if (!(level() instanceof ServerLevel level)) return;
 		bar.setProgress(Math.max(0f, getHealth() / getMaxHealth()));
 		bar.setVisible(!spawning());
+		// AI off (/aura frostbear ai off): no stages, no abilities, it just stands there
+		if (isNoAi()) return;
 		if (spawnTicks > 0) {
 			if (--spawnTicks == 0) entityData.set(SPAWNING, false);
 			getNavigation().stop();
@@ -531,11 +533,12 @@ public class FrostBear extends PathfinderMob implements GeoEntity {
 		for (UUID id : damagers.keySet()) {
 			ServerPlayer p = level.getServer().getPlayerList().getPlayer(id);
 			if (p == null) continue;
-			for (int i = 0; i < Math.max(0, AuraConfig.FROST_BEAR_BELLS_PER_PLAYER); i++) {
+			int bells = Math.max(0, AuraConfig.FROST_BEAR_BELLS_PER_PLAYER);
+			for (int i = 0; i < bells; i++) {
 				ItemStack bell = new ItemStack(AuraPoints.BLUE_BELL.get());
 				if (!p.getInventory().add(bell)) p.drop(bell, false);
 			}
-			p.displayClientMessage(Component.literal("The Frost Bear fled into the blizzard... a Blue Bell is left behind.").withStyle(net.minecraft.ChatFormatting.AQUA), false);
+			p.displayClientMessage(Component.literal(bells > 0 ? "The Frost Bear fled into the blizzard... a Blue Bell is left behind." : "The Frost Bear fled into the blizzard.").withStyle(net.minecraft.ChatFormatting.AQUA), false);
 		}
 		bar.removeAllPlayers();
 		discard();
@@ -607,6 +610,35 @@ public class FrostBear extends PathfinderMob implements GeoEntity {
 		controllers.add(new AnimationController<>(this, "attack", 0, state -> PlayState.STOP)
 				.triggerableAnim("swipe", SWIPE)
 				.triggerableAnim("spikes", SPIKES));
+		// /aura frostbear anim <name>: any animation once, on its own - no particles, sounds or damage come with it
+		AnimationController<FrostBear> show = new AnimationController<>(this, "show", 3, state -> PlayState.STOP);
+		for (String name : ANIMS) {
+			show.triggerableAnim(name, name.equals("eject") ? EJECT_ANIM : RawAnimation.begin().thenPlay("animation.frost_bear." + name));
+		}
+		controllers.add(show);
+	}
+
+	/** The animations a command can play (all of the model's). */
+	public static final java.util.List<String> ANIMS = java.util.List.of("idle", "walk", "run", "swipe", "spikes", "eject", "tired");
+
+	/** Plays one of {@link #ANIMS} (eject holds its last frame until {@link #stopShow}), or stops it when the name is null. */
+	public boolean playShow(String name) {
+		if (name == null) {
+			stopTriggeredAnim("show", null);
+			return true;
+		}
+		if (!ANIMS.contains(name)) return false;
+		triggerAnim("show", name);
+		return true;
+	}
+
+	/** Command switch: AI and abilities on or off (the vanilla NoAI flag, saved with the bear). */
+	public void setAiEnabled(boolean on) {
+		setNoAi(!on);
+		if (!on) {
+			getNavigation().stop();
+			setTarget(null);
+		}
 	}
 
 	@Override

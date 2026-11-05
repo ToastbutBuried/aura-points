@@ -220,13 +220,27 @@ public final class AuraCommand {
 										.then(Commands.argument("player", StringArgumentType.word())
 												.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(com.toast.aurapoints.editor.BalanceEditors.whitelist(), b))
 												.executes(ctx -> editBalanceWhitelist(ctx, StringArgumentType.getString(ctx, "player"), false))))))
-				// the Frost Bear boss: /aura frostbear [0-3] spawns it where you look, /aura frostbear sigil gives the summon item, /aura bluebell its drop (owner only)
+				// the Frost Bear boss: /aura frostbear [0-3] spawns it where you look, /aura frostbear ai on|off, /aura frostbear anim <name|stop>, /aura bluebell gives the Blue Bell (owner only)
 				.then(Commands.literal("frostbear")
 						.requires(AuraCommand::isOwner)
 						.executes(ctx -> spawnFrostBear(ctx, -1))
 						.then(Commands.argument("variant", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, com.toast.aurapoints.geo.FrostBear.VARIANTS - 1))
 								.executes(ctx -> spawnFrostBear(ctx, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "variant"))))
-						.then(Commands.literal("sigil").executes(ctx -> giveItem(ctx, com.toast.aurapoints.AuraPoints.FROST_BEAR_SIGIL.get()))))
+						// AI and abilities on/off for the bears in this world (or the picked ones)
+						.then(Commands.literal("ai")
+								.then(Commands.literal("on").executes(ctx -> bearAi(ctx, true, null))
+										.then(Commands.argument("targets", EntityArgument.entities()).executes(ctx -> bearAi(ctx, true, EntityArgument.getEntities(ctx, "targets")))))
+								.then(Commands.literal("off").executes(ctx -> bearAi(ctx, false, null))
+										.then(Commands.argument("targets", EntityArgument.entities()).executes(ctx -> bearAi(ctx, false, EntityArgument.getEntities(ctx, "targets"))))))
+						// one animation on its own, no particles: /aura frostbear anim <name|stop> [bears]
+						.then(Commands.literal("anim")
+								.then(Commands.literal("stop").executes(ctx -> bearAnim(ctx, null, null))
+										.then(Commands.argument("targets", EntityArgument.entities()).executes(ctx -> bearAnim(ctx, null, EntityArgument.getEntities(ctx, "targets")))))
+								.then(Commands.argument("name", StringArgumentType.word())
+										.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(com.toast.aurapoints.geo.FrostBear.ANIMS, b))
+										.executes(ctx -> bearAnim(ctx, StringArgumentType.getString(ctx, "name"), null))
+										.then(Commands.argument("targets", EntityArgument.entities())
+												.executes(ctx -> bearAnim(ctx, StringArgumentType.getString(ctx, "name"), EntityArgument.getEntities(ctx, "targets")))))))
 				.then(Commands.literal("bluebell")
 						.requires(AuraCommand::isOwner)
 						.executes(ctx -> giveItem(ctx, com.toast.aurapoints.AuraPoints.BLUE_BELL.get())))
@@ -1141,6 +1155,40 @@ public final class AuraCommand {
 		if (bear == null) return 0;
 		ctx.getSource().sendSuccess(() -> Component.literal("The Frost Bear rises.").withStyle(ChatFormatting.AQUA), false);
 		return 1;
+	}
+
+	/** The Frost Bears the command is about: the picked ones, or every bear in this world. */
+	private static java.util.List<com.toast.aurapoints.geo.FrostBear> bears(CommandContext<CommandSourceStack> ctx, java.util.Collection<? extends net.minecraft.world.entity.Entity> picked) {
+		java.util.List<com.toast.aurapoints.geo.FrostBear> out = new java.util.ArrayList<>();
+		Iterable<? extends net.minecraft.world.entity.Entity> from = picked != null ? picked : ctx.getSource().getLevel().getAllEntities();
+		for (net.minecraft.world.entity.Entity e : from) if (e instanceof com.toast.aurapoints.geo.FrostBear b) out.add(b);
+		return out;
+	}
+
+	private static int bearAi(CommandContext<CommandSourceStack> ctx, boolean on, java.util.Collection<? extends net.minecraft.world.entity.Entity> picked) {
+		var bears = bears(ctx, picked);
+		if (bears.isEmpty()) {
+			ctx.getSource().sendFailure(Component.literal("No Frost Bear found."));
+			return 0;
+		}
+		for (var b : bears) b.setAiEnabled(on);
+		ctx.getSource().sendSuccess(() -> Component.literal("Frost Bear AI and abilities " + (on ? "on" : "off") + " for " + bears.size() + " bear(s).").withStyle(ChatFormatting.AQUA), false);
+		return bears.size();
+	}
+
+	private static int bearAnim(CommandContext<CommandSourceStack> ctx, String name, java.util.Collection<? extends net.minecraft.world.entity.Entity> picked) {
+		if (name != null && !com.toast.aurapoints.geo.FrostBear.ANIMS.contains(name)) {
+			ctx.getSource().sendFailure(Component.literal("Animations: " + String.join(", ", com.toast.aurapoints.geo.FrostBear.ANIMS) + " (or stop)."));
+			return 0;
+		}
+		var bears = bears(ctx, picked);
+		if (bears.isEmpty()) {
+			ctx.getSource().sendFailure(Component.literal("No Frost Bear found."));
+			return 0;
+		}
+		for (var b : bears) b.playShow(name);
+		ctx.getSource().sendSuccess(() -> Component.literal(name == null ? "Animation stopped." : "Playing " + name + " on " + bears.size() + " bear(s).").withStyle(ChatFormatting.AQUA), false);
+		return bears.size();
 	}
 
 	private static int giveItem(CommandContext<CommandSourceStack> ctx, net.minecraft.world.item.Item item) {
