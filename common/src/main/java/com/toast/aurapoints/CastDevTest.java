@@ -44,10 +44,11 @@ public final class CastDevTest {
 			state.cooldownsDisabled = true;
 			try {
 				int i = 0;
-				for (AuraType aura : new AuraType[]{AuraType.FIRE, AuraType.WATER, AuraType.SHADOW}) {
+				for (AuraType aura : new AuraType[]{AuraType.FIRE, AuraType.WATER, AuraType.SHADOW, AuraType.WIND, AuraType.FROST, AuraType.THUNDER, AuraType.VERDANT}) {
 					ServerPlayer fake = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000c0" + (10 + i++)), "Cast" + aura.displayName));
 					var spawn = level.getSharedSpawnPos();
-					fake.moveTo(spawn.getX() + 0.5, spawn.getY() + 1, spawn.getZ() + 0.5, 0, 0);
+					// looking a little down: the root casts want ground under the crosshair
+					fake.moveTo(spawn.getX() + 0.5, spawn.getY() + 1, spawn.getZ() + 0.5, 0, 40);
 					AuraPlayerData data = state.getOrCreate(fake.getUUID());
 					data.aura = aura;
 					data.rolled.add(aura);
@@ -60,17 +61,26 @@ public final class CastDevTest {
 					log(aura + " at Mastery " + AuraConfig.CAST_SNEAK_MASTERY + ": sneak " + CastMode.unlocked(fake, first, CastMode.SNEAK)
 							+ " charged " + CastMode.unlocked(fake, first, CastMode.CHARGED) + " (must be true false)");
 					data.mastery.put(aura, 5);
-					log(aura + " at Mastery V: charged " + CastMode.unlocked(fake, first, CastMode.CHARGED) + " (must be true)");
-					for (Ability ability : aura.keySlots()) {
+					log(aura + " at Mastery V: charged " + CastMode.unlocked(fake, first, CastMode.CHARGED) + " (must be " + CastMode.has(first, CastMode.CHARGED) + ")");
+					// Chidori refuses while a Thunderbolt combo runs, so it goes first
+					java.util.List<Ability> order = new java.util.ArrayList<>(aura.keySlots());
+					if (aura == AuraType.THUNDER) java.util.Collections.reverse(order);
+					for (Ability ability : order) {
 						// sneak and charged first: a normal Fire Bending press leaves a flame in hand, which a later sneak press would shoot instead
 						for (CastMode mode : new CastMode[]{CastMode.SNEAK, CastMode.CHARGED, CastMode.TAP}) {
 							if (!CastMode.has(ability, mode)) continue;
+							// a Wind player's Dash key never charges in play (WindLaunch holds it)
+							if (aura == AuraType.WIND && ability == Ability.DASH && mode == CastMode.CHARGED) continue;
 							boolean fired = AuraAbilities.tryActivate(fake, ability, server.getTickCount(), mode);
 							log(aura + " " + ability + " " + mode + " fired=" + fired + " (must be true)");
+							// the keys that hold: let go again
 							if (ability == Ability.ABYSSAL_BUBBLE) AbyssalBubble.release(fake, server.getTickCount());
+							if (ability == Ability.ICE_SPIKE) com.toast.aurapoints.ability.IceSpike.release(fake, server.getTickCount());
+							if (ability == Ability.CHIDORI) com.toast.aurapoints.ability.Chidori.release(fake, server.getTickCount());
 						}
 					}
 					if (FireBending.isHolding(fake)) FireBending.onLogout(fake);
+					if (com.toast.aurapoints.ability.VerdantViper.isSteering(fake)) com.toast.aurapoints.ability.VerdantViper.press(fake, server.getTickCount() + 10000);
 				}
 				log("an ability without variants keeps its normal cast only: VINE_HOOK sneak has=" + CastMode.has(Ability.VINE_HOOK, CastMode.SNEAK)
 						+ " charged has=" + CastMode.has(Ability.VINE_HOOK, CastMode.CHARGED) + " (must be false false)");

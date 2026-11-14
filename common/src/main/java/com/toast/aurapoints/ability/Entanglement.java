@@ -237,19 +237,36 @@ public final class Entanglement {
 	// ---------------------------------------------------------------
 
 	public static boolean press(ServerPlayer player, long now) {
+		return press(player, now, 0, 0);
+	}
+
+	/** The trap, plus {@code extra} more {@code spread} blocks apart to its sides (the Thicket, a charged Entanglement). */
+	static boolean press(ServerPlayer player, long now, int extra, double spread) {
 		if (!AuraAbilities.checkCooldown(player, Ability.ENTANGLEMENT, AuraConfig.ENTANGLE_COOLDOWN_TICKS, now)) return false;
+		ServerLevel level = player.serverLevel();
 		VineHook.Trace aim = VineHook.trace(player, player.getLookAngle(), AuraConfig.ENTANGLE_RANGE);
 		// aimed at someone: the trap grows under their feet; else on the ground under the crosshair
 		Vec3 at = aim.target() != null ? aim.target().position() : aim.tip();
-		double y = RootCanvas.surfaceY(player.serverLevel(), at, 1, 8);
+		double y = RootCanvas.surfaceY(level, at, 1, 8);
 		if (Double.isNaN(y)) {
 			player.displayClientMessage(Component.literal("No ground there for the roots.").withStyle(ChatFormatting.GRAY), true);
 			return false;
 		}
 		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_ENTANGLE, 0);
-		// one trap per player: an older one sinks away
+		// one trap (one press) per player: older ones sink away
 		for (Trap t : TRAPS) if (t.caster == player && t.state == Trap.State.SET) t.sink(false);
-		TRAPS.add(new Trap(player, new Vec3(at.x, y, at.z)));
+		Vec3 center = new Vec3(at.x, y, at.z);
+		TRAPS.add(new Trap(player, center));
+		if (extra > 0) {
+			double yaw = Math.toRadians(player.getYRot());
+			Vec3 side = new Vec3(Math.cos(yaw), 0, Math.sin(yaw));
+			for (int i = 1; i <= extra; i++) {
+				// right, left, right again further out...
+				Vec3 o = center.add(side.scale((i % 2 == 1 ? 1 : -1) * spread * ((i + 1) / 2)));
+				double oy = RootCanvas.surfaceY(level, o, 1, 8);
+				if (!Double.isNaN(oy)) TRAPS.add(new Trap(player, new Vec3(o.x, oy, o.z)));
+			}
+		}
 		AuraAbilities.markUsed(player, Ability.ENTANGLEMENT, now);
 		return true;
 	}

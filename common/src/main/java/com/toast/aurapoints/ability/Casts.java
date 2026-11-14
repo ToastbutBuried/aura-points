@@ -12,10 +12,22 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.animal.Animal;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.BonemealableBlock;
+import net.minecraft.world.level.block.GrassBlock;
+import net.minecraft.world.level.block.MossBlock;
+import net.minecraft.world.level.block.NyliumBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -80,6 +92,7 @@ public final class Casts {
 		CHARGING.remove(id);
 		CLOAKS.remove(id);
 		PHASES.remove(id);
+		PATHS.remove(id);
 		SPRINGS.removeIf(s -> s.owner.equals(id));
 	}
 
@@ -88,6 +101,7 @@ public final class Casts {
 		CHARGING.clear();
 		CLOAKS.clear();
 		PHASES.clear();
+		PATHS.clear();
 		SPRINGS.clear();
 	}
 
@@ -97,6 +111,11 @@ public final class Casts {
 		if (!CLOAKS.isEmpty()) tickCloaks(server, now);
 		if (!SPRINGS.isEmpty()) tickSprings(now);
 		if (!PHASES.isEmpty()) tickPhases(server, now);
+		if (!PATHS.isEmpty()) tickPaths(server, now);
+	}
+
+	private static AuraType aura(ServerPlayer player) {
+		return player.getServer() == null ? null : AuraState.get(player.getServer()).getOrCreate(player.getUUID()).aura;
 	}
 
 	private static void tickCharges(MinecraftServer server, long now) {
@@ -143,9 +162,20 @@ public final class Casts {
 			case SHOCKWAVE -> AuraAbilities.shockwave(player, now, mode);
 			case HEALING_TIDE -> AuraAbilities.healingTide(player, now, mode);
 			case ABYSSAL_BUBBLE -> diversBubble(player, now);
-			// the Shadow Dive comes first, as on a normal Dash press
-			case DASH -> DashDive.tryDive(player, now) || AuraAbilities.dash(player, now, mode);
+			// Wind's sneak Dash is the Tailwind; for Shadow the Dive comes first, as on a normal Dash press
+			case DASH -> sneak && aura(player) == AuraType.WIND ? tailwind(player, now)
+					: DashDive.tryDive(player, now) || AuraAbilities.dash(player, now, mode);
 			case VANISH -> AuraAbilities.vanish(player, now, mode);
+			case SUPER_WIND_CHARGE -> gust(player, now);
+			case ICE_SPIKE -> frostPath(player, now);
+			// mid-combo the key throws the next bolt, whatever the cast
+			case THUNDERBOLT -> Thunderbolt.isActive(player) ? Thunderbolt.press(player, now) : sneak ? staticRush(player, now) : chainLightning(player, now);
+			case CHIDORI -> lightningStep(player, now);
+			case VINE_HOOK -> sneak ? harvestHook(player, now)
+					: VineHook.press(player, now, AuraConfig.VINE_HOOK_CHARGED_RANGE_FACTOR, AuraConfig.VINE_HOOK_CHARGED_DAMAGE_FACTOR);
+			case ENTANGLEMENT -> sneak ? overgrowth(player, now) : thicket(player, now);
+			// a viper out: the key calls it back, as always
+			case VERDANT_VIPER -> VerdantViper.isSteering(player) ? VerdantViper.press(player, now) : venomSpit(player, now);
 			default -> false;
 		};
 	}
@@ -369,19 +399,324 @@ public final class Casts {
 		}
 	}
 
+	// ---- Wind ----
+
+	/** Tailwind (sneak + Dash, Wind): Speed for a while, at a share of the Dash cooldown. */
+	private static boolean tailwind(ServerPlayer player, long now) {
+		if (!AuraAbilities.checkCooldown(player, Ability.DASH, AuraConfig.DASH_COOLDOWN_TICKS, now)) return false;
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_DASH, 0);
+		player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, AuraConfig.WIND_TAILWIND_TICKS, AuraConfig.WIND_TAILWIND_AMPLIFIER, false, false, true));
+		ServerLevel level = player.serverLevel();
+		AuraFx.burst(level, player.getX(), player.getY() + 0.5, player.getZ(), ParticleTypes.CLOUD, 25, 0.5, 0.08);
+		AuraFx.trail(player, AuraFx.dust(AuraType.WIND.rgb, 1.3f), 3, 20);
+		AuraFx.sound(level, player, AuraSounds.SWEET_WHOOSH.value(), 0.9f, 1.3f);
+		AuraFx.sound(level, player, AuraSounds.BREEZE_JUMP.value(), 0.6f, 1.4f);
+		player.displayClientMessage(Component.literal("✦ Tailwind ✦").withStyle(ChatFormatting.AQUA), true);
+		AuraStats.add(player, AuraStats.DASH_USES, 1);
+		used(player, Ability.DASH, now, AuraConfig.WIND_TAILWIND_COOLDOWN_FACTOR);
+		return true;
+	}
+
+	/** Gust (sneak + Super Wind Charge): a push on yourself, or the boat you ride, along your look; no fall damage from it. */
+	private static boolean gust(ServerPlayer player, long now) {
+		if (!AuraAbilities.checkCooldown(player, Ability.SUPER_WIND_CHARGE, AuraConfig.SUPER_WIND_CHARGE_COOLDOWN_TICKS, now)) return false;
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_WIND_CHARGE, 0);
+		Entity moved = player.getVehicle() != null ? player.getVehicle() : player;
+		Vec3 push = player.getLookAngle().scale(AuraConfig.WIND_GUST_PUSH);
+		moved.setDeltaMovement(moved.getDeltaMovement().add(push));
+		moved.hurtMarked = true;
+		if (moved == player) {
+			WindLaunch.markLaunched(player, now);
+			player.fallDistance = 0;
+		}
+		ServerLevel level = player.serverLevel();
+		Vec3 back = player.position().add(0, 0.6, 0).subtract(push.normalize().scale(0.8));
+		AuraFx.burst(level, back.x, back.y, back.z, ParticleTypes.CLOUD, 30, 0.4, 0.15);
+		AuraFx.burst(level, back.x, back.y, back.z, AuraFx.dust(AuraType.WIND.rgb, 1.4f), 12, 0.5, 0.0);
+		AuraFx.sound(level, player, AuraSounds.BREEZE_JUMP.value(), 1.0f, 0.9f);
+		AuraFx.sound(level, player, AuraSounds.SWEET_WHOOSH.value(), 1.0f, 0.8f);
+		AuraStats.add(player, AuraStats.SUPER_WIND_CHARGE_USES, 1);
+		used(player, Ability.SUPER_WIND_CHARGE, now, AuraConfig.WIND_GUST_COOLDOWN_FACTOR);
+		return true;
+	}
+
+	// ---- Frost ----
+
+	/** Frost Path holders and the tick each path ends. */
+	private static final Map<UUID, Long> PATHS = new HashMap<>();
+
+	/** Frost Path (sneak + Ice Spike): for a while, still water around your feet freezes under you (frosted ice, which melts again). */
+	private static boolean frostPath(ServerPlayer player, long now) {
+		if (!AuraAbilities.checkCooldown(player, Ability.ICE_SPIKE, AuraConfig.ICE_SPIKE_COOLDOWN_TICKS, now)) return false;
+		PATHS.put(player.getUUID(), now + AuraConfig.FROST_PATH_TICKS);
+		ServerLevel level = player.serverLevel();
+		AuraFx.ring(level, player.getX(), player.getY() + 0.1, player.getZ(), 1.2, ParticleTypes.SNOWFLAKE, 20);
+		AuraFx.sound(level, player, AuraSounds.POWDER_SNOW_STEP.value(), 1.0f, 0.7f);
+		AuraFx.sound(level, player, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 0.6f, 1.8f);
+		player.displayClientMessage(Component.literal("✦ Frost Path ✦").withStyle(ChatFormatting.AQUA), true);
+		used(player, Ability.ICE_SPIKE, now, AuraConfig.FROST_PATH_COOLDOWN_FACTOR);
+		return true;
+	}
+
+	private static void tickPaths(MinecraftServer server, long now) {
+		for (Iterator<Map.Entry<UUID, Long>> it = PATHS.entrySet().iterator(); it.hasNext(); ) {
+			Map.Entry<UUID, Long> e = it.next();
+			ServerPlayer p = server.getPlayerList().getPlayer(e.getKey());
+			if (p == null || !p.isAlive() || now >= e.getValue()) {
+				it.remove();
+				continue;
+			}
+			ServerLevel level = p.serverLevel();
+			BlockPos feet = p.blockPosition();
+			// swimming: the ice forms at the feet and lifts you onto it; else under the block you stand on
+			boolean swimming = p.isInWater();
+			BlockPos layer = swimming ? feet : feet.below();
+			int r = Math.max(0, AuraConfig.FROST_PATH_RADIUS);
+			boolean froze = false;
+			for (int dx = -r; dx <= r; dx++) {
+				for (int dz = -r; dz <= r; dz++) {
+					BlockPos pos = layer.offset(dx, 0, dz);
+					BlockState s = level.getBlockState(pos);
+					if (!s.is(Blocks.WATER) || !s.getFluidState().isSource()) continue;
+					level.setBlockAndUpdate(pos, Blocks.FROSTED_ICE.defaultBlockState());
+					level.scheduleTick(pos, Blocks.FROSTED_ICE, Mth.nextInt(level.random, 60, 120));
+					froze = true;
+				}
+			}
+			if (froze && swimming) {
+				p.setDeltaMovement(p.getDeltaMovement().x, 0.45, p.getDeltaMovement().z);
+				p.hurtMarked = true;
+			}
+			if (froze || now % 4 == 0) {
+				AuraFx.particles(level, ParticleTypes.SNOWFLAKE, p.getX(), p.getY() + 0.1, p.getZ(), froze ? 6 : 1, 0.6, 0.05, 0.6, 0.01);
+			}
+		}
+	}
+
+	// ---- Thunder ----
+
+	/** Static Rush (sneak + Thunderbolt): Speed for a while. */
+	private static boolean staticRush(ServerPlayer player, long now) {
+		if (Chidori.isCharging(player) || Chidori.isLunging(player)) return false;
+		if (!AuraAbilities.checkCooldown(player, Ability.THUNDERBOLT, AuraConfig.THUNDERBOLT_COOLDOWN_TICKS, now)) return false;
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_THUNDERBOLT, 1);
+		player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, AuraConfig.THUNDERBOLT_RUSH_TICKS, AuraConfig.THUNDERBOLT_RUSH_AMPLIFIER, false, false, true));
+		ServerLevel level = player.serverLevel();
+		AuraFx.ring(level, player.getX(), player.getY() + 0.1, player.getZ(), 0.9, ParticleTypes.ELECTRIC_SPARK, 20);
+		AuraFx.trail(player, AuraFx.dust(0xFFE347, 1.2f), 3, 20);
+		AuraFx.sound(level, player, AuraSounds.TRIDENT_THUNDER.value(), 0.5f, 1.9f);
+		player.displayClientMessage(Component.literal("✦ Static Rush ✦").withStyle(ChatFormatting.YELLOW), true);
+		used(player, Ability.THUNDERBOLT, now, AuraConfig.THUNDERBOLT_RUSH_COOLDOWN_FACTOR);
+		return true;
+	}
+
+	/** Chain Lightning (hold Thunderbolt): a bolt from the hand at the first enemy in range, jumping on to the nearest others; no leap or hover. */
+	private static boolean chainLightning(ServerPlayer player, long now) {
+		if (Chidori.isCharging(player) || Chidori.isLunging(player)) return false;
+		if (!AuraAbilities.checkCooldown(player, Ability.THUNDERBOLT, AuraConfig.THUNDERBOLT_COOLDOWN_TICKS, now)) return false;
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_THUNDERBOLT, 0);
+		ServerLevel level = player.serverLevel();
+		Vec3 look = player.getLookAngle();
+		Vec3 from = player.getEyePosition().add(look.scale(0.5)).add(0, -0.25, 0);
+		VineHook.Trace aim = VineHook.trace(player, look, AuraConfig.THUNDERBOLT_CHAIN_RANGE);
+		AuraStats.add(player, AuraStats.THUNDERBOLT_THROWS, 1);
+		if (aim.target() == null) {
+			bolt(level, from, aim.tip());
+			AuraFx.sound(level, player, AuraSounds.TRIDENT_THUNDER.value(), 0.8f, 1.5f);
+			used(player, Ability.THUNDERBOLT, now, CastMode.CHARGED);
+			return true;
+		}
+		List<LivingEntity> hit = new ArrayList<>();
+		LivingEntity cur = aim.target();
+		Vec3 at = from;
+		AuraStunts.ACTIVE_ABILITY = Ability.THUNDERBOLT;
+		try {
+			while (cur != null && hit.size() < 1 + Math.max(0, AuraConfig.THUNDERBOLT_CHAINBOLT_TARGETS)) {
+				hit.add(cur);
+				Vec3 c = AuraFx.chest(cur);
+				bolt(level, at, c);
+				at = c;
+				cur.hurt(level.damageSources().playerAttack(player), AuraAbilities.vsMob(cur, AuraConfig.THUNDERBOLT_CHAIN_DAMAGE));
+				Reactions.applyMark(cur, Reactions.Mark.CHARGED);
+				AuraStats.add(player, AuraStats.THUNDERBOLT_HITS, 1);
+				LivingEntity next = null;
+				double best = Double.MAX_VALUE;
+				for (LivingEntity e : Handhelds.enemies(player, level, c, AuraConfig.THUNDERBOLT_CHAINBOLT_RADIUS)) {
+					if (hit.contains(e)) continue;
+					double d = e.distanceToSqr(cur);
+					if (d < best) {
+						best = d;
+						next = e;
+					}
+				}
+				cur = next;
+			}
+		} finally {
+			AuraStunts.ACTIVE_ABILITY = null;
+		}
+		AuraFx.sound(level, player, AuraSounds.LIGHTNING_BOLT_THUNDER.value(), 0.7f, 1.6f);
+		AuraFx.sound(level, player, AuraSounds.TRIDENT_THUNDER.value(), 0.9f, 1.3f);
+		used(player, Ability.THUNDERBOLT, now, CastMode.CHARGED);
+		return true;
+	}
+
+	/** One jagged bolt between two points: sparks along the line and a bright flash at the far end. */
+	private static void bolt(ServerLevel level, Vec3 from, Vec3 to) {
+		int n = (int) Math.max(6, from.distanceTo(to) * 4);
+		AuraFx.line(level, from, to, ParticleTypes.ELECTRIC_SPARK, n);
+		AuraFx.line(level, from, to, AuraFx.dust(0xFFE347, 1.1f), n / 2);
+		AuraFx.burst(level, to.x, to.y, to.z, ParticleTypes.ELECTRIC_SPARK, 12, 0.3, 0.1);
+	}
+
+	/** Lightning Step (sneak + Chidori): a blink along your look that stops short of blocks. */
+	private static boolean lightningStep(ServerPlayer player, long now) {
+		if (Chidori.isCharging(player) || Chidori.isLunging(player) || Thunderbolt.isActive(player)) return false;
+		if (!AuraAbilities.checkCooldown(player, Ability.CHIDORI, AuraConfig.CHIDORI_COOLDOWN_TICKS, now)) return false;
+		ServerLevel level = player.serverLevel();
+		Vec3 eye = player.getEyePosition(), dir = player.getLookAngle();
+		double dist = AuraConfig.CHIDORI_STEP_DISTANCE;
+		HitResult hit = level.clip(new ClipContext(eye, eye.add(dir.scale(dist)), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
+		double d = hit.getType() == HitResult.Type.MISS ? dist : Math.max(0, hit.getLocation().distanceTo(eye) - 0.8);
+		Vec3 start = player.position();
+		Vec3 aimed = start.add(dir.scale(d));
+		// aimed into the ground or a wall: the same spot at your own height, then one block up, else stay
+		Vec3 dest = null;
+		for (Vec3 c : new Vec3[]{aimed, new Vec3(aimed.x, start.y, aimed.z), new Vec3(aimed.x, start.y + 1, aimed.z)}) {
+			if (level.noCollision(player, player.getBoundingBox().move(c.subtract(start)))) {
+				dest = c;
+				break;
+			}
+		}
+		if (dest == null) {
+			player.displayClientMessage(Component.literal("No room to step there.").withStyle(ChatFormatting.GRAY), true);
+			return false;
+		}
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_CHIDORI, 0);
+		AuraFx.burst(level, start.x, start.y + 1.0, start.z, ParticleTypes.ELECTRIC_SPARK, 20, 0.4, 0.1);
+		AuraFx.line(level, start.add(0, 1, 0), dest.add(0, 1, 0), AuraFx.dust(0xFFE347, 1.3f), (int) Math.max(6, d * 3));
+		player.teleportTo(dest.x, dest.y, dest.z);
+		player.fallDistance = 0;
+		AuraFx.burst(level, dest.x, dest.y + 1.0, dest.z, ParticleTypes.ELECTRIC_SPARK, 20, 0.4, 0.1);
+		AuraFx.sound(level, player, AuraSounds.TRIDENT_THUNDER.value(), 0.7f, 2.0f);
+		AuraFx.sound(level, player, AuraSounds.ENDERMAN_TELEPORT.value(), 0.4f, 1.8f);
+		used(player, Ability.CHIDORI, now, AuraConfig.CHIDORI_STEP_COOLDOWN_FACTOR);
+		return true;
+	}
+
+	// ---- Verdant ----
+
+	/** Harvest Hook (sneak + Vine Hook): dropped items and animals in front of you are drawn in. */
+	private static boolean harvestHook(ServerPlayer player, long now) {
+		if (!AuraAbilities.checkCooldown(player, Ability.VINE_HOOK, AuraConfig.VINE_HOOK_COOLDOWN_TICKS, now)) return false;
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_VINE_HOOK, 0);
+		ServerLevel level = player.serverLevel();
+		Vec3 eye = player.getEyePosition(), look = player.getLookAngle();
+		double range = AuraConfig.VINE_HOOK_HARVEST_RANGE;
+		Vec3 to = player.position().add(0, 1.0, 0);
+		int pulled = 0;
+		for (Entity e : level.getEntities(player, player.getBoundingBox().inflate(range),
+				e -> (e instanceof ItemEntity || e instanceof Animal) && e.isAlive() && e.distanceToSqr(player) <= range * range)) {
+			// only what's in front of you
+			if (e.position().subtract(eye).normalize().dot(look) < 0.3) continue;
+			Vec3 pull = to.subtract(e.position()).normalize().scale(e instanceof ItemEntity ? 0.9 : 1.1);
+			e.setDeltaMovement(pull.add(0, 0.25, 0));
+			e.hurtMarked = true;
+			if (e instanceof ItemEntity item) item.setNoPickUpDelay();
+			AuraFx.line(level, e.position().add(0, 0.3, 0), to, ParticleTypes.COMPOSTER, 8);
+			pulled++;
+		}
+		AuraFx.sound(level, player, AuraSounds.CAVE_VINES_PICK_BERRIES.value(), 1.0f, 0.8f);
+		AuraFx.sound(level, player, AuraSounds.FISHING_BOBBER_RETRIEVE.value(), 0.8f, 1.1f);
+		player.displayClientMessage(Component.literal(pulled == 0 ? "Nothing in reach to harvest." : "✦ Harvest Hook: " + pulled + " ✦").withStyle(ChatFormatting.DARK_GREEN), true);
+		used(player, Ability.VINE_HOOK, now, AuraConfig.VINE_HOOK_HARVEST_COOLDOWN_FACTOR);
+		return true;
+	}
+
+	/** Overgrowth (sneak + Entanglement): crops, saplings and the like around the aimed spot grow as if bonemealed. */
+	private static boolean overgrowth(ServerPlayer player, long now) {
+		if (!AuraAbilities.checkCooldown(player, Ability.ENTANGLEMENT, AuraConfig.ENTANGLE_COOLDOWN_TICKS, now)) return false;
+		ServerLevel level = player.serverLevel();
+		VineHook.Trace aim = VineHook.trace(player, player.getLookAngle(), AuraConfig.ENTANGLE_RANGE);
+		Vec3 at = aim.target() != null ? aim.target().position() : aim.tip();
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_ENTANGLE, 0);
+		BlockPos center = BlockPos.containing(at);
+		int r = Math.max(0, AuraConfig.ENTANGLE_GROW_RADIUS), grown = 0;
+		for (int dx = -r; dx <= r; dx++) {
+			for (int dy = -1; dy <= 1; dy++) {
+				for (int dz = -r; dz <= r; dz++) {
+					if (dx * dx + dz * dz > r * r) continue;
+					BlockPos pos = center.offset(dx, dy, dz);
+					BlockState s = level.getBlockState(pos);
+					// not the ground itself: grass, moss and nylium would sprout a lawn
+					if (!(s.getBlock() instanceof BonemealableBlock b) || s.getBlock() instanceof GrassBlock || s.getBlock() instanceof MossBlock
+							|| s.getBlock() instanceof NyliumBlock) continue;
+					if (!b.isValidBonemealTarget(level, pos, s) || level.random.nextDouble() >= AuraConfig.ENTANGLE_GROW_CHANCE) continue;
+					if (!b.isBonemealSuccess(level, level.random, pos, s)) continue;
+					b.performBonemeal(level, level.random, pos, s);
+					level.levelEvent(1505, pos, 8);
+					grown++;
+				}
+			}
+		}
+		AuraFx.ring(level, at.x, at.y + 0.2, at.z, r, ParticleTypes.HAPPY_VILLAGER, r * 8);
+		AuraFx.sound(level, player, AuraSounds.AZALEA_LEAVES_BREAK.value(), 1.0f, 0.8f);
+		AuraFx.sound(level, player, AuraSounds.CAVE_VINES_PICK_BERRIES.value(), 0.8f, 1.3f);
+		player.displayClientMessage(Component.literal(grown == 0 ? "Nothing there to grow." : "✦ Overgrowth: " + grown + " grew ✦").withStyle(ChatFormatting.DARK_GREEN), true);
+		used(player, Ability.ENTANGLEMENT, now, AuraConfig.ENTANGLE_GROW_COOLDOWN_FACTOR);
+		return true;
+	}
+
+	/** Thicket (hold Entanglement): the trap, with more beside it. */
+	private static boolean thicket(ServerPlayer player, long now) {
+		if (!Entanglement.press(player, now, AuraConfig.ENTANGLE_CHARGED_EXTRA_TRAPS, AuraConfig.ENTANGLE_CHARGED_SPREAD)) return false;
+		// Entanglement.press started the normal cooldown; the charged factor goes on top
+		used(player, Ability.ENTANGLEMENT, now, CastMode.CHARGED);
+		return true;
+	}
+
+	/** Venom Spit (sneak + Verdant Viper): a quick spit at the first enemy in range, poison and a little damage, and you stay free. */
+	private static boolean venomSpit(ServerPlayer player, long now) {
+		if (!AuraAbilities.checkCooldown(player, Ability.VERDANT_VIPER, AuraConfig.VIPER_COOLDOWN_TICKS, now)) return false;
+		ServerLevel level = player.serverLevel();
+		Vec3 look = player.getLookAngle();
+		Vec3 from = player.getEyePosition().add(look.scale(0.4)).add(0, -0.15, 0);
+		VineHook.Trace aim = VineHook.trace(player, look, AuraConfig.VIPER_SPIT_RANGE);
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_VIPER, 0);
+		AuraFx.line(level, from, aim.tip(), AuraFx.dust(0x4FB848, 1.2f), (int) Math.max(6, from.distanceTo(aim.tip()) * 3));
+		AuraFx.sound(level, player, AuraSounds.CAT_HISS.value(), 1.0f, 1.2f);
+		LivingEntity target = aim.target();
+		if (target != null) {
+			AuraStunts.ACTIVE_ABILITY = Ability.VERDANT_VIPER;
+			try {
+				target.hurt(level.damageSources().playerAttack(player), AuraAbilities.vsMob(target, AuraConfig.VIPER_SPIT_DAMAGE));
+			} finally {
+				AuraStunts.ACTIVE_ABILITY = null;
+			}
+			Entanglement.poison(target, player, AuraConfig.VIPER_POISON_AMPLIFIER, AuraConfig.VIPER_SPIT_POISON_TICKS);
+			Vec3 c = AuraFx.chest(target);
+			AuraFx.burst(level, c.x, c.y, c.z, AuraFx.dust(0x4FB848, 1.4f), 14, 0.3, 0.0);
+			AuraFx.burst(level, c.x, c.y, c.z, ParticleTypes.ITEM_SLIME, 8, 0.3, 0.05);
+			AuraStats.add(player, AuraStats.VIPER_BITES, 1);
+		}
+		used(player, Ability.VERDANT_VIPER, now, AuraConfig.VIPER_SPIT_COOLDOWN_FACTOR);
+		return true;
+	}
+
 	// ---------------------------------------------------------------
 	// Lore
 	// ---------------------------------------------------------------
 
-	/** The extra casts of an ability for the Aura Book and /aura info, one line each; empty without any (or with casts off). */
-	public static List<String> describe(Ability ability) {
+	/** The extra casts of an ability for the Aura Book and /aura info, one line each; empty without any (or with casts off). {@code aura}: whose kit it shows (Dash differs for Wind). */
+	public static List<String> describe(Ability ability, AuraType aura) {
 		List<String> out = new ArrayList<>(2);
 		if (!AuraConfig.CAST_VARIANTS_ENABLED) return out;
-		String sneak = sneak(ability), charged = charged(ability);
+		String sneak = sneak(ability, aura), charged = aura == AuraType.WIND && ability == Ability.DASH ? null : charged(ability);
 		if (sneak != null) {
+			// most sneak casts name their own cooldown share; the general factor only matters for the rest
+			boolean ownShare = ability == Ability.DASH || ability == Ability.ABYSSAL_BUBBLE || ability == Ability.SUPER_WIND_CHARGE || ability == Ability.ICE_SPIKE
+					|| ability == Ability.THUNDERBOLT || ability == Ability.CHIDORI || ability == Ability.VINE_HOOK || ability == Ability.ENTANGLEMENT || ability == Ability.VERDANT_VIPER;
 			out.add("Sneak + key (Mastery " + Mastery.roman(AuraConfig.CAST_SNEAK_MASTERY) + "): " + sneak
-					+ (AuraConfig.CAST_SNEAK_COOLDOWN_FACTOR != 1.0 && ability != Ability.DASH && ability != Ability.ABYSSAL_BUBBLE
-					? " " + pct(AuraConfig.CAST_SNEAK_COOLDOWN_FACTOR) + "% cooldown." : ""));
+					+ (AuraConfig.CAST_SNEAK_COOLDOWN_FACTOR != 1.0 && !ownShare ? " " + pct(AuraConfig.CAST_SNEAK_COOLDOWN_FACTOR) + "% cooldown." : ""));
 		}
 		if (charged != null) {
 			out.add("Hold the key (Mastery " + Mastery.roman(AuraConfig.CAST_CHARGED_MASTERY) + "): " + charged
@@ -398,8 +733,26 @@ public final class Casts {
 		return AuraAbilities.fmt(ticks / 20f) + "s";
 	}
 
-	private static String sneak(Ability a) {
+	private static String sneak(Ability a, AuraType aura) {
+		if (a == Ability.DASH && aura == AuraType.WIND) {
+			return "Tailwind - Speed " + Mastery.roman(AuraConfig.WIND_TAILWIND_AMPLIFIER + 1) + " for " + secs(AuraConfig.WIND_TAILWIND_TICKS) + ", "
+					+ pct(AuraConfig.WIND_TAILWIND_COOLDOWN_FACTOR) + "% cooldown.";
+		}
 		return switch (a) {
+			case SUPER_WIND_CHARGE -> "Gust - a push on yourself (or the boat you ride) along your look, no fall damage, " + pct(AuraConfig.WIND_GUST_COOLDOWN_FACTOR) + "% cooldown.";
+			case ICE_SPIKE -> "Frost Path - for " + secs(AuraConfig.FROST_PATH_TICKS) + " still water freezes under your feet (it melts again), "
+					+ pct(AuraConfig.FROST_PATH_COOLDOWN_FACTOR) + "% cooldown.";
+			case THUNDERBOLT -> "Static Rush - Speed " + Mastery.roman(AuraConfig.THUNDERBOLT_RUSH_AMPLIFIER + 1) + " for " + secs(AuraConfig.THUNDERBOLT_RUSH_TICKS) + ", "
+					+ pct(AuraConfig.THUNDERBOLT_RUSH_COOLDOWN_FACTOR) + "% cooldown.";
+			case CHIDORI -> "Lightning Step - a blink " + AuraAbilities.fmt((float) AuraConfig.CHIDORI_STEP_DISTANCE) + " blocks along your look, "
+					+ pct(AuraConfig.CHIDORI_STEP_COOLDOWN_FACTOR) + "% cooldown.";
+			case VINE_HOOK -> "Harvest Hook - dropped items and animals within " + AuraAbilities.fmt((float) AuraConfig.VINE_HOOK_HARVEST_RANGE)
+					+ " blocks in front of you are drawn to you, " + pct(AuraConfig.VINE_HOOK_HARVEST_COOLDOWN_FACTOR) + "% cooldown.";
+			case ENTANGLEMENT -> "Overgrowth - crops and saplings within " + AuraConfig.ENTANGLE_GROW_RADIUS + " blocks of the aimed spot grow as if bonemealed, "
+					+ pct(AuraConfig.ENTANGLE_GROW_COOLDOWN_FACTOR) + "% cooldown.";
+			case VERDANT_VIPER -> "Venom Spit - a quick spit at the first enemy within " + AuraAbilities.fmt((float) AuraConfig.VIPER_SPIT_RANGE) + " blocks: "
+					+ AuraAbilities.fmt(AuraConfig.VIPER_SPIT_DAMAGE) + " damage and Poison " + secs(AuraConfig.VIPER_SPIT_POISON_TICKS) + ", you stay free to move, "
+					+ pct(AuraConfig.VIPER_SPIT_COOLDOWN_FACTOR) + "% cooldown.";
 			case FIREBALL -> "Spread Shot - " + AuraConfig.FIREBALL_SPREAD_COUNT + " small fireballs in a fan, "
 					+ pct(AuraConfig.FIREBALL_SPREAD_DAMAGE_FACTOR) + "% damage each.";
 			case HEAT_WAVE -> "Flame Ward - a ring of fire " + AuraAbilities.fmt((float) AuraConfig.HEAT_WAVE_WARD_RADIUS) + " blocks around you, "
@@ -428,6 +781,11 @@ public final class Casts {
 			case DASH -> "Phase Dash - " + pct(AuraConfig.DASH_PHASE_STRENGTH_FACTOR) + "% distance; enemies you pass through take "
 					+ AuraAbilities.fmt(AuraConfig.DASH_PHASE_DAMAGE) + " damage and are blinded.";
 			case VANISH -> "Deep Vanish - lasts " + pct(AuraConfig.VANISH_CHARGED_DURATION_FACTOR) + "% as long, but gives no Speed.";
+			case THUNDERBOLT -> "Chain Lightning - a bolt from the hand at the first enemy within " + AuraAbilities.fmt((float) AuraConfig.THUNDERBOLT_CHAIN_RANGE)
+					+ " blocks that jumps to up to " + AuraConfig.THUNDERBOLT_CHAINBOLT_TARGETS + " more, " + AuraAbilities.fmt(AuraConfig.THUNDERBOLT_CHAIN_DAMAGE)
+					+ " damage each, all left Charged. No leap.";
+			case VINE_HOOK -> "Long Hook - " + pct(AuraConfig.VINE_HOOK_CHARGED_RANGE_FACTOR) + "% range, " + pct(AuraConfig.VINE_HOOK_CHARGED_DAMAGE_FACTOR) + "% damage.";
+			case ENTANGLEMENT -> "Thicket - " + (1 + AuraConfig.ENTANGLE_CHARGED_EXTRA_TRAPS) + " traps side by side.";
 			default -> null;
 		};
 	}

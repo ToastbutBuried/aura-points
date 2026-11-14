@@ -31,9 +31,20 @@ public enum CastMode {
 		put(Ability.SHOCKWAVE, SNEAK, CHARGED);
 		put(Ability.HEALING_TIDE, SNEAK, CHARGED);
 		put(Ability.ABYSSAL_BUBBLE, SNEAK);
-		// Shadow (a Wind player's Dash is WindLaunch's hold key and never reaches these)
+		// Shadow; a Wind player's Dash is WindLaunch's hold key: its SNEAK cast is Tailwind, it never charges
 		put(Ability.DASH, SNEAK, CHARGED);
 		put(Ability.VANISH, SNEAK, CHARGED);
+		// Wind (both keys hold already)
+		put(Ability.SUPER_WIND_CHARGE, SNEAK);
+		// Frost (the spike key holds)
+		put(Ability.ICE_SPIKE, SNEAK);
+		// Thunder (Chidori holds)
+		put(Ability.THUNDERBOLT, SNEAK, CHARGED);
+		put(Ability.CHIDORI, SNEAK);
+		// Verdant (the viper's key recalls it while it is out, so no charge)
+		put(Ability.VINE_HOOK, SNEAK, CHARGED);
+		put(Ability.ENTANGLEMENT, SNEAK, CHARGED);
+		put(Ability.VERDANT_VIPER, SNEAK);
 	}
 
 	private static void put(Ability ability, CastMode first, CastMode... more) {

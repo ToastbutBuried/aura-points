@@ -70,10 +70,20 @@ public final class VineHook {
 		return best != null ? new Trace(best, bestAt) : new Trace(null, end);
 	}
 
+	/** Players whose next catch is a Long Hook's (a charged Vine Hook): VINE_HOOK_CHARGED_DAMAGE_FACTOR on the damage. */
+	private static final java.util.Set<java.util.UUID> HEAVY = new java.util.HashSet<>();
+
 	public static boolean press(ServerPlayer player, long now) {
+		return press(player, now, 1.0, 1f);
+	}
+
+	/** The hook with a cast's range and damage factors (1, 1 = the normal one). The cooldown here is the normal one; a cast scales it after. */
+	static boolean press(ServerPlayer player, long now, double rangeFactor, float damageFactor) {
 		if (!AuraAbilities.checkCooldown(player, Ability.VINE_HOOK, AuraConfig.VINE_HOOK_COOLDOWN_TICKS, now)) return false;
 		Vec3 look = player.getLookAngle().normalize();
-		Trace aim = trace(player, look);
+		Trace aim = trace(player, look, AuraConfig.VINE_HOOK_RANGE * rangeFactor);
+		HEAVY.remove(player.getUUID());
+		if (damageFactor != 1f) HEAVY.add(player.getUUID());
 
 		// both hands reach out for the target while the roots grow, then yank back on the catch
 		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_VINE_HOOK, 0);
@@ -108,8 +118,9 @@ public final class VineHook {
 		if (AuraConfig.VINE_HOOK_ENTANGLE_LOCK_TICKS > 0) {
 			AuraAbilities.atLeastCooldown(player, Ability.ENTANGLEMENT, AuraConfig.VINE_HOOK_ENTANGLE_LOCK_TICKS, level.getServer().getTickCount());
 		}
-		if (AuraConfig.VINE_HOOK_DAMAGE > 0) {
-			target.hurt(level.damageSources().playerAttack(player), AuraAbilities.vsMob(target, AuraConfig.VINE_HOOK_DAMAGE));
+		float damage = AuraConfig.VINE_HOOK_DAMAGE * (HEAVY.remove(player.getUUID()) ? AuraConfig.VINE_HOOK_CHARGED_DAMAGE_FACTOR : 1f);
+		if (damage > 0) {
+			target.hurt(level.damageSources().playerAttack(player), AuraAbilities.vsMob(target, damage));
 		}
 		Vec3 c = AuraFx.chest(target);
 		var leaves = new BlockParticleOption(ParticleTypes.BLOCK, Blocks.OAK_LEAVES.defaultBlockState());

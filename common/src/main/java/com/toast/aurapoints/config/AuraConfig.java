@@ -113,6 +113,55 @@ public final class AuraConfig {
 	/** Deep Vanish (hold Vanish): lasts this many times longer, but gives no Speed. */
 	public static double VANISH_CHARGED_DURATION_FACTOR = 1.6;
 
+	// Wind casts (Wind's keys hold already, so only sneak casts)
+	/** Tailwind (sneak + Dash, Wind): Speed this strong (0 = Speed I) for this long; this share of the Dash cooldown. */
+	public static int WIND_TAILWIND_AMPLIFIER = 1;
+	public static int WIND_TAILWIND_TICKS = 100;
+	public static double WIND_TAILWIND_COOLDOWN_FACTOR = 0.6;
+	/** Gust (sneak + Super Wind Charge): a push on yourself (or the boat you ride, or your glide) along your look, this strong; no fall damage from it. */
+	public static double WIND_GUST_PUSH = 1.3;
+	public static double WIND_GUST_COOLDOWN_FACTOR = 0.5;
+
+	// Frost casts
+	/** Frost Path (sneak + Ice Spike): for this long, still water this far around your feet freezes under you (frosted ice, it melts again). */
+	public static int FROST_PATH_TICKS = 200;
+	public static int FROST_PATH_RADIUS = 1;
+	public static double FROST_PATH_COOLDOWN_FACTOR = 0.5;
+
+	// Thunder casts
+	/** Static Rush (sneak + Thunderbolt): Speed this strong (0 = Speed I) for this long. */
+	public static int THUNDERBOLT_RUSH_AMPLIFIER = 1;
+	public static int THUNDERBOLT_RUSH_TICKS = 100;
+	public static double THUNDERBOLT_RUSH_COOLDOWN_FACTOR = 0.5;
+	/** Chain Lightning (hold Thunderbolt): a bolt at the first enemy in this range that jumps on to this many more within this radius, this damage each, no leap. */
+	public static double THUNDERBOLT_CHAIN_RANGE = 24;
+	public static int THUNDERBOLT_CHAINBOLT_TARGETS = 4;
+	public static double THUNDERBOLT_CHAINBOLT_RADIUS = 6;
+	public static float THUNDERBOLT_CHAIN_DAMAGE = 6f;
+	/** Lightning Step (sneak + Chidori): a blink this far along your look (it stops short of blocks). */
+	public static double CHIDORI_STEP_DISTANCE = 6;
+	public static double CHIDORI_STEP_COOLDOWN_FACTOR = 0.5;
+
+	// Verdant casts
+	/** Harvest Hook (sneak + Vine Hook): dropped items and animals within this range in front of you are drawn to you. */
+	public static double VINE_HOOK_HARVEST_RANGE = 12;
+	public static double VINE_HOOK_HARVEST_COOLDOWN_FACTOR = 0.5;
+	/** Long Hook (hold Vine Hook): range and damage factors. */
+	public static double VINE_HOOK_CHARGED_RANGE_FACTOR = 1.6;
+	public static float VINE_HOOK_CHARGED_DAMAGE_FACTOR = 1.25f;
+	/** Overgrowth (sneak + Entanglement): crops, saplings and the like within this radius of the aimed spot grow as if bonemealed, each with this chance. */
+	public static int ENTANGLE_GROW_RADIUS = 4;
+	public static double ENTANGLE_GROW_CHANCE = 0.6;
+	public static double ENTANGLE_GROW_COOLDOWN_FACTOR = 0.5;
+	/** Thicket (hold Entanglement): this many extra traps beside the aimed one, this far apart. */
+	public static int ENTANGLE_CHARGED_EXTRA_TRAPS = 2;
+	public static double ENTANGLE_CHARGED_SPREAD = 2.5;
+	/** Venom Spit (sneak + Verdant Viper): a quick spit at the first enemy in this range: this damage and Poison for this long; you stay free to move. */
+	public static double VIPER_SPIT_RANGE = 16;
+	public static float VIPER_SPIT_DAMAGE = 2f;
+	public static int VIPER_SPIT_POISON_TICKS = 100;
+	public static double VIPER_SPIT_COOLDOWN_FACTOR = 0.5;
+
 	/** Aura price of the first skill point bought with /aura redeem. */
 	public static int SKILL_POINT_BASE_COST = 20;
 

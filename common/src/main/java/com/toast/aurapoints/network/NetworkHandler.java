@@ -483,9 +483,16 @@ public final class NetworkHandler {
 
 			long now = server.getTickCount();
 			if (com.toast.aurapoints.ability.WindLaunch.handlesKey(data, ability)) {
-				// Wind's hold keys: Dash (tap = dash, hold = launch), Super Wind Charge (tap = throw, hold = air bending)
-				if (packet.down()) com.toast.aurapoints.ability.WindLaunch.press(player, ability, now);
-				else com.toast.aurapoints.ability.WindLaunch.release(player, ability, now);
+				// Wind's hold keys: Dash (tap = dash, hold = launch), Super Wind Charge (tap = throw, hold = air bending).
+				// A sneak press with the sneak cast unlocked is that cast instead (not with a wind ball in hand: that press fires it).
+				if (packet.down() && player.isShiftKeyDown() && com.toast.aurapoints.ability.CastMode.unlocked(player, ability, com.toast.aurapoints.ability.CastMode.SNEAK)
+						&& !com.toast.aurapoints.ability.AirBending.isHolding(player)) {
+					AuraAbilities.tryActivate(player, ability, now, com.toast.aurapoints.ability.CastMode.SNEAK);
+				} else if (packet.down()) {
+					com.toast.aurapoints.ability.WindLaunch.press(player, ability, now);
+				} else {
+					com.toast.aurapoints.ability.WindLaunch.release(player, ability, now);
+				}
 			} else if (packet.down()) {
 				// sneak + key = the sneak cast; an ability with a charged cast fires on the release (Casts says tap or charge); else the normal cast now
 				if (player.isShiftKeyDown() && com.toast.aurapoints.ability.CastMode.unlocked(player, ability, com.toast.aurapoints.ability.CastMode.SNEAK)) {

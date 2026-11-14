@@ -531,7 +531,7 @@ public final class AuraCommand {
 				}
 				source.sendSystemMessage(line);
 				source.sendSystemMessage(Component.literal("   " + a.description()).withStyle(ChatFormatting.GRAY));
-				for (String cast : com.toast.aurapoints.ability.Casts.describe(a)) {
+				for (String cast : com.toast.aurapoints.ability.Casts.describe(a, aura)) {
 					source.sendSystemMessage(Component.literal("   ✧ " + cast).withStyle(ChatFormatting.DARK_AQUA));
 				}
 			}

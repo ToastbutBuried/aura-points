@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.22.0
+- Sneak and hold casts for Wind (Tailwind, Gust), Frost (Frost Path: walk on water), Thunder (Static Rush, Chain Lightning, Lightning Step) and Verdant (Harvest Hook, Long Hook, Overgrowth, Thicket, Venom Spit). Keys that already hold only get sneak casts. Details in the Aura Book.
+
 == 5.21.0
 - Sneak + key and holding a key give new casts, Fire, Water and Shadow first: sneak casts at Mastery II, charged casts at Mastery III (the normal cast of those abilities fires when you let go). Details on each ability in the Aura Book.
 - A roll always gives an aura you never had; /aura switch (150 Aura) takes you back to one you had, with its Mastery, branch and awakening.

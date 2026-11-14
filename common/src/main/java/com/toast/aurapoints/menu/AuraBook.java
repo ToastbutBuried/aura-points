@@ -469,7 +469,7 @@ public final class AuraBook {
 				AuraAbilities.Ability a = actives.get(i);
 				boolean owned = data.owned.contains(a), off = AuraAbilities.DISABLED.contains(a);
 				List<Component> lore = new ArrayList<>(wrap(a.description(), 38, ChatFormatting.GRAY));
-				for (String cast : com.toast.aurapoints.ability.Casts.describe(a)) lore.addAll(wrap(cast, 38, ChatFormatting.DARK_AQUA));
+				for (String cast : com.toast.aurapoints.ability.Casts.describe(a, aura)) lore.addAll(wrap(cast, 38, ChatFormatting.DARK_AQUA));
 				int key = aura.keySlots(branch).indexOf(a);
 				lore.add(text(key >= 0 ? "Key: Ability " + (key + 1) : "Key: jump", ChatFormatting.DARK_AQUA));
 				if (a.cooldownTicks() > 0) lore.add(text("Cooldown: " + AuraAbilities.fmt(a.cooldownTicks() / 20f) + "s", ChatFormatting.DARK_GRAY));
