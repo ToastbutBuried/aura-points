@@ -44,7 +44,8 @@ public final class CastDevTest {
 			state.cooldownsDisabled = true;
 			try {
 				int i = 0;
-				for (AuraType aura : new AuraType[]{AuraType.FIRE, AuraType.WATER, AuraType.SHADOW, AuraType.WIND, AuraType.FROST, AuraType.THUNDER, AuraType.VERDANT}) {
+				for (AuraType aura : new AuraType[]{AuraType.FIRE, AuraType.WATER, AuraType.SHADOW, AuraType.WIND, AuraType.FROST, AuraType.THUNDER, AuraType.VERDANT,
+						AuraType.EARTH, AuraType.LIGHT, AuraType.BLOOD}) {
 					ServerPlayer fake = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000c0" + (10 + i++)), "Cast" + aura.displayName));
 					var spawn = level.getSharedSpawnPos();
 					// looking a little down: the root casts want ground under the crosshair
@@ -71,16 +72,27 @@ public final class CastDevTest {
 							if (!CastMode.has(ability, mode)) continue;
 							// a Wind player's Dash key never charges in play (WindLaunch holds it)
 							if (aura == AuraType.WIND && ability == Ability.DASH && mode == CastMode.CHARGED) continue;
+							// the charged press picked a boulder up; a tap now would throw it, but only 8 ticks later
+							if (ability == Ability.BOULDER_TOSS && mode == CastMode.TAP && com.toast.aurapoints.ability.Earth.isHolding(fake)) {
+								log(aura + " BOULDER_TOSS TAP skipped: the Great Boulder is held (a tap throws it after 8 ticks)");
+								continue;
+							}
+							// the Transfusion and Lifeline need a bleeding enemy / an ally in sight: refused here, which is the right answer
+							boolean needsOther = aura == AuraType.BLOOD && mode == CastMode.SNEAK && ability != Ability.CRIMSON_SACRIFICE
+									|| ability == Ability.BLOOD_TETHER || ability == Ability.PRISM_BEAM && mode == CastMode.SNEAK;
 							boolean fired = AuraAbilities.tryActivate(fake, ability, server.getTickCount(), mode);
-							log(aura + " " + ability + " " + mode + " fired=" + fired + " (must be true)");
-							// the keys that hold: let go again
+							log(aura + " " + ability + " " + mode + " fired=" + fired + (needsOther ? " (must be false: nobody to target)" : " (must be true)"));
+							// the keys that hold: let go again; the Blood lunge/tether refuse a new press while they run
 							if (ability == Ability.ABYSSAL_BUBBLE) AbyssalBubble.release(fake, server.getTickCount());
 							if (ability == Ability.ICE_SPIKE) com.toast.aurapoints.ability.IceSpike.release(fake, server.getTickCount());
 							if (ability == Ability.CHIDORI) com.toast.aurapoints.ability.Chidori.release(fake, server.getTickCount());
+							if (ability == Ability.PRISM_BEAM) com.toast.aurapoints.ability.Light.beamRelease(fake, server.getTickCount());
+							if (aura == AuraType.BLOOD) com.toast.aurapoints.ability.Blood.onLogout(fake);
 						}
 					}
 					if (FireBending.isHolding(fake)) FireBending.onLogout(fake);
 					if (com.toast.aurapoints.ability.VerdantViper.isSteering(fake)) com.toast.aurapoints.ability.VerdantViper.press(fake, server.getTickCount() + 10000);
+					if (aura == AuraType.EARTH) com.toast.aurapoints.ability.Earth.onLogout(fake);
 				}
 				log("an ability without variants keeps its normal cast only: VINE_HOOK sneak has=" + CastMode.has(Ability.VINE_HOOK, CastMode.SNEAK)
 						+ " charged has=" + CastMode.has(Ability.VINE_HOOK, CastMode.CHARGED) + " (must be false false)");

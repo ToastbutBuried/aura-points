@@ -162,6 +162,66 @@ public final class AuraConfig {
 	public static int VIPER_SPIT_POISON_TICKS = 100;
 	public static double VIPER_SPIT_COOLDOWN_FACTOR = 0.5;
 
+	// Earth casts
+	/** Catapult (sneak + Pillar Lift): a pillar under yourself only, launching you this many times higher; this share of the cooldown. */
+	public static double EARTH_CATAPULT_LAUNCH_FACTOR = 1.6;
+	public static double EARTH_CATAPULT_COOLDOWN_FACTOR = 0.5;
+	/** Titan Pillar (hold Pillar Lift): this tall, standing this long, with damage and launch factors. */
+	public static float EARTH_PILLAR_CHARGED_HEIGHT = 3.8f;
+	public static int EARTH_PILLAR_CHARGED_HOLD_TICKS = 60;
+	public static float EARTH_PILLAR_CHARGED_DAMAGE_FACTOR = 1.4f;
+	public static double EARTH_PILLAR_CHARGED_LAUNCH_FACTOR = 1.3;
+	/** Great Boulder (hold Boulder Toss): this many times bigger, with damage and splash-radius factors. */
+	public static float EARTH_BOULDER_CHARGED_SCALE = 1.5f;
+	public static float EARTH_BOULDER_CHARGED_DAMAGE_FACTOR = 1.5f;
+	public static double EARTH_BOULDER_CHARGED_SPLASH_FACTOR = 1.5;
+	/** Tunnel (sneak + Quake): a 3x3 passage this many blocks ahead through plain stone, dirt, sand and gravel; drops only if set; never in the arena. */
+	public static int EARTH_TUNNEL_LENGTH = 6;
+	public static boolean EARTH_TUNNEL_DROPS = false;
+	public static double EARTH_TUNNEL_COOLDOWN_FACTOR = 0.5;
+	/** Great Quake (hold Quake): radius and damage factors. */
+	public static double EARTH_QUAKE_CHARGED_RADIUS_FACTOR = 1.5;
+	public static float EARTH_QUAKE_CHARGED_DAMAGE_FACTOR = 1.25f;
+
+	// Light casts
+	/** Guiding Light (sneak + Radiant Pulse): Night Vision for you and every friend within the pulse's radius, this long. */
+	public static int LIGHT_GUIDING_TICKS = 600;
+	public static double LIGHT_GUIDING_COOLDOWN_FACTOR = 0.5;
+	/** Radiant Burst (hold Radiant Pulse): the pulse's radius, heal and undead damage times this. */
+	public static double LIGHT_PULSE_CHARGED_FACTOR = 1.5;
+	/** Spotlight (sneak + Solar Flash): no damage or blindness, but Glowing this many times longer. */
+	public static double LIGHT_SPOTLIGHT_GLOW_FACTOR = 3.0;
+	public static double LIGHT_SPOTLIGHT_COOLDOWN_FACTOR = 0.5;
+	/** Nova (hold Solar Flash): cone-angle, blindness and damage factors. */
+	public static double LIGHT_FLASH_CHARGED_ANGLE_FACTOR = 1.5;
+	public static double LIGHT_FLASH_CHARGED_BLIND_FACTOR = 2.0;
+	public static float LIGHT_FLASH_CHARGED_DAMAGE_FACTOR = 1.25f;
+	/** Mending Beam (sneak + Prism Beam): the first ally in your sights (beam range) is healed this much and given Regeneration this long. */
+	public static float LIGHT_MEND_HEAL = 6f;
+	public static int LIGHT_MEND_REGEN_TICKS = 100;
+	public static double LIGHT_MEND_COOLDOWN_FACTOR = 0.5;
+
+	// Blood casts
+	/** Transfusion (sneak + Hemorrhage): every bleeding enemy within this radius stops bleeding, takes this damage and heals you this much, each. */
+	public static double BLOOD_TRANSFUSION_RADIUS = 8;
+	public static float BLOOD_TRANSFUSION_DAMAGE = 3f;
+	public static float BLOOD_TRANSFUSION_HEAL = 2f;
+	public static double BLOOD_TRANSFUSION_COOLDOWN_FACTOR = 0.5;
+	/** Deep Cut (hold Hemorrhage): damage and bleed-length factors. */
+	public static float BLOOD_HEMO_CHARGED_DAMAGE_FACTOR = 1.5f;
+	public static double BLOOD_HEMO_CHARGED_BLEED_FACTOR = 2.0;
+	/** Lifeline (sneak + Blood Tether): the ally in your sights gets Regeneration (this level, 0 = I) and Resistance I, this long. */
+	public static int BLOOD_LIFELINE_TICKS = 160;
+	public static int BLOOD_LIFELINE_REGEN_AMPLIFIER = 1;
+	public static double BLOOD_LIFELINE_COOLDOWN_FACTOR = 0.5;
+	/** Leech (hold Blood Tether): drain and heal-share factors. */
+	public static float BLOOD_TETHER_CHARGED_DRAIN_FACTOR = 1.5f;
+	public static double BLOOD_TETHER_CHARGED_HEAL_FACTOR = 1.5;
+	/** Pinprick (sneak + Crimson Sacrifice): this share of the health cost for this share of the empowered hits; this share of the cooldown. */
+	public static double BLOOD_PINPRICK_COST_FACTOR = 0.5;
+	public static double BLOOD_PINPRICK_HITS_FACTOR = 0.5;
+	public static double BLOOD_PINPRICK_COOLDOWN_FACTOR = 0.5;
+
 	/** Aura price of the first skill point bought with /aura redeem. */
 	public static int SKILL_POINT_BASE_COST = 20;
 

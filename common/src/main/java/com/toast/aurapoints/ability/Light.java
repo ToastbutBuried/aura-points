@@ -140,21 +140,27 @@ public final class Light {
 	}
 
 	static boolean pulse(ServerPlayer p, long now) {
+		return pulse(p, now, CastMode.TAP);
+	}
+
+	/** Radiant Pulse; CHARGED = Radiant Burst (radius, heal and undead damage times LIGHT_PULSE_CHARGED_FACTOR). The sneak cast lives in Casts. */
+	static boolean pulse(ServerPlayer p, long now, CastMode mode) {
 		if (!AuraAbilities.checkCooldown(p, Ability.RADIANT_PULSE, AuraConfig.LIGHT_PULSE_COOLDOWN_TICKS, now)) return false;
 		ServerLevel level = p.serverLevel();
-		double r = Math.max(1, AuraConfig.LIGHT_PULSE_RADIUS);
+		double factor = mode == CastMode.CHARGED ? Math.max(0.1, AuraConfig.LIGHT_PULSE_CHARGED_FACTOR) : 1.0;
+		double r = Math.max(1, AuraConfig.LIGHT_PULSE_RADIUS) * factor;
 		Vec3 c = AuraFx.chest(p);
 		// everyone around who isn't undead is warmed and healed; the undead burn
 		for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, new AABB(c, c).inflate(r), e -> e.isAlive() && !e.isSpectator()
 				&& AuraFx.chest(e).distanceToSqr(c) <= r * r)) {
 			if (undead(e)) {
 				if (!Handhelds.enemy(p, e)) continue;
-				Handhelds.hurt(p, e, AuraConfig.LIGHT_PULSE_UNDEAD_DAMAGE);
+				Handhelds.hurt(p, e, (float) (AuraConfig.LIGHT_PULSE_UNDEAD_DAMAGE * factor));
 				e.igniteForSeconds(3);
 				Vec3 ec = AuraFx.chest(e);
 				AuraFx.particles(level, ParticleTypes.FLAME, ec.x, ec.y, ec.z, 8, 0.3, 0.4, 0.3, 0.02);
 			} else if (friend(p, e)) {
-				e.heal(Math.max(0, pulseHeal(p)));
+				e.heal((float) Math.max(0, pulseHeal(p) * factor));
 				if (AuraConfig.LIGHT_PULSE_REGEN_TICKS > 0) e.addEffect(new MobEffectInstance(MobEffects.REGENERATION, AuraConfig.LIGHT_PULSE_REGEN_TICKS, 0), p);
 				AuraFx.particles(level, ParticleTypes.HEART, e.getX(), e.getY() + 2.1, e.getZ(), 1, 0.2, 0.1, 0.2, 0);
 				AuraFx.particles(level, AuraFx.dust(GOLD, 1.0f), e.getX(), e.getY() + 1, e.getZ(), 10, 0.3, 0.5, 0.3, 0);
@@ -174,7 +180,7 @@ public final class Light {
 		sound(level, c, SoundEvents.BEACON_ACTIVATE, 1.0f, 1.6f);
 		sound(level, c, SoundEvents.AMETHYST_BLOCK_CHIME, 1.5f, 1.2f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_LIGHT, 0);
-		AuraAbilities.markUsed(p, Ability.RADIANT_PULSE, now);
+		Casts.used(p, Ability.RADIANT_PULSE, now, mode);
 		return true;
 	}
 
@@ -183,22 +189,31 @@ public final class Light {
 	// ---------------------------------------------------------------
 
 	static boolean flash(ServerPlayer p, long now) {
+		return flash(p, now, CastMode.TAP);
+	}
+
+	/** Solar Flash; SNEAK = Spotlight (no damage or blindness, long Glowing), CHARGED = Nova (wider, blinds longer, harder). */
+	static boolean flash(ServerPlayer p, long now, CastMode mode) {
 		if (!AuraAbilities.checkCooldown(p, Ability.SOLAR_FLASH, AuraConfig.LIGHT_FLASH_COOLDOWN_TICKS, now)) return false;
+		boolean spotlight = mode == CastMode.SNEAK, nova = mode == CastMode.CHARGED;
 		ServerLevel level = p.serverLevel();
 		double range = Math.max(2, AuraConfig.LIGHT_FLASH_RANGE);
-		double cos = Math.cos(Math.toRadians(Math.max(5, AuraConfig.LIGHT_FLASH_ANGLE) / 2));
+		double cos = Math.cos(Math.toRadians(Math.max(5, AuraConfig.LIGHT_FLASH_ANGLE * (nova ? AuraConfig.LIGHT_FLASH_CHARGED_ANGLE_FACTOR : 1.0)) / 2));
+		float damage = spotlight ? 0f : AuraConfig.LIGHT_FLASH_DAMAGE * (nova ? AuraConfig.LIGHT_FLASH_CHARGED_DAMAGE_FACTOR : 1f);
+		int blind = spotlight ? 0 : (int) Math.max(20, AuraConfig.LIGHT_FLASH_BLIND_TICKS * (nova ? AuraConfig.LIGHT_FLASH_CHARGED_BLIND_FACTOR : 1.0));
+		int glow = (int) Math.max(20, AuraConfig.LIGHT_FLASH_GLOW_TICKS * (spotlight ? AuraConfig.LIGHT_SPOTLIGHT_GLOW_FACTOR : 1.0));
 		Vec3 eye = p.getEyePosition(), look = p.getLookAngle();
 		for (LivingEntity e : Handhelds.enemies(p, level, eye, range)) {
 			Vec3 to = AuraFx.chest(e).subtract(eye);
 			if (to.lengthSqr() < 1.0e-4 || to.normalize().dot(look) < cos) continue;
 			// only what can see you: nothing through walls
 			if (level.clip(new ClipContext(eye, AuraFx.chest(e), ClipContext.Block.VISUAL, ClipContext.Fluid.NONE, p)).getType() != HitResult.Type.MISS) continue;
-			Handhelds.hurt(p, e, AuraConfig.LIGHT_FLASH_DAMAGE);
-			e.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, Math.max(20, AuraConfig.LIGHT_FLASH_BLIND_TICKS), 0), p);
-			e.addEffect(new MobEffectInstance(MobEffects.GLOWING, Math.max(20, AuraConfig.LIGHT_FLASH_GLOW_TICKS), 0), p);
+			if (damage > 0) Handhelds.hurt(p, e, damage);
+			if (blind > 0) e.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, blind, 0), p);
+			e.addEffect(new MobEffectInstance(MobEffects.GLOWING, glow, 0), p);
 			if (Branch.is(p, Branch.PRISMATIC)) markFlashed(e);
-			// a mob caught in it loses you for a moment
-			if (e instanceof net.minecraft.world.entity.Mob mob && mob.getTarget() == p) mob.setTarget(null);
+			// a mob caught in it loses you for a moment (a Spotlight only lights it up)
+			if (!spotlight && e instanceof net.minecraft.world.entity.Mob mob && mob.getTarget() == p) mob.setTarget(null);
 			Vec3 ec = AuraFx.chest(e);
 			AuraFx.particles(level, ParticleTypes.END_ROD, ec.x, ec.y + 0.4, ec.z, 6, 0.2, 0.2, 0.2, 0.05);
 		}
@@ -212,10 +227,10 @@ public final class Light {
 			Vec3 at = hand.add(d.scale(dist));
 			AuraFx.particles(level, i % 3 == 0 ? ParticleTypes.END_ROD : AuraFx.dust(i % 2 == 0 ? WHITE_GOLD : GOLD, 1.2f), at.x, at.y, at.z, 1, 0, 0, 0, 0);
 		}
-		sound(level, hand, SoundEvents.FIREWORK_ROCKET_BLAST, 1.2f, 1.5f);
+		sound(level, hand, SoundEvents.FIREWORK_ROCKET_BLAST, spotlight ? 0.7f : 1.2f, 1.5f);
 		sound(level, hand, SoundEvents.AMETHYST_BLOCK_RESONATE, 1.4f, 1.6f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_LIGHT, 1);
-		AuraAbilities.markUsed(p, Ability.SOLAR_FLASH, now);
+		Casts.used(p, Ability.SOLAR_FLASH, now, spotlight ? AuraConfig.LIGHT_SPOTLIGHT_COOLDOWN_FACTOR : nova ? AuraConfig.CAST_CHARGED_COOLDOWN_FACTOR : 1.0);
 		return true;
 	}
 

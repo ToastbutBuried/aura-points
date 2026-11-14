@@ -7,7 +7,9 @@ import com.toast.aurapoints.network.BendingAnimPacket;
 import com.toast.aurapoints.network.NetworkHandler;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -176,6 +178,15 @@ public final class Casts {
 			case ENTANGLEMENT -> sneak ? overgrowth(player, now) : thicket(player, now);
 			// a viper out: the key calls it back, as always
 			case VERDANT_VIPER -> VerdantViper.isSteering(player) ? VerdantViper.press(player, now) : venomSpit(player, now);
+			case PILLAR_LIFT -> Earth.pillar(player, now, mode);
+			case BOULDER_TOSS -> Earth.boulder(player, now, true);
+			case QUAKE -> sneak ? tunnel(player, now) : Earth.quake(player, now, AuraConfig.EARTH_QUAKE_CHARGED_RADIUS_FACTOR, AuraConfig.EARTH_QUAKE_CHARGED_DAMAGE_FACTOR);
+			case RADIANT_PULSE -> sneak ? guidingLight(player, now) : Light.pulse(player, now, mode);
+			case SOLAR_FLASH -> Light.flash(player, now, mode);
+			case PRISM_BEAM -> mendingBeam(player, now);
+			case HEMORRHAGE -> sneak ? transfusion(player, now) : Blood.hemorrhage(player, now, mode);
+			case BLOOD_TETHER -> sneak ? lifeline(player, now) : Blood.tether(player, now, mode);
+			case CRIMSON_SACRIFICE -> Blood.sacrifice(player, now, mode);
 			default -> false;
 		};
 	}
@@ -702,6 +713,169 @@ public final class Casts {
 		return true;
 	}
 
+	// ---- Earth ----
+
+	/** Tunnel (sneak + Quake): a 3x3 passage ahead through plain stone, dirt, sand and gravel. Not in the arena. */
+	private static boolean tunnel(ServerPlayer player, long now) {
+		if (com.toast.aurapoints.arena.Arena.in(player)) {
+			player.displayClientMessage(Component.literal("Not in the arena.").withStyle(ChatFormatting.GRAY), true);
+			return false;
+		}
+		if (!AuraAbilities.checkCooldown(player, Ability.QUAKE, AuraConfig.EARTH_QUAKE_COOLDOWN_TICKS, now)) return false;
+		ServerLevel level = player.serverLevel();
+		Vec3 look = player.getLookAngle();
+		Direction facing = Direction.getNearest(look.x, 0, look.z);
+		Direction side = facing.getClockWise();
+		BlockPos feet = player.blockPosition();
+		int broken = 0;
+		for (int step = 1; step <= Math.max(1, AuraConfig.EARTH_TUNNEL_LENGTH); step++) {
+			BlockPos base = feet.relative(facing, step);
+			for (int s = -1; s <= 1; s++) {
+				for (int y = 0; y <= 2; y++) {
+					BlockPos pos = base.relative(side, s).above(y);
+					if (!tunnelable(level.getBlockState(pos))) continue;
+					level.destroyBlock(pos, AuraConfig.EARTH_TUNNEL_DROPS, player);
+					broken++;
+				}
+			}
+		}
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_EARTH, 2);
+		Vec3 mouth = Vec3.atCenterOf(feet.relative(facing, 1).above());
+		AuraFx.particles(level, ParticleTypes.CLOUD, mouth.x, mouth.y, mouth.z, 20, 0.6, 0.8, 0.6, 0.05);
+		AuraFx.sound(level, player, AuraSounds.MACE_SMASH_GROUND_HEAVY.value(), 1.2f, 0.6f);
+		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.WARDEN_DIG, 1.0f, 0.9f);
+		player.displayClientMessage(Component.literal(broken == 0 ? "Nothing to dig through there." : "✦ Tunnel: " + broken + " blocks ✦").withStyle(ChatFormatting.GOLD), true);
+		used(player, Ability.QUAKE, now, AuraConfig.EARTH_TUNNEL_COOLDOWN_FACTOR);
+		return true;
+	}
+
+	/** What the Tunnel digs through: the plain ground, never anything built. */
+	private static boolean tunnelable(BlockState s) {
+		return s.is(BlockTags.BASE_STONE_OVERWORLD) || s.is(BlockTags.BASE_STONE_NETHER) || s.is(BlockTags.DIRT) || s.is(BlockTags.SAND) || s.is(Blocks.GRAVEL);
+	}
+
+	// ---- Light ----
+
+	/** Guiding Light (sneak + Radiant Pulse): Night Vision for you and every friend in the pulse's reach. */
+	private static boolean guidingLight(ServerPlayer player, long now) {
+		if (!AuraAbilities.checkCooldown(player, Ability.RADIANT_PULSE, AuraConfig.LIGHT_PULSE_COOLDOWN_TICKS, now)) return false;
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_LIGHT, 0);
+		ServerLevel level = player.serverLevel();
+		double r = Math.max(1, AuraConfig.LIGHT_PULSE_RADIUS);
+		Vec3 c = AuraFx.chest(player);
+		int lit = 0;
+		for (ServerPlayer e : level.getEntitiesOfClass(ServerPlayer.class, new AABB(c, c).inflate(r),
+				e -> e.isAlive() && !e.isSpectator() && AuraFx.chest(e).distanceToSqr(c) <= r * r && Light.friend(player, e))) {
+			e.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, AuraConfig.LIGHT_GUIDING_TICKS, 0, false, false, true));
+			AuraFx.helix(e, AuraFx.dust(0xFFF1A8, 1.0f), 20, 0.6, 2.0);
+			lit++;
+		}
+		AuraFx.ring(level, c.x, player.getY() + 0.3, c.z, r, ParticleTypes.END_ROD, (int) (r * 4) + 6);
+		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.BEACON_ACTIVATE, 1.0f, 1.8f);
+		player.displayClientMessage(Component.literal("✦ Guiding Light: " + lit + " ✦").withStyle(ChatFormatting.YELLOW), true);
+		used(player, Ability.RADIANT_PULSE, now, AuraConfig.LIGHT_GUIDING_COOLDOWN_FACTOR);
+		return true;
+	}
+
+	/** The first other friendly player along the look within {@code range}, in sight, or null. */
+	private static ServerPlayer allyInSights(ServerPlayer p, double range) {
+		ServerLevel level = p.serverLevel();
+		Vec3 eye = p.getEyePosition(), look = p.getLookAngle();
+		ServerPlayer best = null;
+		double bestAlong = Double.MAX_VALUE;
+		for (ServerPlayer e : level.getEntitiesOfClass(ServerPlayer.class, p.getBoundingBox().inflate(range),
+				e -> e != p && e.isAlive() && !e.isSpectator() && Light.friend(p, e))) {
+			Vec3 to = AuraFx.chest(e).subtract(eye);
+			double along = to.dot(look);
+			if (along < 0 || along > range || along >= bestAlong) continue;
+			if (to.subtract(look.scale(along)).length() > 1.5) continue;
+			if (level.clip(new ClipContext(eye, AuraFx.chest(e), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p)).getType() != HitResult.Type.MISS) continue;
+			best = e;
+			bestAlong = along;
+		}
+		return best;
+	}
+
+	/** Mending Beam (sneak + Prism Beam): the ally in your sights is healed and given Regeneration. */
+	private static boolean mendingBeam(ServerPlayer player, long now) {
+		if (Light.isBeaming(player)) return false;
+		if (!AuraAbilities.checkCooldown(player, Ability.PRISM_BEAM, AuraConfig.LIGHT_BEAM_COOLDOWN_TICKS, now)) return false;
+		ServerPlayer ally = allyInSights(player, Math.max(4, AuraConfig.LIGHT_BEAM_RANGE));
+		if (ally == null) {
+			player.displayClientMessage(Component.literal("No ally in your sights to mend.").withStyle(ChatFormatting.GRAY), true);
+			return false;
+		}
+		ServerLevel level = player.serverLevel();
+		ally.heal(Math.max(0, AuraConfig.LIGHT_MEND_HEAL));
+		if (AuraConfig.LIGHT_MEND_REGEN_TICKS > 0) ally.addEffect(new MobEffectInstance(MobEffects.REGENERATION, AuraConfig.LIGHT_MEND_REGEN_TICKS, 0), player);
+		Vec3 from = player.getEyePosition().add(player.getLookAngle().scale(0.5)).add(0, -0.2, 0), to = AuraFx.chest(ally);
+		AuraFx.line(level, from, to, AuraFx.dust(0xFFF1A8, 1.3f), (int) Math.max(8, from.distanceTo(to) * 4));
+		AuraFx.line(level, from, to, ParticleTypes.END_ROD, (int) Math.max(4, from.distanceTo(to) * 2));
+		AuraFx.burst(level, to.x, to.y + 0.4, to.z, ParticleTypes.HEART, 3, 0.4, 0.0);
+		AuraFx.helix(ally, AuraFx.dust(0xFFF1A8, 1.0f), 20, 0.6, 2.0);
+		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME, 1.2f, 1.5f);
+		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.BEACON_POWER_SELECT, 0.8f, 1.6f);
+		player.displayClientMessage(Component.literal("✦ Mending Beam: " + ally.getGameProfile().getName() + " ✦").withStyle(ChatFormatting.YELLOW), true);
+		used(player, Ability.PRISM_BEAM, now, AuraConfig.LIGHT_MEND_COOLDOWN_FACTOR);
+		return true;
+	}
+
+	// ---- Blood ----
+
+	/** Transfusion (sneak + Hemorrhage): every bleeding enemy nearby stops bleeding, takes a hit, and heals you. */
+	private static boolean transfusion(ServerPlayer player, long now) {
+		if (!AuraAbilities.checkCooldown(player, Ability.HEMORRHAGE, AuraConfig.BLOOD_HEMO_COOLDOWN_TICKS, now)) return false;
+		List<LivingEntity> bleeding = Blood.bleedingNear(player, AuraConfig.BLOOD_TRANSFUSION_RADIUS);
+		if (bleeding.isEmpty()) {
+			player.displayClientMessage(Component.literal("Nobody bleeding within reach.").withStyle(ChatFormatting.GRAY), true);
+			return false;
+		}
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_BLOOD, 0);
+		ServerLevel level = player.serverLevel();
+		Vec3 to = AuraFx.chest(player);
+		AuraStunts.ACTIVE_ABILITY = Ability.HEMORRHAGE;
+		try {
+			for (LivingEntity e : bleeding) {
+				Blood.stopBleeding(e);
+				Handhelds.hurt(player, e, AuraConfig.BLOOD_TRANSFUSION_DAMAGE);
+				player.heal(Math.max(0, AuraConfig.BLOOD_TRANSFUSION_HEAL));
+				Vec3 from = AuraFx.chest(e);
+				AuraFx.line(level, from, to, AuraFx.dust(0xB0121B, 1.2f), (int) Math.max(8, from.distanceTo(to) * 3));
+			}
+		} finally {
+			AuraStunts.ACTIVE_ABILITY = null;
+		}
+		AuraFx.burst(level, to.x, to.y, to.z, AuraFx.dust(0xFF3B4A, 1.4f), 20, 0.5, 0.0);
+		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.WARDEN_HEARTBEAT, 1.4f, 1.1f);
+		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.BOTTLE_FILL, 1.0f, 0.7f);
+		player.displayClientMessage(Component.literal("✦ Transfusion: " + bleeding.size() + " ✦").withStyle(ChatFormatting.RED), true);
+		used(player, Ability.HEMORRHAGE, now, AuraConfig.BLOOD_TRANSFUSION_COOLDOWN_FACTOR);
+		return true;
+	}
+
+	/** Lifeline (sneak + Blood Tether): the ally in your sights gets Regeneration and Resistance. */
+	private static boolean lifeline(ServerPlayer player, long now) {
+		if (!AuraAbilities.checkCooldown(player, Ability.BLOOD_TETHER, AuraConfig.BLOOD_TETHER_COOLDOWN_TICKS, now)) return false;
+		ServerPlayer ally = allyInSights(player, Math.max(2, AuraConfig.BLOOD_TETHER_RANGE));
+		if (ally == null) {
+			player.displayClientMessage(Component.literal("No ally in your sights for a lifeline.").withStyle(ChatFormatting.GRAY), true);
+			return false;
+		}
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_BLOOD, 1);
+		int ticks = Math.max(20, AuraConfig.BLOOD_LIFELINE_TICKS);
+		ally.addEffect(new MobEffectInstance(MobEffects.REGENERATION, ticks, Math.max(0, AuraConfig.BLOOD_LIFELINE_REGEN_AMPLIFIER)), player);
+		ally.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, ticks, 0), player);
+		ServerLevel level = player.serverLevel();
+		Vec3 from = AuraFx.chest(player), to = AuraFx.chest(ally);
+		AuraFx.line(level, from, to, AuraFx.dust(0xFF3B4A, 1.4f), (int) Math.max(8, from.distanceTo(to) * 3));
+		AuraFx.burst(level, to.x, to.y + 0.4, to.z, ParticleTypes.HEART, 3, 0.4, 0.0);
+		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.WARDEN_HEARTBEAT, 1.3f, 1.4f);
+		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.CHAIN_PLACE, 0.8f, 0.8f);
+		player.displayClientMessage(Component.literal("✦ Lifeline: " + ally.getGameProfile().getName() + " ✦").withStyle(ChatFormatting.RED), true);
+		used(player, Ability.BLOOD_TETHER, now, AuraConfig.BLOOD_LIFELINE_COOLDOWN_FACTOR);
+		return true;
+	}
+
 	// ---------------------------------------------------------------
 	// Lore
 	// ---------------------------------------------------------------
@@ -714,7 +888,9 @@ public final class Casts {
 		if (sneak != null) {
 			// most sneak casts name their own cooldown share; the general factor only matters for the rest
 			boolean ownShare = ability == Ability.DASH || ability == Ability.ABYSSAL_BUBBLE || ability == Ability.SUPER_WIND_CHARGE || ability == Ability.ICE_SPIKE
-					|| ability == Ability.THUNDERBOLT || ability == Ability.CHIDORI || ability == Ability.VINE_HOOK || ability == Ability.ENTANGLEMENT || ability == Ability.VERDANT_VIPER;
+					|| ability == Ability.THUNDERBOLT || ability == Ability.CHIDORI || ability == Ability.VINE_HOOK || ability == Ability.ENTANGLEMENT || ability == Ability.VERDANT_VIPER
+					|| ability == Ability.PILLAR_LIFT || ability == Ability.QUAKE || ability == Ability.RADIANT_PULSE || ability == Ability.SOLAR_FLASH || ability == Ability.PRISM_BEAM
+					|| ability == Ability.HEMORRHAGE || ability == Ability.BLOOD_TETHER || ability == Ability.CRIMSON_SACRIFICE;
 			out.add("Sneak + key (Mastery " + Mastery.roman(AuraConfig.CAST_SNEAK_MASTERY) + "): " + sneak
 					+ (AuraConfig.CAST_SNEAK_COOLDOWN_FACTOR != 1.0 && !ownShare ? " " + pct(AuraConfig.CAST_SNEAK_COOLDOWN_FACTOR) + "% cooldown." : ""));
 		}
@@ -753,6 +929,23 @@ public final class Casts {
 			case VERDANT_VIPER -> "Venom Spit - a quick spit at the first enemy within " + AuraAbilities.fmt((float) AuraConfig.VIPER_SPIT_RANGE) + " blocks: "
 					+ AuraAbilities.fmt(AuraConfig.VIPER_SPIT_DAMAGE) + " damage and Poison " + secs(AuraConfig.VIPER_SPIT_POISON_TICKS) + ", you stay free to move, "
 					+ pct(AuraConfig.VIPER_SPIT_COOLDOWN_FACTOR) + "% cooldown.";
+			case PILLAR_LIFT -> "Catapult - a pillar under yourself that throws you " + pct(AuraConfig.EARTH_CATAPULT_LAUNCH_FACTOR) + "% as high, "
+					+ pct(AuraConfig.EARTH_CATAPULT_COOLDOWN_FACTOR) + "% cooldown.";
+			case QUAKE -> "Tunnel - digs a 3x3 passage " + AuraConfig.EARTH_TUNNEL_LENGTH + " blocks ahead through plain stone, dirt, sand and gravel (not in the arena), "
+					+ pct(AuraConfig.EARTH_TUNNEL_COOLDOWN_FACTOR) + "% cooldown.";
+			case RADIANT_PULSE -> "Guiding Light - Night Vision " + secs(AuraConfig.LIGHT_GUIDING_TICKS) + " for you and every friend in the pulse's reach, "
+					+ pct(AuraConfig.LIGHT_GUIDING_COOLDOWN_FACTOR) + "% cooldown.";
+			case SOLAR_FLASH -> "Spotlight - no damage or blindness, but Glowing " + pct(AuraConfig.LIGHT_SPOTLIGHT_GLOW_FACTOR) + "% as long, "
+					+ pct(AuraConfig.LIGHT_SPOTLIGHT_COOLDOWN_FACTOR) + "% cooldown.";
+			case PRISM_BEAM -> "Mending Beam - the ally in your sights is healed " + AuraAbilities.fmt(AuraConfig.LIGHT_MEND_HEAL) + " and gets Regeneration "
+					+ secs(AuraConfig.LIGHT_MEND_REGEN_TICKS) + ", " + pct(AuraConfig.LIGHT_MEND_COOLDOWN_FACTOR) + "% cooldown.";
+			case HEMORRHAGE -> "Transfusion - every bleeding enemy within " + AuraAbilities.fmt((float) AuraConfig.BLOOD_TRANSFUSION_RADIUS) + " blocks stops bleeding, takes "
+					+ AuraAbilities.fmt(AuraConfig.BLOOD_TRANSFUSION_DAMAGE) + " and heals you " + AuraAbilities.fmt(AuraConfig.BLOOD_TRANSFUSION_HEAL) + ", "
+					+ pct(AuraConfig.BLOOD_TRANSFUSION_COOLDOWN_FACTOR) + "% cooldown.";
+			case BLOOD_TETHER -> "Lifeline - the ally in your sights gets Regeneration " + Mastery.roman(AuraConfig.BLOOD_LIFELINE_REGEN_AMPLIFIER + 1) + " and Resistance I for "
+					+ secs(AuraConfig.BLOOD_LIFELINE_TICKS) + ", " + pct(AuraConfig.BLOOD_LIFELINE_COOLDOWN_FACTOR) + "% cooldown.";
+			case CRIMSON_SACRIFICE -> "Pinprick - " + pct(AuraConfig.BLOOD_PINPRICK_COST_FACTOR) + "% of the cost for " + pct(AuraConfig.BLOOD_PINPRICK_HITS_FACTOR)
+					+ "% of the hits, " + pct(AuraConfig.BLOOD_PINPRICK_COOLDOWN_FACTOR) + "% cooldown.";
 			case FIREBALL -> "Spread Shot - " + AuraConfig.FIREBALL_SPREAD_COUNT + " small fireballs in a fan, "
 					+ pct(AuraConfig.FIREBALL_SPREAD_DAMAGE_FACTOR) + "% damage each.";
 			case HEAT_WAVE -> "Flame Ward - a ring of fire " + AuraAbilities.fmt((float) AuraConfig.HEAT_WAVE_WARD_RADIUS) + " blocks around you, "
@@ -786,6 +979,16 @@ public final class Casts {
 					+ " damage each, all left Charged. No leap.";
 			case VINE_HOOK -> "Long Hook - " + pct(AuraConfig.VINE_HOOK_CHARGED_RANGE_FACTOR) + "% range, " + pct(AuraConfig.VINE_HOOK_CHARGED_DAMAGE_FACTOR) + "% damage.";
 			case ENTANGLEMENT -> "Thicket - " + (1 + AuraConfig.ENTANGLE_CHARGED_EXTRA_TRAPS) + " traps side by side.";
+			case PILLAR_LIFT -> "Titan Pillar - " + AuraAbilities.fmt(AuraConfig.EARTH_PILLAR_CHARGED_HEIGHT) + " blocks tall, stands " + secs(AuraConfig.EARTH_PILLAR_CHARGED_HOLD_TICKS)
+					+ ", " + pct(AuraConfig.EARTH_PILLAR_CHARGED_DAMAGE_FACTOR) + "% damage, " + pct(AuraConfig.EARTH_PILLAR_CHARGED_LAUNCH_FACTOR) + "% launch.";
+			case BOULDER_TOSS -> "Great Boulder - " + pct(AuraConfig.EARTH_BOULDER_CHARGED_SCALE) + "% size, " + pct(AuraConfig.EARTH_BOULDER_CHARGED_DAMAGE_FACTOR) + "% damage, "
+					+ pct(AuraConfig.EARTH_BOULDER_CHARGED_SPLASH_FACTOR) + "% splash (hold to pick it up, press again to throw).";
+			case QUAKE -> "Great Quake - " + pct(AuraConfig.EARTH_QUAKE_CHARGED_RADIUS_FACTOR) + "% range, " + pct(AuraConfig.EARTH_QUAKE_CHARGED_DAMAGE_FACTOR) + "% damage.";
+			case RADIANT_PULSE -> "Radiant Burst - " + pct(AuraConfig.LIGHT_PULSE_CHARGED_FACTOR) + "% range, heal and undead damage.";
+			case SOLAR_FLASH -> "Nova - " + pct(AuraConfig.LIGHT_FLASH_CHARGED_ANGLE_FACTOR) + "% cone, blinds " + pct(AuraConfig.LIGHT_FLASH_CHARGED_BLIND_FACTOR) + "% as long, "
+					+ pct(AuraConfig.LIGHT_FLASH_CHARGED_DAMAGE_FACTOR) + "% damage.";
+			case HEMORRHAGE -> "Deep Cut - " + pct(AuraConfig.BLOOD_HEMO_CHARGED_DAMAGE_FACTOR) + "% damage, bleeds " + pct(AuraConfig.BLOOD_HEMO_CHARGED_BLEED_FACTOR) + "% as long.";
+			case BLOOD_TETHER -> "Leech - drains " + pct(AuraConfig.BLOOD_TETHER_CHARGED_DRAIN_FACTOR) + "% and heals you " + pct(AuraConfig.BLOOD_TETHER_CHARGED_HEAL_FACTOR) + "% as much.";
 			default -> null;
 		};
 	}

@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.23.0
+- Sneak and hold casts for Earth (Catapult, Titan Pillar, Great Boulder, Tunnel, Great Quake), Light (Guiding Light, Radiant Burst, Spotlight, Nova, Mending Beam) and Blood (Transfusion, Deep Cut, Lifeline, Leech, Pinprick). Every aura but Resonance has them now. Details in the Aura Book.
+
 == 5.22.0
 - Sneak and hold casts for Wind (Tailwind, Gust), Frost (Frost Path: walk on water), Thunder (Static Rush, Chain Lightning, Lightning Step) and Verdant (Harvest Hook, Long Hook, Overgrowth, Thicket, Venom Spit). Keys that already hold only get sneak casts. Details in the Aura Book.
 

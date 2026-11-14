@@ -125,16 +125,24 @@ public final class Earth {
 	private static final Map<UUID, Integer> SAFE_FALL = new HashMap<>();
 
 	static boolean pillar(ServerPlayer p, long now) {
+		return pillar(p, now, CastMode.TAP);
+	}
+
+	/** Pillar Lift; SNEAK = Catapult (under yourself, a higher launch), CHARGED = Titan Pillar (taller, longer, harder). */
+	static boolean pillar(ServerPlayer p, long now, CastMode mode) {
 		if (!AuraAbilities.checkCooldown(p, Ability.PILLAR_LIFT, AuraConfig.EARTH_PILLAR_COOLDOWN_TICKS, now)) return false;
+		boolean self = mode == CastMode.SNEAK, titan = mode == CastMode.CHARGED;
 		ServerLevel level = p.serverLevel();
-		LivingEntity target = aimed(p, Math.max(2, AuraConfig.EARTH_PILLAR_RANGE));
+		LivingEntity target = self ? null : aimed(p, Math.max(2, AuraConfig.EARTH_PILLAR_RANGE));
 		Entity on = target != null ? target : p;
 		BlockPos g = ground(level, on.position(), target != null ? 8 : 3);
 		if (g == null) {
 			p.displayClientMessage(Component.literal("No ground to raise a pillar from.").withStyle(ChatFormatting.GRAY), true);
 			return false;
 		}
-		raisePillar(level, g, 2.6f, 40);
+		raisePillar(level, g, titan ? AuraConfig.EARTH_PILLAR_CHARGED_HEIGHT : 2.6f, titan ? AuraConfig.EARTH_PILLAR_CHARGED_HOLD_TICKS : 40);
+		float damageFactor = titan ? AuraConfig.EARTH_PILLAR_CHARGED_DAMAGE_FACTOR : 1f;
+		double launchFactor = titan ? AuraConfig.EARTH_PILLAR_CHARGED_LAUNCH_FACTOR : 1.0;
 		// everyone standing on it goes up with it
 		Vec3 top = Vec3.atBottomCenterOf(g.above());
 		List<LivingEntity> riders = new ArrayList<>();
@@ -144,20 +152,20 @@ public final class Earth {
 		if (target != null && !riders.contains(target)) riders.add(target);
 		for (LivingEntity e : riders) {
 			if (e == p) continue;
-			Handhelds.hurt(p, e, pillarDamage(p));
+			Handhelds.hurt(p, e, pillarDamage(p) * damageFactor);
 			Vec3 dm = e.getDeltaMovement();
-			e.setDeltaMovement(dm.x * 0.3, pillarLaunch(p), dm.z * 0.3);
+			e.setDeltaMovement(dm.x * 0.3, pillarLaunch(p) * launchFactor, dm.z * 0.3);
 			e.hurtMarked = true;
 		}
 		if (target == null || riders.contains(p)) {
 			Vec3 dm = p.getDeltaMovement();
-			p.setDeltaMovement(dm.x, AuraConfig.EARTH_PILLAR_SELF_LAUNCH, dm.z);
+			p.setDeltaMovement(dm.x, AuraConfig.EARTH_PILLAR_SELF_LAUNCH * (self ? AuraConfig.EARTH_CATAPULT_LAUNCH_FACTOR : launchFactor), dm.z);
 			p.hurtMarked = true;
 			p.fallDistance = 0;
 			SAFE_FALL.put(p.getUUID(), 0);
 		}
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_EARTH, 0);
-		AuraAbilities.markUsed(p, Ability.PILLAR_LIFT, now);
+		Casts.used(p, Ability.PILLAR_LIFT, now, self ? AuraConfig.EARTH_CATAPULT_COOLDOWN_FACTOR : titan ? AuraConfig.CAST_CHARGED_COOLDOWN_FACTOR : 1.0);
 		return true;
 	}
 
@@ -213,6 +221,8 @@ public final class Earth {
 		int t;
 		boolean flying;
 		double flown;
+		/** The Great Boulder (a charged toss) is this many times bigger, and hits and splashes harder. */
+		float scale = 1f;
 
 		Boulder(UUID owner, ServerLevel level, BlockState block, Vec3 from, Vector3f axis) {
 			this.owner = owner;
@@ -233,6 +243,11 @@ public final class Earth {
 	}
 
 	static boolean boulder(ServerPlayer p, long now) {
+		return boulder(p, now, false);
+	}
+
+	/** Boulder Toss; {@code great} = the Great Boulder (a charged press): bigger, harder, a wider splash. A held one is thrown either way. */
+	static boolean boulder(ServerPlayer p, long now, boolean great) {
 		Boulder held = BOULDERS.get(p.getUUID());
 		if (held != null) {
 			if (!held.flying && held.t >= 8) {
@@ -254,18 +269,20 @@ public final class Earth {
 		Vec3 start = new Vec3(g.getX() + 0.5, g.getY() + 0.4, g.getZ() + 0.5);
 		var random = p.getRandom();
 		Boulder b = new Boulder(p.getUUID(), level, top, start, new Vector3f(random.nextFloat() - 0.5f, 0.6f, random.nextFloat() - 0.5f).normalize());
+		b.scale = great ? Math.max(1f, AuraConfig.EARTH_BOULDER_CHARGED_SCALE) : 1f;
 		b.turn.rotateXYZ(random.nextFloat(), random.nextFloat(), random.nextFloat());
 		// a lumpy rock: one big block of the ground and two smaller ones of what is under it
 		BlockState[] blocks = {top, under(top).is(top.getBlock()) ? Blocks.COBBLESTONE.defaultBlockState() : under(top), Blocks.COBBLESTONE.defaultBlockState()};
 		float[][] shape = {{0, 0, 0, 1.2f}, {0.42f, 0.22f, 0.18f, 0.78f}, {-0.36f, -0.18f, -0.3f, 0.7f}};
 		for (int i = 0; i < 3; i++) {
-			Vector3f o = new Vector3f(shape[i][0], shape[i][1], shape[i][2]);
+			Vector3f o = new Vector3f(shape[i][0] * b.scale, shape[i][1] * b.scale, shape[i][2] * b.scale);
+			float size = shape[i][3] * b.scale;
 			b.offsets.add(o);
-			b.sizes.add(shape[i][3]);
-			b.parts.add(Props.spawn(level, start, blocks[i], Props.cube(new Quaternionf(b.turn).transform(new Vector3f(o)), shape[i][3], b.turn), -1, 2));
+			b.sizes.add(size);
+			b.parts.add(Props.spawn(level, start, blocks[i], Props.cube(new Quaternionf(b.turn).transform(new Vector3f(o)), size, b.turn), -1, 2));
 		}
 		BOULDERS.put(p.getUUID(), b);
-		dust(level, start.add(0, 0.6, 0), top, 30, 0.5);
+		dust(level, start.add(0, 0.6, 0), top, great ? 50 : 30, 0.5 * b.scale);
 		sound(level, start, SoundEvents.ROOTED_DIRT_BREAK, 1.3f, 0.5f);
 		sound(level, start, SoundEvents.STONE_BREAK, 1.2f, 0.5f);
 		sound(level, start, AuraSounds.MACE_SMASH_GROUND.value(), 0.8f, 0.6f);
@@ -297,7 +314,7 @@ public final class Earth {
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_EARTH, 1);
 		sound(b.level, b.pos, AuraSounds.PLAYER_ATTACK_SWEEP.value(), 1.0f, 0.5f);
 		sound(b.level, b.pos, SoundEvents.RAVAGER_ATTACK, 0.6f, 0.7f);
-		AuraAbilities.markUsed(p, Ability.BOULDER_TOSS, now);
+		Casts.used(p, Ability.BOULDER_TOSS, now, b.scale > 1f ? AuraConfig.CAST_CHARGED_COOLDOWN_FACTOR : 1.0);
 	}
 
 	/** Frozen or paralyzed: a boulder still held overhead crumbles (no throw, no cooldown). One in flight flies on. */
@@ -383,16 +400,19 @@ public final class Earth {
 	private static void impact(ServerPlayer p, Boulder b, Vec3 at, LivingEntity hit) {
 		ServerLevel level = b.level;
 		Vec3 push = flat(b.vel);
+		boolean great = b.scale > 1f;
+		float damageFactor = great ? AuraConfig.EARTH_BOULDER_CHARGED_DAMAGE_FACTOR : 1f;
 		if (p != null) {
 			if (hit != null) {
-				Handhelds.hurt(p, hit, boulderDamage(p));
+				Handhelds.hurt(p, hit, boulderDamage(p) * damageFactor);
 				double k = AuraConfig.EARTH_BOULDER_KNOCKBACK;
 				hit.setDeltaMovement(hit.getDeltaMovement().scale(0.2).add(push.x * k, 0.45, push.z * k));
 				hit.hurtMarked = true;
 			}
-			for (LivingEntity e : Handhelds.enemies(p, level, at, Math.max(0.5, AuraConfig.EARTH_BOULDER_SPLASH_RADIUS))) {
+			double splash = Math.max(0.5, AuraConfig.EARTH_BOULDER_SPLASH_RADIUS) * (great ? AuraConfig.EARTH_BOULDER_CHARGED_SPLASH_FACTOR : 1.0);
+			for (LivingEntity e : Handhelds.enemies(p, level, at, splash)) {
 				if (e == hit) continue;
-				Handhelds.hurt(p, e, boulderSplash(p));
+				Handhelds.hurt(p, e, boulderSplash(p) * damageFactor);
 				Vec3 out = flat(e.position().subtract(at));
 				e.setDeltaMovement(e.getDeltaMovement().add(out.x * 0.5, 0.3, out.z * 0.5));
 				e.hurtMarked = true;
@@ -424,6 +444,9 @@ public final class Earth {
 		final Set<LivingEntity> hit = new HashSet<>();
 		final Set<Long> raised = new HashSet<>();
 		int t;
+		/** The Great Quake (a charged Quake) rolls further and hits harder. */
+		double radiusFactor = 1.0;
+		float damageFactor = 1f;
 
 		Ripple(UUID owner, ServerLevel level, Vec3 c) {
 			this.owner = owner;
@@ -437,6 +460,11 @@ public final class Earth {
 	private static final double RIPPLE_SPEED = 0.55;
 
 	static boolean quake(ServerPlayer p, long now) {
+		return quake(p, now, 1.0, 1f);
+	}
+
+	/** The Quake with a cast's radius and damage factors (1, 1 = the normal one; the Great Quake is the charged press). */
+	static boolean quake(ServerPlayer p, long now, double radiusFactor, float damageFactor) {
 		if (!AuraAbilities.checkCooldown(p, Ability.QUAKE, AuraConfig.EARTH_QUAKE_COOLDOWN_TICKS, now)) return false;
 		ServerLevel level = p.serverLevel();
 		BlockPos g = ground(level, p.position(), 4);
@@ -445,15 +473,18 @@ public final class Earth {
 			return false;
 		}
 		Vec3 c = new Vec3(p.getX(), g.getY() + 1, p.getZ());
-		RIPPLES.add(new Ripple(p.getUUID(), level, c));
+		Ripple ripple = new Ripple(p.getUUID(), level, c);
+		ripple.radiusFactor = radiusFactor;
+		ripple.damageFactor = damageFactor;
+		RIPPLES.add(ripple);
 		BlockState block = rock(level.getBlockState(g));
-		dust(level, c, block, 40, 0.8);
+		dust(level, c, block, (int) (40 * radiusFactor), 0.8);
 		AuraFx.particles(level, ParticleTypes.EXPLOSION, c.x, c.y + 0.2, c.z, 1, 0, 0, 0, 0);
 		sound(level, c, AuraSounds.MACE_SMASH_GROUND_HEAVY.value(), 1.6f, 0.6f);
 		sound(level, c, SoundEvents.GENERIC_EXPLODE.value(), 0.7f, 0.5f);
 		sound(level, c, SoundEvents.WARDEN_DIG, 1.2f, 0.8f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_EARTH, 2);
-		AuraAbilities.markUsed(p, Ability.QUAKE, now);
+		Casts.used(p, Ability.QUAKE, now, radiusFactor != 1.0 || damageFactor != 1f ? AuraConfig.CAST_CHARGED_COOLDOWN_FACTOR : 1.0);
 		return true;
 	}
 
@@ -461,7 +492,7 @@ public final class Earth {
 	private static boolean tickRipple(MinecraftServer server, Ripple r) {
 		r.t++;
 		ServerPlayer quaker = server.getPlayerList().getPlayer(r.owner);
-		double radius = Math.max(2, quaker != null && Branch.is(quaker, Branch.TECTONIC) ? AuraConfig.EARTH_TECTONIC_QUAKE_RADIUS : AuraConfig.EARTH_QUAKE_RADIUS);
+		double radius = Math.max(2, quaker != null && Branch.is(quaker, Branch.TECTONIC) ? AuraConfig.EARTH_TECTONIC_QUAKE_RADIUS : AuraConfig.EARTH_QUAKE_RADIUS) * r.radiusFactor;
 		double at = r.t * RIPPLE_SPEED;
 		if (at > radius + 0.5) return false;
 		ServerLevel level = r.level;
@@ -487,7 +518,7 @@ public final class Earth {
 			double d = Math.hypot(e.getX() - r.c.x, e.getZ() - r.c.z);
 			if (d < at - 0.9 || d > at + 0.9 || Math.abs(e.getY() - r.c.y) > 3) continue;
 			r.hit.add(e);
-			Handhelds.hurt(p, e, Branch.is(p, Branch.TECTONIC) ? AuraConfig.EARTH_TECTONIC_QUAKE_DAMAGE : AuraConfig.EARTH_QUAKE_DAMAGE);
+			Handhelds.hurt(p, e, (Branch.is(p, Branch.TECTONIC) ? AuraConfig.EARTH_TECTONIC_QUAKE_DAMAGE : AuraConfig.EARTH_QUAKE_DAMAGE) * r.damageFactor);
 			if (Branch.is(p, Branch.BULWARK)) bulwarkAbsorb(p);
 			Vec3 out = flat(e.position().subtract(r.c));
 			e.setDeltaMovement(e.getDeltaMovement().scale(0.4).add(out.x * 0.25, AuraConfig.EARTH_QUAKE_LIFT, out.z * 0.25));

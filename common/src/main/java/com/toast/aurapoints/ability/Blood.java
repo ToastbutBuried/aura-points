@@ -103,6 +103,19 @@ public final class Blood {
 		return BLEEDING.containsKey(e);
 	}
 
+	/** The bleeding enemies of {@code p} within {@code r} (the Transfusion's targets). */
+	static List<LivingEntity> bleedingNear(ServerPlayer p, double r) {
+		List<LivingEntity> out = new ArrayList<>();
+		for (LivingEntity e : BLEEDING.keySet()) {
+			if (e.isAlive() && e.level() == p.level() && e.distanceToSqr(p) <= r * r && Handhelds.enemy(p, e)) out.add(e);
+		}
+		return out;
+	}
+
+	static void stopBleeding(LivingEntity e) {
+		BLEEDING.remove(e);
+	}
+
 	private static void tickBleeding(MinecraftServer server) {
 		for (Iterator<Map.Entry<LivingEntity, Bleed>> it = BLEEDING.entrySet().iterator(); it.hasNext(); ) {
 			var entry = it.next();
@@ -200,6 +213,9 @@ public final class Blood {
 		final UUID owner;
 		final Vec3 dir;
 		int t;
+		/** The Deep Cut (a charged Hemorrhage) cuts harder and bleeds longer. */
+		float damageFactor = 1f;
+		double bleedFactor = 1.0;
 
 		Lunge(UUID owner, Vec3 dir) {
 			this.owner = owner;
@@ -210,17 +226,27 @@ public final class Blood {
 	private static final Map<UUID, Lunge> LUNGES = new HashMap<>();
 
 	static boolean hemorrhage(ServerPlayer p, long now) {
+		return hemorrhage(p, now, CastMode.TAP);
+	}
+
+	/** Hemorrhage; CHARGED = Deep Cut (harder, bleeds longer). The sneak cast (Transfusion) lives in Casts. */
+	static boolean hemorrhage(ServerPlayer p, long now, CastMode mode) {
 		if (LUNGES.containsKey(p.getUUID())) return false;
 		if (!AuraAbilities.checkCooldown(p, Ability.HEMORRHAGE, AuraConfig.BLOOD_HEMO_COOLDOWN_TICKS, now)) return false;
 		Vec3 look = p.getLookAngle();
 		Vec3 dir = new Vec3(look.x, Math.max(-0.25, Math.min(0.3, look.y)), look.z).normalize();
 		p.setDeltaMovement(dir.scale(Math.max(0.3, AuraConfig.BLOOD_HEMO_SPEED)).add(0, p.onGround() ? 0.12 : 0, 0));
 		p.hurtMarked = true;
-		LUNGES.put(p.getUUID(), new Lunge(p.getUUID(), dir));
-		sound(p.serverLevel(), p.position(), SoundEvents.PLAYER_ATTACK_SWEEP, 0.8f, 0.6f);
+		Lunge lunge = new Lunge(p.getUUID(), dir);
+		if (mode == CastMode.CHARGED) {
+			lunge.damageFactor = AuraConfig.BLOOD_HEMO_CHARGED_DAMAGE_FACTOR;
+			lunge.bleedFactor = AuraConfig.BLOOD_HEMO_CHARGED_BLEED_FACTOR;
+		}
+		LUNGES.put(p.getUUID(), lunge);
+		sound(p.serverLevel(), p.position(), SoundEvents.PLAYER_ATTACK_SWEEP, 0.8f, mode == CastMode.CHARGED ? 0.5f : 0.6f);
 		sound(p.serverLevel(), p.position(), SoundEvents.PHANTOM_FLAP, 0.8f, 1.4f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_BLOOD, 0);
-		AuraAbilities.markUsed(p, Ability.HEMORRHAGE, now);
+		Casts.used(p, Ability.HEMORRHAGE, now, mode);
 		return true;
 	}
 
@@ -242,9 +268,10 @@ public final class Blood {
 			}
 		}
 		if (hit == null) return true;
-		Handhelds.hurt(p, hit, AuraConfig.BLOOD_HEMO_DAMAGE);
-		if (Branch.is(p, Branch.SANGUINE)) p.heal(AuraConfig.BLOOD_HEMO_DAMAGE * (float) AuraConfig.BLOOD_SANGUINE_HEMO_LIFESTEAL);
-		bleed(p, hit, AuraConfig.BLOOD_BLEED_TICKS);
+		float damage = AuraConfig.BLOOD_HEMO_DAMAGE * l.damageFactor;
+		Handhelds.hurt(p, hit, damage);
+		if (Branch.is(p, Branch.SANGUINE)) p.heal(damage * (float) AuraConfig.BLOOD_SANGUINE_HEMO_LIFESTEAL);
+		bleed(p, hit, (int) Math.round(AuraConfig.BLOOD_BLEED_TICKS * l.bleedFactor));
 		Vec3 hc = AuraFx.chest(hit);
 		AuraFx.particles(level, ParticleTypes.SWEEP_ATTACK, hc.x, hc.y, hc.z, 1, 0, 0, 0, 0);
 		AuraFx.burst(level, hc.x, hc.y, hc.z, AuraFx.dust(BRIGHT, 1.3f), 20, 0.4, 0);
@@ -265,6 +292,9 @@ public final class Blood {
 		final UUID owner;
 		final LivingEntity target;
 		int t, unseen;
+		/** The Leech (a charged tether) drains and heals harder. */
+		float drainFactor = 1f;
+		double healFactor = 1.0;
 
 		Tether(UUID owner, LivingEntity target) {
 			this.owner = owner;
@@ -275,6 +305,11 @@ public final class Blood {
 	private static final Map<UUID, Tether> TETHERS = new HashMap<>();
 
 	static boolean tether(ServerPlayer p, long now) {
+		return tether(p, now, CastMode.TAP);
+	}
+
+	/** Blood Tether; CHARGED = Leech (drains and heals harder). The sneak cast (Lifeline) lives in Casts. */
+	static boolean tether(ServerPlayer p, long now, CastMode mode) {
 		if (TETHERS.containsKey(p.getUUID())) return false;
 		if (!AuraAbilities.checkCooldown(p, Ability.BLOOD_TETHER, AuraConfig.BLOOD_TETHER_COOLDOWN_TICKS, now)) return false;
 		LivingEntity target = aimed(p, Math.max(2, AuraConfig.BLOOD_TETHER_RANGE));
@@ -282,13 +317,18 @@ public final class Blood {
 			p.displayClientMessage(Component.literal("Nobody in your sights to tether.").withStyle(ChatFormatting.GRAY), true);
 			return false;
 		}
-		TETHERS.put(p.getUUID(), new Tether(p.getUUID(), target));
+		Tether tether = new Tether(p.getUUID(), target);
+		if (mode == CastMode.CHARGED) {
+			tether.drainFactor = AuraConfig.BLOOD_TETHER_CHARGED_DRAIN_FACTOR;
+			tether.healFactor = AuraConfig.BLOOD_TETHER_CHARGED_HEAL_FACTOR;
+		}
+		TETHERS.put(p.getUUID(), tether);
 		ServerLevel level = p.serverLevel();
 		AuraFx.line(level, AuraFx.chest(p), AuraFx.chest(target), AuraFx.dust(BRIGHT, 1.4f), 24);
 		sound(level, target.position(), SoundEvents.WARDEN_HEARTBEAT, 1.5f, 1.2f);
 		sound(level, p.position(), SoundEvents.CHAIN_PLACE, 1.0f, 0.6f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_BLOOD, 1);
-		AuraAbilities.markUsed(p, Ability.BLOOD_TETHER, now);
+		Casts.used(p, Ability.BLOOD_TETHER, now, mode);
 		return true;
 	}
 
@@ -332,10 +372,11 @@ public final class Blood {
 					return false;
 				}
 				if (!p.getAbilities().invulnerable) p.setHealth(p.getHealth() - cost);
-				hurtQuietly(p, e, AuraConfig.BLOOD_SACRIFICIAL_TETHER_DRAIN);
+				hurtQuietly(p, e, AuraConfig.BLOOD_SACRIFICIAL_TETHER_DRAIN * th.drainFactor);
 			} else {
-				hurtQuietly(p, e, AuraConfig.BLOOD_TETHER_DRAIN);
-				p.heal(AuraConfig.BLOOD_TETHER_DRAIN * (float) Math.max(0, AuraConfig.BLOOD_TETHER_HEAL_FRACTION));
+				float drain = AuraConfig.BLOOD_TETHER_DRAIN * th.drainFactor;
+				hurtQuietly(p, e, drain);
+				p.heal(drain * (float) (Math.max(0, AuraConfig.BLOOD_TETHER_HEAL_FRACTION) * th.healFactor));
 			}
 			AuraFx.particles(level, DROPS, from.x, from.y, from.z, 6, 0.25, 0.25, 0.25, 0);
 			sound(level, to, SoundEvents.WARDEN_HEARTBEAT, 0.9f, 1.3f);
@@ -362,21 +403,30 @@ public final class Blood {
 	}
 
 	public static boolean sacrifice(ServerPlayer p, long now) {
+		return sacrifice(p, now, CastMode.TAP);
+	}
+
+	/** Crimson Sacrifice; SNEAK = Pinprick (a share of the cost for a share of the hits, at a share of the cooldown). */
+	public static boolean sacrifice(ServerPlayer p, long now, CastMode mode) {
 		if (!AuraAbilities.checkCooldown(p, Ability.CRIMSON_SACRIFICE, AuraConfig.BLOOD_SACRIFICE_COOLDOWN_TICKS, now)) return false;
+		boolean pinprick = mode == CastMode.SNEAK;
 		// blood from the bar pays part of the price: a full SACRIFICE_SPEND takes MAX_REDUCTION off
 		// Sacrificial pays the full price in health: the bar neither reduces it nor is spent
 		boolean flat = Branch.is(p, Branch.SACRIFICIAL);
 		int full = flat ? 0 : Math.max(0, AuraConfig.BLOOD_BAR_SACRIFICE_SPEND);
 		int spend = Math.min(bar(p), full);
 		double cut = full == 0 ? 0 : spend / (double) full * Math.max(0, Math.min(1, AuraConfig.BLOOD_SACRIFICE_MAX_REDUCTION));
-		float cost = Math.max(0, Branch.is(p, Branch.SACRIFICIAL) ? AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_COST : AuraConfig.BLOOD_SACRIFICE_COST) * (float) (1 - cut);
+		float cost = Math.max(0, Branch.is(p, Branch.SACRIFICIAL) ? AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_COST : AuraConfig.BLOOD_SACRIFICE_COST) * (float) (1 - cut)
+				* (float) (pinprick ? AuraConfig.BLOOD_PINPRICK_COST_FACTOR : 1.0);
 		if (p.getHealth() <= cost + 1 && !p.getAbilities().invulnerable) {
 			p.displayClientMessage(Component.literal("Not enough blood left to give.").withStyle(ChatFormatting.RED), true);
 			return false;
 		}
 		if (!p.getAbilities().invulnerable) p.setHealth(p.getHealth() - cost);
-		spendBlood(p, spend);
-		EMPOWERED.put(p.getUUID(), new int[]{Math.max(1, Branch.is(p, Branch.SACRIFICIAL) ? AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_HITS : AuraConfig.BLOOD_SACRIFICE_HITS), Math.max(20, AuraConfig.BLOOD_SACRIFICE_TICKS)});
+		spendBlood(p, pinprick ? (int) Math.round(spend * AuraConfig.BLOOD_PINPRICK_COST_FACTOR) : spend);
+		int hits = Math.max(1, Branch.is(p, Branch.SACRIFICIAL) ? AuraConfig.BLOOD_SACRIFICIAL_SACRIFICE_HITS : AuraConfig.BLOOD_SACRIFICE_HITS);
+		if (pinprick) hits = Math.max(1, (int) Math.round(hits * AuraConfig.BLOOD_PINPRICK_HITS_FACTOR));
+		EMPOWERED.put(p.getUUID(), new int[]{hits, Math.max(20, AuraConfig.BLOOD_SACRIFICE_TICKS)});
 		ServerLevel level = p.serverLevel();
 		Vec3 c = AuraFx.chest(p);
 		AuraFx.burst(level, c.x, c.y, c.z, AuraFx.dust(BRIGHT, 1.5f), 30, 0.6, 0);
@@ -386,7 +436,7 @@ public final class Blood {
 		sound(level, c, SoundEvents.WARDEN_HEARTBEAT, 1.5f, 0.9f);
 		sound(level, c, SoundEvents.EVOKER_PREPARE_ATTACK, 0.7f, 1.4f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_BLOOD, 2);
-		AuraAbilities.markUsed(p, Ability.CRIMSON_SACRIFICE, now);
+		Casts.used(p, Ability.CRIMSON_SACRIFICE, now, pinprick ? AuraConfig.BLOOD_PINPRICK_COOLDOWN_FACTOR : 1.0);
 		return true;
 	}
 
