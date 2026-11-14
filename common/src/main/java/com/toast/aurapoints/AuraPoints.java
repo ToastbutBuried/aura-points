@@ -314,6 +314,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.VoidAura.tickAll(server);
 			com.toast.aurapoints.ability.Reactions.tickAll(server);
 			com.toast.aurapoints.ability.Combos.tickAll(server);
+			com.toast.aurapoints.ability.Casts.tickAll(server);
 			com.toast.aurapoints.ability.TouchedMobs.tickAll(server);
 			com.toast.aurapoints.cosmetic.Weekly.tick(server);
 
@@ -686,6 +687,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.TouchedMobs.clearAll();
 			com.toast.aurapoints.ability.MagmaPools.clear();
 			com.toast.aurapoints.ability.PhantomDecoy.clear();
+			com.toast.aurapoints.ability.Casts.clear();
 			// last, so nothing the clean-ups above scheduled carries over into the next world
 			AuraFx.clearAll();
 		}
@@ -752,6 +754,7 @@ public class AuraPoints {
 				com.toast.aurapoints.item.RokakaFruitItem.forget(player);
 				DashDive.onLogout(player);
 				com.toast.aurapoints.ability.FireBending.onLogout(player);
+				com.toast.aurapoints.ability.Casts.onLogout(player);
 				com.toast.aurapoints.ability.AirBending.onLogout(player);
 				com.toast.aurapoints.ability.AbyssalBubble.onLogout(player);
 				com.toast.aurapoints.ability.IceSpike.onLogout(player);

@@ -27,9 +27,22 @@ public class AuraFireball extends SmallFireball {
 	private boolean didPierce = false;
 	/** Set at launch (boost): a Blue Flame fireball keeps piercing even if its owner switches branch mid-flight. */
 	private boolean canPierce = false;
+	/** A cast's tuning (tune): the share of FIREBALL_DAMAGE this one deals, and the Meteor's blast radius (0 = none). */
+	private float damageFactor = 1f;
+	private double blastRadius = 0;
 
 	public AuraFireball(Level level, LivingEntity owner, Vec3 movement) {
 		super(level, owner, movement);
+	}
+
+	/** Spread Shot / Meteor (Casts): damage share, launch speed factor, and a blast radius that burns and hurts everything around the impact. */
+	public void tune(float damageFactor, double speedFactor, double blastRadius) {
+		this.damageFactor = damageFactor;
+		this.blastRadius = blastRadius;
+		if (speedFactor > 0 && speedFactor != 1.0) {
+			this.accelerationPower *= speedFactor;
+			setDeltaMovement(getDeltaMovement().scale(speedFactor));
+		}
 	}
 
 	/** Blue Flame flies faster: scales the launch speed and the push that keeps it going. */
@@ -79,7 +92,7 @@ public class AuraFireball extends SmallFireball {
 		int fireBefore = target.getRemainingFireTicks();
 		target.igniteForSeconds(5.0F);
 		DamageSource source = damageSources().fireball(this, getOwner());
-		if (!target.hurt(source, AuraAbilities.vsMob(target, AuraConfig.FIREBALL_DAMAGE))) {
+		if (!target.hurt(source, AuraAbilities.vsMob(target, AuraConfig.FIREBALL_DAMAGE * damageFactor))) {
 			target.setRemainingFireTicks(fireBefore);
 		} else {
 			EnchantmentHelper.doPostAttackEffects(level, target, source);
@@ -106,6 +119,24 @@ public class AuraFireball extends SmallFireball {
 		if (AuraFire.scatter(level, owner, at, AuraConfig.FIREBALL_FIRE_RADIUS, AuraConfig.FIREBALL_FIRES) > 0) {
 			level.playSound(null, at.x, at.y, at.z, AuraSounds.FIRECHARGE_USE.value(), net.minecraft.sounds.SoundSource.PLAYERS, 0.8f, 0.9f);
 		}
+		if (blastRadius > 0 && owner != null) blast(level, owner, at);
+	}
+
+	/** The Meteor's impact: everything within blastRadius burns and takes half the fireball's damage; more fires. */
+	private void blast(ServerLevel level, ServerPlayer owner, Vec3 at) {
+		float damage = AuraConfig.FIREBALL_DAMAGE * damageFactor * 0.5f;
+		for (LivingEntity e : Handhelds.enemies(owner, level, at, blastRadius)) {
+			e.igniteForSeconds(4.0f);
+			AuraStunts.fireHit(owner, e);
+			e.hurt(level.damageSources().playerAttack(owner), AuraAbilities.vsMob(e, damage));
+			e.knockback(0.6, at.x - e.getX(), at.z - e.getZ());
+		}
+		AuraFx.particles(level, ParticleTypes.EXPLOSION, at.x, at.y, at.z, 2, 0.3, 0.3, 0.3, 0.0);
+		AuraFx.particles(level, ParticleTypes.FLAME, at.x, at.y, at.z, 60, blastRadius * 0.5, 0.4, blastRadius * 0.5, 0.15);
+		AuraFx.particles(level, ParticleTypes.LAVA, at.x, at.y, at.z, 12, blastRadius * 0.4, 0.3, blastRadius * 0.4, 0.0);
+		AuraFx.ring(level, at.x, at.y + 0.1, at.z, blastRadius, AuraFx.dust(AuraType.FIRE.rgb, 1.6f), (int) (blastRadius * 8));
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.GENERIC_EXPLODE.value(), net.minecraft.sounds.SoundSource.PLAYERS, 1.1f, 0.7f);
+		AuraFire.scatter(level, owner, at, blastRadius, AuraConfig.FIREBALL_FIRES);
 	}
 
 	/** Server side: a thicker ember trail than the vanilla smoke. */
@@ -121,6 +152,11 @@ public class AuraFireball extends SmallFireball {
 		if (this.level() instanceof ServerLevel level && this.isAlive()) {
 			AuraFx.particles(level, ParticleTypes.FLAME, getX(), getY(), getZ(), 2, 0.05, 0.05, 0.05, 0.01);
 			AuraFx.particles(level, AuraFx.dust(AuraType.FIRE.rgb, 1.2f), getX(), getY(), getZ(), 1, 0.1, 0.1, 0.1, 0.0);
+			if (blastRadius > 0) {
+				// a Meteor: fatter, with embers falling off
+				AuraFx.particles(level, ParticleTypes.FLAME, getX(), getY(), getZ(), 4, 0.2, 0.2, 0.2, 0.02);
+				AuraFx.particles(level, ParticleTypes.LAVA, getX(), getY(), getZ(), 1, 0.1, 0.1, 0.1, 0.0);
+			}
 		}
 	}
 }

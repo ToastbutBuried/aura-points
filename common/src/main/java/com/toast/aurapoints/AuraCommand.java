@@ -35,7 +35,8 @@ import java.util.Random;
 /**
  * /aura                          - your aura, abilities and Aura balance
  * /aura info [aura]              - everything about your aura (or any aura): what each ability does
- * /aura roll                     - the roll menu (first roll free, then REROLL_COST)
+ * /aura roll                     - the roll menu (first roll free, then REROLL_COST; never an aura you had)
+ * /aura switch [aura]            - back to an aura you had, for SWITCH_COST
  * /aura roll confirm             - roll (the menu's button runs this)
  * /aura shop (or /shop)          - buy the active abilities of your aura (passives are free)
  * /aura shop buy <ability>       - buy one (the shop's buttons run this)
@@ -71,6 +72,30 @@ public final class AuraCommand {
 		for (AuraType type : AuraType.values()) builder.suggest(type.id());
 		return builder.buildFuture();
 	};
+
+	/** The auras this player had and can switch back to (/aura switch). */
+	private static final SuggestionProvider<CommandSourceStack> HAD_SUGGESTIONS = (context, builder) -> {
+		ServerPlayer player = context.getSource().getPlayer();
+		if (player != null) {
+			AuraPlayerData data = AuraState.get(context.getSource().getServer()).getOrCreate(player.getUUID());
+			for (AuraType type : had(data)) builder.suggest(type.id());
+		}
+		return builder.buildFuture();
+	};
+
+	/** The rollable auras this player never had: what a roll can give. */
+	private static List<AuraType> unrolled(AuraPlayerData data) {
+		List<AuraType> out = new ArrayList<>();
+		for (AuraType type : AuraType.values()) if (type != data.aura && type.rollable() && !data.rolled.contains(type)) out.add(type);
+		return out;
+	}
+
+	/** The rollable auras this player had before, other than the current one: what a switch can give. */
+	private static List<AuraType> had(AuraPlayerData data) {
+		List<AuraType> out = new ArrayList<>();
+		for (AuraType type : AuraType.values()) if (type != data.aura && type.rollable() && data.rolled.contains(type)) out.add(type);
+		return out;
+	}
 
 	private static final SuggestionProvider<CommandSourceStack> COSMETIC_SUGGESTIONS = (context, builder) -> {
 		for (var c : com.toast.aurapoints.cosmetic.Cosmetics.Cosmetic.values()) builder.suggest(c.id());
@@ -119,6 +144,11 @@ public final class AuraCommand {
 				.then(Commands.literal("roll")
 						.executes(AuraCommand::showRollMenu)
 						.then(Commands.literal("confirm").executes(AuraCommand::roll)))
+				.then(Commands.literal("switch")
+						.executes(AuraCommand::showSwitchMenu)
+						.then(Commands.argument("aura", StringArgumentType.word())
+								.suggests(HAD_SUGGESTIONS)
+								.executes(ctx -> switchAura(ctx, StringArgumentType.getString(ctx, "aura")))))
 				.then(Commands.literal("redeem")
 						.executes(ctx -> redeem(ctx, AuraConfig.PUFFISH_CATEGORY_MAIN, 1))
 						.then(Commands.argument("amount", IntegerArgumentType.integer(1, 1000))
@@ -501,6 +531,9 @@ public final class AuraCommand {
 				}
 				source.sendSystemMessage(line);
 				source.sendSystemMessage(Component.literal("   " + a.description()).withStyle(ChatFormatting.GRAY));
+				for (String cast : com.toast.aurapoints.ability.Casts.describe(a)) {
+					source.sendSystemMessage(Component.literal("   ✧ " + cast).withStyle(ChatFormatting.DARK_AQUA));
+				}
 			}
 		}
 		source.sendSystemMessage(Component.literal("✦ Passives").withStyle(style -> style.withColor(accent).withBold(true))
@@ -533,12 +566,23 @@ public final class AuraCommand {
 	}
 
 	private static MutableComponent rollButton(AuraPlayerData data) {
+		if (data.freeRollUsed && unrolled(data).isEmpty()) {
+			return Component.literal("[You've had every aura - switch instead]").withStyle(ChatFormatting.DARK_GRAY);
+		}
 		String label = data.freeRollUsed ? "[Reroll - " + AuraConfig.REROLL_COST + " Aura]" : "[Roll - free]";
 		return Component.literal(label).withStyle(style -> style
 				.withColor(ChatFormatting.GREEN)
 				.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/aura roll confirm"))
 				.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-						Component.literal(data.aura == null ? "Roll your aura" : "Roll a new aura (never the one you have)"))));
+						Component.literal(data.aura == null ? "Roll your aura" : "Roll a new aura (never one you had)"))));
+	}
+
+	private static MutableComponent switchButton(AuraType type) {
+		return Component.literal("[Switch - " + AuraConfig.SWITCH_COST + " Aura]").withStyle(style -> style
+				.withColor(ChatFormatting.AQUA)
+				.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/aura switch " + type.id()))
+				.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+						Component.literal("Back to " + type.displayName + " for " + AuraConfig.SWITCH_COST + " Aura"))));
 	}
 
 	private static int showRollMenu(CommandContext<CommandSourceStack> ctx) {
@@ -553,15 +597,86 @@ public final class AuraCommand {
 		player.sendSystemMessage(Component.literal("=== Aura Roll ===").withStyle(ChatFormatting.GOLD));
 		for (AuraType type : AuraType.values()) {
 			if (!type.rollable() && type != data.aura) continue;
+			boolean had = type != data.aura && data.rolled.contains(type);
 			MutableComponent line = Component.literal("- " + type.displayName).withStyle(type.color, ChatFormatting.BOLD);
 			if (type == data.aura) line.append(Component.literal(" (yours)").withStyle(ChatFormatting.DARK_GRAY));
+			else if (had) line.append(Component.literal(" (had)").withStyle(ChatFormatting.DARK_GRAY));
 			line.append(Component.literal(": " + names(type, true) + " | " + names(type, false))
 					.withStyle(ChatFormatting.GRAY));
+			if (had) line.append(Component.literal("  ")).append(switchButton(type));
 			player.sendSystemMessage(line);
 		}
 		player.sendSystemMessage(Component.literal("Every aura also has Vein of Aura (lifesteal against mobs).").withStyle(ChatFormatting.DARK_GRAY));
+		player.sendSystemMessage(Component.literal("A roll always gives an aura you never had; switching back to one you had costs "
+				+ AuraConfig.SWITCH_COST + " Aura.").withStyle(ChatFormatting.DARK_GRAY));
 		player.sendSystemMessage(Component.literal("You have " + AuraCurrency.get(player) + " Aura. ").withStyle(ChatFormatting.GRAY)
 				.append(rollButton(data)));
+		return 1;
+	}
+
+	/** /aura switch: the auras you had, each with a switch button. */
+	private static int showSwitchMenu(CommandContext<CommandSourceStack> ctx) {
+		CommandSourceStack source = ctx.getSource();
+		ServerPlayer player = source.getPlayer();
+		if (player == null) {
+			source.sendFailure(Component.literal("Only players can switch their aura."));
+			return 0;
+		}
+		AuraPlayerData data = AuraState.get(source.getServer()).getOrCreate(player.getUUID());
+		List<AuraType> had = had(data);
+		if (had.isEmpty()) {
+			player.sendSystemMessage(Component.literal("You haven't had another aura yet. Roll one: ").withStyle(ChatFormatting.GRAY).append(rollButton(data)));
+			return 1;
+		}
+		player.sendSystemMessage(Component.literal("=== Switch aura (" + AuraConfig.SWITCH_COST + " Aura each) ===").withStyle(ChatFormatting.GOLD));
+		for (AuraType type : had) {
+			player.sendSystemMessage(Component.literal("- " + type.displayName).withStyle(type.color, ChatFormatting.BOLD)
+					.append(Component.literal("  Mastery " + com.toast.aurapoints.ability.Mastery.roman(data.mastery.getOrDefault(type, 0)) + "  ").withStyle(ChatFormatting.GRAY))
+					.append(switchButton(type)));
+		}
+		player.sendSystemMessage(Component.literal("Mastery, branch and awakening stay with each aura. You have " + AuraCurrency.get(player) + " Aura.").withStyle(ChatFormatting.GRAY));
+		return 1;
+	}
+
+	/** /aura switch <aura>: back to an aura you had (data.rolled) for SWITCH_COST. Mastery, branch and awakening are kept per aura already. */
+	private static int switchAura(CommandContext<CommandSourceStack> ctx, String id) {
+		CommandSourceStack source = ctx.getSource();
+		ServerPlayer player = source.getPlayer();
+		if (player == null) {
+			source.sendFailure(Component.literal("Only players can switch their aura."));
+			return 0;
+		}
+		AuraState state = AuraState.get(source.getServer());
+		AuraPlayerData data = state.getOrCreate(player.getUUID());
+		AuraType target = AuraType.byId(id.toLowerCase(java.util.Locale.ROOT));
+		if (target == null || !target.rollable()) {
+			source.sendFailure(Component.literal("No aura called " + id + "."));
+			return 0;
+		}
+		if (target == data.aura) {
+			source.sendFailure(Component.literal("That's your aura already."));
+			return 0;
+		}
+		if (!data.rolled.contains(target)) {
+			source.sendFailure(Component.literal("You never had " + target.displayName + ". Only auras you had can be switched to - rolling finds new ones."));
+			return 0;
+		}
+		if (data.arenaRealAura != null || com.toast.aurapoints.arena.Duel.isIn(player) || com.toast.aurapoints.arena.Match.isIn(player)) {
+			source.sendFailure(Component.literal("Not during a duel, match or Wave Survival run."));
+			return 0;
+		}
+		if (!AuraCurrency.take(player, AuraConfig.SWITCH_COST)) {
+			source.sendFailure(Component.literal(String.format("Switching costs %d Aura - you have %d.", AuraConfig.SWITCH_COST, AuraCurrency.get(player))));
+			return 0;
+		}
+		data.aura = target;
+		data.freeRollUsed = true;
+		state.markDirty();
+		AuraAbilities.refreshBerserkerModifier(player, AuraAbilities.hasAbility(data, AuraAbilities.Ability.BERSERKER));
+		ServerLevel level = player.serverLevel();
+		AuraFx.sound(level, player, SoundEvents.BEACON_ACTIVATE, 0.8f, 1.6f);
+		AuraFx.burst(level, player.getX(), player.getY() + 1.0, player.getZ(), ParticleTypes.POOF, 20, 0.4, 0.03);
+		revealRoll(player, target, true);
 		return 1;
 	}
 
@@ -576,13 +691,13 @@ public final class AuraCommand {
 		AuraState state = AuraState.get(source.getServer());
 		AuraPlayerData data = state.getOrCreate(player.getUUID());
 
-		List<AuraType> candidates = new ArrayList<>();
-		for (AuraType type : AuraType.values()) {
-			if (type != data.aura && type.rollable()) candidates.add(type);
-		}
+		// a roll only ever gives an aura the player never had; the ones they had are a switch away
+		List<AuraType> candidates = unrolled(data);
 
 		if (candidates.isEmpty()) {
-			source.sendFailure(Component.literal("There is no other aura to roll right now."));
+			source.sendFailure(Component.literal(data.freeRollUsed
+					? "You've had every aura. Switch back to one with /aura switch (" + AuraConfig.SWITCH_COST + " Aura)."
+					: "There is no other aura to roll right now."));
 			return 0;
 		}
 
@@ -629,7 +744,7 @@ public final class AuraCommand {
 		}
 		AuraFx.later(source.getServer(), ROLL_SPIN_FRAMES * 2, () -> {
 			if (AuraFx.alive(player)) {
-				revealRoll(player, rolled);
+				revealRoll(player, rolled, false);
 				return;
 			}
 			// died during the spin: no show, but the HUD, aura_type score, hook and advancement still catch up
@@ -644,7 +759,8 @@ public final class AuraCommand {
 
 	private static final int ROLL_SPIN_FRAMES = 16;
 
-	private static void revealRoll(ServerPlayer player, AuraType rolled) {
+	/** The new aura's show, title and chat summary; {@code switched} = a switch back to an aura they had, not a roll. */
+	private static void revealRoll(ServerPlayer player, AuraType rolled, boolean switched) {
 		ServerLevel level = player.serverLevel();
 		AuraPlayerData data = AuraState.get(player.getServer()).getOrCreate(player.getUUID());
 		AuraStats.grantAuraAdvancement(player, data);
@@ -666,7 +782,7 @@ public final class AuraCommand {
 				Component.literal(rolled.displayName + " Aura").withStyle(rolled.color, ChatFormatting.BOLD),
 				Component.literal(names.toString()).withStyle(ChatFormatting.GRAY));
 
-		player.sendSystemMessage(Component.literal("You rolled the ").withStyle(ChatFormatting.GOLD)
+		player.sendSystemMessage(Component.literal(switched ? "You switched to the " : "You rolled the ").withStyle(ChatFormatting.GOLD)
 				.append(Component.literal(rolled.displayName).withStyle(rolled.color, ChatFormatting.BOLD))
 				.append(Component.literal(" aura!").withStyle(ChatFormatting.GOLD)));
 		List<AuraAbilities.Ability> all = new ArrayList<>(rolled.abilities);

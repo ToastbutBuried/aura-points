@@ -1,6 +1,6 @@
 # Aura Points
 
-A Minecraft 1.21.1 mod (NeoForge and Fabric) about elemental auras. Roll one of 12 auras, buy its abilities, level them up, and test
+A Minecraft 1.21.1 mod (NeoForge and Fabric) about elemental auras. Roll one of 11 auras, buy its abilities, level them up, and test
 yourself in a built-in arena.
 
 **Auras:** Shadow, Water, Fire, Wind, Frost, Verdant, Thunder, Resonance, Earth, Light, Blood. Each has
@@ -14,6 +14,10 @@ can pick one of two branches (Fire: Blue Flame or Magma, Shadow: Phantom or Dark
 - **Aura**: a currency on the scoreboard `aura_points`. Weekly challenges, aura-touched mobs, team combos and
   arena wins pay it; so can quests, datapacks and commands. It buys abilities, rerolls, cosmetics and points for
   the built-in skill trees. **[How to earn Aura, with the full quest list →](QUESTS.md)**
+- **Rolling and switching**: a roll always gives an aura you never had (the first one is free). `/aura switch`
+  takes you back to an aura you had for less; Mastery, branch and awakening stay with each aura.
+- **Casts**: at Mastery II, sneak + key gives an ability a second cast; at Mastery III, holding the key charges a
+  third (Fire, Water and Shadow so far). Each ability's casts are listed in the Aura Book.
 - **Skill trees** (Pufferfish's Skills): an Aura tree, an Ability tree, and a PvP tree that unlocks once you
   defeat a boss.
 - **Team Combos and Reactions** when auras meet, and aura-touched mobs.
@@ -50,7 +54,8 @@ Useful commands:
 | Command | What it does |
 |---|---|
 | `/aura book`, `/aura menu` | get or open the book |
-| `/aura roll` | roll an aura |
+| `/aura roll` | roll an aura (always one you never had) |
+| `/aura switch <aura>` | switch back to an aura you had |
 | `/shop` | buy abilities |
 | `/aura redeem` | buy skill points |
 | `/aura info` | show your aura's details |

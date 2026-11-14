@@ -481,22 +481,38 @@ public final class NetworkHandler {
 
 			setKeyFlag(server, player, ability, packet.down());
 
+			long now = server.getTickCount();
 			if (com.toast.aurapoints.ability.WindLaunch.handlesKey(data, ability)) {
 				// Wind's hold keys: Dash (tap = dash, hold = launch), Super Wind Charge (tap = throw, hold = air bending)
-				if (packet.down()) com.toast.aurapoints.ability.WindLaunch.press(player, ability, server.getTickCount());
-				else com.toast.aurapoints.ability.WindLaunch.release(player, ability, server.getTickCount());
+				if (packet.down()) com.toast.aurapoints.ability.WindLaunch.press(player, ability, now);
+				else com.toast.aurapoints.ability.WindLaunch.release(player, ability, now);
 			} else if (packet.down()) {
-				AuraAbilities.tryActivate(player, ability, server.getTickCount());
-			} else if (ability == AuraAbilities.Ability.ABYSSAL_BUBBLE) {
-				com.toast.aurapoints.ability.AbyssalBubble.release(player, server.getTickCount());
-			} else if (ability == AuraAbilities.Ability.ICE_SPIKE) {
-				com.toast.aurapoints.ability.IceSpike.release(player, server.getTickCount());
-			} else if (ability == AuraAbilities.Ability.CHIDORI) {
-				com.toast.aurapoints.ability.Chidori.release(player, server.getTickCount());
-			} else if (ability == AuraAbilities.Ability.ABYSSAL_GRASP) {
-				com.toast.aurapoints.ability.Resonance.graspRelease(player, server.getTickCount());
-			} else if (ability == AuraAbilities.Ability.PRISM_BEAM) {
-				com.toast.aurapoints.ability.Light.beamRelease(player, server.getTickCount());
+				// sneak + key = the sneak cast; an ability with a charged cast fires on the release (Casts says tap or charge); else the normal cast now
+				if (player.isShiftKeyDown() && com.toast.aurapoints.ability.CastMode.unlocked(player, ability, com.toast.aurapoints.ability.CastMode.SNEAK)) {
+					AuraAbilities.tryActivate(player, ability, now, com.toast.aurapoints.ability.CastMode.SNEAK);
+				} else if (com.toast.aurapoints.ability.CastMode.unlocked(player, ability, com.toast.aurapoints.ability.CastMode.CHARGED)) {
+					com.toast.aurapoints.ability.Casts.beginCharge(player, ability, now);
+				} else {
+					AuraAbilities.tryActivate(player, ability, now);
+				}
+			} else {
+				com.toast.aurapoints.ability.CastMode cast = com.toast.aurapoints.ability.Casts.finishCharge(player, ability, now);
+				if (cast != null) {
+					// frozen or stunned since the press: the charge is lost (the tick says so)
+					if (!com.toast.aurapoints.ability.IceSpike.isFrozen(player) && !com.toast.aurapoints.ability.Stun.isBusy(player)) {
+						AuraAbilities.tryActivate(player, ability, now, cast);
+					}
+				} else if (ability == AuraAbilities.Ability.ABYSSAL_BUBBLE) {
+					com.toast.aurapoints.ability.AbyssalBubble.release(player, now);
+				} else if (ability == AuraAbilities.Ability.ICE_SPIKE) {
+					com.toast.aurapoints.ability.IceSpike.release(player, now);
+				} else if (ability == AuraAbilities.Ability.CHIDORI) {
+					com.toast.aurapoints.ability.Chidori.release(player, now);
+				} else if (ability == AuraAbilities.Ability.ABYSSAL_GRASP) {
+					com.toast.aurapoints.ability.Resonance.graspRelease(player, now);
+				} else if (ability == AuraAbilities.Ability.PRISM_BEAM) {
+					com.toast.aurapoints.ability.Light.beamRelease(player, now);
+				}
 			}
 		});
 	}

@@ -35,9 +35,9 @@ public final class Tutorial {
 
 	public enum Step {
 		ROLL("Roll your aura", "Open the Aura Book and click Roll your aura. The first roll is free.",
-				"Your aura decides your abilities. Passives work at once."),
+				"Your aura decides your abilities. Passives work at once. A reroll always finds a new aura; switching back to one you had costs less."),
 		AURA("Look at your aura", "Click your aura in the Aura Book to see what it does.",
-				"Actives are bought there with Aura, then used with your keys (Options > Controls > Aura Points)."),
+				"Actives are bought there with Aura, then used with your keys (Options > Controls > Aura Points). As your Mastery grows, sneak + key and holding a key give extra casts."),
 		SKILLS("Get stronger", "Open Skill points in the Aura Book.",
 				"Earn Aura in the book's Earn Aura page: quests, aura-touched mobs (glowing, named), weeklies and the arena. Spend it on actives and skill points."),
 		SETTINGS("Make it yours", "Open Settings in the Aura Book.",

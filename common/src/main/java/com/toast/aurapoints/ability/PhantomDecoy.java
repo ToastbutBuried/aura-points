@@ -46,6 +46,12 @@ public final class PhantomDecoy {
 	/** Phantom Dash: a clone where {@code from} is, facing the way the dasher faces. */
 	public static void spawn(ServerPlayer owner, Vec3 from) {
 		if (!Branch.is(owner, Branch.PHANTOM) || AuraConfig.PHANTOM_DECOY_TICKS <= 0) return;
+		decoy(owner, from, AuraConfig.PHANTOM_DECOY_TICKS);
+	}
+
+	/** A clone where {@code from} is for {@code ticks}, whatever the branch (Vanish's Decoy cast). One per owner. */
+	public static void decoy(ServerPlayer owner, Vec3 from, int ticks) {
+		if (ticks <= 0) return;
 		for (Iterator<Decoy> it = DECOYS.iterator(); it.hasNext(); ) {
 			Decoy d = it.next();
 			if (d.owner == owner) {
@@ -60,7 +66,7 @@ public final class PhantomDecoy {
 			model.setYHeadRot(owner.getYRot());
 			level.addFreshEntity(model);
 		}
-		DECOYS.add(new Decoy(owner, level, from, model, AuraConfig.PHANTOM_DECOY_TICKS));
+		DECOYS.add(new Decoy(owner, level, from, model, ticks));
 		AuraFx.particles(level, ParticleTypes.SMOKE, from.x, from.y + 1.0, from.z, 14, 0.3, 0.5, 0.3, 0.02);
 		loseTrack(owner, from);
 	}

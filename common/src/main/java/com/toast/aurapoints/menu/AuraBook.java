@@ -319,9 +319,15 @@ public final class AuraBook {
 				lore.add(text("Click: abilities, buy actives", ChatFormatting.YELLOW));
 				slots[AURA] = icon(auraIcon(data.aura), auraName(data.aura), lore, data.awakened.contains(data.aura));
 			}
-			slots[ROLL] = icon(Items.AMETHYST_SHARD, text(data.freeRollUsed ? "Reroll" : "Roll your aura", ChatFormatting.GREEN), List.of(
-					text(data.freeRollUsed ? "Costs " + AuraConfig.REROLL_COST + " Aura (never the one you have)." : "Your first roll is free.", ChatFormatting.GRAY),
-					text("Click: see every aura", ChatFormatting.YELLOW)), !data.freeRollUsed);
+			List<Component> rollLore = new ArrayList<>();
+			if (data.freeRollUsed) {
+				rollLore.addAll(wrap("Reroll: " + AuraConfig.REROLL_COST + " Aura, always an aura you never had.", 36, ChatFormatting.GRAY));
+				rollLore.addAll(wrap("Switch back to one you had: " + AuraConfig.SWITCH_COST + " Aura.", 36, ChatFormatting.GRAY));
+			} else {
+				rollLore.add(text("Your first roll is free.", ChatFormatting.GRAY));
+			}
+			rollLore.add(text("Click: see every aura", ChatFormatting.YELLOW));
+			slots[ROLL] = icon(Items.AMETHYST_SHARD, text(data.freeRollUsed ? "Reroll or switch" : "Roll your aura", ChatFormatting.GREEN), rollLore, !data.freeRollUsed);
 			slots[SKILLS] = icon(Items.EXPERIENCE_BOTTLE, text("Skill points", ChatFormatting.LIGHT_PURPLE), List.of(
 					text("Next point: " + AuraCurrency.nextSkillPointCost(data) + " Aura", ChatFormatting.GRAY),
 					text("Click: buy points for the skill trees", ChatFormatting.YELLOW)), false);
@@ -453,13 +459,17 @@ public final class AuraBook {
 			}
 
 			slots[10] = icon(Items.BLAZE_ROD, text("Actives", ChatFormatting.GOLD), List.of(
-					text("Bought once, used with your keys.", ChatFormatting.GRAY)), false);
+					text("Bought once, used with your keys.", ChatFormatting.GRAY),
+					text("Sneak + key / hold the key: extra casts", ChatFormatting.DARK_AQUA),
+					text("at Mastery " + com.toast.aurapoints.ability.Mastery.roman(AuraConfig.CAST_SNEAK_MASTERY) + " / "
+							+ com.toast.aurapoints.ability.Mastery.roman(AuraConfig.CAST_CHARGED_MASTERY) + " (see each ability).", ChatFormatting.DARK_AQUA)), false);
 			List<AuraAbilities.Ability> actives = actives(aura, branch);
 			int price = AuraCommand.nextShopPrice(data);
 			for (int i = 0; i < actives.size() && i < ACTIVE_SLOTS.length; i++) {
 				AuraAbilities.Ability a = actives.get(i);
 				boolean owned = data.owned.contains(a), off = AuraAbilities.DISABLED.contains(a);
 				List<Component> lore = new ArrayList<>(wrap(a.description(), 38, ChatFormatting.GRAY));
+				for (String cast : com.toast.aurapoints.ability.Casts.describe(a)) lore.addAll(wrap(cast, 38, ChatFormatting.DARK_AQUA));
 				int key = aura.keySlots(branch).indexOf(a);
 				lore.add(text(key >= 0 ? "Key: Ability " + (key + 1) : "Key: jump", ChatFormatting.DARK_AQUA));
 				if (a.cooldownTicks() > 0) lore.add(text("Cooldown: " + AuraAbilities.fmt(a.cooldownTicks() / 20f) + "s", ChatFormatting.DARK_GRAY));
@@ -551,46 +561,92 @@ public final class AuraBook {
 		}
 	}
 
-	/** Every rollable aura, plus the roll button (a reroll needs a second click). */
+	/** Every rollable aura, plus the roll button (a reroll needs a second click). Auras you had switch back on a second click too. */
 	static final class RollPage extends Page {
 		static final int ROLL = 49;
 		private boolean armed;
+		/** The aura you had whose icon was clicked once; the second click switches to it. */
+		private AuraType armedSwitch;
+		/** Slot -> the aura you had shown there. */
+		private final java.util.Map<Integer, AuraType> hadAt = new java.util.HashMap<>();
 
 		@Override
 		Component title(ServerPlayer player) {
 			return Component.literal("Roll an aura");
 		}
 
+		/** How many rollable auras the player never had. */
+		private static int unrolled(AuraPlayerData data) {
+			int n = 0;
+			for (AuraType aura : AuraType.values()) if (aura.rollable() && aura != data.aura && !data.rolled.contains(aura)) n++;
+			return n;
+		}
+
 		@Override
 		void fill(ServerPlayer player, AuraPlayerData data, ItemStack[] slots) {
-			int i = 10;
+			int i = 10, left = 0;
+			hadAt.clear();
 			for (AuraType aura : AuraType.values()) {
 				if (!aura.rollable()) continue;
 				if (i % 9 == 8) i += 2;
 				if (i > 43) break;
 				List<Component> lore = new ArrayList<>(wrap(AuraCommand.role(aura), 36, ChatFormatting.GRAY));
-				if (aura == data.aura) lore.add(text("Yours (a reroll never gives it again)", ChatFormatting.DARK_GRAY));
-				slots[i++] = icon(auraIcon(aura), auraName(aura), lore, aura == data.aura);
+				boolean had = aura != data.aura && data.rolled.contains(aura);
+				if (aura == data.aura) {
+					lore.add(text("Yours", ChatFormatting.DARK_GRAY));
+				} else if (had) {
+					hadAt.put(i, aura);
+					lore.add(text("You had this one. Mastery " + com.toast.aurapoints.ability.Mastery.roman(data.mastery.getOrDefault(aura, 0)), ChatFormatting.DARK_GRAY));
+					lore.add(text(armedSwitch == aura ? "Click again: switch back for " + AuraConfig.SWITCH_COST + " Aura"
+							: "Click: switch back for " + AuraConfig.SWITCH_COST + " Aura", ChatFormatting.YELLOW));
+				} else {
+					left++;
+					lore.add(text("Not had yet - a roll can give it.", ChatFormatting.DARK_GRAY));
+				}
+				slots[i++] = icon(auraIcon(aura), auraName(aura), lore, aura == data.aura || armedSwitch == aura);
 			}
 			bar(slots, true);
 			boolean free = !data.freeRollUsed;
-			String label = free ? "Roll - free" : armed ? "Click again to reroll" : "Reroll - " + AuraConfig.REROLL_COST + " Aura";
-			slots[ROLL] = icon(armed ? Items.LIME_CONCRETE : Items.AMETHYST_CLUSTER, text(label, ChatFormatting.GREEN, ChatFormatting.BOLD), List.of(
-					text("You have " + AuraCurrency.get(player) + " Aura.", ChatFormatting.GRAY),
-					text(free ? "Your aura is picked at random." : "You lose your current aura (bought actives come back if you roll it again).", ChatFormatting.DARK_GRAY)), true);
+			if (!free && left == 0) {
+				slots[ROLL] = icon(Items.GRAY_DYE, text("You've had every aura", ChatFormatting.GRAY, ChatFormatting.BOLD), List.of(
+						text("Click an aura above to switch back to it.", ChatFormatting.DARK_GRAY)), false);
+			} else {
+				String label = free ? "Roll - free" : armed ? "Click again to reroll" : "Reroll - " + AuraConfig.REROLL_COST + " Aura";
+				slots[ROLL] = icon(armed ? Items.LIME_CONCRETE : Items.AMETHYST_CLUSTER, text(label, ChatFormatting.GREEN, ChatFormatting.BOLD), List.of(
+						text("You have " + AuraCurrency.get(player) + " Aura.", ChatFormatting.GRAY),
+						text(free ? "Your aura is picked at random." : "Always an aura you never had (" + left + " left).", ChatFormatting.DARK_GRAY),
+						text(free ? "" : "Bought actives come back when you return to an aura.", ChatFormatting.DARK_GRAY)), true);
+			}
 			slots[53] = icon(Items.BARRIER, text("Close", ChatFormatting.RED), List.of(), false);
 		}
 
 		@Override
 		void click(ServerPlayer player, AuraPlayerData data, int slot) {
 			if (slot == ROLL) {
+				if (data.freeRollUsed && unrolled(data) == 0) {
+					pageSound(player);
+					return;
+				}
 				if (data.freeRollUsed && !armed) {
 					armed = true;
+					armedSwitch = null;
 					pageSound(player);
 					return;
 				}
 				player.closeContainer();
 				run(player, "aura roll confirm");
+				return;
+			}
+			AuraType back = hadAt.get(slot);
+			if (back != null) {
+				if (armedSwitch != back) {
+					armedSwitch = back;
+					armed = false;
+					pageSound(player);
+					return;
+				}
+				player.closeContainer();
+				run(player, "aura switch " + back.id());
 				return;
 			}
 			if (slot == 53) {

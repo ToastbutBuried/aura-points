@@ -39,8 +39,79 @@ public final class AuraConfig {
 	public static String PROGRESS_FOLDER = "aura-progress";
 
 
-	/** Every player's first roll is free; each reroll after that costs this much Aura. */
+	/** Every player's first roll is free; each reroll after that costs this much Aura. A roll never gives an aura the player had. */
 	public static int REROLL_COST = 500;
+
+	/** Switching back to an aura you already had (/aura switch) costs this much Aura. */
+	public static int SWITCH_COST = 150;
+
+	// ---- Sneak and hold casts (CastMode / Casts) ----
+	/** Master switch for the sneak and charged casts of abilities. */
+	public static boolean CAST_VARIANTS_ENABLED = true;
+	/** Mastery level of the aura that unlocks its sneak casts (sneak + key). */
+	public static int CAST_SNEAK_MASTERY = 2;
+	/** Mastery level that unlocks its charged casts (hold the key). */
+	public static int CAST_CHARGED_MASTERY = 3;
+	/** Ticks the key must stay down for a charged cast; a shorter press is the normal cast, fired on the release. */
+	public static int CAST_CHARGE_TICKS = 10;
+	/** A key kept down longer than this drops the charge (nothing fires). */
+	public static int CAST_CHARGE_MAX_TICKS = 200;
+	/** Cooldown multipliers of the sneak and charged casts (1 = the ability's normal cooldown). */
+	public static double CAST_SNEAK_COOLDOWN_FACTOR = 1.0;
+	public static double CAST_CHARGED_COOLDOWN_FACTOR = 1.25;
+
+	// Fire casts
+	/** Spread Shot (sneak + Fireball): this many small fireballs in a fan, this many degrees apart, each dealing this share of a fireball's damage. */
+	public static int FIREBALL_SPREAD_COUNT = 3;
+	public static double FIREBALL_SPREAD_DEGREES = 10;
+	public static float FIREBALL_SPREAD_DAMAGE_FACTOR = 0.5f;
+	/** Meteor (hold Fireball): damage and speed factors, and the blast radius that burns and hurts everything around the impact. */
+	public static float FIREBALL_CHARGED_DAMAGE_FACTOR = 1.6f;
+	public static double FIREBALL_CHARGED_SPEED_FACTOR = 0.7;
+	public static double FIREBALL_CHARGED_BLAST_RADIUS = 2.5;
+	/** Flame Ward (sneak + Heat Wave): a ring of fire this far around you, no knockback, this share of a Heat Wave's damage. */
+	public static double HEAT_WAVE_WARD_RADIUS = 2.5;
+	public static float HEAT_WAVE_WARD_DAMAGE_FACTOR = 0.5f;
+	/** Inferno Wave (hold Heat Wave): radius, damage and burn-time factors. */
+	public static double HEAT_WAVE_CHARGED_RADIUS_FACTOR = 1.5;
+	public static float HEAT_WAVE_CHARGED_DAMAGE_FACTOR = 1.25f;
+	public static float HEAT_WAVE_CHARGED_BURN_FACTOR = 2.0f;
+	/** Flame Cloak (sneak + Fire Bending): Fire Resistance for this long; enemies this close catch fire for this many seconds. */
+	public static int FIRE_BENDING_CLOAK_TICKS = 100;
+	public static double FIRE_BENDING_CLOAK_RADIUS = 2.0;
+	public static float FIRE_BENDING_CLOAK_BURN_SECONDS = 2.0f;
+
+	// Water casts
+	/** Undertow (sneak + Shockwave): pulls enemies in this hard instead of pushing, with this share of the damage, and soaks them (Wet). */
+	public static double SHOCKWAVE_PULL_STRENGTH = 1.2;
+	public static float SHOCKWAVE_PULL_DAMAGE_FACTOR = 0.5f;
+	/** Tidal Slam (hold Shockwave): radius, knockback and damage factors. */
+	public static double SHOCKWAVE_CHARGED_RADIUS_FACTOR = 1.5;
+	public static double SHOCKWAVE_CHARGED_KNOCKBACK_FACTOR = 1.6;
+	public static float SHOCKWAVE_CHARGED_DAMAGE_FACTOR = 1.25f;
+	/** Mending Tide (sneak + Healing Tide): allies only (not you), one Regeneration level higher, wider by this factor. */
+	public static double HEALING_TIDE_MENDING_RADIUS_FACTOR = 1.3;
+	/** Spring (hold Healing Tide): a healing pool at your feet for this long and this wide, Regeneration I to friends inside every second. */
+	public static int HEALING_TIDE_SPRING_TICKS = 160;
+	public static double HEALING_TIDE_SPRING_RADIUS = 3.0;
+	/** Diver's Bubble (sneak + Abyssal Bubble): Water Breathing and Slow Falling for this long; this share of the bubble's cooldown. */
+	public static int BUBBLE_SELF_TICKS = 600;
+	public static double BUBBLE_SELF_COOLDOWN_FACTOR = 0.5;
+
+	// Shadow casts
+	/** Backstep (sneak + Dash): a dash backwards at this share of the strength, invisible this many ticks, this share of the cooldown. */
+	public static double DASH_BACKSTEP_FACTOR = 0.7;
+	public static int DASH_BACKSTEP_INVIS_TICKS = 20;
+	public static double DASH_BACKSTEP_COOLDOWN_FACTOR = 0.6;
+	/** Phase Dash (hold Dash): strength factor; for this many ticks, enemies you pass through take this damage and are blinded this long. */
+	public static double DASH_PHASE_STRENGTH_FACTOR = 1.5;
+	public static float DASH_PHASE_DAMAGE = 3.0f;
+	public static int DASH_PHASE_TICKS = 8;
+	public static int DASH_PHASE_BLIND_TICKS = 30;
+	/** Decoy (sneak + Vanish): also leaves a shadow clone standing where you were, for this long. */
+	public static int VANISH_DECOY_TICKS = 80;
+	/** Deep Vanish (hold Vanish): lasts this many times longer, but gives no Speed. */
+	public static double VANISH_CHARGED_DURATION_FACTOR = 1.6;
 
 	/** Aura price of the first skill point bought with /aura redeem. */
 	public static int SKILL_POINT_BASE_COST = 20;

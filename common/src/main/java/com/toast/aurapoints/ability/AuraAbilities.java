@@ -690,8 +690,13 @@ public final class AuraAbilities {
 		return true;
 	}
 
-	/** Dispatches a key press to the matching active ability. Returns true if it fired. */
+	/** Dispatches a key press to the matching active ability (its normal cast). Returns true if it fired. */
 	public static boolean tryActivate(ServerPlayer player, Ability ability, long now) {
+		return tryActivate(player, ability, now, CastMode.TAP);
+	}
+
+	/** The ability's cast for {@code mode}: SNEAK and CHARGED go to {@link Casts} when the ability has that cast, else the normal one fires. */
+	public static boolean tryActivate(ServerPlayer player, Ability ability, long now, CastMode mode) {
 		// on the duel pads before "FIGHT!", or knocked out
 		if (com.toast.aurapoints.arena.Duel.holdsStill(player)) return false;
 		// steering a viper: the only key that works is the viper's own (to call it back); entangled: none
@@ -706,13 +711,14 @@ public final class AuraAbilities {
 		float boost = AuraFx.boost;
 		AuraFx.boost = Mastery.particleBoost(player);
 		try {
-			return activate(player, ability, now);
+			return activate(player, ability, now, mode);
 		} finally {
 			AuraFx.boost = boost;
 		}
 	}
 
-	private static boolean activate(ServerPlayer player, Ability ability, long now) {
+	private static boolean activate(ServerPlayer player, Ability ability, long now, CastMode mode) {
+		if (mode != CastMode.TAP && CastMode.has(ability, mode)) return Casts.activate(player, ability, now, mode);
 		return switch (ability) {
 			case SHOCKWAVE -> tryShockwave(player, now);
 			case VANISH -> tryVanish(player, now);
@@ -994,7 +1000,7 @@ public final class AuraAbilities {
 	}
 
 	/** Living things within {@code r} blocks that an area ability should hit. */
-	private static List<LivingEntity> areaTargets(ServerPlayer player, double r) {
+	static List<LivingEntity> areaTargets(ServerPlayer player, double r) {
 		return player.serverLevel().getEntitiesOfClass(LivingEntity.class,
 				player.getBoundingBox().inflate(r),
 				// not creative players (can't be hurt, so not knocked or set alight either), the mount you ride (and
@@ -1017,22 +1023,37 @@ public final class AuraAbilities {
 	}
 
 	public static boolean tryShockwave(ServerPlayer player, long now) {
+		return shockwave(player, now, CastMode.TAP);
+	}
+
+	/** The Shockwave; SNEAK = Undertow (pulls in, soaks, less damage), CHARGED = Tidal Slam (wider, harder, pushes further). */
+	static boolean shockwave(ServerPlayer player, long now, CastMode mode) {
 		if (!checkCooldown(player, Ability.SHOCKWAVE, AuraConfig.SHOCKWAVE_COOLDOWN_TICKS, now)) return false;
+		boolean pull = mode == CastMode.SNEAK, slam = mode == CastMode.CHARGED;
 		int at = where(player);
-		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_SHOCKWAVE, at == 2 ? 3 : at == 1 ? 2 : player.getRandom().nextInt(2));
-		AuraFx.sound(player.serverLevel(), player, AuraSounds.SWEET_IMPACT.value(), 1.0f, 1.0f);
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_SHOCKWAVE, at == 2 ? 3 : at == 1 ? 2 : pull ? 1 : player.getRandom().nextInt(2));
+		AuraFx.sound(player.serverLevel(), player, AuraSounds.SWEET_IMPACT.value(), 1.0f, pull ? 0.8f : slam ? 0.9f : 1.0f);
 
 		ServerLevel world = player.serverLevel();
-		double r = AuraConfig.SHOCKWAVE_RADIUS;
+		double r = AuraConfig.SHOCKWAVE_RADIUS * (slam ? AuraConfig.SHOCKWAVE_CHARGED_RADIUS_FACTOR : 1.0);
+		float damageFactor = pull ? AuraConfig.SHOCKWAVE_PULL_DAMAGE_FACTOR : slam ? AuraConfig.SHOCKWAVE_CHARGED_DAMAGE_FACTOR : 1f;
+		double knockback = (Branch.is(player, Branch.TIDECALLER) ? AuraConfig.WATER_TIDECALLER_SHOCKWAVE_KNOCKBACK : AuraConfig.SHOCKWAVE_KNOCKBACK)
+				* (slam ? AuraConfig.SHOCKWAVE_CHARGED_KNOCKBACK_FACTOR : 1.0);
 		List<LivingEntity> targets = areaTargets(player, r);
 
 		AuraStunts.ACTIVE_ABILITY = Ability.SHOCKWAVE;
 		try {
 			for (LivingEntity target : targets) {
-				target.hurt(world.damageSources().playerAttack(player), vsMob(target, shockwaveDamage(player, target, r)));
+				target.hurt(world.damageSources().playerAttack(player), vsMob(target, shockwaveDamage(player, target, r) * damageFactor));
 				double dx = player.getX() - target.getX();
 				double dz = player.getZ() - target.getZ();
-				target.knockback(Branch.is(player, Branch.TIDECALLER) ? AuraConfig.WATER_TIDECALLER_SHOCKWAVE_KNOCKBACK : AuraConfig.SHOCKWAVE_KNOCKBACK, dx, dz);
+				// knockback(x, z) pushes AWAY from the player: the Undertow hands it the opposite direction and pulls
+				if (pull) {
+					target.knockback(AuraConfig.SHOCKWAVE_PULL_STRENGTH, -dx, -dz);
+					Reactions.applyMark(target, Reactions.Mark.WET);
+				} else {
+					target.knockback(knockback, dx, dz);
+				}
 				AuraStunts.shockwaveHit(player, target);
 				Vec3 c = AuraFx.chest(target);
 				AuraFx.burst(world, c.x, c.y, c.z, AuraFx.dust(SPRAY_WHITE, 1.2f), 10, 0.3, 0.0);
@@ -1061,7 +1082,8 @@ public final class AuraAbilities {
 				ground.isAir() ? net.minecraft.world.level.block.Blocks.STONE.defaultBlockState() : ground);
 		MinecraftServer server = player.getServer();
 		for (int step = 1; step <= 3; step++) {
-			final double radius = r * step / 3.0;
+			// the Undertow's rings run inward
+			final double radius = pull ? r * (4 - step) / 3.0 : r * step / 3.0;
 			AuraFx.later(server, step, () -> {
 				AuraFx.ring(world, cx, cy, cz, radius, crack, (int) (radius * 8));
 				AuraFx.ring(world, cx, cy + 0.2, cz, radius, AuraFx.dust(SPRAY_WHITE, 1.5f), (int) (radius * 6));
@@ -1069,18 +1091,25 @@ public final class AuraAbilities {
 			});
 		}
 
-		markUsed(player, Ability.SHOCKWAVE, now);
+		Casts.used(player, Ability.SHOCKWAVE, now, mode);
 		return true;
 	}
 
 	public static boolean tryVanish(ServerPlayer player, long now) {
-		if (!checkCooldown(player, Ability.VANISH, AuraConfig.VANISH_COOLDOWN_TICKS, now)) return false;
-		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_VANISH, player.getRandom().nextInt(2));
+		return vanish(player, now, CastMode.TAP);
+	}
 
-		player.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY,
-				AuraConfig.VANISH_DURATION_TICKS, 0, false, false, true));
-		player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED,
-				AuraConfig.VANISH_DURATION_TICKS, AuraConfig.VANISH_SPEED_AMPLIFIER, false, false, true));
+	/** Vanish; SNEAK = Decoy (a shadow clone stays behind), CHARGED = Deep Vanish (longer, no Speed). */
+	static boolean vanish(ServerPlayer player, long now, CastMode mode) {
+		if (!checkCooldown(player, Ability.VANISH, AuraConfig.VANISH_COOLDOWN_TICKS, now)) return false;
+		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_VANISH, mode == CastMode.SNEAK ? 1 : player.getRandom().nextInt(2));
+
+		int duration = (int) Math.round(AuraConfig.VANISH_DURATION_TICKS * (mode == CastMode.CHARGED ? AuraConfig.VANISH_CHARGED_DURATION_FACTOR : 1.0));
+		player.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, duration, 0, false, false, true));
+		if (mode != CastMode.CHARGED) {
+			player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, duration, AuraConfig.VANISH_SPEED_AMPLIFIER, false, false, true));
+		}
+		if (mode == CastMode.SNEAK) PhantomDecoy.decoy(player, player.position(), AuraConfig.VANISH_DECOY_TICKS);
 
 		ServerLevel world = player.serverLevel();
 		AuraFx.particles(world, ParticleTypes.POOF, player.getX(), player.getY() + 1.0, player.getZ(),
@@ -1091,12 +1120,12 @@ public final class AuraAbilities {
 		world.playSound(null, player.blockPosition(), AuraSounds.ENDERMAN_TELEPORT.value(), SoundSource.PLAYERS, 0.6f, 1.6f);
 		AuraFx.sound(world, player, AuraSounds.ILLUSIONER_MIRROR_MOVE.value(), 1.0f, 0.8f);
 
-		long until = now + AuraConfig.VANISH_DURATION_TICKS;
+		long until = now + duration;
 		VANISH_UNTIL.put(player.getUUID(), until);
 		scheduleReappear(player, until, now);
 
 		AuraStats.add(player, AuraStats.VANISH_USES, 1);
-		markUsed(player, Ability.VANISH, now);
+		Casts.used(player, Ability.VANISH, now, mode);
 		return true;
 	}
 
@@ -1142,15 +1171,31 @@ public final class AuraAbilities {
 	}
 
 	public static boolean tryDash(ServerPlayer player, long now) {
+		return dash(player, now, CastMode.TAP);
+	}
+
+	/** The Dash; SNEAK = Backstep (short, backwards, a moment invisible), CHARGED = Phase Dash (longer; hurts and blinds what you pass through). */
+	static boolean dash(ServerPlayer player, long now, CastMode mode) {
 		AuraPlayerData data = com.toast.aurapoints.data.AuraState.get(player.getServer()).getOrCreate(player.getUUID());
 		if (player.isFallFlying()) return tryElytraDash(player, now);
 		if (!checkCooldown(player, Ability.DASH, AuraConfig.DASH_COOLDOWN_TICKS, now)) return false;
+		boolean back = mode == CastMode.SNEAK, phase = mode == CastMode.CHARGED;
 		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_DASH, where(player) == 1 ? 1 : 0);
-		AuraFx.sound(player.serverLevel(), player, AuraSounds.SWEET_WHOOSH.value(), 0.9f, 1.0f);
+		AuraFx.sound(player.serverLevel(), player, AuraSounds.SWEET_WHOOSH.value(), 0.9f, back ? 1.3f : 1.0f);
 
 		PhantomDecoy.spawn(player, player.position());
 		Vec3 look = player.getLookAngle();
 		double s = AuraConfig.DASH_STRENGTH;
+		if (back) {
+			// straight back along the ground, whatever the pitch
+			Vec3 flat = new Vec3(-look.x, 0, -look.z);
+			look = flat.lengthSqr() < 1.0e-4 ? new Vec3(0, 0, -1) : flat.normalize();
+			s *= AuraConfig.DASH_BACKSTEP_FACTOR;
+			player.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, AuraConfig.DASH_BACKSTEP_INVIS_TICKS, 0, false, false, false));
+		} else if (phase) {
+			s *= AuraConfig.DASH_PHASE_STRENGTH_FACTOR;
+			Casts.startPhase(player, now);
+		}
 		player.setDeltaMovement(look.x * s, look.y * s * 0.6 + 0.15, look.z * s);
 		player.hurtMarked = true; // makes the server send the new velocity to the client
 		player.fallDistance = 0.0f;
@@ -1159,6 +1204,7 @@ public final class AuraAbilities {
 		AuraFx.particles(world, ParticleTypes.CLOUD, player.getX(), player.getY() + 0.5, player.getZ(),
 				20, 0.3, 0.2, 0.3, 0.05);
 		AuraFx.ring(world, player.getX(), player.getY() + 0.1, player.getZ(), 0.9, ParticleTypes.SMOKE, 14);
+		if (back) AuraFx.burst(world, player.getX(), player.getY() + 1.0, player.getZ(), ParticleTypes.SQUID_INK, 15, 0.4, 0.05);
 		world.playSound(null, player.blockPosition(), AuraSounds.ENDER_DRAGON_FLAP.value(), SoundSource.PLAYERS, 0.8f, 1.4f);
 		AuraFx.sound(world, player, AuraSounds.PHANTOM_FLAP.value(), 0.6f, 1.6f);
 		// a shadowy streak behind the dash
@@ -1166,8 +1212,10 @@ public final class AuraAbilities {
 
 		AuraStats.add(player, AuraStats.DASH_USES, 1);
 		AuraStunts.dashed(player);
-		DashDive.dashed(player, data, now);
-		markUsedCharged(player, Ability.DASH, now, AuraConfig.DASH_COOLDOWN_TICKS);
+		if (!back) DashDive.dashed(player, data, now);
+		if (back) Casts.used(player, Ability.DASH, now, AuraConfig.DASH_BACKSTEP_COOLDOWN_FACTOR);
+		else if (phase) Casts.used(player, Ability.DASH, now, mode);
+		else markUsedCharged(player, Ability.DASH, now, AuraConfig.DASH_COOLDOWN_TICKS);
 		return true;
 	}
 
@@ -1348,14 +1396,22 @@ public final class AuraAbilities {
 	}
 
 	public static boolean tryHealingTide(ServerPlayer player, long now) {
+		return healingTide(player, now, CastMode.TAP);
+	}
+
+	/** Healing Tide; SNEAK = Mending Tide (allies only, stronger, wider), CHARGED = the tide plus a Spring (Casts) at your feet. */
+	static boolean healingTide(ServerPlayer player, long now, CastMode mode) {
 		if (!checkCooldown(player, Ability.HEALING_TIDE, AuraConfig.HEALING_TIDE_COOLDOWN_TICKS, now)) return false;
+		boolean mending = mode == CastMode.SNEAK;
 		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_HEALING_TIDE, where(player) == 2 ? 2 : player.getRandom().nextInt(2));
 
 		ServerLevel world = player.serverLevel();
-		double r = Branch.is(player, Branch.TIDECALLER) ? AuraConfig.WATER_TIDECALLER_HEALING_RADIUS : AuraConfig.HEALING_TIDE_RADIUS;
+		double r = (Branch.is(player, Branch.TIDECALLER) ? AuraConfig.WATER_TIDECALLER_HEALING_RADIUS : AuraConfig.HEALING_TIDE_RADIUS)
+				* (mending ? AuraConfig.HEALING_TIDE_MENDING_RADIUS_FACTOR : 1.0);
+		int amplifier = healingAmplifier(player) + (mending ? 1 : 0);
 		List<ServerPlayer> healed = world.getEntitiesOfClass(ServerPlayer.class, player.getBoundingBox().inflate(r),
-				// friends only (Light.friend, like Radiant Pulse): everyone outside the arena, only teammates inside it
-				p -> p.isAlive() && !p.isSpectator() && p.distanceToSqr(player) <= r * r && Light.friend(player, p));
+				// friends only (Light.friend, like Radiant Pulse): everyone outside the arena, only teammates inside it; a Mending Tide skips the caster
+				p -> p.isAlive() && !p.isSpectator() && (!mending || p != player) && p.distanceToSqr(player) <= r * r && Light.friend(player, p));
 		for (ServerPlayer p : healed) {
 			if (AuraConfig.HEALING_TIDE_CLEANSE) {
 				List<net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect>> bad = p.getActiveEffects().stream()
@@ -1365,7 +1421,7 @@ public final class AuraAbilities {
 				bad.forEach(p::removeEffect);
 			}
 			p.addEffect(new MobEffectInstance(MobEffects.REGENERATION,
-					AuraConfig.HEALING_TIDE_DURATION_TICKS, healingAmplifier(player), false, true, true));
+					AuraConfig.HEALING_TIDE_DURATION_TICKS, amplifier, false, true, true));
 			Vec3 c = AuraFx.chest(p);
 			AuraFx.burst(world, c.x, c.y + 0.5, c.z, ParticleTypes.HEART, 3, 0.4, 0.0);
 			AuraFx.burst(world, c.x, c.y, c.z, ParticleTypes.HAPPY_VILLAGER, 8, 0.4, 0.0);
@@ -1379,14 +1435,15 @@ public final class AuraAbilities {
 			}
 		}
 
-		// the caster alone: a little Resistance
-		if (AuraConfig.HEALING_TIDE_RESISTANCE_DURATION_TICKS > 0 && AuraConfig.HEALING_TIDE_RESISTANCE_AMPLIFIER >= 0) {
+		// the caster alone: a little Resistance (not from a Mending Tide, which is for the others)
+		if (!mending && AuraConfig.HEALING_TIDE_RESISTANCE_DURATION_TICKS > 0 && AuraConfig.HEALING_TIDE_RESISTANCE_AMPLIFIER >= 0) {
 			player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE,
 					AuraConfig.HEALING_TIDE_RESISTANCE_DURATION_TICKS, AuraConfig.HEALING_TIDE_RESISTANCE_AMPLIFIER, false, true, true));
 		}
 
 		AuraStats.add(player, AuraStats.HEALING_TIDE_HEALS, healed.size());
 		AuraStunts.healingTide(player);
+		if (mode == CastMode.CHARGED) Casts.startSpring(player, now);
 		// Slow and gentle: a soft teal wave flows IN from the edge over a second, while light
 		// motes rise around the caster. Quiet resonance and a chime, nothing that booms.
 		AuraFx.helix(player, AuraFx.dust(TIDE_TEAL, 1.3f), 30, 0.9, 2.6);
@@ -1411,11 +1468,16 @@ public final class AuraAbilities {
 		AuraFx.sound(world, player, AuraSounds.BUBBLE_COLUMN_UPWARDS_AMBIENT.value(), 0.8f, 1.2f);
 		AuraFx.sound(world, player, AuraSounds.AMETHYST_BLOCK_CHIME.value(), 1.0f, 1.4f);
 
-		markUsed(player, Ability.HEALING_TIDE, now);
+		Casts.used(player, Ability.HEALING_TIDE, now, mode);
 		return true;
 	}
 
 	public static boolean tryFireball(ServerPlayer player, long now) {
+		return fireball(player, now, CastMode.TAP);
+	}
+
+	/** Fireball; SNEAK = Spread Shot (a fan of small ones), CHARGED = Meteor (slow, heavy, blasts around the impact). */
+	static boolean fireball(ServerPlayer player, long now, CastMode mode) {
 		if (!checkCooldown(player, Ability.FIREBALL, AuraConfig.FIREBALL_COOLDOWN_TICKS, now)) return false;
 
 		// The throw: in water a push, in the air a hurl, on the ground one of three throws at random.
@@ -1423,34 +1485,43 @@ public final class AuraAbilities {
 				: !player.onGround() && !player.isPassenger() ? BendingAnimPacket.FIREBALL_AIR
 				: player.getRandom().nextInt(3); // overhand, sidearm or push
 		NetworkHandler.sendBendAnim(player, BendingAnimPacket.GESTURE, BendingAnimPacket.GESTURE_FIREBALL, variant);
-		// a flicker of flame in the hand while winding up
+		// a flicker of flame in the hand while winding up (a Meteor's is bigger and deeper)
+		boolean meteor = mode == CastMode.CHARGED;
 		ServerLevel level = player.serverLevel();
 		Vec3 hand = player.getEyePosition().add(player.getLookAngle().scale(0.4)).add(0, -0.3, 0);
-		AuraFx.burst(level, hand.x, hand.y, hand.z, ParticleTypes.FLAME, 6, 0.1, 0.02);
-		AuraFx.sound(level, player, AuraSounds.FIRECHARGE_USE.value(), 0.5f, 1.4f);
+		AuraFx.burst(level, hand.x, hand.y, hand.z, ParticleTypes.FLAME, meteor ? 16 : 6, meteor ? 0.2 : 0.1, 0.02);
+		AuraFx.sound(level, player, AuraSounds.FIRECHARGE_USE.value(), meteor ? 0.8f : 0.5f, meteor ? 0.9f : 1.4f);
 		// the fireball leaves the hand at the release, aimed where the player looks by then
 		int delay = Math.max(0, AuraConfig.FIREBALL_THROW_DELAY_TICKS);
-		if (delay == 0) launchFireball(player);
+		Runnable launch = switch (mode) {
+			case SNEAK -> () -> Casts.launchSpread(player);
+			case CHARGED -> () -> Casts.launchMeteor(player);
+			default -> () -> launchFireball(player, player.getLookAngle(), 1f, 1.0, 0);
+		};
+		if (delay == 0) launch.run();
 		else AuraFx.later(player.getServer(), delay, () -> {
-			if (AuraFx.alive(player) && player.isAlive()) launchFireball(player);
+			if (AuraFx.alive(player) && player.isAlive()) launch.run();
 		});
 
-		markUsed(player, Ability.FIREBALL, now);
+		Casts.used(player, Ability.FIREBALL, now, mode);
 		return true;
 	}
 
-	private static void launchFireball(ServerPlayer player) {
+	/** One fireball along {@code dir}, with a cast's damage share, speed factor and blast radius (1, 1, 0 for the normal one). */
+	static AuraFireball launchFireball(ServerPlayer player, Vec3 dir, float damageFactor, double speedFactor, double blastRadius) {
 		ServerLevel world = player.serverLevel();
-		Vec3 look = player.getLookAngle();
+		Vec3 look = dir.normalize();
 		Vec3 start = player.getEyePosition().add(look.scale(0.8));
-		AuraFireball fireball = new AuraFireball(world, player, look.normalize());
+		AuraFireball fireball = new AuraFireball(world, player, look);
 		fireball.setPos(start.x, start.y - 0.1, start.z);
 		fireball.boost(player);
+		fireball.tune(damageFactor, speedFactor, blastRadius);
 		world.addFreshEntity(fireball);
 
 		AuraFx.burst(world, start.x, start.y, start.z, ParticleTypes.FLAME, 12, 0.15, 0.05);
 		AuraFx.burst(world, start.x, start.y, start.z, AuraFx.dust(AuraType.FIRE.rgb, 1.4f), 8, 0.2, 0.0);
-		AuraFx.sound(world, player, AuraSounds.BLAZE_SHOOT.value(), 1.0f, 1.0f);
+		AuraFx.sound(world, player, AuraSounds.BLAZE_SHOOT.value(), 1.0f, blastRadius > 0 ? 0.7f : 1.0f);
+		return fireball;
 	}
 
 	public static boolean tryHeatWave(ServerPlayer player, long now) {
@@ -1472,10 +1543,15 @@ public final class AuraAbilities {
 	 * harder, much longer burning, lifts targets off their feet, and far more fire.
 	 */
 	static void heatWave(ServerPlayer player, boolean inferno) {
+		heatWave(player, inferno, 1.0, 1f, 1f);
+	}
+
+	/** The wave scaled: an Inferno Wave (a charged Heat Wave, Casts) is wider, harder and burns longer by these factors. */
+	static void heatWave(ServerPlayer player, boolean inferno, double radiusFactor, float damageFactor, float burnFactor) {
 		ServerLevel world = player.serverLevel();
-		double r = inferno ? AuraConfig.INFERNO_SLAM_RADIUS : AuraConfig.HEAT_WAVE_RADIUS;
-		float damage = inferno ? AuraConfig.INFERNO_SLAM_DAMAGE : AuraConfig.HEAT_WAVE_DAMAGE;
-		float burn = inferno ? AuraConfig.INFERNO_SLAM_BURN_SECONDS : AuraConfig.HEAT_WAVE_BURN_SECONDS;
+		double r = (inferno ? AuraConfig.INFERNO_SLAM_RADIUS : AuraConfig.HEAT_WAVE_RADIUS) * radiusFactor;
+		float damage = (inferno ? AuraConfig.INFERNO_SLAM_DAMAGE : AuraConfig.HEAT_WAVE_DAMAGE) * damageFactor;
+		float burn = (inferno ? AuraConfig.INFERNO_SLAM_BURN_SECONDS : AuraConfig.HEAT_WAVE_BURN_SECONDS) * burnFactor;
 		double knockback = inferno ? AuraConfig.INFERNO_SLAM_KNOCKBACK : AuraConfig.HEAT_WAVE_KNOCKBACK;
 		List<LivingEntity> burned = areaTargets(player, r);
 		AuraStats.add(player, AuraStats.HEAT_WAVE_HITS, burned.size());

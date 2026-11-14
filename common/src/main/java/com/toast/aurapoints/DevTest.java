@@ -26,6 +26,7 @@ final class DevTest {
 		registerMastery(dispatcher);
 		registerBloodBar(dispatcher);
 		BranchDevTest.register(dispatcher);
+		CastDevTest.register(dispatcher);
 		// balance editor write path: set a value + a switch through AuraBalance.apply, check, then put both back
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("balance").executes(ctx -> {
 			var e = com.toast.aurapoints.config.AuraBalance.entry("FIREBALL_DAMAGE");
@@ -362,6 +363,21 @@ final class DevTest {
 							int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, x, z);
 							boolean lit = com.toast.aurapoints.ability.AuraFire.light(level, null, new net.minecraft.core.BlockPos(x, y, z));
 							AuraPoints.LOGGER.info("[auradev] fire lit={} at {} {} {}", lit, x, y, z);
+							return 1;
+						})))));
+		// /auradev cast <ability> <tap|sneak|charged>: that cast of the ability for you, whatever your Mastery, and what it did
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("cast")
+				.then(Commands.argument("ability", com.mojang.brigadier.arguments.StringArgumentType.word())
+						.then(Commands.argument("mode", com.mojang.brigadier.arguments.StringArgumentType.word()).executes(ctx -> {
+							net.minecraft.server.level.ServerPlayer p = ctx.getSource().getPlayer();
+							if (p == null) return 0;
+							var ability = com.toast.aurapoints.ability.AuraAbilities.Ability.valueOf(
+									com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "ability").toUpperCase(java.util.Locale.ROOT));
+							var mode = com.toast.aurapoints.ability.CastMode.valueOf(
+									com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "mode").toUpperCase(java.util.Locale.ROOT));
+							boolean fired = com.toast.aurapoints.ability.AuraAbilities.tryActivate(p, ability, ctx.getSource().getServer().getTickCount(), mode);
+							AuraPoints.LOGGER.info("[casttest] {} {} has={} unlocked={} fired={}", ability, mode,
+									com.toast.aurapoints.ability.CastMode.has(ability, mode), com.toast.aurapoints.ability.CastMode.unlocked(p, ability, mode), fired);
 							return 1;
 						})))));
 		// /auradev holds: every hold breaks when its holder is paralyzed (stun) and when frozen
