@@ -153,6 +153,8 @@
   "aurapoints.configuration.reducedMotion.tooltip": "Turns off camera shake, zoom punches and the moving and flashing HUD extras in one go.",
   "aurapoints.configuration.auraShimmer": "Aura shimmer",
   "aurapoints.configuration.auraShimmer.tooltip": "Faint particles around players in their aura's color, stronger right after they cast. OFF, OTHERS, or ALL (you too, in third person).",
+  "aurapoints.configuration.effectLevel": "Effect level",
+  "aurapoints.configuration.effectLevel.tooltip": "For weaker computers. FULL, REDUCED (about half of the server's particles, half the shimmer) or MINIMAL (a sixth of them, no shimmer, no sprint trails).",
   "aurapoints.configuration.shimmerDensity": "Shimmer amount",
   "aurapoints.configuration.shimmerDensity.tooltip": "How many shimmer particles (1.0 = normal).",
   "aurapoints.configuration.arenaMessages": "Arena messages",

@@ -46,6 +46,8 @@ public final class AuraStats {
 		return id;
 	}
 
+	public static final ResourceLocation DRILLS_DONE = stat("drills_done");
+
 	// Shadow
 	public static final ResourceLocation VANISH_USES = stat("vanish_uses");
 	public static final ResourceLocation DASH_USES = stat("dash_uses");

@@ -43,8 +43,9 @@ public final class AuraShimmer {
 			if (mc.level == null) SEEN.clear();
 			return;
 		}
-		if (mode == AuraClientConfig.Shimmer.OFF) return;
-		float density = (float) (double) AuraClientConfig.SHIMMER_DENSITY.get();
+		if (mode == AuraClientConfig.Shimmer.OFF || AuraClientConfig.EFFECT_LEVEL.get() == AuraClientConfig.EffectLevel.MINIMAL) return;
+		float density = (float) (double) AuraClientConfig.SHIMMER_DENSITY.get()
+				* (AuraClientConfig.EFFECT_LEVEL.get() == AuraClientConfig.EffectLevel.REDUCED ? 0.5f : 1f);
 		long now = System.currentTimeMillis();
 		RandomSource r = mc.level.random;
 		for (AbstractClientPlayer p : mc.level.players()) {

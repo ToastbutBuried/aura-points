@@ -38,6 +38,7 @@ public final class AuraClientConfig {
 	public static final ModConfigSpec.BooleanValue DRAGON_SHADER_SUPPORT, DRAGON_HIDE_FIRST_PERSON;
 	public static final ModConfigSpec.BooleanValue FOV_KICK, REDUCED_MOTION;
 	public static final ModConfigSpec.EnumValue<Shimmer> AURA_SHIMMER;
+	public static final ModConfigSpec.EnumValue<EffectLevel> EFFECT_LEVEL;
 	public static final ModConfigSpec.EnumValue<ArenaMessages> ARENA_MESSAGES;
 	public static final ModConfigSpec.DoubleValue SHIMMER_DENSITY;
 
@@ -97,6 +98,23 @@ public final class AuraClientConfig {
 		RIGHT,
 		/** a short bar right under the crosshair */
 		CROSSHAIR
+	}
+
+	/** One switch for weaker computers: how much of the server's particle effects and the mod's own extras you see. */
+	public enum EffectLevel {
+		/** everything, as always */
+		FULL(1.0f),
+		/** about half of the server's particles, half the shimmer */
+		REDUCED(0.5f),
+		/** a sixth of the server's particles, no shimmer and no sprint trails */
+		MINIMAL(0.15f);
+
+		/** the share of server-sent particle packets that are drawn */
+		public final float keep;
+
+		EffectLevel(float keep) {
+			this.keep = keep;
+		}
 	}
 
 	public enum Shimmer {
@@ -238,6 +256,10 @@ public final class AuraClientConfig {
 						"OFF, OTHERS (other players), or ALL (you too, in third person).")
 				.translation("aurapoints.configuration.auraShimmer")
 				.defineEnum("auraShimmer", Shimmer.OTHERS);
+		EFFECT_LEVEL = b.comment("Visual effects for weaker computers: FULL, REDUCED (about half of the particles the server sends, half the shimmer)",
+						"or MINIMAL (a sixth of them, no shimmer, no sprint trails). Only changes what you see; vanilla particles the server sends are thinned too.")
+				.translation("aurapoints.configuration.effectLevel")
+				.defineEnum("effectLevel", EffectLevel.FULL);
 		SHIMMER_DENSITY = b.comment("How many shimmer particles (1.0 = normal).")
 				.translation("aurapoints.configuration.shimmerDensity")
 				.defineInRange("shimmerDensity", 1.0, 0.1, 2.0);
@@ -283,6 +305,11 @@ public final class AuraClientConfig {
 				.define("hitSound", true);
 		b.pop();
 		SPEC = b.build();
+	}
+
+	/** The effect level's particle share (1 = everything). */
+	public static float effectKeep() {
+		return EFFECT_LEVEL.get().keep;
 	}
 
 	/** Reduced motion on: no shakes, punches, slides or flashing extras. */

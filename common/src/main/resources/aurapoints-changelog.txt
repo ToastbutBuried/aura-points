@@ -1,6 +1,11 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.20.0
+- New Basics Drill kiosk in the Training Hall: three quick steps that teach abilities and hitting dummies.
+- New client setting "Effect level" (Full / Reduced / Minimal) for weaker computers: fewer particles, less shimmer, no sprint trails.
+- Fix: Magma pools and Phantom decoys no longer carry over into the next world.
+
 == 5.19.2
 - Mjölnir: the spin no longer splays the legs, and they swing normally when you walk with it.
 - Mjölnir flight: your body now lies along where you aim (level, up or down) and banks into turns.

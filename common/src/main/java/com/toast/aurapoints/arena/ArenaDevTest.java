@@ -267,6 +267,45 @@ public final class ArenaDevTest {
 			red.moveTo(Arena.LOBBY.x, Arena.LOBBY.y, Arena.LOBBY.z);
 			log("hall victim, attacker in lobby: hit blocked " + Arena.blocksDamage(blue, hit) + " (must be true)");
 			return 1;
+		})).then(Commands.literal("drill").executes(ctx -> {
+			// the Training Hall drill: ability -> dummy -> moving dummy, a wrong hit does nothing, the kiosk is built, a second click stops it
+			MinecraftServer server = ctx.getSource().getServer();
+			ServerLevel arena = Arena.level(server);
+			if (arena == null) return 0;
+			net.minecraft.server.level.ServerPlayer red = FakePlayerFactory.get(arena, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000a001"), "Red"));
+			AuraState state = AuraState.get(server);
+			var data = state.getOrCreate(red.getUUID());
+			AuraType old = data.aura;
+			data.aura = null;
+			Drill.start(red);
+			log("drill without an aura: running " + Drill.running(red) + " (must be false)");
+			data.aura = AuraType.FIRE;
+			red.moveTo(Arena.HALL_ARRIVAL.x, Arena.HALL_ARRIVAL.y, Arena.HALL_ARRIVAL.z + 10);
+			Drill.start(red);
+			log("drill started: step " + Drill.stepOf(red) + " (must be 0)");
+			Drill.onDummyHit(red, true, false);
+			log("dummy hit too early: step " + Drill.stepOf(red) + " (must be 0)");
+			Drill.onAbilityUsed(red);
+			log("ability used: step " + Drill.stepOf(red) + " (must be 1)");
+			Drill.onDummyHit(red, false, false);
+			log("plain (non-ability) hit: step " + Drill.stepOf(red) + " (must be 1)");
+			Drill.onDummyHit(red, true, false);
+			log("ability hit on a standing dummy: step " + Drill.stepOf(red) + " (must be 2)");
+			Drill.onDummyHit(red, true, false);
+			log("standing dummy again: step " + Drill.stepOf(red) + " (must be 2)");
+			int before = red.getStats().getValue(net.minecraft.stats.Stats.CUSTOM.get(com.toast.aurapoints.ability.AuraStats.DRILLS_DONE));
+			Drill.onDummyHit(red, true, true);
+			int after = red.getStats().getValue(net.minecraft.stats.Stats.CUSTOM.get(com.toast.aurapoints.ability.AuraStats.DRILLS_DONE));
+			log("moving dummy hit: running " + Drill.running(red) + " (must be false), drills_done " + before + " -> " + after + " (fake players keep no stats, so only a real player sees +1)");
+			Drill.start(red);
+			Drill.start(red);
+			log("second click stops it: running " + Drill.running(red) + " (must be false)");
+			boolean sign = arena.getBlockState(TrainingHall.Control.DRILL.sign()).getBlock() instanceof net.minecraft.world.level.block.CeilingHangingSignBlock;
+			boolean pedestal = arena.getBlockState(TrainingHall.Control.DRILL.pedestal()).is(net.minecraft.world.level.block.Blocks.CHISELED_POLISHED_BLACKSTONE);
+			log("drill kiosk built: sign " + sign + " pedestal " + pedestal + " (must be true, true)");
+			data.aura = old;
+			Drill.clearAll();
+			return 1;
 		})).then(Commands.literal("duelvote").executes(ctx -> {
 			// /auradev duelvote: both agree = that map; different picks = one of the two; no votes = the time runs out; a forced layout skips the vote
 			MinecraftServer server = ctx.getSource().getServer();

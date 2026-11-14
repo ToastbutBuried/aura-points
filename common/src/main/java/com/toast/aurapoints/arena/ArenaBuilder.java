@@ -68,7 +68,7 @@ public final class ArenaBuilder {
 	}
 
 	/** Raise when the layout changes: every server rebuilds the map on its next start. */
-	public static final int MAP_VERSION = 7;
+	public static final int MAP_VERSION = 8;
 
 	private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
 	/** Barrier walls and roof of the ring go up to here. */
@@ -699,10 +699,10 @@ public final class ArenaBuilder {
 	/** The kiosks: a beam on two posts, a hanging sign under it for each control, a pedestal below with the item over it. */
 	private static void controlGallery(ServerLevel level) {
 		int kz = TrainingHall.KIOSK_Z;
-		for (int x = -18; x <= 18; x++) {
+		for (int x = -24; x <= 24; x++) {
 			set(level, x, FLOOR + 5, kz, Blocks.DARK_OAK_LOG.defaultBlockState().setValue(RotatedPillarBlock.AXIS, Direction.Axis.X));
 		}
-		for (int x : new int[]{-19, 19}) {
+		for (int x : new int[]{-25, 25}) {
 			for (int y = FLOOR + 1; y <= FLOOR + 5; y++) set(level, x, y, kz, Blocks.STRIPPED_DARK_OAK_LOG);
 			set(level, x, FLOOR + 6, kz, Blocks.LANTERN);
 		}

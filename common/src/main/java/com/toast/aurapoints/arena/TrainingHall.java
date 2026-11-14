@@ -44,7 +44,8 @@ public final class TrainingHall {
 		HEAL(-3, Items.GOLDEN_APPLE),
 		RESET(3, Items.HAY_BLOCK),
 		ARMOR(9, Items.IRON_CHESTPLATE),
-		PATROL(15, Items.MINECART);
+		PATROL(15, Items.MINECART),
+		DRILL(21, Items.BOOK);
 
 		final int x;
 		final Item item;
@@ -149,6 +150,7 @@ public final class TrainingHall {
 					}
 				}
 				case CHALLENGE -> startChallenge(player);
+				case DRILL -> Drill.start(player);
 			}
 			return true;
 		}
@@ -173,6 +175,7 @@ public final class TrainingHall {
 				case RESET -> new String[]{"RESET DUMMIES", "heal them up,", "clear effects", ""};
 				case ARMOR -> new String[]{"DUMMY ARMOR", "click to cycle", "now: " + ARMOR_NAMES[armor], ""};
 				case PATROL -> new String[]{"MOVING DUMMY", "off/slow/fast", "now: " + SPEEDS[speed], ""};
+				case DRILL -> new String[]{"BASICS DRILL", "3 quick steps,", "click to start", "or to stop"};
 			};
 			ArenaBuilder.writeSign(level, c.sign(), lines);
 		}
@@ -256,13 +259,15 @@ public final class TrainingHall {
 	}
 
 	/** From TrainingDummy: a hit counts for its attacker's challenge (once it has started). */
-	static void onDummyHit(DamageSource source, float amount, long now) {
+	static void onDummyHit(DamageSource source, float amount, long now, boolean abilityHit, boolean patrolling) {
+		Drill.onDummyHit(source.getEntity(), abilityHit, patrolling);
 		if (!(source.getEntity() instanceof ServerPlayer attacker)) return;
 		Challenge c = CHALLENGES.get(attacker.getUUID());
 		if (c != null && now >= c.start && now < c.start + CHALLENGE_TICKS) c.damage += amount;
 	}
 
 	static void tick(MinecraftServer server) {
+		Drill.tick(server);
 		for (Iterator<Map.Entry<UUID, Challenge>> it = CHALLENGES.entrySet().iterator(); it.hasNext(); ) {
 			Map.Entry<UUID, Challenge> e = it.next();
 			ServerPlayer p = server.getPlayerList().getPlayer(e.getKey());
@@ -386,5 +391,6 @@ public final class TrainingHall {
 	static void clearAll() {
 		CHALLENGES.clear();
 		LAST_FREE_USE.clear();
+		Drill.clearAll();
 	}
 }

@@ -41,7 +41,7 @@ public final class Tutorial {
 		SKILLS("Get stronger", "Open Skill points in the Aura Book.",
 				"Earn Aura in the book's Earn Aura page: quests, aura-touched mobs (glowing, named), weeklies and the arena. Spend it on actives and skill points."),
 		SETTINGS("Make it yours", "Open Settings in the Aura Book.",
-				"Cosmetics and weekly challenges are in the book too. Every command still works: type /aura.");
+				"Cosmetics and weekly challenges are in the book too. Every command still works: type /aura. Want practice? The Training Hall has a BASICS DRILL kiosk.");
 
 		public final String title, task, tip;
 

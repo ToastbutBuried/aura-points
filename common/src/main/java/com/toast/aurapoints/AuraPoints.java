@@ -684,6 +684,8 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.Reactions.clearAll();
 			com.toast.aurapoints.ability.Combos.clearAll();
 			com.toast.aurapoints.ability.TouchedMobs.clearAll();
+			com.toast.aurapoints.ability.MagmaPools.clear();
+			com.toast.aurapoints.ability.PhantomDecoy.clear();
 			// last, so nothing the clean-ups above scheduled carries over into the next world
 			AuraFx.clearAll();
 		}

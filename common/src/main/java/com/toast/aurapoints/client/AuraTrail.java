@@ -37,7 +37,8 @@ public final class AuraTrail {
 	@SubscribeEvent
 	public static void onClientTick(ClientTickEvent.Post event) {
 		Minecraft mc = Minecraft.getInstance();
-		if (mc.level == null || mc.isPaused() || !AuraClientConfig.AURA_TRAILS.get()) return;
+		if (mc.level == null || mc.isPaused() || !AuraClientConfig.AURA_TRAILS.get()
+				|| AuraClientConfig.EFFECT_LEVEL.get() == AuraClientConfig.EffectLevel.MINIMAL) return;
 		Vec3 camera = mc.gameRenderer.getMainCamera().getPosition();
 		for (AbstractClientPlayer p : mc.level.players()) {
 			if (!p.isSprinting() || !p.onGround() || p.isInvisible() || p.isSpectator() || p.isSwimming()) continue;

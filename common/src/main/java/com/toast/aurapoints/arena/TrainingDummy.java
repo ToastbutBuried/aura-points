@@ -255,7 +255,7 @@ public class TrainingDummy extends Mob {
 		entityData.set(HIT_POWER, net.minecraft.util.Mth.clamp(0.12f + amount * 0.025f, 0.12f, 0.5f));
 		entityData.set(HIT_YAW, (float) Math.toDegrees(Math.atan2(-push.x, push.z)));
 		entityData.set(HIT_SEQ, entityData.get(HIT_SEQ) + 1);
-		TrainingHall.onDummyHit(source, amount, now);
+		TrainingHall.onDummyHit(source, amount, now, abilityHit, patrol);
 		int color = 0xDDDDDD;
 		if (source.getEntity() instanceof ServerPlayer attacker && attacker.getServer() != null) {
 			AuraType aura = AuraState.get(attacker.getServer()).getOrCreate(attacker.getUUID()).aura;
