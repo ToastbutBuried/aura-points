@@ -321,6 +321,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.Reactions.tickAll(server);
 			com.toast.aurapoints.ability.Combos.tickAll(server);
 			com.toast.aurapoints.arena.AltarRitual.tickAll(server);
+			com.toast.aurapoints.arena.AuraTrial.tickAll(server);
 			com.toast.aurapoints.ability.Casts.tickAll(server);
 			com.toast.aurapoints.ability.TouchedMobs.tickAll(server);
 			com.toast.aurapoints.cosmetic.Weekly.tick(server);
@@ -424,6 +425,9 @@ public class AuraPoints {
 
 			var victim = event.getEntity();
 			boolean melee = event.getSource().getDirectEntity() == attacker;
+			// the hit before any bonus: the chain stack cap (CHAINS_STACK_CAP) measures against it
+			float baseAmount = event.getAmount();
+			boolean chainedHit = false;
 
 			// Aura Trials counter: melee hits landed while Berserker is at half strength or more.
 			if (melee && AuraAbilities.hasAbility(attackerData, AuraAbilities.Ability.BERSERKER)
@@ -452,7 +456,11 @@ public class AuraPoints {
 			}
 
 			// Ability chains: the chained ability's hits do more and carry the link's effect
-			if (abilityHit) event.setAmount(com.toast.aurapoints.ability.Chains.onHit(attacker, victim, event.getAmount()));
+			if (abilityHit) {
+				float before = event.getAmount();
+				event.setAmount(com.toast.aurapoints.ability.Chains.onHit(attacker, victim, before));
+				chainedHit = event.getAmount() != before;
+			}
 
 			// Conductor: a Charged target passes part of the hit on
 			com.toast.aurapoints.ability.Thunderbolt.spread(attacker, victim, event.getAmount());
@@ -516,6 +524,11 @@ public class AuraPoints {
 			if (AuraAbilities.galeActive(attacker) && AuraAbilities.hasAbility(attackerData, AuraAbilities.Ability.GALE_RIDER)) {
 				event.setAmount(event.getAmount() * AuraConfig.GALE_RIDER_DAMAGE_MULTIPLIER);
 				AuraAbilities.galeRiderHitFx(attacker, victim);
+			}
+
+			// optional stack cap for chained hits (off by default)
+			if (chainedHit && AuraConfig.CHAINS_STACK_CAP_ENABLED && baseAmount > 0) {
+				event.setAmount((float) Math.min(event.getAmount(), baseAmount * Math.max(1.0, AuraConfig.CHAINS_STACK_CAP)));
 			}
 		}
 
@@ -701,6 +714,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.Casts.clear();
 			com.toast.aurapoints.ability.Chains.clear();
 			com.toast.aurapoints.arena.AltarRitual.clear();
+			com.toast.aurapoints.arena.AuraTrial.clear();
 			// last, so nothing the clean-ups above scheduled carries over into the next world
 			AuraFx.clearAll();
 		}
@@ -770,6 +784,7 @@ public class AuraPoints {
 				com.toast.aurapoints.ability.FireBending.onLogout(player);
 				com.toast.aurapoints.ability.Casts.onLogout(player);
 				com.toast.aurapoints.arena.AltarRitual.onLogout(player);
+				com.toast.aurapoints.arena.AuraTrial.onLogout(player);
 				com.toast.aurapoints.ability.AirBending.onLogout(player);
 				com.toast.aurapoints.ability.AbyssalBubble.onLogout(player);
 				com.toast.aurapoints.ability.IceSpike.onLogout(player);

@@ -109,6 +109,7 @@ public final class AuraReset {
 				int n = data.awakened.size();
 				data.awakened.clear();
 				data.altarUnlocked.clear();
+		data.trialDone.clear();
 				return n + " awakenings removed";
 			}
 			case COSMETICS -> {
@@ -181,6 +182,7 @@ public final class AuraReset {
 		// newer systems (wipe 5): awakenings, mastery, held-auras record, cosmetics, weeklies
 		data.awakened.clear();
 		data.altarUnlocked.clear();
+		data.trialDone.clear();
 		data.rolled.clear();
 		data.mastery.clear();
 		data.branches.clear();

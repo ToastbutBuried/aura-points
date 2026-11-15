@@ -3,7 +3,7 @@
 A Minecraft 1.21.1 mod (NeoForge and Fabric) about elemental auras. Roll one of 11 auras, buy its abilities, level them up, and test
 yourself in a built-in arena.
 
-**Auras:** Shadow, Water, Fire, Wind, Frost, Verdant, Thunder, Resonance, Earth, Light, Blood. Each has
+**Auras:** Shadow, Water, Fire, Wind, Frost, Verdant, Thunder, Earth, Light, Blood (Resonance is retired: no longer rolled). Each has
 active abilities on rebindable keys, passives, an awakenable Ultimate and a Mastery level. At Mastery V an aura
 can pick one of two branches (Fire: Blue Flame or Magma, Shadow: Phantom or Dark, the former Void aura) that bend its kit.
 
@@ -18,6 +18,8 @@ can pick one of two branches (Fire: Blue Flame or Magma, Shadow: Phantom or Dark
   takes you back to an aura you had for less; Mastery, branch and awakening stay with each aura.
 - **Casts**: at Mastery II, sneak + key gives an ability a second cast; at Mastery III, holding the key charges a
   third (every aura but Resonance). Each ability's casts are listed in the Aura Book.
+- **Aura Trial**: when you get an aura (or any time: Aura Book, `/aura trial`), a checklist of its abilities, casts and
+  chains to try in the Training Hall, with the whole kit lent to you there. Retake it whenever you like.
 - **Awakening Altar**: an island east of the arena lobby. An aura's Awakening quest opens its ritual there;
   800 Aura and Mastery V awaken the Ultimate in a short cutscene (`/aura altar`).
 - **Ability chains**: use one ability, then a second one soon after, and the second hits harder and adds an

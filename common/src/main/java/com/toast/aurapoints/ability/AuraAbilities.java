@@ -514,7 +514,7 @@ public final class AuraAbilities {
 					&& !DISABLED.contains(ability);
 		}
 		return data.aura != null && !data.locked && !allLocked && data.aura.has(ability, Branch.current(data)) && !DISABLED.contains(ability)
-				&& (!ability.active || data.owned.contains(ability));
+				&& (!ability.active || data.owned.contains(ability) || data.trialKit);
 	}
 
 	// ---------------------------------------------------------------
@@ -715,7 +715,10 @@ public final class AuraAbilities {
 		Chains.castMode = mode != CastMode.TAP && CastMode.has(ability, mode) ? mode : CastMode.TAP;
 		try {
 			boolean fired = activate(player, ability, now, mode);
-			if (fired) Chains.onPressed(player, ability, Chains.castMode);
+			if (fired) {
+				Chains.onPressed(player, ability, Chains.castMode);
+				com.toast.aurapoints.arena.AuraTrial.onPressed(player, ability, Chains.castMode);
+			}
 			return fired;
 		} finally {
 			AuraFx.boost = boost;

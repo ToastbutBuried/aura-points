@@ -378,7 +378,7 @@ public final class BalanceEditor {
 		return AuraBalance.groupTitle(group);
 	}
 
-	static String label(Entry e) {
+	public static String label(Entry e) {
 		if (e.isSwitch()) return pretty(e.ability().name()) + " enabled";
 		var branch = AuraBalance.branchOf(e.group());
 		if (branch != null) {

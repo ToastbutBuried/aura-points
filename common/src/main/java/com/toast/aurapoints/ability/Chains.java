@@ -174,7 +174,7 @@ public final class Chains {
 		MinecraftServer server = player.getServer();
 		if (server == null || !AuraConfig.CHAINS_ENABLED) return;
 		AuraPlayerData data = AuraState.get(server).getOrCreate(player.getUUID());
-		if (data.aura == null || Mastery.level(player) < AuraConfig.CHAINS_MASTERY) return;
+		if (data.aura == null || (Mastery.level(player) < AuraConfig.CHAINS_MASTERY && !data.trialKit)) return;
 		Link link = null;
 		if (st.last != null && now >= st.lastTick) {
 			for (Link l : links(data)) {
@@ -193,6 +193,7 @@ public final class Chains {
 		st.activeUntil = now + link.lastsTicks();
 		st.hitsLeft = AuraConfig.CHAINS_MAX_HITS;
 		AuraStats.add(player, AuraStats.CHAINS, 1);
+		com.toast.aurapoints.arena.AuraTrial.onChain(player, link);
 		castEffect(player, st, link, ability, now);
 		cue(player, data.aura, link, st.streak);
 	}
@@ -303,7 +304,8 @@ public final class Chains {
 
 	private static Map<String, List<Link>> table;
 
-	private static List<Link> links(AuraPlayerData data) {
+	/** The links that work for this player's aura and branch now. */
+	public static List<Link> links(AuraPlayerData data) {
 		Map<String, List<Link>> t = table();
 		Branch branch = Branch.current(data);
 		if (branch != null && branch.aura == data.aura) {

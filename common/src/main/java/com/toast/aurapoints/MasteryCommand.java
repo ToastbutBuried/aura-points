@@ -49,6 +49,22 @@ final class MasteryCommand {
 								.executes(ctx -> com.toast.aurapoints.config.AuraConfig.ULT_ALTAR_ENABLED ? altarUnlock(ctx, true) : awaken(ctx, true))
 								.then(Commands.argument("on", com.mojang.brigadier.arguments.BoolArgumentType.bool())
 										.executes(ctx -> awaken(ctx, com.mojang.brigadier.arguments.BoolArgumentType.getBool(ctx, "on"))))))));
+		// the Aura Trial: try the whole kit of the aura you hold in the Training Hall (retake any time)
+		dispatcher.register(Commands.literal("aura").then(Commands.literal("trial")
+				.executes(ctx -> {
+					ServerPlayer p = ctx.getSource().getPlayerOrException();
+					if (com.toast.aurapoints.arena.AuraTrial.running(p)) com.toast.aurapoints.arena.AuraTrial.show(p);
+					else com.toast.aurapoints.arena.AuraTrial.start(p);
+					return 1;
+				})
+				.then(Commands.literal("start").executes(ctx -> {
+					com.toast.aurapoints.arena.AuraTrial.start(ctx.getSource().getPlayerOrException());
+					return 1;
+				}))
+				.then(Commands.literal("stop").executes(ctx -> {
+					com.toast.aurapoints.arena.AuraTrial.stop(ctx.getSource().getPlayerOrException(), "Aura Trial stopped.");
+					return 1;
+				}))));
 		dispatcher.register(Commands.literal("aura").then(Commands.literal("altar")
 				.executes(ctx -> {
 					com.toast.aurapoints.arena.AltarRitual.menu(ctx.getSource().getPlayerOrException());

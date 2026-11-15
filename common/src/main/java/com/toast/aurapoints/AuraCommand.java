@@ -800,7 +800,7 @@ public final class AuraCommand {
 		if (rolled.abilities.stream().anyMatch(AuraAbilities.Ability::hasKey)) {
 			player.sendSystemMessage(Component.literal("Bind its keys in Options > Controls > Aura Points.")
 					.withStyle(ChatFormatting.GRAY));
-		}
+		}		com.toast.aurapoints.arena.AuraTrial.offer(player, rolled);
 	}
 
 	private static int redeem(CommandContext<CommandSourceStack> ctx, String category, int amount) {

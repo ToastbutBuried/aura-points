@@ -85,6 +85,6 @@ public enum CastMode {
 	public static boolean unlocked(ServerPlayer player, Ability ability, CastMode mode) {
 		if (mode == TAP) return true;
 		if (!AuraConfig.CAST_VARIANTS_ENABLED || !has(ability, mode)) return false;
-		return Mastery.level(player) >= mode.masteryNeeded();
+		return Mastery.level(player) >= mode.masteryNeeded() || com.toast.aurapoints.arena.AuraTrial.fullKit(player);
 	}
 }

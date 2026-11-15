@@ -73,6 +73,11 @@ public final class AuraConfig {
 	public static int CHAINS_MAX_HITS = 6;
 	/** The most extra damage a chain can give (0.5 = +50%), whatever the link says. */
 	public static double CHAINS_MAX_BONUS = 0.5;
+	/** Stack cap for chained hits (off by default): when on, a chained ability hit does at most CHAINS_STACK_CAP times its damage
+	 * before any bonus (chain, passives, branch bonuses, reactions and matchups all together). Measured with /auradev chainstack. */
+	public static boolean CHAINS_STACK_CAP_ENABLED = false;
+	/** The cap's multiplier (2.0 = a chained hit does at most double its base damage). */
+	public static double CHAINS_STACK_CAP = 2.0;
 
 	// Fire casts
 	/** Spread Shot (sneak + Fireball): this many small fireballs in a fan, this many degrees apart, each dealing this share of a fireball's damage. */
@@ -1127,8 +1132,9 @@ public final class AuraConfig {
 	/** Whether /aura roll can give Thunder (/aura setaura works either way). */
 	public static boolean THUNDER_ROLLABLE = true;
 
-	/** Whether /aura roll can give Resonance (/aura setaura works either way). */
-	public static boolean RESONANCE_ROLLABLE = true;
+	/** Whether /aura roll (and /aura switch) can give Resonance (/aura setaura works either way). Off since 5.27.0: Resonance is
+	 * retired - whoever holds it keeps it, nobody new gets it, and it gets no new content. */
+	public static boolean RESONANCE_ROLLABLE = false;
 
 	/**
 	 * Thunderbolt of Zeus (active), three throws per use. The first press leaps you up (LEAP_VELOCITY) and,

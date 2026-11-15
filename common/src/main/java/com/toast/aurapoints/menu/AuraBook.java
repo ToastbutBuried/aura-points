@@ -292,7 +292,7 @@ public final class AuraBook {
 	}
 
 	static final class MainPage extends Page {
-		static final int HEADER = 4, AURA = 20, ROLL = 21, SKILLS = 22, COSMETICS = 23, WEEKLY = 24, SETTINGS = 30, EARN = 31, TUTORIAL = 32, ARENA = 29, REACTIONS = 33;
+		static final int HEADER = 4, AURA = 20, ROLL = 21, SKILLS = 22, COSMETICS = 23, WEEKLY = 24, TRIAL = 25, SETTINGS = 30, EARN = 31, TUTORIAL = 32, ARENA = 29, REACTIONS = 33;
 
 		@Override
 		Component title(ServerPlayer player) {
@@ -353,6 +353,14 @@ public final class AuraBook {
 			slots[REACTIONS] = icon(Items.BLAZE_POWDER, text("Reactions", ChatFormatting.GOLD), List.of(
 					text("What happens when two elements meet.", ChatFormatting.GRAY),
 					text("Click: all reactions", ChatFormatting.YELLOW)), false);
+			if (data.aura != null) {
+				boolean running = com.toast.aurapoints.arena.AuraTrial.running(player);
+				List<Component> trialLore = new ArrayList<>(wrap("Try every ability, cast and chain of " + data.aura.displayName
+						+ " in the Training Hall, before you buy or master anything.", 36, ChatFormatting.GRAY));
+				trialLore.add(text(data.trialDone.contains(data.aura) ? "Done ✔ - retake it any time" : "Not taken yet", data.trialDone.contains(data.aura) ? ChatFormatting.GREEN : ChatFormatting.DARK_GRAY));
+				trialLore.add(text(running ? "Click: show the checklist" : "Click: take the trial", ChatFormatting.YELLOW));
+				slots[TRIAL] = icon(Items.TARGET, text("Aura Trial", ChatFormatting.GOLD), trialLore, !data.trialDone.contains(data.aura));
+			}
 			slots[TUTORIAL] = Tutorial.menuIcon(data);
 			bar(slots, false);
 			Tutorial.highlight(data, slots);
@@ -401,6 +409,12 @@ public final class AuraBook {
 					open(player, new ReactionsPage());
 				}
 				case TUTORIAL -> Tutorial.menuClick(player, data);
+				case TRIAL -> {
+					if (data.aura == null) return;
+					player.closeContainer();
+					if (com.toast.aurapoints.arena.AuraTrial.running(player)) com.toast.aurapoints.arena.AuraTrial.show(player);
+					else com.toast.aurapoints.arena.AuraTrial.start(player);
+				}
 				default -> {
 				}
 			}

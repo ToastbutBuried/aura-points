@@ -1033,6 +1033,17 @@ public final class Casts {
 		return out;
 	}
 
+	/** The short name of an ability's sneak or charged cast for this aura ("Spread Shot"), or null when it has none. */
+	public static String variantName(Ability ability, AuraType aura, CastMode mode) {
+		if (mode == CastMode.TAP || !CastMode.has(ability, mode)) return null;
+		String text = mode == CastMode.SNEAK ? sneak(ability, aura) : aura == AuraType.WIND && ability == Ability.DASH ? null : charged(ability);
+		if (text == null) return null;
+		int cut = text.indexOf(" - ");
+		String name = cut > 0 ? text.substring(0, cut) : text;
+		int note = name.indexOf(" (");
+		return note > 0 ? name.substring(0, note) : name;
+	}
+
 	private static int pct(double factor) {
 		return (int) Math.round(factor * 100);
 	}
