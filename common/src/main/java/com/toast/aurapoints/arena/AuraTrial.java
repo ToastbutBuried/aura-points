@@ -229,7 +229,12 @@ public final class AuraTrial {
 	public static void onChain(ServerPlayer player, Chains.Link link) {
 		Run run = RUNS.get(player.getUUID());
 		if (run == null || run.paused) return;
-		for (int i = 0; i < run.items.size(); i++) if (!run.done[i] && run.items.get(i).chain == link) tick(player, run, i);
+		for (int i = 0; i < run.items.size(); i++) if (!run.done[i] && same(run.items.get(i).chain, link)) tick(player, run, i);
+	}
+
+	/** The same link, also after /aura reload made new Link objects. */
+	private static boolean same(Chains.Link a, Chains.Link b) {
+		return a != null && b != null && a.from() == b.from() && a.to() == b.to() && a.name().equals(b.name());
 	}
 
 	private static void tick(ServerPlayer player, Run run, int i) {
