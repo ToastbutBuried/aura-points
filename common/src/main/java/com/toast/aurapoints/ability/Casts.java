@@ -928,11 +928,31 @@ public final class Casts {
 		return best;
 	}
 
+	/** During an Aura Trial (in the Training Hall, nobody else needed): a training dummy in your sights stands in for an ally. */
+	private static LivingEntity trialStandIn(ServerPlayer p, double range) {
+		if (!com.toast.aurapoints.arena.AuraTrial.fullKit(p)) return null;
+		ServerLevel level = p.serverLevel();
+		Vec3 eye = p.getEyePosition(), look = p.getLookAngle();
+		LivingEntity best = null;
+		double bestAlong = Double.MAX_VALUE;
+		for (LivingEntity e : level.getEntitiesOfClass(com.toast.aurapoints.arena.TrainingDummy.class, p.getBoundingBox().inflate(range), LivingEntity::isAlive)) {
+			Vec3 to = AuraFx.chest(e).subtract(eye);
+			double along = to.dot(look);
+			if (along < 0 || along > range || along >= bestAlong) continue;
+			if (to.subtract(look.scale(along)).length() > 1.5) continue;
+			if (level.clip(new ClipContext(eye, AuraFx.chest(e), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p)).getType() != HitResult.Type.MISS) continue;
+			best = e;
+			bestAlong = along;
+		}
+		return best;
+	}
+
 	/** Mending Beam (sneak + Prism Beam): the ally in your sights is healed and given Regeneration. */
 	private static boolean mendingBeam(ServerPlayer player, long now) {
 		if (Light.isBeaming(player)) return false;
 		if (!AuraAbilities.checkCooldown(player, Ability.PRISM_BEAM, AuraConfig.LIGHT_BEAM_COOLDOWN_TICKS, now)) return false;
-		ServerPlayer ally = allyInSights(player, Math.max(4, AuraConfig.LIGHT_BEAM_RANGE));
+		LivingEntity ally = allyInSights(player, Math.max(4, AuraConfig.LIGHT_BEAM_RANGE));
+		if (ally == null) ally = trialStandIn(player, Math.max(4, AuraConfig.LIGHT_BEAM_RANGE));
 		if (ally == null) {
 			player.displayClientMessage(Component.literal("No ally in your sights to mend.").withStyle(ChatFormatting.GRAY), true);
 			return false;
@@ -944,10 +964,11 @@ public final class Casts {
 		AuraFx.line(level, from, to, AuraFx.dust(0xFFF1A8, 1.3f), (int) Math.max(8, from.distanceTo(to) * 4));
 		AuraFx.line(level, from, to, ParticleTypes.END_ROD, (int) Math.max(4, from.distanceTo(to) * 2));
 		AuraFx.burst(level, to.x, to.y + 0.4, to.z, ParticleTypes.HEART, 3, 0.4, 0.0);
-		AuraFx.helix(ally, AuraFx.dust(0xFFF1A8, 1.0f), 20, 0.6, 2.0);
+		if (ally instanceof ServerPlayer allyPlayer) AuraFx.helix(allyPlayer, AuraFx.dust(0xFFF1A8, 1.0f), 20, 0.6, 2.0);
+		else AuraFx.burst(level, to.x, to.y, to.z, AuraFx.dust(0xFFF1A8, 1.0f), 20, 0.5, 0.0);
 		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME, 1.2f, 1.5f);
 		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.BEACON_POWER_SELECT, 0.8f, 1.6f);
-		player.displayClientMessage(Component.literal("✦ Mending Beam: " + ally.getGameProfile().getName() + " ✦").withStyle(ChatFormatting.YELLOW), true);
+		player.displayClientMessage(Component.literal("✦ Mending Beam: " + ally.getName().getString() + " ✦").withStyle(ChatFormatting.YELLOW), true);
 		used(player, Ability.PRISM_BEAM, now, AuraConfig.LIGHT_MEND_COOLDOWN_FACTOR);
 		return true;
 	}
@@ -990,6 +1011,7 @@ public final class Casts {
 		if (!AuraAbilities.checkCooldown(player, Ability.BLOOD_TETHER, AuraConfig.BLOOD_TETHER_COOLDOWN_TICKS, now)) return false;
 		LivingEntity ally = allyInSights(player, Math.max(2, AuraConfig.BLOOD_TETHER_RANGE));
 		if (ally == null && AuraConfig.BLOOD_LIFELINE_PETS) ally = petInSights(player, Math.max(2, AuraConfig.BLOOD_TETHER_RANGE));
+		if (ally == null) ally = trialStandIn(player, Math.max(2, AuraConfig.BLOOD_TETHER_RANGE));
 		if (ally == null) {
 			player.displayClientMessage(Component.literal("No ally in your sights for a lifeline.").withStyle(ChatFormatting.GRAY), true);
 			return false;

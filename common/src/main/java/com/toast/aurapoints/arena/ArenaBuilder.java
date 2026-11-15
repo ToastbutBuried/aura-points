@@ -241,7 +241,7 @@ public final class ArenaBuilder {
 	}
 
 	/** Marks an entity as part of the current build. */
-	static void claim(Entity e) {
+	public static void claim(Entity e) {
 		e.addTag(ARENA_TAG);
 		if (e.getServer() != null) e.addTag(buildTag(e.getServer()));
 	}
