@@ -55,6 +55,20 @@ public final class StatusOverlays {
 		stunUntil = System.currentTimeMillis() + ticks * 50L;
 	}
 
+	private static long portalAt = 0, portalLen = 0;
+	private static int portalRgb = 0x9A3CFF;
+
+	/** An altar portal's wind-up (5.32): the screen fills with the colour over {@code ticks}, then clears after you arrive. */
+	public static void portal(int ticks, String hex) {
+		portalAt = System.currentTimeMillis();
+		portalLen = Math.max(1, ticks) * 50L;
+		try {
+			portalRgb = Integer.parseInt(hex, 16);
+		} catch (NumberFormatException e) {
+			portalRgb = 0x9A3CFF;
+		}
+	}
+
 	public static void lifesteal(float amount) {
 		lifestealAt = System.currentTimeMillis();
 		lifestealAmount = amount;
@@ -101,6 +115,26 @@ public final class StatusOverlays {
 		boolean calm = AuraClientConfig.calm();
 		long now = System.currentTimeMillis();
 		int w = g.guiWidth(), h = g.guiHeight();
+
+		// the portal: a coloured veil rising to near-opaque as you go through, specks drifting in, then clearing
+		long pe = now - portalAt;
+		if (portalAt > 0 && pe < portalLen + 700) {
+			float up = pe < portalLen ? (float) pe / portalLen : 1f - (pe - portalLen) / 700f;
+			up = Mth.clamp(up, 0f, 1f);
+			float veil = up * up * (3 - 2 * up);
+			g.fill(FX, 0, 0, w, h, HudColors.argb(0.82f * veil, portalRgb));
+			edges(g, w, h, 0x2A0A4A, 0.7f * veil, Math.round(h * 0.25f));
+			if (!calm) {
+				Random r = new Random(portalAt);
+				for (int i = 0; i < 40; i++) {
+					float sx = r.nextFloat() * w, sy = r.nextFloat() * h;
+					float pull = Math.min(1f, pe / 900f);
+					int x = Math.round(sx + (w / 2f - sx) * pull * 0.6f), y = Math.round(sy + (h / 2f - sy) * pull * 0.6f);
+					int c = HudColors.argb(veil * (0.4f + 0.6f * r.nextFloat()), r.nextBoolean() ? 0xE6B3FF : 0xFFFFFF);
+					g.fill(FX, x, y, x + 2, y + 2, c);
+				}
+			}
+		}
 
 		float bubbleA = Mth.lerp(pt, bubbleO, bubble) * strength;
 		if (bubbleA > 0.01f) {

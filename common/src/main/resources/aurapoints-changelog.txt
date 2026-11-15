@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.32.0
+- The Altar Hall is now a great offering temple: twice the size, a stepped podium to climb in the middle, and huge 3x3 pillars with veins that ring round them. The portal is bigger and pulls you through with its own animation.
+
 == 5.31.0
 - Altar Hall: the portal flashes the colour of your aura as you pass, your aura's pillar wakes when you stand by it, each pillar murmurs its element, and the keeper tells each pillar's story (/aura altar lore).
 - When someone begins a ritual, everyone in the arena gets a [Watch] button into the hall.

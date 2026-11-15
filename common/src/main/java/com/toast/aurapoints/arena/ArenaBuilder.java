@@ -68,7 +68,7 @@ public final class ArenaBuilder {
 	}
 
 	/** Raise when the layout changes: every server rebuilds the map on its next start. */
-	public static final int MAP_VERSION = 11;
+	public static final int MAP_VERSION = 12;
 
 	private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
 	/** Barrier walls and roof of the ring go up to here. */
@@ -508,7 +508,7 @@ public final class ArenaBuilder {
 		npc(level, NpcKind.HALL_LOBBY, new Vec3(4.5, FLOOR + 1, HZ0 + 2.5), 0f);
 		// the keeper waits in the Altar Hall, by the door (north side: the ritual camera swings round the south)
 		npc(level, NpcKind.ALTAR, new Vec3(Arena.ALTAR_X - Arena.ROOM_R + 4.5, FLOOR + 1, -3.5), 90f);
-		Holograms.spawn(level, new Vec3(Arena.ISLAND_X + 0.5, FLOOR + 10.5, 0.5), Component.literal("✦ AWAKENING ALTAR ✦")
+		Holograms.spawn(level, new Vec3(Arena.ISLAND_X + 0.5, FLOOR + Arena.PORTAL_H + 5.5, 0.5), Component.literal("✦ AWAKENING ALTAR ✦")
 				.withStyle(s -> s.withColor(0xFFC83D).withBold(true)), 2.2f, 0, null);
 		// the weekly challenges, across the hall's entrance from its NPC
 		Holograms.spawn(level, new Vec3(-4.5, FLOOR + 2.4, HZ0 + 2.5), Component.literal("✦ WEEKLY CHALLENGES ✦"), 0.9f, 0x90000000, "board_weekly");
@@ -1024,122 +1024,144 @@ public final class ArenaBuilder {
 	}
 
 	/**
-	 * A carved arch across the x axis at {@code cx}: an opening 3 wide (z -1..1) and 5 high (FLOOR + 1..5), framed in
-	 * polished blackstone with crying obsidian at its feet and a gilded keystone; two lanterns on its shoulders.
+	 * A carved arch across the x axis at {@code cx}: an opening Arena.PORTAL_W wide (z centred on cz) and PORTAL_H high
+	 * from FLOOR + 1, framed two blocks deep in polished blackstone with crying obsidian at its feet, chiseled courses,
+	 * a gilded keystone and soul lanterns on its shoulders.
 	 */
 	private static void portalArch(ServerLevel level, int cx, int cz) {
-		for (int y = 1; y <= 7; y++) {
-			for (int z = -3; z <= 3; z++) {
-				boolean opening = Math.abs(z) <= 1 && y <= 5;
+		int hw = Arena.PORTAL_W / 2, H = Arena.PORTAL_H, fw = hw + 2;
+		for (int y = 1; y <= H + 2; y++) {
+			for (int z = -fw; z <= fw; z++) {
+				boolean opening = Math.abs(z) <= hw && y <= H;
+				if (y == H + 2 && Math.abs(z) == fw) continue;
 				Block b;
 				if (opening) b = Blocks.AIR;
-				else if (y == 7 && Math.abs(z) == 3) continue;
-				else if (y == 6 && z == 0) b = Blocks.GILDED_BLACKSTONE;
-				else if (y == 1 && Math.abs(z) == 2) b = Blocks.CRYING_OBSIDIAN;
-				else if (Math.abs(z) == 2 && (y == 3 || y == 5)) b = Blocks.CHISELED_POLISHED_BLACKSTONE;
+				else if (y == H + 1 && z == 0) b = Blocks.GILDED_BLACKSTONE;
+				else if (y == 1 && Math.abs(z) > hw) b = Blocks.CRYING_OBSIDIAN;
+				else if (Math.abs(z) > hw && y % 3 == 0) b = Blocks.CHISELED_POLISHED_BLACKSTONE;
 				else b = Blocks.POLISHED_BLACKSTONE_BRICKS;
 				set(level, cx, FLOOR + y, cz + z, b);
 			}
 		}
-		set(level, cx, FLOOR + 8, cz - 2, Blocks.SOUL_LANTERN);
-		set(level, cx, FLOOR + 8, cz + 2, Blocks.SOUL_LANTERN);
+		set(level, cx, FLOOR + H + 3, cz - fw + 1, Blocks.SOUL_LANTERN);
+		set(level, cx, FLOOR + H + 3, cz + fw - 1, Blocks.SOUL_LANTERN);
 	}
 
 	/**
-	 * The Altar Hall (Arena.ALTAR_X): a closed round hall of inner radius ROOM_R under a stepped dome with a tinted
-	 * glass oculus over the dais; the floor of the old altar (dais, glass ring over lanterns, paths), the ten pillars
-	 * (a barrier column for collision inside each altar_pillar model, AltarRitual.spawnPillars), wall lanterns, four
-	 * soul braziers, and the exit portal in the west wall where you come in.
+	 * The Altar Hall (Arena.ALTAR_X): an offering temple. A closed round hall of inner radius ROOM_R under a stepped dome
+	 * with a glass oculus; in the middle a stepped podium (PODIUM_TIERS tiers, stairs on all four sides) with the dais on
+	 * top, where the ritual's player stands (Arena.ALTAR). Round it the ten great pillars (2x2 barrier columns inside the
+	 * altar_pillar models, AltarRitual.spawnPillars), buttresses along the wall with lanterns, offering fires and pots on
+	 * the podium, a carpet from the door, and the exit portal in the west wall.
 	 */
 	private static void buildAltarHall(ServerLevel level) {
-		int cx = Arena.ALTAR_X, R = Arena.ROOM_R;
-		int wallTop = FLOOR + 10;
-		// clear the whole volume first (the hall stands alone in the sky)
-		for (int x = -R - 3; x <= R + 3; x++) for (int z = -R - 3; z <= R + 3; z++) for (int y = FLOOR - 3; y <= FLOOR + 24; y++) set(level, cx + x, y, z, Blocks.AIR);
+		int cx = Arena.ALTAR_X, R = Arena.ROOM_R, T = Arena.PODIUM_TIERS;
+		int wallTop = FLOOR + 18;
+		for (int x = -R - 3; x <= R + 3; x++) for (int z = -R - 3; z <= R + 3; z++) for (int y = FLOOR - 3; y <= FLOOR + 36; y++) set(level, cx + x, y, z, Blocks.AIR);
 		for (int x = -R - 1; x <= R + 1; x++) {
 			for (int z = -R - 1; z <= R + 1; z++) {
 				double d = Math.sqrt(x * x + z * z);
 				if (d > R + 1.5) continue;
-				// the floor
 				Block floor, below = Blocks.DEEPSLATE_BRICKS;
-				if (d <= 1.5) floor = Blocks.CHISELED_POLISHED_BLACKSTONE;
-				else if (d > 2.5 && d <= 3.5) {
+				if (d > 6.5 && d <= 7.5) {
 					floor = Blocks.PURPLE_STAINED_GLASS;
 					below = Blocks.SEA_LANTERN;
-				} else if (d > 8.5 && d <= 9.5) floor = Blocks.GILDED_BLACKSTONE;
+				} else if (d > 14.5 && d <= 15.5) floor = Blocks.GILDED_BLACKSTONE;
 				else floor = (x + z & 1) == 0 ? Blocks.POLISHED_BLACKSTONE_BRICKS : Blocks.POLISHED_DEEPSLATE;
 				set(level, cx + x, FLOOR, z, floor);
 				set(level, cx + x, FLOOR - 1, z, below);
 				set(level, cx + x, FLOOR - 2, z, Blocks.DEEPSLATE_TILES);
-				// the wall: a ring, gilded stripes on the diagonals and the axes
 				if (d > R + 0.5) {
-					boolean stripe = Math.abs(x) <= 0 || Math.abs(z) <= 0 || Math.abs(Math.abs(x) - Math.abs(z)) <= 0;
 					for (int y = FLOOR + 1; y <= wallTop; y++) {
 						Block w = y == FLOOR + 1 || y == wallTop ? Blocks.CHISELED_POLISHED_BLACKSTONE
-								: stripe && y % 3 == 0 ? Blocks.GILDED_BLACKSTONE : (y & 1) == 0 ? Blocks.POLISHED_BLACKSTONE_BRICKS : Blocks.DEEPSLATE_TILES;
+								: y % 4 == 0 ? Blocks.POLISHED_BLACKSTONE_BRICKS : (y & 1) == 0 ? Blocks.DEEPSLATE_TILES : Blocks.POLISHED_BLACKSTONE_BRICKS;
 						set(level, cx + x, y, z, w);
 					}
 				}
 			}
 		}
-		// the dome: rings stepping in, then a glass oculus over the dais
+		// buttresses on the wall, 16 round (none in the door): two wide, gilded courses, a lantern ledge
+		for (int i = 0; i < 16; i++) {
+			double a = 2 * Math.PI * (i + 0.5) / 16;
+			if (Math.abs(Math.cos(a) + 1) < 0.05) continue;
+			int x = (int) Math.round(Math.cos(a) * (R - 0.4)), z = (int) Math.round(Math.sin(a) * (R - 0.4));
+			for (int y = FLOOR + 1; y <= wallTop - 1; y++) {
+				set(level, cx + x, y, z, y % 6 == 0 ? Blocks.GILDED_BLACKSTONE : Blocks.POLISHED_BLACKSTONE_BRICKS);
+			}
+			int lx = (int) Math.round(Math.cos(a) * (R - 1.4)), lz = (int) Math.round(Math.sin(a) * (R - 1.4));
+			set(level, cx + lx, FLOOR + 7, lz, Blocks.POLISHED_BLACKSTONE_BRICK_SLAB);
+			set(level, cx + lx, FLOOR + 8, lz, Blocks.SOUL_LANTERN);
+		}
+		// the dome: rings stepping in, then a glass oculus over the podium
 		double outer = R + 1.5;
 		for (int k = 1; ; k++) {
-			double rad = Math.sqrt(Math.max(0, outer * outer - Math.pow(k * 1.7, 2)));
-			double next = Math.sqrt(Math.max(0, outer * outer - Math.pow((k + 1) * 1.7, 2)));
+			double rad = Math.sqrt(Math.max(0, outer * outer - Math.pow(k * 1.8, 2)));
+			double next = Math.sqrt(Math.max(0, outer * outer - Math.pow((k + 1) * 1.8, 2)));
 			int y = wallTop + k;
-			boolean last = next < 3.5;
+			boolean last = next < 4.5;
 			for (int x = -R - 1; x <= R + 1; x++) {
 				for (int z = -R - 1; z <= R + 1; z++) {
 					double d = Math.sqrt(x * x + z * z);
 					if (d > rad + 0.5) continue;
-					if (last) set(level, cx + x, y, z, d <= 2.5 ? Blocks.PURPLE_STAINED_GLASS : Blocks.POLISHED_BLACKSTONE_BRICKS);
+					if (last) set(level, cx + x, y, z, d <= 3.5 ? Blocks.PURPLE_STAINED_GLASS : Blocks.POLISHED_BLACKSTONE_BRICKS);
 					else if (d > next - 0.5) set(level, cx + x, y, z, k % 2 == 0 ? Blocks.DEEPSLATE_TILES : Blocks.POLISHED_BLACKSTONE_BRICKS);
 				}
 			}
 			if (last) break;
 		}
-		// the dais: 3x3, one up, a glowing heart, steps, candles on its corners
-		for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++) set(level, cx + x, FLOOR + 1, z, x == 0 && z == 0 ? Blocks.CRYING_OBSIDIAN : Blocks.POLISHED_BLACKSTONE);
-		for (int[] step : new int[][]{{-2, 0}, {2, 0}, {0, -2}, {0, 2}}) set(level, cx + step[0], FLOOR + 1, step[1], Blocks.POLISHED_BLACKSTONE_SLAB);
-		for (int[] c : new int[][]{{-1, -1}, {-1, 1}, {1, -1}, {1, 1}}) {
-			set(level, cx + c[0], FLOOR + 1, c[1], Blocks.CHISELED_POLISHED_BLACKSTONE);
-			set(level, cx + c[0], FLOOR + 2, c[1], Blocks.BLACK_CANDLE.defaultBlockState()
-					.setValue(net.minecraft.world.level.block.CandleBlock.CANDLES, 3).setValue(net.minecraft.world.level.block.CandleBlock.LIT, true));
-		}
-		// paths from the door (west) and across to the east
-		for (int d = 4; d <= R; d++) for (int sx : new int[]{-1, 1}) set(level, cx + sx * d, FLOOR, 0, Blocks.POLISHED_BLACKSTONE_BRICKS);
-		// wall lanterns: a ledge with a soul lantern, twelve round the wall, none over the door
-		for (int i = 0; i < 12; i++) {
-			double a = 2 * Math.PI * (i + 0.5) / 12;
-			int x = (int) Math.round(Math.cos(a) * (R - 0.2)), z = (int) Math.round(Math.sin(a) * (R - 0.2));
-			set(level, cx + x, FLOOR + 4, z, Blocks.POLISHED_BLACKSTONE_BRICK_SLAB);
-			set(level, cx + x, FLOOR + 5, z, Blocks.SOUL_LANTERN);
-		}
-		// light: invisible light blocks through the hall (no fixtures to see, no collision), dimmer near the floor
-		for (int x = -R + 1; x <= R - 1; x += 3) {
-			for (int z = -R + 1; z <= R - 1; z += 3) {
-				if (x * x + z * z > (R - 1) * (R - 1) || Math.abs(x) <= 1 && Math.abs(z) <= 1) continue;
-				set(level, cx + x, FLOOR + 3, z, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 13));
-				set(level, cx + x, FLOOR + 8, z, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 15));
+		// the podium: T tiers, the top one the dais with its heart; stairs up the middle of each side
+		for (int k = 0; k < T; k++) {
+			int h = T + 1 - k;
+			for (int x = -h; x <= h; x++) {
+				for (int z = -h; z <= h; z++) {
+					boolean rim = Math.abs(x) == h || Math.abs(z) == h;
+					Block b = k == T - 1 && x == 0 && z == 0 ? Blocks.CRYING_OBSIDIAN : rim ? Blocks.CHISELED_POLISHED_BLACKSTONE : Blocks.POLISHED_BLACKSTONE_BRICKS;
+					set(level, cx + x, FLOOR + 1 + k, z, b);
+				}
+			}
+			for (Direction dir : new Direction[]{Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH}) {
+				for (int w = -1; w <= 1; w++) {
+					int sx = dir.getStepX() * h + (dir.getAxis() == Direction.Axis.Z ? w : 0);
+					int sz = dir.getStepZ() * h + (dir.getAxis() == Direction.Axis.X ? w : 0);
+					set(level, cx + sx, FLOOR + 1 + k, sz, Blocks.POLISHED_BLACKSTONE_BRICK_STAIRS.defaultBlockState()
+							.setValue(net.minecraft.world.level.block.StairBlock.FACING, dir.getOpposite()));
+				}
 			}
 		}
-		// four soul braziers on the diagonals, between the pillars and the wall
+		// on the podium: candles on the dais' corners, offering pots and soul fires on the lower tiers' corners
+		int top = T - 1, th = T + 1 - top;
 		for (int sx : new int[]{-1, 1}) for (int sz : new int[]{-1, 1}) {
-			set(level, cx + sx * 7, FLOOR + 1, sz * 7, Blocks.CHISELED_POLISHED_BLACKSTONE);
-			set(level, cx + sx * 7, FLOOR + 2, sz * 7, Blocks.SOUL_CAMPFIRE);
+			set(level, cx + sx * th, FLOOR + 1 + T, sz * th, Blocks.BLACK_CANDLE.defaultBlockState()
+					.setValue(net.minecraft.world.level.block.CandleBlock.CANDLES, 4).setValue(net.minecraft.world.level.block.CandleBlock.LIT, true));
+			set(level, cx + sx * (T), FLOOR + 3, sz * (T), Blocks.DECORATED_POT);
+			set(level, cx + sx * (T + 1), FLOOR + 1, sz * (T + 1), Blocks.CHISELED_POLISHED_BLACKSTONE);
+			set(level, cx + sx * (T + 1), FLOOR + 2, sz * (T + 1), Blocks.SOUL_CAMPFIRE);
 		}
-		// the pillars: a barrier column (collision) inside each altar_pillar model
+		// carpets from the door (west) and its mirror (east) to the stairs
+		for (int d = T + 3; d <= R - 1; d++) {
+			for (int sx : new int[]{-1, 1}) for (int z = -1; z <= 1; z++) {
+				set(level, cx + sx * d, FLOOR + 1, z, z == 0 ? Blocks.PURPLE_CARPET : Blocks.BLACK_CARPET);
+			}
+		}
+		// light: invisible light blocks (no fixtures, no collision), three layers
+		for (int x = -R + 1; x <= R - 1; x += 4) {
+			for (int z = -R + 1; z <= R - 1; z += 4) {
+				if (x * x + z * z > (R - 1) * (R - 1) || Math.abs(x) <= T + 2 && Math.abs(z) <= T + 2) continue;
+				set(level, cx + x, FLOOR + 3, z, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 13));
+				set(level, cx + x, FLOOR + 10, z, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 15));
+				set(level, cx + x, FLOOR + 16, z, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 14));
+			}
+		}
+		// the great pillars: a 3x3 barrier column (collision) inside each altar_pillar model
 		java.util.List<com.toast.aurapoints.ability.AuraType> auras = AltarRitual.auras();
 		for (int i = 0; i < auras.size(); i++) {
 			Vec3 p = AltarRitual.pillar(i, auras.size());
 			int px = (int) Math.floor(p.x), pz = (int) Math.floor(p.z);
-			for (int y = 1; y <= 4; y++) set(level, px, FLOOR + y, pz, Blocks.BARRIER);
+			for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) for (int y = 1; y <= 9; y++) set(level, px + dx, FLOOR + y, pz + dz, Blocks.BARRIER);
 		}
 		AltarRitual.spawnPillars(level);
 		// the exit: an arch in the west wall, its portal back to the island
 		int doorX = cx - R - 1;
-		for (int y = 1; y <= 8; y++) for (int z = -3; z <= 3; z++) set(level, doorX, FLOOR + y, z, Blocks.POLISHED_BLACKSTONE_BRICKS);
 		portalArch(level, doorX, 0);
 		AltarRitual.spawnExitPortal(level, new Vec3(doorX + 0.5, FLOOR + 1, 0.5));
 	}

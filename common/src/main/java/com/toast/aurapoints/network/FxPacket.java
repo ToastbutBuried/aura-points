@@ -33,6 +33,8 @@ public record FxPacket(byte kind, int value, String text) implements CustomPacke
 	 * text = "aura id;Ultimate name;replay 0|1;altar x;y;z".
 	 */
 	public static final byte RITUAL = 9;
+	/** Going through an altar portal (5.32): value = ticks of the wind-up, text = the aura colour (hex); the screen fades purple and back. */
+	public static final byte PORTAL = 10;
 
 	public static final Type<FxPacket> TYPE =
 			new Type<>(ResourceLocation.fromNamespaceAndPath("aurapoints", "fx"));

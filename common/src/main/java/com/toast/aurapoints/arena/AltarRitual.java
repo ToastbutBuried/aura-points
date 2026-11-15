@@ -80,8 +80,8 @@ public final class AltarRitual {
 	public static Vec3 pillar(int i, int n) {
 		// half a step off the axes: the way in from the bridge (west) runs between two pillars
 		double a = 2 * Math.PI * (i + 0.5) / n;
-		// rounded away from zero (Math.round takes -5.5 to -5 but 5.5 to 6, which put the ring off centre): mirror-symmetric on both axes
-		return new Vec3(Arena.ALTAR_X + 0.5 + away(Math.cos(a) * (Arena.ALTAR_R - 1.5)), Arena.FLOOR + 1, 0.5 + away(Math.sin(a) * (Arena.ALTAR_R - 1.5)));
+		// 3x3 pillars stand on a block centre; rounded away from zero (Math.round takes -5.5 to -5 but 5.5 to 6): mirror-symmetric on both axes
+		return new Vec3(Arena.ALTAR_X + 0.5 + away(Math.cos(a) * Arena.PILLAR_RING), Arena.FLOOR + 1, 0.5 + away(Math.sin(a) * Arena.PILLAR_RING));
 	}
 
 	private static long away(double v) {
@@ -261,11 +261,13 @@ public final class AltarRitual {
 
 	public static void onLogout(ServerPlayer player) {
 		PORTAL_COOLDOWN.remove(player.getUUID());
+		if (ENTERING.remove(player.getUUID()) != null) Ultimates.release(player);
 		if (inRitual(player)) end(player.getServer(), true);
 	}
 
 	public static void clear() {
 		PORTAL_COOLDOWN.clear();
+		ENTERING.clear();
 		PULSED.clear();
 		FLASH_UNTIL.clear();
 		removeProps(run);
@@ -344,7 +346,7 @@ public final class AltarRitual {
 
 		// GATHER: the aura's pillar ignites, then every pillar pours its light into the player; rune rings rise
 		if (t >= GATHER && t < ASCEND) {
-			Vec3 mine = pillar(own, n).add(0, 4.5, 0);
+			Vec3 mine = pillar(own, n).add(0, PILLAR_TOP, 0);
 			if (t == GATHER) {
 				sound(level, mine, SoundEvents.BEACON_POWER_SELECT, 2.0f, 0.8f);
 				sound(level, mine, SoundEvents.FIRECHARGE_USE, 1.5f, 0.7f);
@@ -356,7 +358,7 @@ public final class AltarRitual {
 				int joined = Math.min(n, (t - GATHER - 20) / 6 + 1);
 				for (int i = 0; i < joined; i++) {
 					AuraType a = auras.get((own + i) % n);
-					Vec3 from = pillar((own + i) % n, n).add(0, 4.5, 0);
+					Vec3 from = pillar((own + i) % n, n).add(0, PILLAR_TOP, 0);
 					if ((t + i * 3) % 4 == 0) stream(level, from, chest, AuraFx.dust(a.rgb, 1.1f), (t * 0.06 + i) % 1.0);
 					if (t == GATHER + 20 + i * 6) sound(level, from, SoundEvents.AMETHYST_BLOCK_CHIME, 2.0f, 0.6f + i * 0.09f);
 				}
@@ -396,7 +398,7 @@ public final class AltarRitual {
 			}
 			if (t % 2 == 0) for (int y = 0; y < 30; y += 2) AuraFx.particles(level, ParticleTypes.END_ROD, c.x, c.y - 1 + y, c.z, 1, 0.2, 0.6, 0.2, 0);
 			if (t % 3 == 0) runeRing(level, p.position().add(0, 0.2, 0), 1.2 + (t - ASCEND) * 0.01, t * 0.2, dust, 12);
-			for (int i = 0; i < n; i++) if ((t + i * 2) % 3 == 0) stream(level, pillar(i, n).add(0, 4.5, 0), chest, AuraFx.dust(auras.get(i).rgb, 1.0f), (t * 0.1 + i * 0.1) % 1.0);
+			for (int i = 0; i < n; i++) if ((t + i * 2) % 3 == 0) stream(level, pillar(i, n).add(0, PILLAR_TOP, 0), chest, AuraFx.dust(auras.get(i).rgb, 1.0f), (t * 0.1 + i * 0.1) % 1.0);
 			if (t % 8 == 0) sound(level, c, SoundEvents.NOTE_BLOCK_CHIME.value(), 2.0f, 0.5f + (t - ASCEND) * 0.018f);
 		}
 
@@ -408,7 +410,7 @@ public final class AltarRitual {
 			AuraFx.burst(level, chest.x, chest.y, chest.z, dust, 120, 1.5, 0.3);
 			AuraFx.burst(level, chest.x, chest.y, chest.z, ParticleTypes.FLASH, 3, 0.1, 0);
 			for (int i = 0; i < n; i++) {
-				Vec3 top = pillar(i, n).add(0, 4.5, 0);
+				Vec3 top = pillar(i, n).add(0, PILLAR_TOP, 0);
 				AuraFx.burst(level, top.x, top.y, top.z, AuraFx.dust(auras.get(i).rgb, 1.6f), 30, 0.4, 0.3);
 			}
 			strike(level, c.add(0, -1, 0));
@@ -512,7 +514,9 @@ public final class AltarRitual {
 	private static final Set<UUID> LIVE = new HashSet<>();
 	/** Where the core hovers over the dais, and where the sigil turns (just over the dais steps). */
 	private static final double CORE_Y = 3.9, SIGIL_Y = -0.35;
-	private static final float CORE_SCALE = 2.2f, SIGIL_SCALE = 7.5f, CAP_SCALE = 1.0f;
+	private static final float CORE_SCALE = 2.2f, SIGIL_SCALE = 7.5f, CAP_SCALE = 2.4f;
+	/** Above a pillar's foot: the cradle's top (the model's 29.6 px from its foot at -8, at 1/4 block per px) and where streams leave from. */
+	static final double PILLAR_CRADLE = (29.6 + 8) / 16.0 * 4, PILLAR_TOP = PILLAR_CRADLE + 0.5;
 
 	public static boolean isLeftover(Entity e) {
 		return e.getTags().contains(PROP_TAG) && !LIVE.contains(e.getUUID());
@@ -559,7 +563,7 @@ public final class AltarRitual {
 			ItemStack cap = new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_CAP.get());
 			cap.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(capModel(auras.get(i))));
 			// in the pillar model's cradle (its top is 18.2 px up = 4.55 blocks at scale 4), the cap's base 0.4 px above its bottom
-			r.caps[i] = prop(level, pillar(i, auras.size()).add(0, PILLAR_SCALE * 18.2 / 16.0 + (8 - 0.4) / 16.0 * CAP_SCALE, 0), cap);
+			r.caps[i] = prop(level, pillar(i, auras.size()).add(0, PILLAR_CRADLE + (8 - 0.4) / 16.0 * CAP_SCALE, 0), cap);
 		}
 	}
 
@@ -577,8 +581,8 @@ public final class AltarRitual {
 	static void spawnPillars(ServerLevel level) {
 		List<AuraType> auras = auras();
 		for (int i = 0; i < auras.size(); i++) {
-			// model y 0 = the pillar's foot (floor + 1); the display sits on the model's middle (y 8 = 2 blocks up)
-			Vec3 at = pillar(i, auras.size()).add(0, PILLAR_SCALE * 8 / 16.0, 0);
+			// model y -8 = the pillar's foot (floor + 1); the display sits on the model's middle (y 8 = 16 px = 4 blocks up)
+			Vec3 at = pillar(i, auras.size()).add(0, PILLAR_SCALE * 16 / 16.0, 0);
 			Display.ItemDisplay body = staticDisplay(level, at, new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_PILLAR.get()), false);
 			pose(body, PILLAR_SCALE, 0, 0);
 			body.addTag(PILLAR_TAG);
@@ -595,11 +599,11 @@ public final class AltarRitual {
 
 	/** The swirl in the island's arch ({@code foot}: the opening's bottom middle), facing along x. */
 	static void spawnPortal(ServerLevel level, Vec3 foot) {
-		Display.ItemDisplay d = staticDisplay(level, foot.add(0, 2.5, 0), new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_PORTAL.get()), true);
+		Display.ItemDisplay d = staticDisplay(level, foot.add(0, Arena.PORTAL_H / 2.0, 0), new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_PORTAL.get()), true);
 		d.setYRot(90f);
 		d.addTag(PORTAL_TAG);
 		DisplayAccessor acc = (DisplayAccessor) d;
-		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(3f, 5f, 1f), null));
+		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(Arena.PORTAL_W, Arena.PORTAL_H, 1f), null));
 	}
 
 	/** The same in the hall's west door. */
@@ -633,7 +637,7 @@ public final class AltarRitual {
 	private static Display.ItemDisplay[][] veins(ServerLevel level, int n) {
 		Display.ItemDisplay[][] out = new Display.ItemDisplay[n][VEIN_SECTIONS];
 		Vec3 c = Arena.ALTAR;
-		for (Display.ItemDisplay d : level.getEntitiesOfClass(Display.ItemDisplay.class, new net.minecraft.world.phys.AABB(c, c).inflate(Arena.ALTAR_R + 2, 8, Arena.ALTAR_R + 2),
+		for (Display.ItemDisplay d : level.getEntitiesOfClass(Display.ItemDisplay.class, new net.minecraft.world.phys.AABB(c, c).inflate(Arena.PILLAR_RING + 3, 10, Arena.PILLAR_RING + 3),
 				d -> d.getTags().contains(VEIN_TAG))) {
 			for (String tag : d.getTags()) {
 				if (!tag.startsWith(VEIN_TAG + "_")) continue;
@@ -843,25 +847,81 @@ public final class AltarRitual {
 
 	/** Where a portal at this spot sends you, or null: the island's arch to the hall, the hall's door to the island. */
 	public static Vec3 portalTarget(Vec3 pos) {
-		if (pos.y < Arena.FLOOR + 1 - 0.01 || pos.y >= Arena.FLOOR + 6 || Math.abs(pos.z - 0.5) > 1.5) return null;
+		if (pos.y < Arena.FLOOR + 1 - 0.01 || pos.y >= Arena.FLOOR + 1 + Arena.PORTAL_H || Math.abs(pos.z - 0.5) > Arena.PORTAL_W / 2.0) return null;
 		if (Math.abs(pos.x - (Arena.ISLAND_X + 0.5)) <= 0.35) return Arena.ROOM_ENTRY;
 		if (Math.abs(pos.x - (Arena.ALTAR_X - Arena.ROOM_R - 0.5)) <= 0.35) return Arena.ISLAND_RETURN;
 		return null;
 	}
 
 	private static void tickPortals(MinecraftServer server) {
+		tickEntering(server);
 		ServerLevel arena = Arena.level(server);
 		if (arena == null || arena.players().isEmpty()) return;
 		tickHall(server, arena);
 		long now = server.getTickCount();
 		for (ServerPlayer p : arena.players()) {
-			if (p.isSpectator() || inRitual(p)) continue;
+			if (p.isSpectator() || inRitual(p) || ENTERING.containsKey(p.getUUID())) continue;
 			Vec3 to = portalTarget(p.position());
 			if (to == null || now < PORTAL_COOLDOWN.getOrDefault(p.getUUID(), 0L)) continue;
-			PORTAL_COOLDOWN.put(p.getUUID(), now + 40);
-			Vec3 from = p.position();
-			travel(p, to);
-			flashPortals(p, from, to);
+			PORTAL_COOLDOWN.put(p.getUUID(), now + ENTER_TICKS + 40);
+			enter(p, to);
+		}
+	}
+
+	// ---- going in (5.32): held at the portal for ENTER_TICKS while a spiral winds up round you and the screen goes purple ----
+
+	static final int ENTER_TICKS = 18;
+	private record Entering(Vec3 to, Vec3 at, long start) {
+	}
+
+	private static final Map<UUID, Entering> ENTERING = new HashMap<>();
+
+	private static void enter(ServerPlayer p, Vec3 to) {
+		Vec3 at = p.position();
+		ENTERING.put(p.getUUID(), new Entering(to, at, p.getServer().getTickCount()));
+		Ultimates.hold(p);
+		Ultimates.move(p, Vec3.ZERO);
+		AuraType aura = AuraState.get(p.getServer()).getOrCreate(p.getUUID()).aura;
+		NetworkHandler.sendFx(p, FxPacket.PORTAL, ENTER_TICKS, Integer.toHexString(aura == null ? 0x9A3CFF : aura.rgb));
+		ServerLevel level = p.serverLevel();
+		level.playSound(null, at.x, at.y, at.z, SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 0.5f, 1.6f);
+		level.playSound(null, at.x, at.y, at.z, SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 0.8f, 1.4f);
+	}
+
+	private static void tickEntering(MinecraftServer server) {
+		if (ENTERING.isEmpty()) return;
+		long now = server.getTickCount();
+		for (var it = ENTERING.entrySet().iterator(); it.hasNext(); ) {
+			var e = it.next();
+			ServerPlayer p = server.getPlayerList().getPlayer(e.getKey());
+			Entering en = e.getValue();
+			if (p == null || !p.isAlive() || !Arena.in(p)) {
+				if (p != null) Ultimates.release(p);
+				it.remove();
+				continue;
+			}
+			int t = (int) (now - en.start);
+			ServerLevel level = p.serverLevel();
+			AuraType aura = AuraState.get(server).getOrCreate(p.getUUID()).aura;
+			ParticleOptions dust = AuraFx.dust(aura == null ? 0x9A3CFF : aura.rgb, 1.2f);
+			// a spiral winding up round you, tighter as it goes
+			double k = t / (double) ENTER_TICKS;
+			for (int arm = 0; arm < 3; arm++) {
+				double ang = t * 0.55 + arm * 2 * Math.PI / 3;
+				double rad = 1.3 - k * 0.9;
+				double y = 0.1 + ((t * 0.12 + arm * 0.3) % 1.0) * 2.2;
+				AuraFx.particles(level, dust, p.getX() + Math.cos(ang) * rad, p.getY() + y, p.getZ() + Math.sin(ang) * rad, 2, 0.03, 0.03, 0.03, 0);
+				AuraFx.particles(level, ParticleTypes.REVERSE_PORTAL, p.getX() + Math.cos(ang) * rad, p.getY() + y, p.getZ() + Math.sin(ang) * rad, 1, 0, 0, 0, 0.02);
+			}
+			p.teleportTo(level, en.at.x, en.at.y, en.at.z, p.getYRot(), p.getXRot());
+			Ultimates.move(p, Vec3.ZERO);
+			if (t == ENTER_TICKS / 2) level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.0f, 0.7f);
+			if (t >= ENTER_TICKS) {
+				it.remove();
+				Ultimates.release(p);
+				travel(p, en.to);
+				flashPortals(p, en.at, en.to);
+			}
 		}
 	}
 
