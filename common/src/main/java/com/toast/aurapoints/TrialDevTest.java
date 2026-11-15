@@ -134,7 +134,56 @@ public final class TrialDevTest {
 				data.aura = null;
 			}
 			log("trialtest done");
+			// entities need their chunk loaded a while before lookups see them: force it, Blood's part runs 40 ticks later
+			int cx = (int) Math.floor(Arena.HALL_ARRIVAL.x) >> 4, cz = (int) Math.floor(Arena.HALL_ARRIVAL.z + 4) >> 4;
+			arena.setChunkForced(cx, cz, true);
+			com.toast.aurapoints.ability.AuraFx.later(server, 40, () -> blood(server, arena, fake, data, cx, cz));
 			return 1;
 		})));
+	}
+
+	/** Blood's trial alone in the hall: a dummy in your sights stands in for the Lifeline's ally. Runs 40 ticks after the chunk is forced. */
+	private static void blood(MinecraftServer server, ServerLevel arena, ServerPlayer fake, AuraPlayerData data, int cx, int cz) {
+		AuraState state = AuraState.get(server);
+		boolean cooldownsWere = state.cooldownsDisabled;
+		state.cooldownsDisabled = true;
+		AuraTrial.testPlayer = fake;
+		data.aura = AuraType.BLOOD;
+		data.rolled.add(AuraType.BLOOD);
+		data.owned.clear();
+		data.mastery.put(AuraType.BLOOD, 0);
+		data.branches.remove(AuraType.BLOOD);
+		fake.moveTo(Arena.HALL_ARRIVAL.x, Arena.HALL_ARRIVAL.y, Arena.HALL_ARRIVAL.z, 0, 0);
+		var dummy = AuraPoints.TRAINING_DUMMY.get().create(arena);
+		dummy.moveTo(Arena.HALL_ARRIVAL.x, Arena.HALL_ARRIVAL.y, Arena.HALL_ARRIVAL.z + 4, 180, 0);
+		com.toast.aurapoints.arena.ArenaBuilder.claim(dummy);
+		arena.addFreshEntity(dummy);
+		fake.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, com.toast.aurapoints.ability.AuraFx.chest(dummy));
+		try {
+			AuraAbilities.clearCooldowns(fake);
+			AuraTrial.start(fake);
+			AuraTrial.tickAll(server);
+			for (String line : AuraTrial.describe(fake)) log("  Blood item: " + line);
+			boolean lifeline = AuraAbilities.tryActivate(fake, Ability.BLOOD_TETHER, server.getTickCount(), CastMode.SNEAK);
+			log("Blood trial: Lifeline on a dummy fired " + lifeline + " (must be true), ticked "
+					+ AuraTrial.state(fake).stream().anyMatch(l -> l.startsWith("✔ Lifeline")) + " (must be true)");
+			AuraTrial.stop(fake, null);
+			AuraAbilities.clearCooldowns(fake);
+			data.owned.add(Ability.BLOOD_TETHER);
+			data.mastery.put(AuraType.BLOOD, 5);
+			boolean outside = AuraAbilities.tryActivate(fake, Ability.BLOOD_TETHER, server.getTickCount(), CastMode.SNEAK);
+			log("no trial: Lifeline on a dummy fired " + outside + " (must be false: a dummy is no ally)");
+		} finally {
+			com.toast.aurapoints.ability.Blood.onLogout(fake);
+			AuraTrial.stop(fake, null);
+			AuraTrial.testPlayer = null;
+			AuraAbilities.clearCooldowns(fake);
+			data.owned.clear();
+			data.aura = null;
+			dummy.discard();
+			arena.setChunkForced(cx, cz, false);
+			state.cooldownsDisabled = cooldownsWere;
+		}
+		log("trialtest blood done");
 	}
 }

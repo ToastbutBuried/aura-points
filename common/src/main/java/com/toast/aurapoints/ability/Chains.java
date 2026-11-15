@@ -101,6 +101,17 @@ public final class Chains {
 			return to == a && (toMode == null || toMode == m);
 		}
 
+		/** What the chain does in a sentence, for the Aura Trial: "for 5 s your ability hits (up to 6) do +30% damage, slows targets for 3 s". */
+		public String explain() {
+			String hit = (bonus > 0 ? "+" + pct(Math.min(bonus, AuraConfig.CHAINS_MAX_BONUS)) + "% damage" : "");
+			String onHit = effect.onCast() ? "" : effect.text(power);
+			if (!onHit.isEmpty()) hit = hit.isEmpty() ? onHit : hit + ", " + onHit;
+			String now = effect.onCast() ? effect.text(power) : "";
+			if (hit.isEmpty()) return now.isEmpty() ? "no bonus" : "the second ability " + now;
+			String out = "for " + secs(lastsTicks() / 20.0) + " your ability hits (up to " + AuraConfig.CHAINS_MAX_HITS + ") do " + hit;
+			return now.isEmpty() ? out : out + "; and it " + now;
+		}
+
 		/** "+30% damage, slows targets for 3 s" */
 		String perk() {
 			String b = bonus > 0 ? "+" + pct(Math.min(bonus, AuraConfig.CHAINS_MAX_BONUS)) + "% damage" : "";

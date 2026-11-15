@@ -46,7 +46,7 @@ public final class AuraTrial {
 	}
 
 	/** One thing to try: an ability's cast (chain == null) or a chain link. */
-	record Item(Ability ability, CastMode mode, Chains.Link chain, String label, String how) {
+	record Item(Ability ability, CastMode mode, Chains.Link chain, String label, String how, String what) {
 		boolean matches(Ability a, CastMode m) {
 			return chain == null && ability == a && mode == m;
 		}
@@ -84,23 +84,31 @@ public final class AuraTrial {
 		for (int i = 0; i < keys.size(); i++) {
 			Ability a = keys.get(i);
 			String key = "Ability " + (i + 1) + " key";
-			out.add(new Item(a, CastMode.TAP, null, a.displayName, "press the " + key));
+			out.add(new Item(a, CastMode.TAP, null, a.displayName, "press the " + key + target(a, CastMode.TAP), null));
 			if (!AuraConfig.CAST_VARIANTS_ENABLED) continue;
 			for (CastMode m : new CastMode[]{CastMode.SNEAK, CastMode.CHARGED}) {
 				String name = Casts.variantName(a, aura, m);
 				if (name == null) continue;
-				out.add(new Item(a, m, null, name + " (" + a.displayName + ")", m == CastMode.SNEAK ? "sneak + the " + key : "hold the " + key));
+				out.add(new Item(a, m, null, name + " (" + a.displayName + ")", (m == CastMode.SNEAK ? "sneak + the " + key : "hold the " + key) + target(a, m), null));
 			}
 		}
 		Ability ult = Ultimates.of(aura, branch);
-		if (ult != null && data.awakened.contains(aura)) out.add(new Item(ult, CastMode.TAP, null, ult.displayName + " (Ultimate)", "press the Ultimate key"));
+		if (ult != null && data.awakened.contains(aura)) out.add(new Item(ult, CastMode.TAP, null, ult.displayName + " (Ultimate)", "press the Ultimate key", null));
 		if (AuraConfig.CHAINS_ENABLED) {
 			for (Chains.Link l : Chains.links(data)) {
 				out.add(new Item(null, CastMode.TAP, l, "Chain: " + l.name(), cast(l.from(), l.fromMode(), aura) + ", then " + cast(l.to(), l.toMode(), aura)
-						+ " within " + AuraAbilities.fmt(windowSeconds(l)) + " s"));
+						+ " within " + AuraAbilities.fmt(windowSeconds(l)) + " s", l.explain()));
 			}
 		}
 		return out;
+	}
+
+	/** For the casts that need someone else: what to aim at in the Training Hall (a dummy stands in for an ally during the trial). */
+	private static String target(Ability a, CastMode m) {
+		if (a == Ability.HEMORRHAGE && m == CastMode.SNEAK) return " near something bleeding (Hemorrhage a dummy first)";
+		if (a == Ability.BLOOD_TETHER && m == CastMode.SNEAK || a == Ability.PRISM_BEAM && m == CastMode.SNEAK) return " aimed at a dummy (it stands in for an ally)";
+		if (a == Ability.BLOOD_TETHER) return " aimed at a dummy";
+		return "";
 	}
 
 	private static float windowSeconds(Chains.Link l) {
@@ -174,6 +182,7 @@ public final class AuraTrial {
 				player.sendSystemMessage(Component.literal(section + ":").withStyle(ChatFormatting.YELLOW));
 			}
 			player.sendSystemMessage(line(run, i));
+			if (it.what != null) player.sendSystemMessage(Component.literal("     ↳ " + it.what).withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
 		}
 		player.sendSystemMessage(Component.literal((run.items.size() - run.left) + " / " + run.items.size() + " done.  ").withStyle(ChatFormatting.AQUA)
 				.append(button("[Stop]", "/aura trial stop", "End the trial", ChatFormatting.RED)));
@@ -242,7 +251,8 @@ public final class AuraTrial {
 		run.left--;
 		Item it = run.items.get(i);
 		player.sendSystemMessage(Component.literal("✔ " + it.label).withStyle(ChatFormatting.GREEN)
-				.append(Component.literal("  (" + (run.items.size() - run.left) + "/" + run.items.size() + ")").withStyle(ChatFormatting.DARK_GRAY)));
+				.append(Component.literal("  (" + (run.items.size() - run.left) + "/" + run.items.size() + ")").withStyle(ChatFormatting.DARK_GRAY))
+				.append(Component.literal(it.what == null ? "" : "  " + it.what).withStyle(ChatFormatting.GRAY)));
 		AuraFx.sound(player.serverLevel(), player, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.6f, 1.0f + 0.5f * (run.items.size() - run.left) / run.items.size());
 		if (run.left <= 0) finish(player, run);
 	}
@@ -328,6 +338,14 @@ public final class AuraTrial {
 		List<String> out = new ArrayList<>();
 		if (run == null) return out;
 		for (int i = 0; i < run.items.size(); i++) out.add((run.done[i] ? "✔ " : "☐ ") + run.items.get(i).label);
+		return out;
+	}
+
+	/** Dev test: every item with its hint and (chains) what it does. */
+	public static List<String> describe(ServerPlayer player) {
+		Run run = RUNS.get(player.getUUID());
+		List<String> out = new ArrayList<>();
+		if (run != null) for (Item it : run.items) out.add(it.label + " - " + it.how + (it.what == null ? "" : " => " + it.what));
 		return out;
 	}
 }
