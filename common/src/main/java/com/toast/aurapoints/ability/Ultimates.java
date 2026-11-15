@@ -141,7 +141,9 @@ public final class Ultimates {
 		Ability ult = of(data.aura, Branch.current(data));
 		if (ult == null) return;
 		if (!data.awakened.contains(data.aura)) {
-			player.displayClientMessage(Component.literal("Your aura isn't awakened yet - complete its Awakening in the quest book (needs Mastery V).")
+			player.displayClientMessage(Component.literal(com.toast.aurapoints.config.AuraConfig.ULT_ALTAR_ENABLED
+					? "Your aura isn't awakened yet - finish its Awakening quest, then the ritual at the Awakening Altar."
+					: "Your aura isn't awakened yet - complete its Awakening in the quest book (needs Mastery V).")
 					.withStyle(ChatFormatting.GRAY), true);
 			return;
 		}
