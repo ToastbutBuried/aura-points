@@ -51,9 +51,24 @@ public final class Arena {
 	public static final Vec3 PAD_A = new Vec3(0.5, RING_FLOOR + 1, RING_Z - PAD_OFFSET + 0.5), PAD_B = new Vec3(0.5, RING_FLOOR + 1, RING_Z + PAD_OFFSET + 0.5);
 	/** The lobby hub's radius. */
 	public static final int LOBBY_R = 26;
-	/** The awakening altar: an island east of the lobby; where the ritual's player stands (on the dais). */
-	public static final int ALTAR_X = 38, ALTAR_R = 7;
+	/** The portal island east of the lobby (5.30): a bridge from the lobby, the altar portal in the middle. */
+	public static final int ISLAND_X = 38, ISLAND_R = 7;
+	/**
+	 * The Altar Hall (5.30): a closed domed room far east, reached through the island's portal. ALTAR_X is its centre,
+	 * ALTAR_R the size the pillar ring is laid out by (ring radius ALTAR_R - 1.5), ROOM_R its inner radius.
+	 * ALTAR is where the ritual's player stands (on the dais).
+	 */
+	public static final int ALTAR_X = 200, ALTAR_R = 7, ROOM_R = 13;
 	public static final Vec3 ALTAR = new Vec3(ALTAR_X + 0.5, FLOOR + 2, 0.5);
+	/** Where the island portal puts you (inside, facing the dais) and where the hall's exit portal / /aura leave put you back. */
+	public static final Vec3 ROOM_ENTRY = new Vec3(ALTAR_X - ROOM_R + 4.5, FLOOR + 1, 0.5), ISLAND_RETURN = new Vec3(ISLAND_X - 2.5, FLOOR + 1, 0.5);
+
+	/** Inside the Altar Hall. */
+	public static boolean inAltarRoom(Entity e) {
+		if (!in(e)) return false;
+		double dx = e.getX() - (ALTAR_X + 0.5), dz = e.getZ() - 0.5;
+		return dx * dx + dz * dz <= (ROOM_R + 1) * (ROOM_R + 1) && e.getY() > FLOOR - 2 && e.getY() < FLOOR + 22;
+	}
 	/** The Training Hall (outer walls, blocks, inclusive) - an island of its own, far south. */
 	public static final int TRAIN_X = 27, TRAIN_Z0 = 200, TRAIN_Z1 = 292;
 	/** The hall's Spar Pit (the only place players can fight each other outside a duel): a sunken circle, centre x 0. */

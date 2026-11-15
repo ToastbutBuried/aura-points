@@ -52,6 +52,24 @@ public final class AltarDevTest {
 					return 1;
 				}))));
 
+		// a look round for screenshots: the lobby's islets from high up, the portal island, the hall, then the ritual
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("altartour")
+				.then(Commands.argument("aura", StringArgumentType.word()).executes(ctx -> {
+					ServerPlayer player = ctx.getSource().getPlayerOrException();
+					AuraType aura = AuraType.byId(StringArgumentType.getString(ctx, "aura"));
+					ServerLevel arena = Arena.level(player.getServer());
+					MinecraftServer server = player.getServer();
+					if (aura == null || arena == null) return 0;
+					int fl = Arena.FLOOR;
+					player.teleportTo(arena, -34.5, fl + 24, 34.5, -135f, 20f);
+					AuraFx.later(server, 80, () -> player.teleportTo(arena, 34.5, fl + 22, -34.5, 45f, 22f));
+					AuraFx.later(server, 160, () -> player.teleportTo(arena, Arena.ISLAND_X - 6.5, fl + 1, 0.5, -90f, -8f));
+					AuraFx.later(server, 240, () -> player.teleportTo(arena, Arena.ROOM_ENTRY.x, Arena.ROOM_ENTRY.y, Arena.ROOM_ENTRY.z, -90f, -10f));
+					AuraFx.later(server, 320, () -> player.teleportTo(arena, Arena.ALTAR_X + 9.5, fl + 1, 7.5, 135f, -5f));
+					AuraFx.later(server, 400, () -> AltarRitual.start(player, aura, true));
+					return 1;
+				}))));
+
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("altartest").executes(ctx -> {
 			MinecraftServer server = ctx.getSource().getServer();
 			ServerLevel arena = Arena.level(server);
@@ -64,7 +82,7 @@ public final class AltarDevTest {
 			int ax = Arena.ALTAR_X, fl = Arena.FLOOR;
 			int glass = 0;
 			for (BlockPos pos : BlockPos.betweenClosed(ax - Arena.ALTAR_R, fl + 4, -Arena.ALTAR_R, ax + Arena.ALTAR_R, fl + 4, Arena.ALTAR_R)) {
-				if (arena.getBlockState(pos).is(Blocks.POLISHED_BLACKSTONE)) glass++;
+				if (arena.getBlockState(pos).is(Blocks.BARRIER)) glass++;
 			}
 			// the ring is mirror-symmetric on both axes (Toast saw it off centre before 5.29)
 			boolean mirrored = true;
@@ -80,11 +98,13 @@ public final class AltarDevTest {
 			}
 			log("pillar ring mirror-symmetric " + mirrored + " (must be true): " + spots);
 			// entities only load with their chunk: hold the keeper's while the test runs
-			arena.setChunkForced((ax - Arena.ALTAR_R + 2) >> 4, -1, true);
-			arena.setChunkForced(ax >> 4, 0, true); // the dais and half the pillars: where the props go
-			log("map version " + state.arenaMapVersion + " (must be 10), dais heart " + arena.getBlockState(new BlockPos(ax, fl + 1, 0)).is(Blocks.CRYING_OBSIDIAN)
+			// the Altar Hall spans chunks x (ax - 15) >> 4 .. (ax + 15) >> 4, z -1 and 0: hold them all while the test runs
+			for (int cxk = (ax - 15) >> 4; cxk <= (ax + 15) >> 4; cxk++) for (int czk = -1; czk <= 0; czk++) arena.setChunkForced(cxk, czk, true);
+			log("map version " + state.arenaMapVersion + " (must be 11), dais heart " + arena.getBlockState(new BlockPos(ax, fl + 1, 0)).is(Blocks.CRYING_OBSIDIAN)
 					+ " (must be true), bridge " + arena.getBlockState(new BlockPos(29, fl, 0)).is(Blocks.QUARTZ_BRICKS) + " (must be true), rail gap "
 					+ arena.getBlockState(new BlockPos(26, fl + 1, 0)).isAir() + " (must be true)");
+			log("lobby islets all round " + com.toast.aurapoints.arena.ArenaBuilder.lobbyIsletsMade() + " (must be 26), placed "
+					+ (com.toast.aurapoints.arena.ArenaBuilder.lobbyIsletsMade() == 26) + " (must be true)");
 			log("aura pillar columns " + glass + " (must be " + AltarRitual.auras().size() + " = 10)");
 
 			ServerPlayer fake = FakePlayerFactory.get(arena, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000c301"), "AltarTest"));
@@ -119,19 +139,25 @@ public final class AltarDevTest {
 				long pillars = arena.getEntitiesOfClass(net.minecraft.world.entity.Display.ItemDisplay.class, new AABB(ax - 10, fl - 2, -10, ax + 10, fl + 12, 10),
 						d -> d.getTags().contains("aurapoints_altar_pillar")).size();
 				long slitCount = arena.getEntitiesOfClass(net.minecraft.world.entity.Display.ItemDisplay.class, new AABB(ax - 10, fl - 2, -10, ax + 10, fl + 12, 10),
-						d -> d.getTags().contains("aurapoints_altar_slit")).size();
+						d -> d.getTags().contains("aurapoints_altar_vein")).size();
 				// NeoForge shows only the entities of one of the two forced chunks here (as with the ritual props); a client run shows all
-				log("pillar models " + pillars + " slits " + slitCount + " (in loaded chunks), a slit for each pillar " + (pillars > 0 && slitCount == pillars) + " (must be true)");
+				log("pillar models " + pillars + " vein sections " + slitCount + ", six for each pillar " + (pillars == AltarRitual.auras().size() && slitCount == pillars * 6)
+						+ " (must be true)");
+				// the portals: the island's arch takes you in, the hall's door back out, nowhere else
+				log("portal: island arch -> hall " + (AltarRitual.portalTarget(new net.minecraft.world.phys.Vec3(Arena.ISLAND_X + 0.5, fl + 1, 0.5)) == Arena.ROOM_ENTRY)
+						+ ", hall door -> island " + (AltarRitual.portalTarget(new net.minecraft.world.phys.Vec3(Arena.ALTAR_X - Arena.ROOM_R - 0.5, fl + 1, 0.8)) == Arena.ISLAND_RETURN)
+						+ ", beside the arch nothing " + (AltarRitual.portalTarget(new net.minecraft.world.phys.Vec3(Arena.ISLAND_X - 1.5, fl + 1, 0.5)) == null)
+						+ " (must be true true true)");
 				int props = arena.getEntitiesOfClass(net.minecraft.world.entity.Display.ItemDisplay.class, new AABB(ax - 10, fl - 2, -10, ax + 10, fl + 16, 10), d -> d.getTags().contains("aurapoints_altar_prop")).size();
 				log("ritual props " + AltarRitual.liveProps() + " (in loaded chunks " + props + ") all-up " + (AltarRitual.liveProps() == 2 + AltarRitual.auras().size()) + " (must be true)");
-				arena.setChunkForced((ax - Arena.ALTAR_R + 2) >> 4, -1, false);
+
 				AuraFx.later(server, AltarRitual.END, () -> {
 					log("after its length: running " + AltarRitual.running() + " (must be false), no gravity " + fake.isNoGravity() + " (must be false)");
 					log("again: '" + AltarRitual.begin(fake, false) + "' (must say awakened already)");
 					String replay = AltarRitual.begin(fake, true);
 					log("replay: refusal " + replay + " balance " + AuraCurrency.get(fake) + " running " + AltarRitual.running() + " (must be null " + (1000 - AuraConfig.ULT_ALTAR_COST) + " true)");
 					log("skip the replay " + AltarRitual.skip(fake) + " running " + AltarRitual.running() + " (must be true false)");
-					arena.setChunkForced(ax >> 4, 0, false);
+					for (int cxk = (ax - 15) >> 4; cxk <= (ax + 15) >> 4; cxk++) for (int czk = -1; czk <= 0; czk++) arena.setChunkForced(cxk, czk, false);
 					log("props left after the skip " + (AltarRitual.liveProps() == 0 && arena.getEntitiesOfClass(net.minecraft.world.entity.Display.ItemDisplay.class, new AABB(ax - 10, fl - 2, -10, ax + 10, fl + 16, 10), d -> d.getTags().contains("aurapoints_altar_prop")).size() == 0) + " (must be true)");
 					data.aura = AuraType.RESONANCE;
 					log("Resonance: '" + AltarRitual.begin(fake, false) + "' (must say no Ultimate)");

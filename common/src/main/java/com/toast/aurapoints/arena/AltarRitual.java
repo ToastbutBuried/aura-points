@@ -47,6 +47,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 
 /**
@@ -93,8 +95,8 @@ public final class AltarRitual {
 		int t;
 		Display.ItemDisplay sigil, core;
 		Display.ItemDisplay[] caps;
-		/** The altar's own slit displays (not ours to remove), by pillar. */
-		Display.ItemDisplay[] slits;
+		/** The hall's own vein sections (not ours to remove), [pillar][section]. */
+		Display.ItemDisplay[][] veins;
 		double sigilYaw, coreYaw;
 
 		Run(UUID id, AuraType aura, boolean replay) {
@@ -193,7 +195,7 @@ public final class AltarRitual {
 			if (data.mastery.getOrDefault(aura, 0) < AuraConfig.ULT_ALTAR_MASTERY) return "The ritual asks for " + aura.displayName + " Mastery " + Mastery.roman(AuraConfig.ULT_ALTAR_MASTERY) + ".";
 			if (AuraCurrency.get(player) < AuraConfig.ULT_ALTAR_COST) return "The ritual costs " + AuraConfig.ULT_ALTAR_COST + " Aura (you have " + AuraCurrency.get(player) + ").";
 		}
-		if (!Arena.in(player) || player.position().distanceTo(Arena.ALTAR) > Arena.ALTAR_R + 3) return "Come to the Awakening Altar in the Aura Arena (east of the lobby).";
+		if (!Arena.inAltarRoom(player)) return "Step through the altar portal on the island east of the arena lobby.";
 		if (Duel.holdsStill(player) || data.arenaRealAura != null) return "Not in the middle of a match.";
 		if (run != null) return "A ritual is under way - wait for it to end.";
 		return null;
@@ -249,10 +251,12 @@ public final class AltarRitual {
 	}
 
 	public static void onLogout(ServerPlayer player) {
+		PORTAL_COOLDOWN.remove(player.getUUID());
 		if (inRitual(player)) end(player.getServer(), true);
 	}
 
 	public static void clear() {
+		PORTAL_COOLDOWN.clear();
 		removeProps(run);
 		run = null;
 	}
@@ -265,6 +269,7 @@ public final class AltarRitual {
 		ServerPlayer p = player(server, r.id);
 		if (p == null) return;
 		Ultimates.release(p);
+		if (!early) offerReturn(server, p.getUUID());
 		if (early) {
 			NetworkHandler.sendFx(p, FxPacket.RITUAL, 0, "");
 			if (Arena.in(p)) p.teleportTo(p.serverLevel(), Arena.ALTAR.x, Arena.ALTAR.y, Arena.ALTAR.z, p.getYRot(), p.getXRot());
@@ -281,6 +286,7 @@ public final class AltarRitual {
 	}
 
 	public static void tickAll(MinecraftServer server) {
+		tickPortals(server);
 		Run r = run;
 		if (r == null) return;
 		ServerPlayer p = player(server, r.id);
@@ -537,78 +543,157 @@ public final class AltarRitual {
 		r.core = prop(level, c.add(0, CORE_Y, 0), new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_CORE.get()));
 		List<AuraType> auras = auras();
 		r.caps = new Display.ItemDisplay[auras.size()];
-		r.slits = slits(level, auras.size());
-		for (Display.ItemDisplay d : r.slits) fill(d, SLIT_IDLE, 0);
+		r.veins = veins(level, auras.size());
 		for (int i = 0; i < auras.size(); i++) {
 			ItemStack cap = new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_CAP.get());
 			cap.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(capModel(auras.get(i))));
-			// in the pillar model's cradle (its floor is 17.9 px up = 4.475 blocks at scale 4), the cap's base 0.4 px above its bottom
-			r.caps[i] = prop(level, pillar(i, auras.size()).add(0, PILLAR_SCALE * 17.9 / 16.0 + (8 - 0.4) / 16.0 * CAP_SCALE, 0), cap);
+			// in the pillar model's cradle (its top is 18.2 px up = 4.55 blocks at scale 4), the cap's base 0.4 px above its bottom
+			r.caps[i] = prop(level, pillar(i, auras.size()).add(0, PILLAR_SCALE * 18.2 / 16.0 + (8 - 0.4) / 16.0 * CAP_SCALE, 0), cap);
 		}
 	}
 
-	// ---- the pillars (5.29): a carved altar_pillar model around each block column, and its altar_slit glow in the aura's colour.
-	// Both are arena build entities (ArenaBuilder.claim), spawned with the map. Idle the slits glow at the bottom only;
-	// in the ritual each fills up from the bottom as its pillar joins, and sinks back after. ----
+	// ---- the Altar Hall's pillars (5.30): an altar_pillar model (vanilla blackstone textures, not lit up: it sits in the
+	// room's own light) around a barrier column, and on it six altar_vein sections in the aura's colour, bottom to top.
+	// Idle only the lowest section glows (it shows the pillar's aura); in the ritual they light one after the other
+	// as the pillar joins, and go out again from the top after. All are arena build entities (ArenaBuilder.claim). ----
 
-	/** Both models are 1 unit = 1/16 block at scale 1; the pillar is built at 1/4 block per unit. */
+	/** The models are 1 unit = 1/16 block at scale 1; the pillar is built at 1/4 block per unit. */
 	static final float PILLAR_SCALE = 4f;
-	/** The slits' strips run from model y 3 to 15.5; idle they are lit this far up. */
-	static final float SLIT_IDLE = 0.14f;
-	private static final String PILLAR_TAG = "aurapoints_altar_pillar", SLIT_TAG = "aurapoints_altar_slit";
+	static final int VEIN_SECTIONS = 6;
+	private static final String PILLAR_TAG = "aurapoints_altar_pillar", VEIN_TAG = "aurapoints_altar_vein", PORTAL_TAG = "aurapoints_altar_portal";
 
-	/** ArenaBuilder.buildAltar: the pillar and slit displays (the block column inside is ArenaBuilder's). */
+	/** ArenaBuilder.buildAltarHall: the pillar and vein displays (the barrier column inside is ArenaBuilder's). */
 	static void spawnPillars(ServerLevel level) {
 		List<AuraType> auras = auras();
 		for (int i = 0; i < auras.size(); i++) {
 			// model y 0 = the pillar's foot (floor + 1); the display sits on the model's middle (y 8 = 2 blocks up)
 			Vec3 at = pillar(i, auras.size()).add(0, PILLAR_SCALE * 8 / 16.0, 0);
-			Display.ItemDisplay body = pillarDisplay(level, at, new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_PILLAR.get()));
+			Display.ItemDisplay body = staticDisplay(level, at, new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_PILLAR.get()), false);
 			pose(body, PILLAR_SCALE, 0, 0);
 			body.addTag(PILLAR_TAG);
-			ItemStack glow = new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_SLIT.get());
-			glow.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(capModel(auras.get(i))));
-			Display.ItemDisplay slit = pillarDisplay(level, at, glow);
-			slit.addTag(SLIT_TAG);
-			slit.addTag(SLIT_TAG + "_" + i);
-			fill(slit, SLIT_IDLE, 0);
+			for (int sct = 0; sct < VEIN_SECTIONS; sct++) {
+				ItemStack vein = new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_VEIN.get());
+				vein.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData((capModel(auras.get(i)) - 1) * VEIN_SECTIONS + sct + 1));
+				Display.ItemDisplay d = staticDisplay(level, at, vein, true);
+				d.addTag(VEIN_TAG);
+				d.addTag(VEIN_TAG + "_" + i + "_" + sct);
+				light(d, sct == 0, 0);
+			}
 		}
 	}
 
-	private static Display.ItemDisplay pillarDisplay(ServerLevel level, Vec3 at, ItemStack stack) {
+	/** The swirl in the island's arch ({@code foot}: the opening's bottom middle), facing along x. */
+	static void spawnPortal(ServerLevel level, Vec3 foot) {
+		Display.ItemDisplay d = staticDisplay(level, foot.add(0, 2.5, 0), new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_PORTAL.get()), true);
+		d.setYRot(90f);
+		d.addTag(PORTAL_TAG);
+		DisplayAccessor acc = (DisplayAccessor) d;
+		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(3f, 5f, 1f), null));
+	}
+
+	/** The same in the hall's west door. */
+	static void spawnExitPortal(ServerLevel level, Vec3 foot) {
+		spawnPortal(level, foot);
+	}
+
+	private static Display.ItemDisplay staticDisplay(ServerLevel level, Vec3 at, ItemStack stack, boolean glow) {
 		Display.ItemDisplay d = new Display.ItemDisplay(EntityType.ITEM_DISPLAY, level);
 		d.setPos(at.x, at.y, at.z);
 		((ItemDisplayAccessor) d).aurapoints$setItemStack(stack);
 		((ItemDisplayAccessor) d).aurapoints$setItemTransform(ItemDisplayContext.FIXED);
 		DisplayAccessor acc = (DisplayAccessor) d;
 		acc.aurapoints$setViewRange(4.0f);
-		acc.aurapoints$setBrightnessOverride(new Brightness(15, 15));
+		if (glow) acc.aurapoints$setBrightnessOverride(new Brightness(15, 15));
 		ArenaBuilder.claim(d);
 		level.addFreshEntity(d);
 		return d;
 	}
 
-	/** A slit lit {@code k} of the way up (0..1), easing over {@code ticks}: scaled in y about the strips' foot (model y 3). */
-	static void fill(Display.ItemDisplay d, float k, int ticks) {
+	/** A vein section on (full size) or off (shrunk to nothing), easing over {@code ticks}. */
+	static void light(Display.ItemDisplay d, boolean on, int ticks) {
 		if (d == null || d.isRemoved()) return;
-		float s = PILLAR_SCALE, ky = Math.max(0.001f, k);
-		// the foot at model y 3 is (3 - 8) / 16 * s blocks from the middle; keep it there whatever ky is
-		float foot = (3 - 8) / 16f * s;
 		DisplayAccessor acc = (DisplayAccessor) d;
-		acc.aurapoints$setTransformation(new Transformation(new Vector3f(0, foot - foot * ky, 0), new Quaternionf(), new Vector3f(s, s * ky, s), null));
+		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(on ? PILLAR_SCALE : 0.001f), null));
 		acc.aurapoints$setInterpolationDuration(ticks);
 		d.getEntityData().set(DisplayAccessor.aurapoints$startDelta(), 0, true);
 	}
 
-	/** The slit displays round the altar by pillar index (loaded ones only). */
-	private static Display.ItemDisplay[] slits(ServerLevel level, int n) {
-		Display.ItemDisplay[] out = new Display.ItemDisplay[n];
+	/** The vein sections round the altar, [pillar][section] (loaded ones only). */
+	private static Display.ItemDisplay[][] veins(ServerLevel level, int n) {
+		Display.ItemDisplay[][] out = new Display.ItemDisplay[n][VEIN_SECTIONS];
 		Vec3 c = Arena.ALTAR;
 		for (Display.ItemDisplay d : level.getEntitiesOfClass(Display.ItemDisplay.class, new net.minecraft.world.phys.AABB(c, c).inflate(Arena.ALTAR_R + 2, 8, Arena.ALTAR_R + 2),
-				d -> d.getTags().contains(SLIT_TAG))) {
-			for (int i = 0; i < n; i++) if (d.getTags().contains(SLIT_TAG + "_" + i)) out[i] = d;
+				d -> d.getTags().contains(VEIN_TAG))) {
+			for (String tag : d.getTags()) {
+				if (!tag.startsWith(VEIN_TAG + "_")) continue;
+				String[] parts = tag.substring(VEIN_TAG.length() + 1).split("_");
+				try {
+					int i = Integer.parseInt(parts[0]), k = Integer.parseInt(parts[1]);
+					if (i >= 0 && i < n && k >= 0 && k < VEIN_SECTIONS) out[i][k] = d;
+				} catch (NumberFormatException | ArrayIndexOutOfBoundsException ignored) {
+				}
+			}
 		}
 		return out;
+	}
+
+	// ---- the portals: walk into the island's arch to reach the hall, into the hall's door to get back ----
+
+	private static final Map<UUID, Long> PORTAL_COOLDOWN = new HashMap<>();
+
+	/** Where a portal at this spot sends you, or null: the island's arch to the hall, the hall's door to the island. */
+	public static Vec3 portalTarget(Vec3 pos) {
+		if (pos.y < Arena.FLOOR + 1 - 0.01 || pos.y >= Arena.FLOOR + 6 || Math.abs(pos.z - 0.5) > 1.5) return null;
+		if (Math.abs(pos.x - (Arena.ISLAND_X + 0.5)) <= 0.35) return Arena.ROOM_ENTRY;
+		if (Math.abs(pos.x - (Arena.ALTAR_X - Arena.ROOM_R - 0.5)) <= 0.35) return Arena.ISLAND_RETURN;
+		return null;
+	}
+
+	private static void tickPortals(MinecraftServer server) {
+		ServerLevel arena = Arena.level(server);
+		if (arena == null || arena.players().isEmpty()) return;
+		long now = server.getTickCount();
+		for (ServerPlayer p : arena.players()) {
+			if (p.isSpectator() || inRitual(p)) continue;
+			Vec3 to = portalTarget(p.position());
+			if (to == null || now < PORTAL_COOLDOWN.getOrDefault(p.getUUID(), 0L)) continue;
+			PORTAL_COOLDOWN.put(p.getUUID(), now + 40);
+			travel(p, to);
+		}
+	}
+
+	/** Through a portal: there, facing in, with a whoosh (both ends). */
+	private static void travel(ServerPlayer p, Vec3 to) {
+		ServerLevel level = p.serverLevel();
+		boolean in = to == Arena.ROOM_ENTRY;
+		AuraFx.burst(level, p.getX(), p.getY() + 1, p.getZ(), ParticleTypes.REVERSE_PORTAL, 40, 0.5, 0.1);
+		p.teleportTo(level, to.x, to.y, to.z, in ? -90f : 90f, 0f);
+		p.fallDistance = 0;
+		level.playSound(null, to.x, to.y, to.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, 0.6f);
+		AuraFx.burst(level, to.x, to.y + 1, to.z, ParticleTypes.REVERSE_PORTAL, 40, 0.5, 0.1);
+		if (in) {
+			AuraFx.title(p, Component.literal("The Altar Hall").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
+					Component.literal("Talk to the keeper  ·  /aura leave to go back").withStyle(ChatFormatting.GRAY));
+		}
+	}
+
+	/** /aura leave in the Altar Hall: back through the portal (a ritual running ends early). False when not in the hall. */
+	public static boolean leaveRoom(ServerPlayer p) {
+		if (!Arena.inAltarRoom(p)) return false;
+		if (inRitual(p)) end(p.getServer(), true);
+		travel(p, Arena.ISLAND_RETURN);
+		PORTAL_COOLDOWN.put(p.getUUID(), (long) p.getServer().getTickCount() + 40);
+		return true;
+	}
+
+	/** 5 s after the show: the way back, as a button. */
+	private static void offerReturn(MinecraftServer server, UUID id) {
+		AuraFx.later(server, 100, () -> {
+			ServerPlayer p = server.getPlayerList().getPlayer(id);
+			if (p == null || !Arena.inAltarRoom(p) || inRitual(p)) return;
+			p.sendSystemMessage(Component.literal("✦ The ritual is done. ").withStyle(ChatFormatting.GOLD)
+					.append(button("[Return to the arena]", ChatFormatting.GREEN, "/aura leave", "Back through the portal to the altar island")));
+		});
 	}
 
 	/** altar_cap's custom_model_data for an aura (1..10, the model's override order). */
@@ -630,9 +715,11 @@ public final class AltarRitual {
 
 	private static void removeProps(Run r) {
 		if (r == null) return;
-		// the slits are the altar's: they sink back to idle
-		if (r.slits != null) for (Display.ItemDisplay d : r.slits) fill(d, SLIT_IDLE, 40);
-		r.slits = null;
+		// the veins are the hall's: back to idle, from the top down
+		if (r.veins != null) {
+			for (Display.ItemDisplay[] col : r.veins) for (int k = VEIN_SECTIONS - 1; k >= 1; k--) light(col[k], false, 10 + (VEIN_SECTIONS - k) * 6);
+		}
+		r.veins = null;
 		List<Display.ItemDisplay> all = new ArrayList<>();
 		all.add(r.sigil);
 		all.add(r.core);
@@ -659,11 +746,9 @@ public final class AltarRitual {
 		for (int i = 0; i < n; i++) {
 			int k = (i - own + n) % n; // order of joining
 			int lit = k == 0 ? GATHER : GATHER + 20 + k * 6;
-			if (t == lit) {
-				pose(r.caps[i], CAP_SCALE * 1.35f, i, 6);
-				// the slit fills up from the bottom in the aura's colour
-				if (r.slits != null) fill(r.slits[i], 1f, 30);
-			}
+			if (t == lit) pose(r.caps[i], CAP_SCALE * 1.35f, i, 6);
+			// its veins light up from the bottom in the aura's colour, a section every 5 ticks
+			if (r.veins != null && t > lit && t <= lit + VEIN_SECTIONS * 5 && (t - lit) % 5 == 0) light(r.veins[i][(t - lit) / 5 - 1], true, 4);
 			if (t == lit + 6) pose(r.caps[i], CAP_SCALE, i + 0.4, 8);
 			if (t > lit + 6 && t % 20 == (i * 2) % 20) pose(r.caps[i], CAP_SCALE, i + t * 0.04, 20);
 			if (t == REVEAL) pose(r.caps[i], CAP_SCALE * 1.5f, i + t * 0.04, 4);

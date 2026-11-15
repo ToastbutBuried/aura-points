@@ -172,6 +172,8 @@ public final class ArenaCommand {
 	 * Training Hall - and back to your last spot outside the arena. Outside the arena it leaves a match lobby.
 	 */
 	static int leaveAnything(ServerPlayer player) {
+		// in the Altar Hall: back through its portal to the island first
+		if (AltarRitual.leaveRoom(player)) return 1;
 		if (Arena.in(player)) {
 			Arena.leave(player);
 			return 1;
