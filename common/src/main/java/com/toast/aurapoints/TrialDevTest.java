@@ -110,6 +110,7 @@ public final class TrialDevTest {
 				fake.moveTo(Arena.HALL_ARRIVAL.x, Arena.HALL_ARRIVAL.y, Arena.HALL_ARRIVAL.z, 0, 0);
 				AuraTrial.tickAll(server);
 				log("back in: kit " + data.trialKit + " (must be true)");
+				log("DPS kiosk during the trial refused " + com.toast.aurapoints.arena.TrainingHall.trialBlocksChallenge(fake) + " (must be true)");
 				data.aura = AuraType.WATER;
 				AuraTrial.tickAll(server);
 				log("aura changed: running " + AuraTrial.running(fake) + " kit " + data.trialKit + " (must be false false)");

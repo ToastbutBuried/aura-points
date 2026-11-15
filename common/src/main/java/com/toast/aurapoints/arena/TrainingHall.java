@@ -240,6 +240,13 @@ public final class TrainingHall {
 			player.sendSystemMessage(Component.literal("No DPS challenge while cooldowns are off for everyone (/aura cooldowns).").withStyle(ChatFormatting.RED));
 			return;
 		}
+		// the trial lends the whole kit: a score with abilities you don't own would count for the weekly and the board
+		if (AuraTrial.running(player)) {
+			player.sendSystemMessage(Component.literal("Stop or finish your Aura Trial first - the DPS challenge counts only your own kit. ").withStyle(ChatFormatting.RED)
+					.append(Component.literal("[Stop the trial]").withStyle(st -> st.withColor(ChatFormatting.GRAY)
+							.withClickEvent(new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/aura trial stop")))));
+			return;
+		}
 		long now = player.serverLevel().getGameTime();
 		long clean = AuraConfig.TRAINING_CHALLENGE_CLEAN_SECONDS * 20L - (now - LAST_FREE_USE.getOrDefault(player.getUUID(), Long.MIN_VALUE / 2));
 		if (clean > 0) {
@@ -254,7 +261,12 @@ public final class TrainingHall {
 	}
 
 	/** Cooldowns stay on for a player doing the challenge, whatever their switch says. */
-	static boolean inChallenge(ServerPlayer player) {
+	/** Dev test: would the DPS kiosk refuse because of a running Aura Trial? */
+	public static boolean trialBlocksChallenge(ServerPlayer player) {
+		return AuraTrial.running(player);
+	}
+
+	public static boolean inChallenge(ServerPlayer player) {
 		return CHALLENGES.containsKey(player.getUUID());
 	}
 

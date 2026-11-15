@@ -289,7 +289,8 @@ public final class AuraTrial {
 				p.sendSystemMessage(Component.literal(in ? "Aura Trial goes on." : "Aura Trial paused: back to the Training Hall to go on (/aura trial stop ends it).")
 						.withStyle(ChatFormatting.GRAY));
 			}
-			data.trialKit = in;
+			// never during a DPS challenge (TrainingHall refuses to start one in a trial; this is the safety net)
+			data.trialKit = in && !TrainingHall.inChallenge(p);
 			if (in && server.getTickCount() % 20 == 0) {
 				Item next = null;
 				for (int i = 0; i < run.items.size(); i++) if (!run.done[i]) {
