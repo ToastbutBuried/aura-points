@@ -73,6 +73,21 @@ final class MasteryCommand {
 				.then(Commands.literal("ritual").executes(ctx -> ritual(ctx, false)))
 				.then(Commands.literal("replay").executes(ctx -> ritual(ctx, true)))
 				.then(Commands.literal("skip").executes(ctx -> com.toast.aurapoints.arena.AltarRitual.skip(ctx.getSource().getPlayerOrException()) ? 1 : 0))
+				.then(Commands.literal("watch").executes(ctx -> {
+					com.toast.aurapoints.arena.AltarRitual.watch(ctx.getSource().getPlayerOrException());
+					return 1;
+				}))
+				.then(Commands.literal("lore")
+						.executes(ctx -> {
+							ServerPlayer p = ctx.getSource().getPlayerOrException();
+							com.toast.aurapoints.arena.AltarRitual.lore(p, com.toast.aurapoints.data.AuraState.get(p.getServer()).getOrCreate(p.getUUID()).aura);
+							return 1;
+						})
+						.then(Commands.argument("aura", StringArgumentType.word()).suggests(AURAS).executes(ctx -> {
+							com.toast.aurapoints.arena.AltarRitual.lore(ctx.getSource().getPlayerOrException(),
+									com.toast.aurapoints.ability.AuraType.byId(StringArgumentType.getString(ctx, "aura")));
+							return 1;
+						})))
 				.then(Commands.literal("unlock").requires(src -> src.hasPermission(2))
 						.then(Commands.argument("targets", EntityArgument.players())
 								.then(Commands.argument("aura", StringArgumentType.word()).suggests(AURAS)

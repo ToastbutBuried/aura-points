@@ -100,6 +100,7 @@ public final class AltarDevTest {
 			// entities only load with their chunk: hold the keeper's while the test runs
 			// the Altar Hall spans chunks x (ax - 15) >> 4 .. (ax + 15) >> 4, z -1 and 0: hold them all while the test runs
 			for (int cxk = (ax - 15) >> 4; cxk <= (ax + 15) >> 4; cxk++) for (int czk = -1; czk <= 0; czk++) arena.setChunkForced(cxk, czk, true);
+			for (int czk = -1; czk <= 0; czk++) arena.setChunkForced(Arena.ISLAND_X >> 4, czk, true); // the island's portal
 			log("map version " + state.arenaMapVersion + " (must be 11), dais heart " + arena.getBlockState(new BlockPos(ax, fl + 1, 0)).is(Blocks.CRYING_OBSIDIAN)
 					+ " (must be true), bridge " + arena.getBlockState(new BlockPos(29, fl, 0)).is(Blocks.QUARTZ_BRICKS) + " (must be true), rail gap "
 					+ arena.getBlockState(new BlockPos(26, fl + 1, 0)).isAir() + " (must be true)");
@@ -127,6 +128,7 @@ public final class AltarDevTest {
 			fake.moveTo(Arena.ALTAR.x - 60, Arena.ALTAR.y - 1, Arena.ALTAR.z, 0, 0);
 			log("60 blocks away: '" + AltarRitual.begin(fake, false) + "' (must say come to the altar)");
 			fake.moveTo(Arena.ALTAR.x - 3, Arena.ALTAR.y - 1, Arena.ALTAR.z, 0, 0);
+			log("watch with no ritual running: refused " + (AltarRitual.running() == false) + " (must be true)");
 			log("replay before awakening: '" + AltarRitual.begin(fake, true) + "' (must say not awakened)");
 			String began = AltarRitual.begin(fake, false);
 			log("ritual: refusal " + began + " awakened " + data.awakened.contains(AuraType.FIRE) + " balance " + AuraCurrency.get(fake) + " running " + AltarRitual.running()
@@ -149,6 +151,10 @@ public final class AltarDevTest {
 						+ ", beside the arch nothing " + (AltarRitual.portalTarget(new net.minecraft.world.phys.Vec3(Arena.ISLAND_X - 1.5, fl + 1, 0.5)) == null)
 						+ " (must be true true true)");
 				int props = arena.getEntitiesOfClass(net.minecraft.world.entity.Display.ItemDisplay.class, new AABB(ax - 10, fl - 2, -10, ax + 10, fl + 16, 10), d -> d.getTags().contains("aurapoints_altar_prop")).size();
+				log("keeper's lore for every pillar " + (AltarRitual.devLoreCount() == AltarRitual.auras().size()) + " (must be true)");
+				// the portal flashes the walker's aura (both portals: the island arch and the hall door)
+				int flashed = AltarRitual.devFlash(fake);
+				log("portals flashed in Fire's colour " + flashed + ", both " + (flashed == 2) + " (must be true)");
 				log("ritual props " + AltarRitual.liveProps() + " (in loaded chunks " + props + ") all-up " + (AltarRitual.liveProps() == 2 + AltarRitual.auras().size()) + " (must be true)");
 
 				AuraFx.later(server, AltarRitual.END, () -> {
@@ -158,6 +164,7 @@ public final class AltarDevTest {
 					log("replay: refusal " + replay + " balance " + AuraCurrency.get(fake) + " running " + AltarRitual.running() + " (must be null " + (1000 - AuraConfig.ULT_ALTAR_COST) + " true)");
 					log("skip the replay " + AltarRitual.skip(fake) + " running " + AltarRitual.running() + " (must be true false)");
 					for (int cxk = (ax - 15) >> 4; cxk <= (ax + 15) >> 4; cxk++) for (int czk = -1; czk <= 0; czk++) arena.setChunkForced(cxk, czk, false);
+					for (int czk = -1; czk <= 0; czk++) arena.setChunkForced(Arena.ISLAND_X >> 4, czk, false);
 					log("props left after the skip " + (AltarRitual.liveProps() == 0 && arena.getEntitiesOfClass(net.minecraft.world.entity.Display.ItemDisplay.class, new AABB(ax - 10, fl - 2, -10, ax + 10, fl + 16, 10), d -> d.getTags().contains("aurapoints_altar_prop")).size() == 0) + " (must be true)");
 					data.aura = AuraType.RESONANCE;
 					log("Resonance: '" + AltarRitual.begin(fake, false) + "' (must say no Ultimate)");

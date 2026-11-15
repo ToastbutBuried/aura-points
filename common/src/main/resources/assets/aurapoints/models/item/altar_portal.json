@@ -60,5 +60,67 @@
     1
    ]
   }
- }
+ },
+ "overrides": [
+  {
+   "predicate": {
+    "custom_model_data": 1
+   },
+   "model": "aurapoints:item/altar_portal_shadow"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 2
+   },
+   "model": "aurapoints:item/altar_portal_water"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 3
+   },
+   "model": "aurapoints:item/altar_portal_fire"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 4
+   },
+   "model": "aurapoints:item/altar_portal_wind"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 5
+   },
+   "model": "aurapoints:item/altar_portal_frost"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 6
+   },
+   "model": "aurapoints:item/altar_portal_verdant"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 7
+   },
+   "model": "aurapoints:item/altar_portal_thunder"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 8
+   },
+   "model": "aurapoints:item/altar_portal_earth"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 9
+   },
+   "model": "aurapoints:item/altar_portal_light"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 10
+   },
+   "model": "aurapoints:item/altar_portal_blood"
+  }
+ ]
 }

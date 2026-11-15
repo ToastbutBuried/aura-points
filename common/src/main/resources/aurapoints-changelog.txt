@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.31.0
+- Altar Hall: the portal flashes the colour of your aura as you pass, your aura's pillar wakes when you stand by it, each pillar murmurs its element, and the keeper tells each pillar's story (/aura altar lore).
+- When someone begins a ritual, everyone in the arena gets a [Watch] button into the hall.
+
 == 5.30.0
 - The Awakening Altar has its own hall: walk through the new portal on the altar island into a closed, domed Altar Hall. Its pillars are carved blackstone with branching aura-coloured veins that light up from the bottom during the ritual. A button 5 s after the cutscene (or /aura leave) takes you back.
 - More floating islets all round the arena lobby.

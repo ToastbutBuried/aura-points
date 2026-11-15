@@ -155,6 +155,14 @@ public final class AltarRitual {
 		if (server == null) return;
 		AuraPlayerData data = AuraState.get(server).getOrCreate(player.getUUID());
 		player.sendSystemMessage(Component.literal("━━━━━ ✦ AWAKENING ALTAR ✦ ━━━━━").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+		// the keeper's stories, one per pillar
+		MutableComponent lore = Component.literal("  Hear of: ").withStyle(ChatFormatting.GRAY);
+		for (AuraType a : auras()) {
+			lore.append(Component.literal("[" + a.displayName + "] ").withStyle(st -> st.withColor(net.minecraft.network.chat.TextColor.fromRgb(a.rgb))
+					.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/aura altar lore " + a.id()))
+					.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("The keeper's story of the " + a.displayName + " pillar")))));
+		}
+		player.sendSystemMessage(lore);
 		AuraType aura = data.aura;
 		if (aura == null) {
 			player.sendSystemMessage(Component.literal("  You have no aura yet.").withStyle(ChatFormatting.GRAY));
@@ -241,6 +249,7 @@ public final class AltarRitual {
 		sound(level, Arena.ALTAR, SoundEvents.BEACON_ACTIVATE, 1.6f, 0.5f);
 		sound(level, Arena.ALTAR, SoundEvents.WARDEN_HEARTBEAT, 2.0f, 0.6f);
 		spawnProps(level, run);
+		if (player.getServer().getPlayerList().getPlayer(player.getUUID()) != null) invite(player, aura);
 	}
 
 	/** Sneak during a replay: straight to the end. */
@@ -257,6 +266,8 @@ public final class AltarRitual {
 
 	public static void clear() {
 		PORTAL_COOLDOWN.clear();
+		PULSED.clear();
+		FLASH_UNTIL.clear();
 		removeProps(run);
 		run = null;
 	}
@@ -637,6 +648,195 @@ public final class AltarRitual {
 		return out;
 	}
 
+
+	// ---- the keeper's lore (5.31): a few lines per pillar ----
+
+	private static final Map<AuraType, String[]> LORE = new java.util.EnumMap<>(AuraType.class);
+
+	static {
+		LORE.put(AuraType.SHADOW, new String[]{"Before the first dawn there was only the dark, and it was not empty.",
+				"Shadow is what learned to move in it unseen. Its pillar was raised in a night that never lifted.",
+				"Those who wake it learn the dark was never against them."});
+		LORE.put(AuraType.WATER, new String[]{"The deep remembers every shore it ever touched.",
+				"Water's pillar stood under a sea that has long since left, and the veins still run like a tide.",
+				"It heals as easily as it drowns. The awakened decide which."});
+		LORE.put(AuraType.FIRE, new String[]{"The first flame was stolen, they say, and it has burned angry ever since.",
+				"Fire's pillar is the warmest stone in the hall; keepers once cooked on it.",
+				"Waking it is easy. Keeping it from waking you is the hard part."});
+		LORE.put(AuraType.WIND, new String[]{"Wind has no home, so it built one out of the space between things.",
+				"Its pillar hums when no one is near, a note too high to hear for long.",
+				"The awakened stop falling. They only ever land."});
+		LORE.put(AuraType.FROST, new String[]{"Frost is patience made into a weapon.",
+				"Its pillar was cut from a glacier that took ten thousand winters to reach the sea.",
+				"What it holds, it holds still. Even time, for a breath."});
+		LORE.put(AuraType.VERDANT, new String[]{"Everything that grows is a little bit stubborn.",
+				"Verdant's pillar had roots before the hall had walls; the floor around it is still cracked.",
+				"It feeds, it binds, it poisons - and it always comes back."});
+		LORE.put(AuraType.THUNDER, new String[]{"Thunder is the sky losing its temper.",
+				"Its pillar was struck a hundred times on the night it was raised and never fell.",
+				"The awakened move first and explain later."});
+		LORE.put(AuraType.EARTH, new String[]{"Under every island here is older stone, and it is listening.",
+				"Earth's pillar is the only one the hall was built around rather than beside.",
+				"It asks for nothing but weight. Give it yours."});
+		LORE.put(AuraType.LIGHT, new String[]{"Light does not chase the dark away. It just refuses to leave.",
+				"Its pillar was the last raised, to see the others by.",
+				"Those who wake it carry a little dawn with them."});
+		LORE.put(AuraType.BLOOD, new String[]{"Every aura costs something. Blood just says so out loud.",
+				"Its pillar was the price of the hall; the keepers do not say whose.",
+				"The awakened know exactly what they can spare - and spend it."});
+	}
+
+	/** /aura altar lore [aura]: the keeper's story of a pillar (the aura you hold without an argument). */
+	public static void lore(ServerPlayer player, AuraType aura) {
+		if (aura == null || !LORE.containsKey(aura)) {
+			player.sendSystemMessage(Component.literal("The keeper has no story for that.").withStyle(ChatFormatting.GRAY));
+			return;
+		}
+		player.sendSystemMessage(Component.literal("✦ The " + aura.displayName + " pillar ✦").withStyle(st -> st.withColor(net.minecraft.network.chat.TextColor.fromRgb(aura.rgb)).withBold(true)));
+		for (String line : LORE.get(aura)) player.sendSystemMessage(Component.literal("  " + line).withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
+	}
+
+	// ---- the living hall (5.31): your aura's pillar answers you; each pillar murmurs its element ----
+
+	private static final Map<Integer, Long> PULSED = new HashMap<>();
+
+	private static void tickHall(MinecraftServer server, ServerLevel arena) {
+		long now = server.getTickCount();
+		if (now % 10 != 0 || run != null) return;
+		List<AuraType> auras = auras();
+		int n = auras.size();
+		Display.ItemDisplay[][] veins = null;
+		java.util.Set<Integer> heard = new java.util.HashSet<>();
+		for (ServerPlayer p : arena.players()) {
+			if (p.isSpectator() || !Arena.inAltarRoom(p)) continue;
+			AuraType own = AuraState.get(server).getOrCreate(p.getUUID()).aura;
+			for (int i = 0; i < n; i++) {
+				Vec3 at = pillar(i, n);
+				double dx = p.getX() - at.x, dz = p.getZ() - at.z, d2 = dx * dx + dz * dz;
+				// next to a pillar: its name and how to hear its story
+				if (d2 <= 2.5 * 2.5 && now % 20 == 0) {
+					AuraType a = auras.get(i);
+					p.displayClientMessage(Component.literal(a.displayName + " pillar  ·  ").withStyle(st -> st.withColor(net.minecraft.network.chat.TextColor.fromRgb(a.rgb)))
+							.append(Component.literal("/aura altar lore " + a.id()).withStyle(ChatFormatting.GRAY)), true);
+				}
+				// your own aura's pillar: its veins rise to the top and settle again
+				if (auras.get(i) == own && d2 <= 4 * 4 && now >= PULSED.getOrDefault(i, 0L)) {
+					PULSED.put(i, now + 80);
+					if (veins == null) veins = veins(arena, n);
+					Display.ItemDisplay[] col = veins[i];
+					for (int k = 1; k < VEIN_SECTIONS; k++) {
+						Display.ItemDisplay d = col[k];
+						int up = k * 3;
+						AuraFx.later(server, up, () -> light(d, true, 3));
+						AuraFx.later(server, 30 + (VEIN_SECTIONS - k) * 3, () -> {
+							if (run == null) light(d, false, 8);
+						});
+					}
+					sound(arena, at.add(0, 2, 0), SoundEvents.AMETHYST_BLOCK_RESONATE, 0.7f, 0.8f);
+				}
+				if (d2 <= 6 * 6) heard.add(i);
+			}
+		}
+		// the murmur: now and then, quietly, from a pillar someone stands near
+		if (now % 40 == 0) {
+			for (int i : heard) {
+				if (arena.random.nextInt(3) != 0) continue;
+				Vec3 at = pillar(i, n).add(0, 2, 0);
+				level(arena, at, murmur(auras.get(i)));
+			}
+		}
+	}
+
+	private static void level(ServerLevel level, Vec3 at, SoundEvent sound) {
+		level.playSound(null, at.x, at.y, at.z, sound, SoundSource.AMBIENT, 0.35f, 0.8f + level.random.nextFloat() * 0.3f);
+	}
+
+	/** Each pillar's quiet sound. */
+	private static SoundEvent murmur(AuraType aura) {
+		return switch (aura) {
+			case FIRE -> SoundEvents.CAMPFIRE_CRACKLE;
+			case WATER -> SoundEvents.POINTED_DRIPSTONE_DRIP_WATER;
+			case WIND -> SoundEvents.BREEZE_IDLE_AIR;
+			case FROST -> SoundEvents.POWDER_SNOW_STEP;
+			case VERDANT -> SoundEvents.AZALEA_LEAVES_STEP;
+			case THUNDER -> SoundEvents.COPPER_BULB_TURN_ON;
+			case EARTH -> SoundEvents.DEEPSLATE_STEP;
+			case LIGHT -> SoundEvents.AMETHYST_BLOCK_CHIME;
+			case BLOOD -> SoundEvents.WARDEN_HEARTBEAT;
+			case SHADOW -> SoundEvents.SCULK_CLICKING;
+			default -> SoundEvents.AMETHYST_BLOCK_CHIME;
+		};
+	}
+
+	// ---- watching (5.31): when a ritual starts, everyone else in the arena may come and watch ----
+
+	private static void invite(ServerPlayer p, AuraType aura) {
+		ServerLevel arena = Arena.level(p.getServer());
+		if (arena == null) return;
+		Component name = Component.literal(p.getGameProfile().getName()).withStyle(ChatFormatting.WHITE);
+		for (ServerPlayer o : arena.players()) {
+			if (o == p) continue;
+			if (Arena.inAltarRoom(o)) {
+				AuraFx.title(o, Component.literal(p.getGameProfile().getName() + "'s ritual").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
+						Component.empty().append(AuraLabel.of(aura)).append(Component.literal(" awakens").withStyle(ChatFormatting.GRAY)));
+			} else {
+				o.sendSystemMessage(Component.literal("✦ ").withStyle(ChatFormatting.GOLD).append(name)
+						.append(Component.literal(" begins the Awakening ritual of ").withStyle(ChatFormatting.GOLD)).append(AuraLabel.of(aura))
+						.append(Component.literal("  ")).append(button("[Watch]", ChatFormatting.GREEN, "/aura altar watch", "Into the Altar Hall to watch")));
+			}
+		}
+	}
+
+	/** /aura altar watch: into the hall while a ritual runs. */
+	public static void watch(ServerPlayer player) {
+		Run r = run;
+		if (r == null || r.id.equals(player.getUUID())) {
+			player.sendSystemMessage(Component.literal("No ritual to watch right now.").withStyle(ChatFormatting.GRAY));
+			return;
+		}
+		if (!Arena.in(player) || Duel.isIn(player) || Match.isIn(player)) {
+			player.sendSystemMessage(Component.literal("Join the Aura Arena (and leave your match) to watch.").withStyle(ChatFormatting.GRAY));
+			return;
+		}
+		if (!Arena.inAltarRoom(player)) travel(player, Arena.ROOM_ENTRY);
+	}
+
+	// ---- the portal's colour (5.31): it flashes the aura of whoever walks through ----
+
+	private static final Map<UUID, Long> FLASH_UNTIL = new HashMap<>();
+
+	/** Dev test: stories told, portals flashed for {@code p} walking from the island arch into the hall (count tinted). */
+	public static int devLoreCount() {
+		return LORE.size();
+	}
+
+	public static int devFlash(ServerPlayer p) {
+		flashPortals(p, new Vec3(Arena.ISLAND_X + 0.5, Arena.FLOOR + 3.5, 0.5), Arena.ROOM_ENTRY);
+		return FLASH_UNTIL.size();
+	}
+
+	private static void flashPortals(ServerPlayer p, Vec3 from, Vec3 to) {
+		AuraType aura = AuraState.get(p.getServer()).getOrCreate(p.getUUID()).aura;
+		if (aura == null || !LORE.containsKey(aura)) return;
+		ServerLevel level = p.serverLevel();
+		long until = p.getServer().getTickCount() + 60;
+		for (Vec3 near : new Vec3[]{from, to}) {
+			for (Display.ItemDisplay d : level.getEntitiesOfClass(Display.ItemDisplay.class, new net.minecraft.world.phys.AABB(near, near).inflate(6, 6, 6),
+					d -> d.getTags().contains(PORTAL_TAG))) {
+				ItemStack tinted = new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_PORTAL.get());
+				tinted.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(capModel(aura)));
+				((ItemDisplayAccessor) d).aurapoints$setItemStack(tinted);
+				FLASH_UNTIL.put(d.getUUID(), until);
+				AuraFx.burst(level, d.getX(), d.getY(), d.getZ(), AuraFx.dust(aura.rgb, 1.6f), 40, 1.2, 0.1);
+				AuraFx.later(p.getServer(), 61, () -> {
+					if (d.isRemoved() || p.getServer().getTickCount() < FLASH_UNTIL.getOrDefault(d.getUUID(), 0L)) return;
+					((ItemDisplayAccessor) d).aurapoints$setItemStack(new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_PORTAL.get()));
+					FLASH_UNTIL.remove(d.getUUID());
+				});
+			}
+		}
+	}
+
 	// ---- the portals: walk into the island's arch to reach the hall, into the hall's door to get back ----
 
 	private static final Map<UUID, Long> PORTAL_COOLDOWN = new HashMap<>();
@@ -652,13 +852,16 @@ public final class AltarRitual {
 	private static void tickPortals(MinecraftServer server) {
 		ServerLevel arena = Arena.level(server);
 		if (arena == null || arena.players().isEmpty()) return;
+		tickHall(server, arena);
 		long now = server.getTickCount();
 		for (ServerPlayer p : arena.players()) {
 			if (p.isSpectator() || inRitual(p)) continue;
 			Vec3 to = portalTarget(p.position());
 			if (to == null || now < PORTAL_COOLDOWN.getOrDefault(p.getUUID(), 0L)) continue;
 			PORTAL_COOLDOWN.put(p.getUUID(), now + 40);
+			Vec3 from = p.position();
 			travel(p, to);
+			flashPortals(p, from, to);
 		}
 	}
 
