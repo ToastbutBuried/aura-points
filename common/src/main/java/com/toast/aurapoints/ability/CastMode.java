@@ -34,6 +34,8 @@ public enum CastMode {
 		// Shadow; a Wind player's Dash is WindLaunch's hold key: its SNEAK cast is Tailwind, it never charges
 		put(Ability.DASH, SNEAK, CHARGED);
 		put(Ability.VANISH, SNEAK, CHARGED);
+		// Dark (Shadow's kit branch): the Rift Anchor
+		put(Ability.RIFT_STEP, SNEAK);
 		// Wind (both keys hold already)
 		put(Ability.SUPER_WIND_CHARGE, SNEAK);
 		// Frost (the spike key holds)

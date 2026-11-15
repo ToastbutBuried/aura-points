@@ -266,6 +266,8 @@ public class AuraPoints {
 			AuraHooks.createObjectives(event.getServer());
 			com.toast.aurapoints.arena.ArenaBuilder.buildIfNeeded(event.getServer());
 			Tickets.load();
+			// writes config/aurapoints-chains.json when it is missing
+			com.toast.aurapoints.ability.Chains.all();
 		}
 
 		/** Ticket mode: the next chat message becomes the ticket. */

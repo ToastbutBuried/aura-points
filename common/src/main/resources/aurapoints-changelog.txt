@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.25.0
+- More to do outside of fights: Fire's Flame Cloak smelts dropped items next to you, Frost Path puts out fires, Thunder's Static Rush drives your minecart or boat, Blood's Lifeline works on your pets.
+- Dark: sneak + Rift Step sets a Rift Anchor, sneak + key again steps you back to it.
+
 == 5.24.0
 - Ability chains: use one ability, then another within 3 s, and the second hits harder and adds an effect (Fire Bending then Fireball = Stoked, Vanish then Dash = Shade Step ...). Every aura has its own; the gold lines on each ability in the Aura Book list them.
 - New weekly challenge: pull off ability chains.

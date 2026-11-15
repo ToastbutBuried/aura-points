@@ -92,6 +92,9 @@ public final class AuraConfig {
 	public static float HEAT_WAVE_CHARGED_BURN_FACTOR = 2.0f;
 	/** Flame Cloak (sneak + Fire Bending): Fire Resistance for this long; enemies this close catch fire for this many seconds. */
 	public static int FIRE_BENDING_CLOAK_TICKS = 100;
+	/** Forge: a running Flame Cloak smelts dropped items within this many blocks (ore, raw food, sand...), at most this many items per cloak (0 = off). */
+	public static double FIRE_BENDING_CLOAK_SMELT_RADIUS = 2.5;
+	public static int FIRE_BENDING_CLOAK_SMELT_ITEMS = 16;
 	public static double FIRE_BENDING_CLOAK_RADIUS = 2.0;
 	public static float FIRE_BENDING_CLOAK_BURN_SECONDS = 2.0f;
 
@@ -141,12 +144,16 @@ public final class AuraConfig {
 	public static int FROST_PATH_TICKS = 200;
 	public static int FROST_PATH_RADIUS = 1;
 	public static double FROST_PATH_COOLDOWN_FACTOR = 0.5;
+	/** Frost Path also puts out fire blocks this many blocks around you, and yourself (0 = off). */
+	public static int FROST_PATH_DOUSE_RADIUS = 2;
 
 	// Thunder casts
 	/** Static Rush (sneak + Thunderbolt): Speed this strong (0 = Speed I) for this long. */
 	public static int THUNDERBOLT_RUSH_AMPLIFIER = 1;
 	public static int THUNDERBOLT_RUSH_TICKS = 100;
 	public static double THUNDERBOLT_RUSH_COOLDOWN_FACTOR = 0.5;
+	/** Static Rush while riding: your minecart is pushed along its way every tick by this much, your boat is kept at least this fast x 10 along your look (0 = off). */
+	public static double THUNDERBOLT_RUSH_VEHICLE_PUSH = 0.06;
 	/** Chain Lightning (hold Thunderbolt): a bolt at the first enemy in this range that jumps on to this many more within this radius, this damage each, no leap. */
 	public static double THUNDERBOLT_CHAIN_RANGE = 24;
 	public static int THUNDERBOLT_CHAINBOLT_TARGETS = 4;
@@ -228,6 +235,8 @@ public final class AuraConfig {
 	public static int BLOOD_LIFELINE_TICKS = 160;
 	public static int BLOOD_LIFELINE_REGEN_AMPLIFIER = 1;
 	public static double BLOOD_LIFELINE_COOLDOWN_FACTOR = 0.5;
+	/** Lifeline also works on your own tamed animals. */
+	public static boolean BLOOD_LIFELINE_PETS = true;
 	/** Leech (hold Blood Tether): drain and heal-share factors. */
 	public static float BLOOD_TETHER_CHARGED_DRAIN_FACTOR = 1.5f;
 	public static double BLOOD_TETHER_CHARGED_HEAL_FACTOR = 1.5;
@@ -1809,6 +1818,10 @@ public final class AuraConfig {
 	public static float VOID_RIFT_DAMAGE = 3.0f;
 	public static int VOID_RIFT_HIT_TICKS = 10;
 	public static int VOID_RIFT_COOLDOWN_TICKS = 9 * 20;
+	/** Rift Anchor (sneak + Rift Step): how long an anchor waits, how far away it still pulls you back, and the return's cooldown (x Rift Step's). */
+	public static int VOID_ANCHOR_TICKS = 20 * 120;
+	public static double VOID_ANCHOR_RANGE = 96.0;
+	public static double VOID_ANCHOR_COOLDOWN_FACTOR = 2.0;
 	/** Null Orb: SPEED in blocks per tick; NULL_TICKS: how long a player hit can't use abilities. */
 	public static double VOID_ORB_SPEED = 0.45;
 	public static double VOID_ORB_RANGE = 22.0;

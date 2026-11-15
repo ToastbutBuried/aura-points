@@ -408,7 +408,7 @@ public final class Chains {
 		add(json, "shadow", "vanish", "dash", "Shade Step", 0.30, "speed", 3);
 		add(json, "shadow", "dash", "vanish", "Slip Away", 0.0, "refund", 0.25);
 		add(json, "shadow:dark", "void_pull", "null_orb", "Collapse", 0.35, "slow", 3);
-		add(json, "shadow:dark", "rift_step", "void_pull", "Rift Snare", 0.25, "weaken", 3);
+		add(json, "shadow:dark", "rift_step:tap", "void_pull", "Rift Snare", 0.25, "weaken", 3);
 		add(json, "water", "shockwave", "abyssal_bubble", "Undertow", 0.30, "wet", 0);
 		add(json, "water", "healing_tide", "shockwave", "Riptide", 0.25, "heal", 2);
 		add(json, "fire", "fire_bending", "fireball", "Stoked", 0.30, "ignite", 4);

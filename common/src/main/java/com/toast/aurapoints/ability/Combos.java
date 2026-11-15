@@ -642,7 +642,7 @@ public final class Combos {
 	/** Fake players of the dev test (not in the player list). */
 	public static final Map<UUID, ServerPlayer> TEST_PLAYERS = new HashMap<>();
 
-	private static ServerPlayer player(MinecraftServer server, UUID id) {
+	static ServerPlayer player(MinecraftServer server, UUID id) {
 		ServerPlayer p = server.getPlayerList().getPlayer(id);
 		return p != null || TEST_PLAYERS.isEmpty() ? p : TEST_PLAYERS.get(id);
 	}

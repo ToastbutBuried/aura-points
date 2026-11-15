@@ -159,6 +159,71 @@ public final class VoidAura {
 		return true;
 	}
 
+	// ---- Rift Anchor (sneak + Rift Step) ----
+
+	private record Anchor(ServerLevel level, Vec3 at, float yaw, float pitch, long until) {
+	}
+
+	private static final Map<UUID, Anchor> ANCHORS = new HashMap<>();
+
+	/** Rift Anchor: the first sneak press marks the spot (no cooldown), the next one within range steps back to it. Not in the arena. */
+	static boolean anchor(ServerPlayer p, long now) {
+		if (com.toast.aurapoints.arena.Arena.in(p)) {
+			p.displayClientMessage(Component.literal("The Rift Anchor doesn't hold in the arena.").withStyle(ChatFormatting.GRAY), true);
+			return false;
+		}
+		ServerLevel level = p.serverLevel();
+		Anchor a = ANCHORS.get(p.getUUID());
+		if (a != null && now >= a.until) a = null;
+		if (a == null) {
+			ANCHORS.put(p.getUUID(), new Anchor(level, p.position(), p.getYRot(), p.getXRot(), now + Math.max(20, AuraConfig.VOID_ANCHOR_TICKS)));
+			Vec3 c = AuraFx.chest(p);
+			AuraFx.ring(level, p.getX(), p.getY() + 0.1, p.getZ(), 0.9, ParticleTypes.REVERSE_PORTAL, 24);
+			AuraFx.particles(level, AuraFx.dust(DEEP, 1.5f), c.x, c.y, c.z, 12, 0.3, 0.5, 0.3, 0);
+			sound(level, c, SoundEvents.RESPAWN_ANCHOR_SET_SPAWN, 0.8f, 0.6f);
+			p.displayClientMessage(Component.literal("✦ Rift Anchor set - sneak + key again to return ✦").withStyle(ChatFormatting.DARK_PURPLE), true);
+			return true;
+		}
+		if (!AuraAbilities.checkCooldown(p, Ability.RIFT_STEP, AuraConfig.VOID_RIFT_COOLDOWN_TICKS, now)) return false;
+		if (a.level != level || a.at.distanceTo(p.position()) > AuraConfig.VOID_ANCHOR_RANGE) {
+			p.displayClientMessage(Component.literal("Your Rift Anchor is too far away (" + Math.round(AuraConfig.VOID_ANCHOR_RANGE) + " blocks).").withStyle(ChatFormatting.GRAY), true);
+			return false;
+		}
+		ANCHORS.remove(p.getUUID());
+		Vec3 from = p.position();
+		openRift(p, level, from.add(0, 1.0, 0), p.getLookAngle());
+		p.stopRiding();
+		p.teleportTo(level, a.at.x, a.at.y, a.at.z, a.yaw, a.pitch);
+		p.fallDistance = 0;
+		p.setDeltaMovement(Vec3.ZERO);
+		p.hurtMarked = true;
+		Vec3 out = AuraFx.chest(p);
+		AuraFx.burst(level, out.x, out.y, out.z, ParticleTypes.REVERSE_PORTAL, 40, 0.6, 0.2);
+		AuraFx.particles(level, AuraFx.dust(DEEP, 1.5f), out.x, out.y, out.z, 16, 0.4, 0.6, 0.4, 0);
+		sound(level, from, SoundEvents.ENDERMAN_TELEPORT, 1.0f, 0.6f);
+		sound(level, out, SoundEvents.ENDERMAN_TELEPORT, 1.0f, 1.0f);
+		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_VOID, 1);
+		Casts.used(p, Ability.RIFT_STEP, now, AuraConfig.VOID_ANCHOR_COOLDOWN_FACTOR);
+		return true;
+	}
+
+	/** A waiting anchor shows as a faint swirl (its owner's tick). */
+	private static void tickAnchor(ServerPlayer p, long now) {
+		Anchor a = ANCHORS.get(p.getUUID());
+		if (a == null) return;
+		if (now >= a.until) {
+			ANCHORS.remove(p.getUUID());
+			p.displayClientMessage(Component.literal("Your Rift Anchor faded.").withStyle(ChatFormatting.GRAY), true);
+			return;
+		}
+		if (now % 10 == 0) AuraFx.particles(a.level, ParticleTypes.REVERSE_PORTAL, a.at.x, a.at.y + 0.8, a.at.z, 6, 0.25, 0.5, 0.25, 0.02);
+	}
+
+	/** Whether this player has a Rift Anchor waiting (dev tests). */
+	public static boolean hasAnchor(ServerPlayer p) {
+		return ANCHORS.containsKey(p.getUUID());
+	}
+
 	/** A jagged black tear standing in the air, turned across {@code look}. */
 	private static void openRift(ServerPlayer p, ServerLevel level, Vec3 at, Vec3 look) {
 		Rift r = new Rift(p.getUUID(), level, at);
@@ -319,6 +384,7 @@ public final class VoidAura {
 
 	/** Event Horizon: projectiles (not your own) near you slow to a crawl. Every server tick for every player. */
 	public static void tickPassives(ServerPlayer p, AuraPlayerData data, long now) {
+		if (!ANCHORS.isEmpty()) tickAnchor(p, now);
 		if (!AuraAbilities.hasAbility(data, Ability.EVENT_HORIZON) || !p.isAlive() || p.isSpectator()) return;
 		double r = Math.max(1, AuraConfig.VOID_HORIZON_RADIUS);
 		for (Projectile pr : p.serverLevel().getEntitiesOfClass(Projectile.class, p.getBoundingBox().inflate(r), pr -> pr.getOwner() != p && !pr.onGround())) {
@@ -379,6 +445,7 @@ public final class VoidAura {
 	}
 
 	public static void onLogout(ServerPlayer p) {
+		ANCHORS.remove(p.getUUID());
 		NULLED.remove(p.getUUID());
 		AttributeInstance armor = p.getAttribute(Attributes.ARMOR);
 		if (armor != null) armor.removeModifier(ENTROPY);
@@ -387,6 +454,7 @@ public final class VoidAura {
 
 	public static void clearAll() {
 		ORBS.clear();
+		ANCHORS.clear();
 		RIFTS.clear();
 		NULLED.clear();
 		for (LivingEntity e : DECAYING.keySet()) {
