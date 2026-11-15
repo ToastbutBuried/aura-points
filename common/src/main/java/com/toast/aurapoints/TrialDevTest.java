@@ -89,6 +89,17 @@ public final class TrialDevTest {
 				log("finished: running " + AuraTrial.running(fake) + " done " + data.trialDone.contains(AuraType.FIRE) + " kit " + data.trialKit
 						+ " Fireball usable " + AuraAbilities.hasAbility(data, Ability.FIREBALL) + " (must be false true false false)");
 
+				// awakened: the Ultimate is on the list, and its own key (Ultimates.press, not tryActivate) ticks it
+				data.awakened.add(AuraType.FIRE);
+				AuraTrial.start(fake);
+				boolean listed = AuraTrial.state(fake).stream().anyMatch(l -> l.endsWith("(Ultimate)"));
+				com.toast.aurapoints.ability.Ultimates.press(fake, server.getTickCount());
+				log("awakened: Ultimate listed " + listed + " (must be true), ticked by its key " + AuraTrial.state(fake).stream().anyMatch(l -> l.startsWith("✔") && l.endsWith("(Ultimate)"))
+						+ " (must be true)");
+				com.toast.aurapoints.ability.Ultimates.onLogout(fake);
+				data.awakened.remove(AuraType.FIRE);
+				AuraTrial.stop(fake, null);
+
 				// a retake, then a pause outside the hall
 				AuraTrial.start(fake);
 				log("retake: running " + AuraTrial.running(fake) + ", nothing ticked yet " + AuraTrial.state(fake).stream().noneMatch(l -> l.startsWith("✔")) + " (must be true true)");
