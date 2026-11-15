@@ -27,6 +27,7 @@ final class DevTest {
 		registerBloodBar(dispatcher);
 		BranchDevTest.register(dispatcher);
 		CastDevTest.register(dispatcher);
+		ChainDevTest.register(dispatcher);
 		// balance editor write path: set a value + a switch through AuraBalance.apply, check, then put both back
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("balance").executes(ctx -> {
 			var e = com.toast.aurapoints.config.AuraBalance.entry("FIREBALL_DAMAGE");

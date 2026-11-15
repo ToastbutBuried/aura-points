@@ -534,6 +534,9 @@ public final class AuraCommand {
 				for (String cast : com.toast.aurapoints.ability.Casts.describe(a, aura)) {
 					source.sendSystemMessage(Component.literal("   ✧ " + cast).withStyle(ChatFormatting.DARK_AQUA));
 				}
+				for (String chain : com.toast.aurapoints.ability.Chains.describe(a, aura)) {
+					source.sendSystemMessage(Component.literal("   ⛓ " + chain).withStyle(ChatFormatting.GOLD));
+				}
 			}
 		}
 		source.sendSystemMessage(Component.literal("✦ Passives").withStyle(style -> style.withColor(accent).withBold(true))
@@ -981,6 +984,7 @@ public final class AuraCommand {
 		List<String> report = new java.util.ArrayList<>(com.toast.aurapoints.config.AuraBalance.load());
 		com.toast.aurapoints.editor.BalanceEditors.reload();
 		com.toast.aurapoints.config.Worthy.reload();
+		com.toast.aurapoints.ability.Chains.reload();
 		report.addAll(com.toast.aurapoints.config.CommandRules.load());
 		report.addAll(Tickets.reloadConfig());
 		CommandSourceStack source = ctx.getSource();

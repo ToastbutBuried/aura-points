@@ -157,6 +157,7 @@ public final class AuraHooks {
 		com.toast.aurapoints.ability.Mastery.onAbilityUsed(player);
 		com.toast.aurapoints.ability.AuraStats.used(player, ability);
 		com.toast.aurapoints.arena.Drill.onAbilityUsed(player);
+		com.toast.aurapoints.ability.Chains.onUsed(player, ability);
 		if (com.toast.aurapoints.ability.AuraAbilities.cooldownsDisabled(player)) com.toast.aurapoints.arena.TrainingHall.markFreeUse(player);
 		// the arena's free cooldowns mustn't feed datapack rewards
 		if (!com.toast.aurapoints.arena.Arena.in(player)) runTag(player, "ability/" + ability.name().toLowerCase(Locale.ROOT));

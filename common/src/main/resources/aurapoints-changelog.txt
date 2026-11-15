@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.24.0
+- Ability chains: use one ability, then another within 3 s, and the second hits harder and adds an effect (Fire Bending then Fireball = Stoked, Vanish then Dash = Shade Step ...). Every aura has its own; the gold lines on each ability in the Aura Book list them.
+- New weekly challenge: pull off ability chains.
+
 == 5.23.0
 - Sneak and hold casts for Earth (Catapult, Titan Pillar, Great Boulder, Tunnel, Great Quake), Light (Guiding Light, Radiant Burst, Spotlight, Nova, Mending Beam) and Blood (Transfusion, Deep Cut, Lifeline, Leech, Pinprick). Every aura but Resonance has them now. Details in the Aura Book.
 

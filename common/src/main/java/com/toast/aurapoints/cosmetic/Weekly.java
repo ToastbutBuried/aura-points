@@ -47,7 +47,8 @@ public final class Weekly {
 		REACTION_ONE("Set off %d %s reactions", new int[]{3, 6, 10}),
 		MASTERY("Earn %d Aura Mastery XP", new int[]{200, 400, 700}),
 		WAVES("Clear wave %d in Wave Survival", new int[]{10, 15, 20}),
-		COMBOS("Pull off %d team combos with an ally", new int[]{3, 6, 10});
+		COMBOS("Pull off %d team combos with an ally", new int[]{3, 6, 10}),
+		CHAINS("Pull off %d ability chains", new int[]{15, 30, 50});
 
 		final String text;
 		final int[] targets;
@@ -59,7 +60,7 @@ public final class Weekly {
 
 		/** Counted by stat growth (not by hooks). */
 		boolean byStats() {
-			return this == MONSTERS || this == REACTIONS || this == REACTION_ONE || this == MASTERY || this == COMBOS;
+			return this == MONSTERS || this == REACTIONS || this == REACTION_ONE || this == MASTERY || this == COMBOS || this == CHAINS;
 		}
 	}
 
@@ -100,6 +101,9 @@ public final class Weekly {
 	/** Monday 2026-11-02: the first week that can roll a team-combo challenge (4.95.0). */
 	private static final long COMBOS_WEEK = LocalDate.of(2026, 11, 9).toEpochDay();
 
+	/** Monday 2026-11-16: the first week that can roll an ability-chain challenge (5.24.0). */
+	private static final long CHAINS_WEEK = LocalDate.of(2026, 11, 16).toEpochDay();
+
 	/** This week's three challenges. */
 	static List<Challenge> challenges() {
 		long week = week();
@@ -114,7 +118,8 @@ public final class Weekly {
 		Type[] hunts = {Type.TOUCHED, Type.TOUCHED_AURA, Type.MONSTERS};
 		out.add(new Challenge(hunts[r.nextInt(hunts.length)], r.nextInt(3), AuraType.values()[r.nextInt(AuraType.values().length)], null));
 		Type[] stats = week < COMBOS_WEEK ? new Type[]{Type.REACTIONS, Type.REACTION_ONE, Type.MASTERY}
-				: new Type[]{Type.REACTIONS, Type.REACTION_ONE, Type.MASTERY, Type.COMBOS};
+				: week < CHAINS_WEEK ? new Type[]{Type.REACTIONS, Type.REACTION_ONE, Type.MASTERY, Type.COMBOS}
+				: new Type[]{Type.REACTIONS, Type.REACTION_ONE, Type.MASTERY, Type.COMBOS, Type.CHAINS};
 		out.add(new Challenge(stats[r.nextInt(stats.length)], r.nextInt(3), null,
 				Reactions.Reaction.values()[r.nextInt(Reactions.Reaction.values().length)]));
 		cachedWeek = week;
@@ -166,6 +171,7 @@ public final class Weekly {
 				for (ResourceLocation id : AuraStats.comboStats()) n += stat(p, id);
 				yield n;
 			}
+			case CHAINS -> stat(p, AuraStats.CHAINS);
 			case MASTERY -> {
 				int n = 0;
 				for (AuraType t : AuraType.values()) n += stat(p, AuraStats.mastery(t));
@@ -274,6 +280,7 @@ public final class Weekly {
 			case MASTERY -> devStat(p, AuraStats.mastery(AuraType.FIRE), n);
 			case WAVES -> onWaveCleared(p, n);
 			case COMBOS -> devStat(p, AuraStats.combo("glacier"), n);
+			case CHAINS -> devStat(p, AuraStats.CHAINS, n);
 		}
 		check(p);
 	}

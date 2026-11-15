@@ -60,6 +60,20 @@ public final class AuraConfig {
 	public static double CAST_SNEAK_COOLDOWN_FACTOR = 1.0;
 	public static double CAST_CHARGED_COOLDOWN_FACTOR = 1.25;
 
+	// ---- Ability chains (Chains; the links are in aurapoints-chains.json) ----
+	/** Master switch for ability chains (use A, then B soon after: B is chained). */
+	public static boolean CHAINS_ENABLED = true;
+	/** Mastery level of the aura from which its chains work. */
+	public static int CHAINS_MASTERY = 1;
+	/** Ticks after an ability in which the next one still chains. */
+	public static int CHAINS_WINDOW_TICKS = 60;
+	/** Ticks a chain's damage bonus and hit effect last, from the second ability's key press. */
+	public static int CHAINS_EMPOWER_TICKS = 100;
+	/** Ability hits one chain can empower. */
+	public static int CHAINS_MAX_HITS = 6;
+	/** The most extra damage a chain can give (0.5 = +50%), whatever the link says. */
+	public static double CHAINS_MAX_BONUS = 0.5;
+
 	// Fire casts
 	/** Spread Shot (sneak + Fireball): this many small fireballs in a fan, this many degrees apart, each dealing this share of a fireball's damage. */
 	public static int FIREBALL_SPREAD_COUNT = 3;

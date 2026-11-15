@@ -710,10 +710,16 @@ public final class AuraAbilities {
 		// a mastered aura's abilities go off with more particles
 		float boost = AuraFx.boost;
 		AuraFx.boost = Mastery.particleBoost(player);
+		// a chain link can name the cast (ice_spike:sneak)
+		CastMode chainMode = Chains.castMode;
+		Chains.castMode = mode != CastMode.TAP && CastMode.has(ability, mode) ? mode : CastMode.TAP;
 		try {
-			return activate(player, ability, now, mode);
+			boolean fired = activate(player, ability, now, mode);
+			if (fired) Chains.onPressed(player, ability, Chains.castMode);
+			return fired;
 		} finally {
 			AuraFx.boost = boost;
+			Chains.castMode = chainMode;
 		}
 	}
 

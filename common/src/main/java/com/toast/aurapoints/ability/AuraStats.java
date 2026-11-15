@@ -47,6 +47,8 @@ public final class AuraStats {
 	}
 
 	public static final ResourceLocation DRILLS_DONE = stat("drills_done");
+	/** Ability chains pulled off (Chains). */
+	public static final ResourceLocation CHAINS = stat("chains");
 
 	// Shadow
 	public static final ResourceLocation VANISH_USES = stat("vanish_uses");

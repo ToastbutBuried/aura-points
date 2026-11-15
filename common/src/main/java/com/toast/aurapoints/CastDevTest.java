@@ -94,8 +94,8 @@ public final class CastDevTest {
 					if (com.toast.aurapoints.ability.VerdantViper.isSteering(fake)) com.toast.aurapoints.ability.VerdantViper.press(fake, server.getTickCount() + 10000);
 					if (aura == AuraType.EARTH) com.toast.aurapoints.ability.Earth.onLogout(fake);
 				}
-				log("an ability without variants keeps its normal cast only: VINE_HOOK sneak has=" + CastMode.has(Ability.VINE_HOOK, CastMode.SNEAK)
-						+ " charged has=" + CastMode.has(Ability.VINE_HOOK, CastMode.CHARGED) + " (must be false false)");
+				log("an ability without variants keeps its normal cast only: LISTENING_TREE sneak has=" + CastMode.has(Ability.LISTENING_TREE, CastMode.SNEAK)
+						+ " charged has=" + CastMode.has(Ability.LISTENING_TREE, CastMode.CHARGED) + " (must be false false)");
 				log("hold abilities never charge: ABYSSAL_BUBBLE charged has=" + CastMode.has(Ability.ABYSSAL_BUBBLE, CastMode.CHARGED) + " (must be false)");
 			} finally {
 				state.cooldownsDisabled = cooldownsBefore;

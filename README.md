@@ -17,7 +17,10 @@ can pick one of two branches (Fire: Blue Flame or Magma, Shadow: Phantom or Dark
 - **Rolling and switching**: a roll always gives an aura you never had (the first one is free). `/aura switch`
   takes you back to an aura you had for less; Mastery, branch and awakening stay with each aura.
 - **Casts**: at Mastery II, sneak + key gives an ability a second cast; at Mastery III, holding the key charges a
-  third (Fire, Water and Shadow so far). Each ability's casts are listed in the Aura Book.
+  third (every aura but Resonance). Each ability's casts are listed in the Aura Book.
+- **Ability chains**: use one ability, then a second one soon after, and the second hits harder and adds an
+  effect (slow, poison, a cooldown refund ...). Each aura has its own chains, listed on the abilities in the
+  Aura Book; server owners edit them in `config/aurapoints-chains.json`.
 - **Skill trees** (Pufferfish's Skills): an Aura tree, an Ability tree, and a PvP tree that unlocks once you
   defeat a boss.
 - **Team Combos and Reactions** when auras meet, and aura-touched mobs.

@@ -444,6 +444,9 @@ public class AuraPoints {
 						victim.getX(), victim.getY() + victim.getBbHeight() * 0.6, victim.getZ(), 3, 0.25, 0.3, 0.25, 0.0);
 			}
 
+			// Ability chains: the chained ability's hits do more and carry the link's effect
+			if (abilityHit) event.setAmount(com.toast.aurapoints.ability.Chains.onHit(attacker, victim, event.getAmount()));
+
 			// Conductor: a Charged target passes part of the hit on
 			com.toast.aurapoints.ability.Thunderbolt.spread(attacker, victim, event.getAmount());
 
@@ -688,6 +691,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.MagmaPools.clear();
 			com.toast.aurapoints.ability.PhantomDecoy.clear();
 			com.toast.aurapoints.ability.Casts.clear();
+			com.toast.aurapoints.ability.Chains.clear();
 			// last, so nothing the clean-ups above scheduled carries over into the next world
 			AuraFx.clearAll();
 		}
@@ -742,6 +746,7 @@ public class AuraPoints {
 				com.toast.aurapoints.arena.Arena.onLogout(player);
 				com.toast.aurapoints.ability.IdleAnimations.forget(player);
 				com.toast.aurapoints.ability.Nightstalker.forget(player);
+				com.toast.aurapoints.ability.Chains.forget(player.getUUID());
 				com.toast.aurapoints.ability.Ultimates.onLogout(player);
 				com.toast.aurapoints.ability.Earth.onLogout(player);
 				com.toast.aurapoints.ability.Light.onLogout(player);
