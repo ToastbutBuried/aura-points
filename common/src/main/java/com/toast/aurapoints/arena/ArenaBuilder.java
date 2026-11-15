@@ -68,7 +68,7 @@ public final class ArenaBuilder {
 	}
 
 	/** Raise when the layout changes: every server rebuilds the map on its next start. */
-	public static final int MAP_VERSION = 13;
+	public static final int MAP_VERSION = 14;
 
 	private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
 	/** Barrier walls and roof of the ring go up to here. */
@@ -451,6 +451,7 @@ public final class ArenaBuilder {
 			set(level, sx, FLOOR + 2, sz, Blocks.QUARTZ_PILLAR);
 			set(level, sx, FLOOR + 3, sz, Blocks.END_ROD);
 		}
+		LobbyDecor.build(level); // the paved wheel, lamp avenue and planter beds (only on the plain checker floor)
 	}
 
 	/** A beacon in the floor at (x, z) on a 3x3 iron base below, with {@code glass} on it (its beam's color). */
@@ -581,6 +582,7 @@ public final class ArenaBuilder {
 		// the ring's island: rock under the rim
 		islandBase(level, 0, RING_Z, BACK_R + 1, BACK_R + 1, RING_FLOOR - 1, 16, 2);
 		beaconTower(level, 0, RING_Z - BACK_R - 3);
+		RingDecor.build(level);
 	}
 
 	/**
@@ -689,7 +691,7 @@ public final class ArenaBuilder {
 		if (own != null) return own;
 		if (Math.abs(d - 7) < 0.6 || Math.abs(d - 17) < 0.6) return Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState();
 		if (layout.hasPillars() && RingPillars.isPillar(x, dz)) return Blocks.GILDED_BLACKSTONE.defaultBlockState();
-		return ((x + dz & 1) == 0 ? Blocks.POLISHED_BLACKSTONE : Blocks.POLISHED_DEEPSLATE).defaultBlockState();
+		return RingDecor.floor(x, dz);
 	}
 
 	// ---------------------------------------------------------------
@@ -1182,6 +1184,7 @@ public final class ArenaBuilder {
 				set(level, cx + x, FLOOR + 16, z, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 14));
 			}
 		}
+		HallDecor.build(level, cx, R, T); // floor inlay, plinth, buttresses, cornice, lancet windows, frieze, lantern crown (5.34)
 		// the great pillars: a 3x3 barrier column (collision) inside each altar_pillar model
 		java.util.List<com.toast.aurapoints.ability.AuraType> auras = AltarRitual.auras();
 		for (int i = 0; i < auras.size(); i++) {

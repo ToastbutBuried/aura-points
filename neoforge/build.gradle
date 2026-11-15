@@ -12,6 +12,9 @@ neoForge {
 		configureEach {
 			// the dev world, configs and rcon password from before the multiloader split
 			gameDirectory = rootProject.file('run')
+			// dev hooks: any -Paurapoints.<name>=<value> becomes a system property of the run
+			// (e.g. -Paurapoints.clientcmd=aura+set+fire -Paurapoints.devtest=true; used by the aura-playtest skill)
+			project.properties.each { k, v -> if (k.startsWith('aurapoints.')) systemProperty k, v.toString() }
 		}
 		client {
 			client()

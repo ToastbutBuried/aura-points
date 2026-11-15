@@ -9,6 +9,10 @@ repositories {
 
 loom {
 	runs {
+		configureEach {
+			// dev hooks: any -Paurapoints.<name>=<value> becomes a system property of the run (aura-playtest skill)
+			project.properties.each { k, v -> if (k.startsWith('aurapoints.')) property k, v.toString() }
+		}
 		client {
 			runDir '../run-fabric'
 			if (project.hasProperty('geotest')) {
