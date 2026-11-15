@@ -518,9 +518,10 @@ public final class AltarRitual {
 	private static final Set<UUID> LIVE = new HashSet<>();
 	/** Where the core hovers over the dais, and where the sigil turns (just over the dais steps). */
 	private static final double CORE_Y = 3.9, SIGIL_Y = -0.35;
-	private static final float CORE_SCALE = 2.2f, SIGIL_SCALE = 7.5f, CAP_SCALE = 2.4f;
+	private static final float CORE_SCALE = 2.2f, SIGIL_SCALE = 7.5f, CAP_SCALE = 2.6f;
+	static final float PILLAR_SX = 4f, PILLAR_SY = (Arena.HALL_CEIL_H - 1 - CAP_SCALE - 0.2f) * 16f / 37.6f;
 	/** Above a pillar's foot: the cradle's top (the model's 29.6 px from its foot at -8, at 1/4 block per px) and where streams leave from. */
-	static final double PILLAR_CRADLE = (29.6 + 8) / 16.0 * 4, PILLAR_TOP = PILLAR_CRADLE + 0.5;
+	static final double PILLAR_CRADLE = (29.6 + 8) / 16.0 * PILLAR_SY, PILLAR_TOP = PILLAR_CRADLE + 0.5;
 
 	public static boolean isLeftover(Entity e) {
 		return e.getTags().contains(PROP_TAG) && !LIVE.contains(e.getUUID());
@@ -556,6 +557,12 @@ public final class AltarRitual {
 		d.getEntityData().set(DisplayAccessor.aurapoints$startDelta(), 0, true);
 	}
 
+	/** The pillar body: a (non-uniform) scale, no turn, no easing. */
+	private static void poseXyz(Display.ItemDisplay d, Vector3f scale) {
+		if (d == null || d.isRemoved()) return;
+		((DisplayAccessor) d).aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), scale, null));
+	}
+
 	private static void spawnProps(ServerLevel level, Run r) {
 		Vec3 c = Arena.ALTAR;
 		r.sigil = prop(level, c.add(0, SIGIL_Y, 0), new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_SIGIL.get()));
@@ -576,8 +583,8 @@ public final class AltarRitual {
 	// Idle only the lowest section glows (it shows the pillar's aura); in the ritual they light one after the other
 	// as the pillar joins, and go out again from the top after. All are arena build entities (ArenaBuilder.claim). ----
 
-	/** The models are 1 unit = 1/16 block at scale 1; the pillar is built at 1/4 block per unit. */
-	static final float PILLAR_SCALE = 4f;
+	/** The models are 1 unit = 1/16 block at scale 1; the pillar is 1/4 block per unit across (its 12-unit shaft = the 3x3 barrier) and
+	 * PILLAR_SY/16 block per unit up (5.34: the pillar with the crystal on its cradle meets the hall's ceiling at Arena.HALL_CEIL_H). */
 	static final int VEIN_SECTIONS = 6;
 	private static final String PILLAR_TAG = "aurapoints_altar_pillar", VEIN_TAG = "aurapoints_altar_vein", PORTAL_TAG = "aurapoints_altar_portal";
 
@@ -586,9 +593,9 @@ public final class AltarRitual {
 		List<AuraType> auras = auras();
 		for (int i = 0; i < auras.size(); i++) {
 			// model y -8 = the pillar's foot (floor + 1); the display sits on the model's middle (y 8 = 16 px = 4 blocks up)
-			Vec3 at = pillar(i, auras.size()).add(0, PILLAR_SCALE * 16 / 16.0, 0);
+			Vec3 at = pillar(i, auras.size()).add(0, PILLAR_SY, 0);
 			Display.ItemDisplay body = staticDisplay(level, at, new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_PILLAR.get()), false);
-			pose(body, PILLAR_SCALE, 0, 0);
+			poseXyz(body, new Vector3f(PILLAR_SX, PILLAR_SY, PILLAR_SX));
 			body.addTag(PILLAR_TAG);
 			for (int sct = 0; sct < VEIN_SECTIONS; sct++) {
 				ItemStack vein = new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_VEIN.get());
@@ -632,7 +639,7 @@ public final class AltarRitual {
 	static void light(Display.ItemDisplay d, boolean on, int ticks) {
 		if (d == null || d.isRemoved()) return;
 		DisplayAccessor acc = (DisplayAccessor) d;
-		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(on ? PILLAR_SCALE : 0.001f), null));
+		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), on ? new Vector3f(PILLAR_SX, PILLAR_SY, PILLAR_SX) : new Vector3f(0.001f), null));
 		acc.aurapoints$setInterpolationDuration(ticks);
 		d.getEntityData().set(DisplayAccessor.aurapoints$startDelta(), 0, true);
 	}

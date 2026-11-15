@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.35.0
+- The Altar Hall is much bigger and airier: a wider floor, a high flat ceiling and slimmer, taller pillars that reach all the way up to it, with their crystals under the roof.
+
 == 5.34.0
 - The arena got a facelift: a floor inlay, outer buttresses, tall windows and a lantern crown on the Altar Hall, a paved aura wheel with planters and lamp posts in the lobby, a rounded hull and pier rim on the duel ring, and reworked Altar pillars with amethyst trim.
 

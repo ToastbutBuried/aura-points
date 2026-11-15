@@ -68,7 +68,7 @@ public final class ArenaBuilder {
 	}
 
 	/** Raise when the layout changes: every server rebuilds the map on its next start. */
-	public static final int MAP_VERSION = 14;
+	public static final int MAP_VERSION = 15;
 
 	private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
 	/** Barrier walls and roof of the ring go up to here. */
@@ -1088,7 +1088,7 @@ public final class ArenaBuilder {
 	 */
 	private static void buildAltarHall(ServerLevel level) {
 		int cx = Arena.ALTAR_X, R = Arena.ROOM_R, T = Arena.PODIUM_TIERS;
-		int wallTop = FLOOR + 18;
+		int wallTop = FLOOR + Arena.HALL_WALL_H;
 		for (int x = -R - 3; x <= R + 3; x++) for (int z = -R - 3; z <= R + 3; z++) for (int y = FLOOR - 3; y <= FLOOR + 36; y++) set(level, cx + x, y, z, Blocks.AIR);
 		for (int x = -R - 1; x <= R + 1; x++) {
 			for (int z = -R - 1; z <= R + 1; z++) {
@@ -1124,22 +1124,26 @@ public final class ArenaBuilder {
 			set(level, cx + lx, FLOOR + 7, lz, Blocks.POLISHED_BLACKSTONE_BRICK_SLAB);
 			set(level, cx + lx, FLOOR + 8, lz, Blocks.SOUL_LANTERN);
 		}
-		// the dome: rings stepping in, then a glass oculus over the podium
+		// the ceiling (5.34): terraces stepping up from the wall to a flat ceiling at HALL_CEIL_H, which the pillars (with their crystals)
+		// reach; a chiseled architrave ring over the pillars and a glass oculus over the podium
 		double outer = R + 1.5;
-		for (int k = 1; ; k++) {
-			double rad = Math.sqrt(Math.max(0, outer * outer - Math.pow(k * 1.8, 2)));
-			double next = Math.sqrt(Math.max(0, outer * outer - Math.pow((k + 1) * 1.8, 2)));
-			int y = wallTop + k;
-			boolean last = next < 4.5;
-			for (int x = -R - 1; x <= R + 1; x++) {
-				for (int z = -R - 1; z <= R + 1; z++) {
-					double d = Math.sqrt(x * x + z * z);
-					if (d > rad + 0.5) continue;
-					if (last) set(level, cx + x, y, z, d <= 3.5 ? Blocks.PURPLE_STAINED_GLASS : Blocks.POLISHED_BLACKSTONE_BRICKS);
-					else if (d > next - 0.5) set(level, cx + x, y, z, k % 2 == 0 ? Blocks.DEEPSLATE_TILES : Blocks.POLISHED_BLACKSTONE_BRICKS);
+		int rows = Arena.HALL_CEIL_H - Arena.HALL_WALL_H;
+		for (int x = -R - 1; x <= R + 1; x++) {
+			for (int z = -R - 1; z <= R + 1; z++) {
+				double d = Math.sqrt(x * x + z * z);
+				if (d > outer) continue;
+				int row = rows;
+				for (int r = 1; r < rows; r++) if (d > R - 1.5 - 2.0 * (r - 1)) {
+					row = r;
+					break;
 				}
+				Block b;
+				if (row < rows) b = row % 2 == 0 ? Blocks.DEEPSLATE_TILES : Blocks.POLISHED_BLACKSTONE_BRICKS;
+				else if (d <= 3.5) b = Blocks.PURPLE_STAINED_GLASS;
+				else if (d > Arena.PILLAR_RING - 0.8 && d <= Arena.PILLAR_RING + 0.8) b = Blocks.CHISELED_POLISHED_BLACKSTONE;
+				else b = (x + z & 1) == 0 ? Blocks.DEEPSLATE_TILES : Blocks.POLISHED_BLACKSTONE_BRICKS;
+				set(level, cx + x, wallTop + row, z, b);
 			}
-			if (last) break;
 		}
 		// the podium: T tiers, the top one the dais with its heart; stairs up the middle of each side
 		for (int k = 0; k < T; k++) {
@@ -1180,8 +1184,9 @@ public final class ArenaBuilder {
 			for (int z = -R + 1; z <= R - 1; z += 4) {
 				if (x * x + z * z > (R - 1) * (R - 1) || Math.abs(x) <= T + 2 && Math.abs(z) <= T + 2) continue;
 				set(level, cx + x, FLOOR + 3, z, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 13));
-				set(level, cx + x, FLOOR + 10, z, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 15));
-				set(level, cx + x, FLOOR + 16, z, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 14));
+				set(level, cx + x, FLOOR + 9, z, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 15));
+				set(level, cx + x, FLOOR + 14, z, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 14));
+				if (x * x + z * z <= 20 * 20) set(level, cx + x, FLOOR + 17, z, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 14));
 			}
 		}
 		HallDecor.build(level, cx, R, T); // floor inlay, plinth, buttresses, cornice, lancet windows, frieze, lantern crown (5.34)
@@ -1190,7 +1195,7 @@ public final class ArenaBuilder {
 		for (int i = 0; i < auras.size(); i++) {
 			Vec3 p = AltarRitual.pillar(i, auras.size());
 			int px = (int) Math.floor(p.x), pz = (int) Math.floor(p.z);
-			for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) for (int y = 1; y <= 9; y++) set(level, px + dx, FLOOR + y, pz + dz, Blocks.BARRIER);
+			for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) for (int y = 1; y < Arena.HALL_CEIL_H; y++) set(level, px + dx, FLOOR + y, pz + dz, Blocks.BARRIER);
 		}
 		AltarRitual.spawnPillars(level);
 		// the exit: an arch in the west wall, its portal back to the island

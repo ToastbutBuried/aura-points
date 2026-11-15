@@ -114,10 +114,10 @@ public final class AltarDevTest {
 			}
 			log("pillar ring mirror-symmetric " + mirrored + " (must be true): " + spots);
 			// entities only load with their chunk: hold the keeper's while the test runs
-			// the Altar Hall spans chunks x (ax - 15) >> 4 .. (ax + 15) >> 4, z -1 and 0: hold them all while the test runs
-			for (int cxk = (ax - 23) >> 4; cxk <= (ax + 23) >> 4; cxk++) for (int czk = -2; czk <= 1; czk++) arena.setChunkForced(cxk, czk, true);
+			// the Altar Hall (R 26 + wall) spans chunks x (ax - 31) >> 4 .. (ax + 31) >> 4, z -2 .. 1: hold them all while the test runs
+			for (int cxk = (ax - 31) >> 4; cxk <= (ax + 31) >> 4; cxk++) for (int czk = -2; czk <= 1; czk++) arena.setChunkForced(cxk, czk, true);
 			for (int czk = -1; czk <= 0; czk++) arena.setChunkForced(Arena.ISLAND_X >> 4, czk, true); // the island's portal
-			log("map version " + state.arenaMapVersion + " (must be 13), dais heart " + arena.getBlockState(new BlockPos(ax, fl + Arena.PODIUM_TIERS, 0)).is(Blocks.CRYING_OBSIDIAN)
+			log("map version " + state.arenaMapVersion + " (must be 15), dais heart " + arena.getBlockState(new BlockPos(ax, fl + Arena.PODIUM_TIERS, 0)).is(Blocks.CRYING_OBSIDIAN)
 					+ " (must be true), bridge " + arena.getBlockState(new BlockPos(29, fl, 0)).is(Blocks.QUARTZ_BRICKS) + " (must be true), rail gap "
 					+ arena.getBlockState(new BlockPos(26, fl + 1, 0)).isAir() + " (must be true)");
 			log("lobby islets all round " + com.toast.aurapoints.arena.ArenaBuilder.lobbyIsletsMade() + " (must be 26), placed "
@@ -179,7 +179,7 @@ public final class AltarDevTest {
 					String replay = AltarRitual.begin(fake, true);
 					log("replay: refusal " + replay + " balance " + AuraCurrency.get(fake) + " running " + AltarRitual.running() + " (must be null " + (1000 - AuraConfig.ULT_ALTAR_COST) + " true)");
 					log("skip the replay " + AltarRitual.skip(fake) + " running " + AltarRitual.running() + " (must be true false)");
-					for (int cxk = (ax - 23) >> 4; cxk <= (ax + 23) >> 4; cxk++) for (int czk = -2; czk <= 1; czk++) arena.setChunkForced(cxk, czk, false);
+					for (int cxk = (ax - 31) >> 4; cxk <= (ax + 31) >> 4; cxk++) for (int czk = -2; czk <= 1; czk++) arena.setChunkForced(cxk, czk, false);
 					for (int czk = -1; czk <= 0; czk++) arena.setChunkForced(Arena.ISLAND_X >> 4, czk, false);
 					log("props left after the skip " + (AltarRitual.liveProps() == 0 && arena.getEntitiesOfClass(net.minecraft.world.entity.Display.ItemDisplay.class, new AABB(ax - 16, fl - 2, -16, ax + 16, fl + 24, 16), d -> d.getTags().contains("aurapoints_altar_prop")).size() == 0) + " (must be true)");
 					data.aura = AuraType.RESONANCE;

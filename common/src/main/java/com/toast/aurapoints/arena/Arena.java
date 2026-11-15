@@ -58,12 +58,14 @@ public final class Arena {
 	 * ALTAR_R the size the pillar ring is laid out by (ring radius ALTAR_R - 1.5), ROOM_R its inner radius.
 	 * ALTAR is where the ritual's player stands (on the dais).
 	 */
-	public static final int ALTAR_X = 200, ALTAR_R = 7, ROOM_R = 20;
+	public static final int ALTAR_X = 200, ALTAR_R = 7, ROOM_R = 26;
+	/** The hall's heights above FLOOR (5.34): the wall tops out at HALL_WALL_H, the flat ceiling over the pillars is at HALL_CEIL_H (their tops meet it). */
+	public static final int HALL_WALL_H = 14, HALL_CEIL_H = 18;
 	/** The offering podium in the hall's middle: PODIUM_TIERS steps up to the dais; the ritual's player stands on top. */
 	public static final int PODIUM_TIERS = 4;
 	public static final Vec3 ALTAR = new Vec3(ALTAR_X + 0.5, FLOOR + 1 + PODIUM_TIERS, 0.5);
 	/** The pillars' ring round the podium (block centres, rounded away from zero). */
-	public static final double PILLAR_RING = 10.5;
+	public static final double PILLAR_RING = 15.5;
 	/** The portals' opening: PORTAL_W wide (z centred on 0.5), PORTAL_H high from FLOOR + 1. */
 	public static final int PORTAL_W = 5, PORTAL_H = 8;
 	/** Where the island portal puts you (inside, facing the dais) and where the hall's exit portal / /aura leave put you back. */
