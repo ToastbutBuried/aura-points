@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.33.0
+- Altar portals: the colour change now opens like an iris over the swirl and closes back softly, and the arches are deep carved gateways with rounded edges, amethyst and drifting specks instead of a flat pane.
+
 == 5.32.0
 - The Altar Hall is now a great offering temple: twice the size, a stepped podium to climb in the middle, and huge 3x3 pillars with veins that ring round them. The portal is bigger and pulls you through with its own animation.
 

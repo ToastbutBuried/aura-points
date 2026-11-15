@@ -68,7 +68,7 @@ public final class ArenaBuilder {
 	}
 
 	/** Raise when the layout changes: every server rebuilds the map on its next start. */
-	public static final int MAP_VERSION = 12;
+	public static final int MAP_VERSION = 13;
 
 	private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
 	/** Barrier walls and roof of the ring go up to here. */
@@ -1024,27 +1024,57 @@ public final class ArenaBuilder {
 	}
 
 	/**
-	 * A carved arch across the x axis at {@code cx}: an opening Arena.PORTAL_W wide (z centred on cz) and PORTAL_H high
-	 * from FLOOR + 1, framed two blocks deep in polished blackstone with crying obsidian at its feet, chiseled courses,
-	 * a gilded keystone and soul lanterns on its shoulders.
+	 * The portal's arch across the x axis at {@code cx} (5.33): three blocks deep, the swirl (AltarRitual.spawnPortal) in
+	 * its middle layer so it sits recessed in a short tunnel; the opening PORTAL_W wide and PORTAL_H high with its corners
+	 * rounded off by stairs (no hard rectangle), crying obsidian and gilded courses lining the tunnel, amethyst growing
+	 * out of its walls, a hidden light in the opening, chiseled pilasters, a gilded keystone and lanterns on top.
 	 */
 	private static void portalArch(ServerLevel level, int cx, int cz) {
 		int hw = Arena.PORTAL_W / 2, H = Arena.PORTAL_H, fw = hw + 2;
-		for (int y = 1; y <= H + 2; y++) {
-			for (int z = -fw; z <= fw; z++) {
-				boolean opening = Math.abs(z) <= hw && y <= H;
-				if (y == H + 2 && Math.abs(z) == fw) continue;
-				Block b;
-				if (opening) b = Blocks.AIR;
-				else if (y == H + 1 && z == 0) b = Blocks.GILDED_BLACKSTONE;
-				else if (y == 1 && Math.abs(z) > hw) b = Blocks.CRYING_OBSIDIAN;
-				else if (Math.abs(z) > hw && y % 3 == 0) b = Blocks.CHISELED_POLISHED_BLACKSTONE;
-				else b = Blocks.POLISHED_BLACKSTONE_BRICKS;
-				set(level, cx, FLOOR + y, cz + z, b);
+		for (int dx = -1; dx <= 1; dx++) {
+			boolean face = dx != 0;
+			for (int y = 1; y <= H + 2; y++) {
+				for (int z = -fw; z <= fw; z++) {
+					boolean opening = Math.abs(z) <= hw && y <= H;
+					if (y == H + 2 && Math.abs(z) == fw) continue;
+					Block b;
+					if (opening) b = Blocks.AIR;
+					else if (y == H + 1 && z == 0) b = Blocks.GILDED_BLACKSTONE;
+					else if (y == 1 && Math.abs(z) > hw) b = Blocks.CRYING_OBSIDIAN;
+					else if (Math.abs(z) == hw + 1 || y == H + 1) b = face ? (y % 3 == 0 ? Blocks.GILDED_BLACKSTONE : Blocks.CRYING_OBSIDIAN) : Blocks.CRYING_OBSIDIAN;
+					else if (face && Math.abs(z) == fw && y % 3 == 0) b = Blocks.CHISELED_POLISHED_BLACKSTONE;
+					else b = Blocks.POLISHED_BLACKSTONE_BRICKS;
+					set(level, cx + dx, FLOOR + y, cz + z, b);
+				}
+			}
+			// round the opening's corners: upside-down stairs at the top, stairs at the foot
+			for (int sz : new int[]{-1, 1}) {
+				Direction out = sz < 0 ? Direction.NORTH : Direction.SOUTH;
+				var top = Blocks.POLISHED_BLACKSTONE_BRICK_STAIRS.defaultBlockState()
+						.setValue(net.minecraft.world.level.block.StairBlock.FACING, out)
+						.setValue(net.minecraft.world.level.block.StairBlock.HALF, net.minecraft.world.level.block.state.properties.Half.TOP);
+				set(level, cx + dx, FLOOR + H, cz + sz * hw, Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState());
+				set(level, cx + dx, FLOOR + H - 1, cz + sz * hw, top);
+				set(level, cx + dx, FLOOR + H, cz + sz * (hw - 1), top);
+				set(level, cx + dx, FLOOR + 1, cz + sz * hw, Blocks.POLISHED_BLACKSTONE_BRICK_STAIRS.defaultBlockState()
+						.setValue(net.minecraft.world.level.block.StairBlock.FACING, out));
+			}
+			// amethyst out of the tunnel's walls, a hidden light in the opening
+			if (face) {
+				for (int sz : new int[]{-1, 1}) {
+					Direction in = sz < 0 ? Direction.SOUTH : Direction.NORTH;
+					for (int y : new int[]{3, 6}) {
+						set(level, cx + dx, FLOOR + y, cz + sz * hw, Blocks.AMETHYST_CLUSTER.defaultBlockState()
+								.setValue(net.minecraft.world.level.block.AmethystClusterBlock.FACING, in));
+					}
+				}
+				set(level, cx + dx, FLOOR + H / 2, cz, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, 11));
 			}
 		}
+		// lanterns on top, a chain of crying obsidian down the keystone's face
 		set(level, cx, FLOOR + H + 3, cz - fw + 1, Blocks.SOUL_LANTERN);
 		set(level, cx, FLOOR + H + 3, cz + fw - 1, Blocks.SOUL_LANTERN);
+		set(level, cx, FLOOR + H + 3, cz, Blocks.AMETHYST_CLUSTER);
 	}
 
 	/**

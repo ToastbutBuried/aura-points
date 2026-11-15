@@ -269,7 +269,11 @@ public final class AltarRitual {
 		PORTAL_COOLDOWN.clear();
 		ENTERING.clear();
 		PULSED.clear();
-		FLASH_UNTIL.clear();
+		for (Iris iris : IRISES.values()) {
+			LIVE.remove(iris.overlay.getUUID());
+			iris.overlay.discard();
+		}
+		IRISES.clear();
 		removeProps(run);
 		run = null;
 	}
@@ -807,7 +811,6 @@ public final class AltarRitual {
 
 	// ---- the portal's colour (5.31): it flashes the aura of whoever walks through ----
 
-	private static final Map<UUID, Long> FLASH_UNTIL = new HashMap<>();
 
 	/** Dev test: stories told, portals flashed for {@code p} walking from the island arch into the hall (count tinted). */
 	public static int devLoreCount() {
@@ -816,27 +819,90 @@ public final class AltarRitual {
 
 	public static int devFlash(ServerPlayer p) {
 		flashPortals(p, new Vec3(Arena.ISLAND_X + 0.5, Arena.FLOOR + 3.5, 0.5), Arena.ROOM_ENTRY);
-		return FLASH_UNTIL.size();
+		return IRISES.size();
 	}
 
+	/** A portal's colour overlay while it is open: the display, and when it starts closing. */
+	private record Iris(Display.ItemDisplay overlay, long closeAt) {
+	}
+
+	/** Base portal display uuid -> its open overlay. */
+	private static final Map<UUID, Iris> IRISES = new HashMap<>();
+	private static final int IRIS_OPEN = 8, IRIS_HOLD = 50, IRIS_CLOSE = 14;
+
+	/**
+	 * The colour change as an iris (5.33): a second swirl in the walker's aura colour, a hair thicker than the base one
+	 * (no z-fighting), opens from the middle over the purple, holds, and closes back to it - no hard swap. A new walker
+	 * while it is open recolours it and keeps it open.
+	 */
 	private static void flashPortals(ServerPlayer p, Vec3 from, Vec3 to) {
 		AuraType aura = AuraState.get(p.getServer()).getOrCreate(p.getUUID()).aura;
 		if (aura == null || !LORE.containsKey(aura)) return;
 		ServerLevel level = p.serverLevel();
-		long until = p.getServer().getTickCount() + 60;
+		long now = p.getServer().getTickCount();
 		for (Vec3 near : new Vec3[]{from, to}) {
-			for (Display.ItemDisplay d : level.getEntitiesOfClass(Display.ItemDisplay.class, new net.minecraft.world.phys.AABB(near, near).inflate(6, 6, 6),
+			for (Display.ItemDisplay d : level.getEntitiesOfClass(Display.ItemDisplay.class, new net.minecraft.world.phys.AABB(near, near).inflate(7, 9, 7),
 					d -> d.getTags().contains(PORTAL_TAG))) {
 				ItemStack tinted = new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_PORTAL.get());
 				tinted.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(capModel(aura)));
-				((ItemDisplayAccessor) d).aurapoints$setItemStack(tinted);
-				FLASH_UNTIL.put(d.getUUID(), until);
-				AuraFx.burst(level, d.getX(), d.getY(), d.getZ(), AuraFx.dust(aura.rgb, 1.6f), 40, 1.2, 0.1);
-				AuraFx.later(p.getServer(), 61, () -> {
-					if (d.isRemoved() || p.getServer().getTickCount() < FLASH_UNTIL.getOrDefault(d.getUUID(), 0L)) return;
-					((ItemDisplayAccessor) d).aurapoints$setItemStack(new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_PORTAL.get()));
-					FLASH_UNTIL.remove(d.getUUID());
-				});
+				Iris open = IRISES.get(d.getUUID());
+				Display.ItemDisplay overlay;
+				if (open != null && !open.overlay.isRemoved()) {
+					overlay = open.overlay;
+					((ItemDisplayAccessor) overlay).aurapoints$setItemStack(tinted);
+					irisScale(overlay, 1f, 4);
+				} else {
+					overlay = prop(level, d.position(), tinted);
+					overlay.setYRot(90f);
+					irisScale(overlay, 0.02f, 0);
+					// next tick, so the client has the small size to ease from
+					Display.ItemDisplay o = overlay;
+					AuraFx.later(p.getServer(), 1, () -> irisScale(o, 1f, IRIS_OPEN));
+				}
+				IRISES.put(d.getUUID(), new Iris(overlay, now + IRIS_OPEN + IRIS_HOLD));
+				AuraFx.burst(level, d.getX(), d.getY(), d.getZ(), AuraFx.dust(aura.rgb, 1.6f), 50, 1.4, 0.12);
+				AuraFx.ring(level, d.getX(), d.getY(), d.getZ(), 2.5, AuraFx.dust(aura.rgb, 1.2f), 30);
+			}
+		}
+	}
+
+	/** The overlay at {@code k} of the opening's size (thicker than the base pane so it sits in front on both sides). */
+	private static void irisScale(Display.ItemDisplay d, float k, int ticks) {
+		if (d == null || d.isRemoved()) return;
+		DisplayAccessor acc = (DisplayAccessor) d;
+		float kk = Math.max(0.001f, k);
+		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(Arena.PORTAL_W * kk, Arena.PORTAL_H * kk, 1.6f), null));
+		acc.aurapoints$setInterpolationDuration(ticks);
+		d.getEntityData().set(DisplayAccessor.aurapoints$startDelta(), 0, true);
+	}
+
+	/** Every tick: open irises past their hold close, closed ones go; the portals breathe a few particles out. */
+	private static void tickIrises(MinecraftServer server, ServerLevel arena) {
+		long now = server.getTickCount();
+		for (var it = IRISES.entrySet().iterator(); it.hasNext(); ) {
+			Iris iris = it.next().getValue();
+			if (iris.overlay.isRemoved()) {
+				it.remove();
+				continue;
+			}
+			if (now == iris.closeAt) irisScale(iris.overlay, 0.02f, IRIS_CLOSE);
+			if (now >= iris.closeAt + IRIS_CLOSE) {
+				LIVE.remove(iris.overlay.getUUID());
+				iris.overlay.discard();
+				it.remove();
+			}
+		}
+		// the swirl breathes: specks drift out of each portal someone is near
+		if (now % 3 != 0) return;
+		for (Vec3 c : new Vec3[]{new Vec3(Arena.ISLAND_X + 0.5, Arena.FLOOR + 1 + Arena.PORTAL_H / 2.0, 0.5),
+				new Vec3(Arena.ALTAR_X - Arena.ROOM_R - 0.5, Arena.FLOOR + 1 + Arena.PORTAL_H / 2.0, 0.5)}) {
+			if (arena.getNearestPlayer(c.x, c.y, c.z, 24, false) == null) continue;
+			for (int k = 0; k < 2; k++) {
+				double z = c.z + (arena.random.nextDouble() - 0.5) * (Arena.PORTAL_W - 1);
+				double y = c.y + (arena.random.nextDouble() - 0.5) * (Arena.PORTAL_H - 1.5);
+				double side = arena.random.nextBoolean() ? 1 : -1;
+				arena.sendParticles(ParticleTypes.REVERSE_PORTAL, c.x + side * 0.2, y, z, 1, 0.05 * side, 0.02, 0, 0.05);
+				if (arena.random.nextInt(4) == 0) arena.sendParticles(AuraFx.dust(0xB060FF, 0.8f), c.x + side * 0.3, y, z, 1, 0.1, 0.1, 0.1, 0);
 			}
 		}
 	}
@@ -856,7 +922,9 @@ public final class AltarRitual {
 	private static void tickPortals(MinecraftServer server) {
 		tickEntering(server);
 		ServerLevel arena = Arena.level(server);
-		if (arena == null || arena.players().isEmpty()) return;
+		if (arena == null) return;
+		tickIrises(server, arena);
+		if (arena.players().isEmpty()) return;
 		tickHall(server, arena);
 		long now = server.getTickCount();
 		for (ServerPlayer p : arena.players()) {

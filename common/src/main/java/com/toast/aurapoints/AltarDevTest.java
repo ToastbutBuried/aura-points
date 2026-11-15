@@ -52,6 +52,20 @@ public final class AltarDevTest {
 					return 1;
 				}))));
 
+		// the portals for screenshots (the dev camera films from in front of the player, so they stand facing away from the arch)
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("portalview").executes(ctx -> {
+			ServerPlayer player = ctx.getSource().getPlayerOrException();
+			ServerLevel arena = Arena.level(player.getServer());
+			MinecraftServer server = player.getServer();
+			if (arena == null) return 0;
+			int fl = Arena.FLOOR;
+			player.teleportTo(arena, Arena.ISLAND_X - 4.5, fl + 1, 0.5, 90f, -12f);
+			AuraFx.later(server, 60, () -> AltarRitual.devFlash(player));
+			AuraFx.later(server, 160, () -> player.teleportTo(arena, Arena.ROOM_ENTRY.x - 1, Arena.ROOM_ENTRY.y, Arena.ROOM_ENTRY.z, -90f, -12f));
+			AuraFx.later(server, 200, () -> AltarRitual.devFlash(player));
+			return 1;
+		})));
+
 		// a look round for screenshots: the lobby's islets from high up, the portal island, the hall, then the ritual
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("altartour")
 				.then(Commands.argument("aura", StringArgumentType.word()).executes(ctx -> {
@@ -103,7 +117,7 @@ public final class AltarDevTest {
 			// the Altar Hall spans chunks x (ax - 15) >> 4 .. (ax + 15) >> 4, z -1 and 0: hold them all while the test runs
 			for (int cxk = (ax - 23) >> 4; cxk <= (ax + 23) >> 4; cxk++) for (int czk = -2; czk <= 1; czk++) arena.setChunkForced(cxk, czk, true);
 			for (int czk = -1; czk <= 0; czk++) arena.setChunkForced(Arena.ISLAND_X >> 4, czk, true); // the island's portal
-			log("map version " + state.arenaMapVersion + " (must be 12), dais heart " + arena.getBlockState(new BlockPos(ax, fl + Arena.PODIUM_TIERS, 0)).is(Blocks.CRYING_OBSIDIAN)
+			log("map version " + state.arenaMapVersion + " (must be 13), dais heart " + arena.getBlockState(new BlockPos(ax, fl + Arena.PODIUM_TIERS, 0)).is(Blocks.CRYING_OBSIDIAN)
 					+ " (must be true), bridge " + arena.getBlockState(new BlockPos(29, fl, 0)).is(Blocks.QUARTZ_BRICKS) + " (must be true), rail gap "
 					+ arena.getBlockState(new BlockPos(26, fl + 1, 0)).isAir() + " (must be true)");
 			log("lobby islets all round " + com.toast.aurapoints.arena.ArenaBuilder.lobbyIsletsMade() + " (must be 26), placed "
