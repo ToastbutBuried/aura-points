@@ -31,7 +31,9 @@ public enum NpcKind {
 	STATS("Your Stats", 0xFFFF55, Blocks.YELLOW_STAINED_GLASS, Items.GOLDEN_HELMET, 0xFED83D),
 	LEAVE("Leave Arena", 0xFFFFFF, Blocks.WHITE_STAINED_GLASS, Items.ENDER_PEARL, 0xF9FFFE),
 	RING_LOBBY("Back to Lobby", 0xFFAA00, null, Items.COMPASS, 0xF9801D),
-	HALL_LOBBY("Back to Lobby", 0xFFAA00, null, Items.COMPASS, 0xF9801D);
+	HALL_LOBBY("Back to Lobby", 0xFFAA00, null, Items.COMPASS, 0xF9801D),
+	/** The altar's keeper, on the altar island (added last: the kind is synced by its number). */
+	ALTAR("Awakening Altar", 0xFFC83D, null, Items.NETHER_STAR, 0x8932B8);
 
 	public final String label;
 	public final int color;
@@ -67,6 +69,7 @@ public enum NpcKind {
 			case STATS -> "Wins, losses, best DPS";
 			case LEAVE -> "Back where you came from";
 			case RING_LOBBY, HALL_LOBBY -> "Click to go back";
+			case ALTAR -> AltarRitual.running() ? "A ritual is under way" : "Awaken your aura's Ultimate";
 		};
 		return Component.literal(text).withStyle(ChatFormatting.GRAY);
 	}
@@ -95,6 +98,7 @@ public enum NpcKind {
 			case STATS -> stats(player);
 			case LEAVE -> Arena.leave(player);
 			case RING_LOBBY, HALL_LOBBY -> Arena.toLobby(player);
+			case ALTAR -> AltarRitual.menu(player);
 		}
 		if (this == TRAINING || this == RING_LOBBY || this == HALL_LOBBY) {
 			ArenaFx.sound(level, player.position(), SoundEvents.ENDERMAN_TELEPORT, 0.6f, 1.2f);

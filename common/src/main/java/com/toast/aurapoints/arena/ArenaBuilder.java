@@ -68,7 +68,7 @@ public final class ArenaBuilder {
 	}
 
 	/** Raise when the layout changes: every server rebuilds the map on its next start. */
-	public static final int MAP_VERSION = 8;
+	public static final int MAP_VERSION = 9;
 
 	private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
 	/** Barrier walls and roof of the ring go up to here. */
@@ -122,6 +122,7 @@ public final class ArenaBuilder {
 		for (Entity e : level.getEntitiesOfClass(Entity.class, bounds(), ArenaBuilder::isStale)) e.discard();
 		rebiome(level);
 		buildLobby(level);
+		buildAltar(level);
 		buildRingFrame(level);
 		resetRing(level);
 		buildHall(level);
@@ -164,7 +165,8 @@ public final class ArenaBuilder {
 	}
 
 	private static void clear(ServerLevel level, int z0, int z1) {
-		for (int x = -40; x <= 40; x++) {
+		// east as far as the altar island reaches
+		for (int x = -40; x <= Arena.ALTAR_X + Arena.ALTAR_R + 2; x++) {
 			for (int z = z0; z <= z1; z++) {
 				for (int y = FLOOR - 28; y <= RING_TOP + 2; y++) set(level, x, y, z, Blocks.AIR.defaultBlockState());
 			}
@@ -411,6 +413,10 @@ public final class ArenaBuilder {
 		}
 		npc(level, NpcKind.RING_LOBBY, new Vec3(3.5, FLOOR + 1, RING_Z + RING_R + 3.5), 180f);
 		npc(level, NpcKind.HALL_LOBBY, new Vec3(4.5, FLOOR + 1, HZ0 + 2.5), 0f);
+		// the altar's keeper, beside the way in (north side: the ritual camera swings round the south), facing the bridge
+		npc(level, NpcKind.ALTAR, new Vec3(Arena.ALTAR_X - Arena.ALTAR_R + 2.5, FLOOR + 1, -2.5), 90f);
+		Holograms.spawn(level, new Vec3(Arena.ALTAR_X + 0.5, FLOOR + 9.5, 0.5), Component.literal("✦ AWAKENING ALTAR ✦")
+				.withStyle(s -> s.withColor(0xFFC83D).withBold(true)), 2.2f, 0, null);
 		// the weekly challenges, across the hall's entrance from its NPC
 		Holograms.spawn(level, new Vec3(-4.5, FLOOR + 2.4, HZ0 + 2.5), Component.literal("✦ WEEKLY CHALLENGES ✦"), 0.9f, 0x90000000, "board_weekly");
 		Holograms.spawn(level, new Vec3(0.5, FLOOR + 10.5, -NPC_ARC - 1.5), Component.literal("✦ AURA ARENA ✦")
@@ -848,6 +854,62 @@ public final class ArenaBuilder {
 	// ---------------------------------------------------------------
 	// Displays: the lobby's core, crystals, the kiosks' items, weapon racks (nothing to take)
 	// ---------------------------------------------------------------
+
+	/**
+	 * The awakening altar (9): a dark stone island east of the lobby, a quartz bridge to it through a gap in the lobby's
+	 * rail, a dais in the middle (Arena.ALTAR is on top of it) and a pillar per aura in a ring (AltarRitual.pillar),
+	 * each topped with that aura's glass over a lantern.
+	 */
+	private static void buildAltar(ServerLevel level) {
+		int cx = Arena.ALTAR_X, r = Arena.ALTAR_R;
+		islandBase(level, cx, 0, r + 1, r + 1, FLOOR, 16, 2);
+		for (int x = -r - 1; x <= r + 1; x++) {
+			for (int z = -r - 1; z <= r + 1; z++) {
+				double d = Math.sqrt(x * x + z * z);
+				if (d > r + 0.5) continue;
+				Block floor, below = Blocks.DEEPSLATE_BRICKS;
+				if (d <= 1.5) floor = Blocks.CHISELED_POLISHED_BLACKSTONE;
+				else if (d > 2.5 && d <= 3.5) {
+					floor = Blocks.PURPLE_STAINED_GLASS;
+					below = Blocks.SEA_LANTERN;
+				} else if (d > r - 0.5) floor = Blocks.GILDED_BLACKSTONE;
+				else floor = (x + z & 1) == 0 ? Blocks.POLISHED_BLACKSTONE_BRICKS : Blocks.POLISHED_DEEPSLATE;
+				set(level, cx + x, FLOOR, z, floor);
+				set(level, cx + x, FLOOR - 1, z, below);
+			}
+		}
+		// the dais: 3x3, one up, a glowing heart
+		for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++) set(level, cx + x, FLOOR + 1, z, x == 0 && z == 0 ? Blocks.CRYING_OBSIDIAN : Blocks.POLISHED_BLACKSTONE);
+		for (int[] step : new int[][]{{-2, 0}, {2, 0}, {0, -2}, {0, 2}}) set(level, cx + step[0], FLOOR + 1, step[1], Blocks.POLISHED_BLACKSTONE_SLAB);
+		// the pillars
+		java.util.List<com.toast.aurapoints.ability.AuraType> auras = AltarRitual.auras();
+		for (int i = 0; i < auras.size(); i++) {
+			Vec3 p = AltarRitual.pillar(i, auras.size());
+			int px = (int) Math.floor(p.x), pz = (int) Math.floor(p.z);
+			set(level, px, FLOOR + 1, pz, Blocks.CHISELED_QUARTZ_BLOCK);
+			set(level, px, FLOOR + 2, pz, Blocks.QUARTZ_PILLAR);
+			set(level, px, FLOOR + 3, pz, Blocks.QUARTZ_PILLAR);
+			set(level, px, FLOOR + 4, pz, Blocks.SEA_LANTERN);
+			set(level, px, FLOOR + 5, pz, ArenaFx.glassOf(auras.get(i)));
+		}
+		// the bridge from the lobby, and the gap in the lobby's rail it starts at
+		for (int x = LOBBY_R - 2; x < cx - r; x++) {
+			for (int z = -1; z <= 1; z++) {
+				if (x > LOBBY_R) {
+					set(level, x, FLOOR, z, z == 0 ? Blocks.QUARTZ_BRICKS : Blocks.SMOOTH_QUARTZ);
+					set(level, x, FLOOR - 1, z, z == 0 ? Blocks.SEA_LANTERN : Blocks.STONE_BRICKS);
+				}
+				set(level, x, FLOOR + 1, z, Blocks.AIR);
+				set(level, x, FLOOR + 2, z, Blocks.AIR);
+			}
+			if (x > LOBBY_R) {
+				set(level, x, FLOOR + 1, -2, Blocks.SMOOTH_QUARTZ_SLAB);
+				set(level, x, FLOOR + 1, 2, Blocks.SMOOTH_QUARTZ_SLAB);
+				set(level, x, FLOOR, -2, Blocks.STONE_BRICKS);
+				set(level, x, FLOOR, 2, Blocks.STONE_BRICKS);
+			}
+		}
+	}
 
 	private static void decorate(ServerLevel level) {
 		// the lobby's aura core and the seven crystals round it, the seven over the ring (ArenaFx moves them)

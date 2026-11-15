@@ -68,6 +68,8 @@ public class AuraPlayerData {
 
 	/** Auras whose Awakening this player completed: their Ultimate is unlocked (ability/Ultimates). Saved by name. */
 	public final java.util.Set<AuraType> awakened = java.util.EnumSet.noneOf(AuraType.class);
+	/** Auras whose Awakening quest is done: the arena altar's ritual is open for them (5.26). */
+	public final java.util.Set<AuraType> altarUnlocked = java.util.EnumSet.noneOf(AuraType.class);
 
 	/** Every aura this player has held (recorded from 4.98 on; arena/WaveAuras also counts older evidence). Saved by name. */
 	public final java.util.Set<AuraType> rolled = java.util.EnumSet.noneOf(AuraType.class);
@@ -146,6 +148,9 @@ public class AuraPlayerData {
 		net.minecraft.nbt.ListTag awakenedList = new net.minecraft.nbt.ListTag();
 		for (AuraType a : awakened) awakenedList.add(net.minecraft.nbt.StringTag.valueOf(a.name()));
 		nbt.put("awakened", awakenedList);
+		net.minecraft.nbt.ListTag altarList = new net.minecraft.nbt.ListTag();
+		for (AuraType a : altarUnlocked) altarList.add(net.minecraft.nbt.StringTag.valueOf(a.name()));
+		nbt.put("altarUnlocked", altarList);
 		net.minecraft.nbt.ListTag rolledList = new net.minecraft.nbt.ListTag();
 		for (AuraType a : rolled) rolledList.add(net.minecraft.nbt.StringTag.valueOf(a.name()));
 		nbt.put("rolled", rolledList);
@@ -220,6 +225,11 @@ public class AuraPlayerData {
 			data.arenaReturnMode = back.getInt("mode");
 		}
 		data.trainingCooldowns = nbt.getBoolean("trainingCooldowns");
+		var altarList = nbt.getList("altarUnlocked", net.minecraft.nbt.Tag.TAG_STRING);
+		for (int i = 0; i < altarList.size(); i++) {
+			AuraType a = parseAura(altarList.getString(i), voidAny);
+			if (a != null) data.altarUnlocked.add(a);
+		}
 		var awakenedList = nbt.getList("awakened", net.minecraft.nbt.Tag.TAG_STRING);
 		for (int i = 0; i < awakenedList.size(); i++) {
 			AuraType a = parseAura(awakenedList.getString(i), voidAny);

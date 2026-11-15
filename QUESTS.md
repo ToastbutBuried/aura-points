@@ -281,13 +281,13 @@ Master your aura, level by level.
 | Earth Mastery V | Earn 3000 Earth mastery XP (use your aura - /aura mastery shows it). | Earth Mastery V, 50 Aura | once |
 | Light Mastery V | Earn 3000 Light mastery XP (use your aura - /aura mastery shows it). | Light Mastery V, 50 Aura | once |
 | Blood Mastery V | Earn 3000 Blood mastery XP (use your aura - /aura mastery shows it). | Blood Mastery V, 50 Aura | once |
-| Shadow Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Shadow Awakening (Ultimate), 50 Aura | once |
-| Water Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Water Awakening (Ultimate), 50 Aura | once |
-| Fire Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Fire Awakening (Ultimate), 50 Aura | once |
-| Wind Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Wind Awakening (Ultimate), 50 Aura | once |
-| Frost Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Frost Awakening (Ultimate), 50 Aura | once |
-| Verdant Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Verdant Awakening (Ultimate), 50 Aura | once |
-| Thunder Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Thunder Awakening (Ultimate), 50 Aura | once |
-| Earth Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Earth Awakening (Ultimate), 50 Aura | once |
-| Light Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Light Awakening (Ultimate), 50 Aura | once |
-| Blood Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Blood Awakening (Ultimate), 50 Aura | once |
+| Shadow Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Opens the Shadow ritual at the Awakening Altar (800 Aura + Mastery V awaken the Ultimate), 50 Aura | once |
+| Water Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Opens the Water ritual at the Awakening Altar (800 Aura + Mastery V awaken the Ultimate), 50 Aura | once |
+| Fire Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Opens the Fire ritual at the Awakening Altar (800 Aura + Mastery V awaken the Ultimate), 50 Aura | once |
+| Wind Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Opens the Wind ritual at the Awakening Altar (800 Aura + Mastery V awaken the Ultimate), 50 Aura | once |
+| Frost Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Opens the Frost ritual at the Awakening Altar (800 Aura + Mastery V awaken the Ultimate), 50 Aura | once |
+| Verdant Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Opens the Verdant ritual at the Awakening Altar (800 Aura + Mastery V awaken the Ultimate), 50 Aura | once |
+| Thunder Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Opens the Thunder ritual at the Awakening Altar (800 Aura + Mastery V awaken the Ultimate), 50 Aura | once |
+| Earth Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Opens the Earth ritual at the Awakening Altar (800 Aura + Mastery V awaken the Ultimate), 50 Aura | once |
+| Light Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Opens the Light ritual at the Awakening Altar (800 Aura + Mastery V awaken the Ultimate), 50 Aura | once |
+| Blood Awakening | Defeat 3 bosses and win 5 duels in the Aura Arena (in total). | Opens the Blood ritual at the Awakening Altar (800 Aura + Mastery V awaken the Ultimate), 50 Aura | once |

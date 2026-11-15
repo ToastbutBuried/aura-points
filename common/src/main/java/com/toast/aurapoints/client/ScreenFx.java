@@ -120,6 +120,7 @@ public final class ScreenFx {
 			case FxPacket.LIFESTEAL -> StatusOverlays.lifesteal(p.value() / 10f);
 			case FxPacket.BLOOD_MOON -> BloodMoonSky.start(p.value());
 			case FxPacket.BLIZZARD -> Blizzard.start(p.value());
+			case FxPacket.RITUAL -> RitualCutscene.onPacket(p.value(), p.text());
 			default -> {
 			}
 		}

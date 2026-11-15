@@ -28,6 +28,11 @@ public record FxPacket(byte kind, int value, String text) implements CustomPacke
 	public static final byte BLOOD_MOON = 7;
 	/** The Blue Bell's blizzard nearby: whiteout and driving snow for value ticks. */
 	public static final byte BLIZZARD = 8;
+	/**
+	 * The awakening ritual's cutscene for you (client/RitualCutscene): value = its length in ticks (0 = stop it now),
+	 * text = "aura id;Ultimate name;replay 0|1;altar x;y;z".
+	 */
+	public static final byte RITUAL = 9;
 
 	public static final Type<FxPacket> TYPE =
 			new Type<>(ResourceLocation.fromNamespaceAndPath("aurapoints", "fx"));

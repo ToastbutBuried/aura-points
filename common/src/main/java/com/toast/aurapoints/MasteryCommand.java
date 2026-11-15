@@ -45,9 +45,44 @@ final class MasteryCommand {
 		dispatcher.register(Commands.literal("aura").then(Commands.literal("awaken").requires(src -> src.hasPermission(2))
 				.then(Commands.argument("targets", EntityArgument.players())
 						.then(Commands.argument("aura", StringArgumentType.word()).suggests(AURAS)
-								.executes(ctx -> awaken(ctx, true))
+								// the Awakening quests' reward: with the altar on it opens the ritual, else it awakens (an explicit true/false always sets the awakening itself)
+								.executes(ctx -> com.toast.aurapoints.config.AuraConfig.ULT_ALTAR_ENABLED ? altarUnlock(ctx, true) : awaken(ctx, true))
 								.then(Commands.argument("on", com.mojang.brigadier.arguments.BoolArgumentType.bool())
 										.executes(ctx -> awaken(ctx, com.mojang.brigadier.arguments.BoolArgumentType.getBool(ctx, "on"))))))));
+		dispatcher.register(Commands.literal("aura").then(Commands.literal("altar")
+				.executes(ctx -> {
+					com.toast.aurapoints.arena.AltarRitual.menu(ctx.getSource().getPlayerOrException());
+					return 1;
+				})
+				.then(Commands.literal("ritual").executes(ctx -> ritual(ctx, false)))
+				.then(Commands.literal("replay").executes(ctx -> ritual(ctx, true)))
+				.then(Commands.literal("skip").executes(ctx -> com.toast.aurapoints.arena.AltarRitual.skip(ctx.getSource().getPlayerOrException()) ? 1 : 0))
+				.then(Commands.literal("unlock").requires(src -> src.hasPermission(2))
+						.then(Commands.argument("targets", EntityArgument.players())
+								.then(Commands.argument("aura", StringArgumentType.word()).suggests(AURAS)
+										.executes(ctx -> altarUnlock(ctx, true))
+										.then(Commands.argument("on", com.mojang.brigadier.arguments.BoolArgumentType.bool())
+												.executes(ctx -> altarUnlock(ctx, com.mojang.brigadier.arguments.BoolArgumentType.getBool(ctx, "on")))))))));
+	}
+
+	private static int ritual(CommandContext<CommandSourceStack> ctx, boolean replay) throws CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		String why = com.toast.aurapoints.arena.AltarRitual.begin(player, replay);
+		if (why == null) return 1;
+		ctx.getSource().sendFailure(Component.literal(why));
+		return 0;
+	}
+
+	private static int altarUnlock(CommandContext<CommandSourceStack> ctx, boolean on) throws CommandSyntaxException {
+		Collection<ServerPlayer> targets = EntityArgument.getPlayers(ctx, "targets");
+		AuraType aura = AuraType.byId(StringArgumentType.getString(ctx, "aura"));
+		if (aura == null || com.toast.aurapoints.ability.Ultimates.of(aura) == null) {
+			ctx.getSource().sendFailure(Component.literal(aura == null ? "Unknown aura." : aura.displayName + " has no Ultimate (yet)."));
+			return 0;
+		}
+		for (ServerPlayer target : targets) com.toast.aurapoints.arena.AltarRitual.unlock(target, aura, on);
+		ctx.getSource().sendSuccess(() -> Component.literal("The altar is " + (on ? "open" : "closed") + " for " + aura.displayName + " to " + targets.size() + " player(s)."), true);
+		return targets.size();
 	}
 
 

@@ -64,7 +64,7 @@ public final class CommandRules {
 
 	static {
 		for (String key : List.of("aura give", "aura reload", "aura progress", "aura cooldowns", "aura resetprogress",
-				"aura setaura", "aura mastery set", "aura awaken")) {
+				"aura setaura", "aura mastery set", "aura awaken", "aura altar unlock")) {
 			DEFAULTS.put(key, new Rule(true, 2, false, Set.of()));
 		}
 		for (String key : List.of("aura mjolnir", "aura frostbear", "aura bluebell", "aura handheld", "aura worthy", "aura lock", "aura unlock", "aura balance whitelist", "aura arena rebuild",

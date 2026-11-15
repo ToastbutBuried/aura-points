@@ -1586,6 +1586,13 @@ public final class AuraConfig {
 	 * All share ULTIMATE_COOLDOWN_SECONDS.
 	 */
 	public static int ULTIMATE_COOLDOWN_SECONDS = 300;
+	// ---- The awakening altar in the arena (arena/AltarRitual) ----
+	/** With the altar on, an aura's Awakening quest only unlocks its ritual at the altar; off = the quest awakens at once, as before 5.26. */
+	public static boolean ULT_ALTAR_ENABLED = true;
+	/** What the ritual costs in Aura, and the Mastery level of the aura it asks for. */
+	public static int ULT_ALTAR_COST = 800;
+	public static int ULT_ALTAR_MASTERY = 5;
+
 	/** Shadow - Eclipse: darkness on enemy players within RANGE, then you blink behind up to TARGETS enemies, one strike each. */
 	public static double ULT_ECLIPSE_RANGE = 16.0;
 	public static int ULT_ECLIPSE_TARGETS = 5;

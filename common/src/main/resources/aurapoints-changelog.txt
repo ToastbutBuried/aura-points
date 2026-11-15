@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.26.0
+- The Awakening Altar: an island east of the arena lobby. Finishing an Awakening quest now opens that aura's ritual there; 800 Aura and Mastery V awaken the Ultimate in a 20 second cutscene with its own altar core, sigil and pillar crystals (sneak to skip, /aura altar replay to watch it again).
+
 == 5.25.0
 - More to do outside of fights: Fire's Flame Cloak smelts dropped items next to you, Frost Path puts out fires, Thunder's Static Rush drives your minecart or boat, Blood's Lifeline works on your pets.
 - Dark: sneak + Rift Step sets a Rift Anchor, sneak + key again steps you back to it.

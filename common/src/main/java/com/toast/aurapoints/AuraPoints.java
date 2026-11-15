@@ -156,6 +156,10 @@ public class AuraPoints {
 
 	/** Not obtainable: only the frost shard model the Frost aura's Ice Spike shows in the hand and in flight (ability/IceSpike). */
 	public static final DeferredItem<Item> ICE_SPIKE_SHARD = ITEMS.registerSimpleItem("ice_spike_shard");
+	// the Awakening Altar's ritual props (AltarRitual flies them as item displays); altar_cap picks its aura by custom_model_data 1..10
+	public static final DeferredItem<Item> ALTAR_CORE = ITEMS.registerSimpleItem("altar_core");
+	public static final DeferredItem<Item> ALTAR_CAP = ITEMS.registerSimpleItem("altar_cap");
+	public static final DeferredItem<Item> ALTAR_SIGIL = ITEMS.registerSimpleItem("altar_sigil");
 	/** Not obtainable: the shadow dragon's body segments, shown by datapacks as item displays (16 px long on Z, 8x8 cross-section). */
 	public static final DeferredItem<Item> DRAGON_SEGMENT_A = ITEMS.registerSimpleItem("dragon_segment_a");
 	public static final DeferredItem<Item> DRAGON_SEGMENT_B = ITEMS.registerSimpleItem("dragon_segment_b");
@@ -316,6 +320,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.VoidAura.tickAll(server);
 			com.toast.aurapoints.ability.Reactions.tickAll(server);
 			com.toast.aurapoints.ability.Combos.tickAll(server);
+			com.toast.aurapoints.arena.AltarRitual.tickAll(server);
 			com.toast.aurapoints.ability.Casts.tickAll(server);
 			com.toast.aurapoints.ability.TouchedMobs.tickAll(server);
 			com.toast.aurapoints.cosmetic.Weekly.tick(server);
@@ -642,6 +647,7 @@ public class AuraPoints {
 					|| com.toast.aurapoints.ability.Entanglement.isLeftover(event.getEntity())
 					|| com.toast.aurapoints.ability.Mjolnir.isLeftover(event.getEntity())
 					|| com.toast.aurapoints.ability.IceSpike.isLeftover(event.getEntity())
+					|| com.toast.aurapoints.arena.AltarRitual.isLeftover(event.getEntity())
 					|| com.toast.aurapoints.ability.Ultimates.isLeftover(event.getEntity())
 					|| com.toast.aurapoints.ability.Earth.isLeftover(event.getEntity()))) event.setCanceled(true);
 		}
@@ -694,6 +700,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.PhantomDecoy.clear();
 			com.toast.aurapoints.ability.Casts.clear();
 			com.toast.aurapoints.ability.Chains.clear();
+			com.toast.aurapoints.arena.AltarRitual.clear();
 			// last, so nothing the clean-ups above scheduled carries over into the next world
 			AuraFx.clearAll();
 		}
@@ -762,6 +769,7 @@ public class AuraPoints {
 				DashDive.onLogout(player);
 				com.toast.aurapoints.ability.FireBending.onLogout(player);
 				com.toast.aurapoints.ability.Casts.onLogout(player);
+				com.toast.aurapoints.arena.AltarRitual.onLogout(player);
 				com.toast.aurapoints.ability.AirBending.onLogout(player);
 				com.toast.aurapoints.ability.AbyssalBubble.onLogout(player);
 				com.toast.aurapoints.ability.IceSpike.onLogout(player);

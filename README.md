@@ -18,6 +18,8 @@ can pick one of two branches (Fire: Blue Flame or Magma, Shadow: Phantom or Dark
   takes you back to an aura you had for less; Mastery, branch and awakening stay with each aura.
 - **Casts**: at Mastery II, sneak + key gives an ability a second cast; at Mastery III, holding the key charges a
   third (every aura but Resonance). Each ability's casts are listed in the Aura Book.
+- **Awakening Altar**: an island east of the arena lobby. An aura's Awakening quest opens its ritual there;
+  800 Aura and Mastery V awaken the Ultimate in a short cutscene (`/aura altar`).
 - **Ability chains**: use one ability, then a second one soon after, and the second hits harder and adds an
   effect (slow, poison, a cooldown refund ...). Each aura has its own chains, listed on the abilities in the
   Aura Book; server owners edit them in `config/aurapoints-chains.json`.

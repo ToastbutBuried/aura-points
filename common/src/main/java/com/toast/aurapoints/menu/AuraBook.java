@@ -315,7 +315,7 @@ public final class AuraBook {
 			} else {
 				List<Component> lore = new ArrayList<>(wrap(AuraCommand.role(data.aura), 36, ChatFormatting.GRAY));
 				lore.add(text("Mastery " + data.mastery.getOrDefault(data.aura, 0) + " / 5"
-						+ (data.awakened.contains(data.aura) ? "  ·  Awakened" : ""), ChatFormatting.AQUA));
+						+ (data.awakened.contains(data.aura) ? "  ·  Awakened" : data.altarUnlocked.contains(data.aura) ? "  ·  Altar open: visit the arena" : ""), ChatFormatting.AQUA));
 				lore.add(text("Click: abilities, buy actives", ChatFormatting.YELLOW));
 				slots[AURA] = icon(auraIcon(data.aura), auraName(data.aura), lore, data.awakened.contains(data.aura));
 			}

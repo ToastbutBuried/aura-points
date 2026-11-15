@@ -259,13 +259,20 @@ public final class Ultimates {
 		}
 	}
 
-	private static void hold(ServerPlayer p) {
+	public static void hold(ServerPlayer p) {
 		p.setNoGravity(true);
 		p.addTag(FLY_TAG);
 		p.fallDistance = 0;
 	}
 
-	private static void move(ServerPlayer p, Vec3 velocity) {
+	/** Gravity back on after {@link #hold}, with a soft landing. */
+	public static void release(ServerPlayer p) {
+		p.removeTag(FLY_TAG);
+		p.setNoGravity(false);
+		LANDING.put(p.getUUID(), 0);
+	}
+
+	public static void move(ServerPlayer p, Vec3 velocity) {
 		p.setDeltaMovement(velocity);
 		p.hurtMarked = true;
 		p.fallDistance = 0;

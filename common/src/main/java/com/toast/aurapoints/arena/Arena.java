@@ -51,6 +51,9 @@ public final class Arena {
 	public static final Vec3 PAD_A = new Vec3(0.5, RING_FLOOR + 1, RING_Z - PAD_OFFSET + 0.5), PAD_B = new Vec3(0.5, RING_FLOOR + 1, RING_Z + PAD_OFFSET + 0.5);
 	/** The lobby hub's radius. */
 	public static final int LOBBY_R = 26;
+	/** The awakening altar: an island east of the lobby; where the ritual's player stands (on the dais). */
+	public static final int ALTAR_X = 38, ALTAR_R = 7;
+	public static final Vec3 ALTAR = new Vec3(ALTAR_X + 0.5, FLOOR + 2, 0.5);
 	/** The Training Hall (outer walls, blocks, inclusive) - an island of its own, far south. */
 	public static final int TRAIN_X = 27, TRAIN_Z0 = 200, TRAIN_Z1 = 292;
 	/** The hall's Spar Pit (the only place players can fight each other outside a duel): a sunken circle, centre x 0. */
