@@ -113,7 +113,13 @@ public final class TrialDevTest {
 				state.cooldownsDisabled = false;
 				boolean started = com.toast.aurapoints.arena.TrainingHall.devTryChallenge(fake);
 				state.cooldownsDisabled = true;
-				log("DPS kiosk during the trial: challenge started " + started + " (must be false)");
+				AuraTrial.stop(fake, null);
+				state.cooldownsDisabled = false;
+				boolean control = com.toast.aurapoints.arena.TrainingHall.devTryChallenge(fake);
+				state.cooldownsDisabled = true;
+				log("DPS kiosk during the trial: challenge started " + started + " (must be false), without a trial " + control + " (must be true)");
+				AuraTrial.start(fake);
+				AuraTrial.tickAll(server);
 				data.aura = AuraType.WATER;
 				AuraTrial.tickAll(server);
 				log("aura changed: running " + AuraTrial.running(fake) + " kit " + data.trialKit + " (must be false false)");

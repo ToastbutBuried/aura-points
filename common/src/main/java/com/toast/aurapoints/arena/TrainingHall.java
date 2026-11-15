@@ -263,6 +263,7 @@ public final class TrainingHall {
 	/** Cooldowns stay on for a player doing the challenge, whatever their switch says. */
 	/** Dev test: presses the DPS kiosk for {@code player}; true if a challenge started (it is cancelled again at once). */
 	public static boolean devTryChallenge(ServerPlayer player) {
+		LAST_FREE_USE.remove(player.getUUID());
 		startChallenge(player);
 		return CHALLENGES.remove(player.getUUID()) != null;
 	}
