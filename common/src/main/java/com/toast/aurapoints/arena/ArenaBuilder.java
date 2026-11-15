@@ -68,7 +68,7 @@ public final class ArenaBuilder {
 	}
 
 	/** Raise when the layout changes: every server rebuilds the map on its next start. */
-	public static final int MAP_VERSION = 9;
+	public static final int MAP_VERSION = 10;
 
 	private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
 	/** Barrier walls and roof of the ring go up to here. */
@@ -860,6 +860,19 @@ public final class ArenaBuilder {
 	 * rail, a dais in the middle (Arena.ALTAR is on top of it) and a pillar per aura in a ring (AltarRitual.pillar),
 	 * each topped with that aura's glass over a lantern.
 	 */
+	/** Lantern posts on the altar's rim: the four diagonals, either side of the west/east openings and north/south (x, z relative to the altar). */
+	private static int[][] rimPosts(int r) {
+		java.util.List<int[]> out = new java.util.ArrayList<>();
+		int diag = (int) Math.round(r / Math.sqrt(2));
+		for (int sx : new int[]{-1, 1}) for (int sz : new int[]{-1, 1}) out.add(new int[]{sx * diag, sz * diag});
+		for (int s2 : new int[]{-1, 1}) {
+			out.add(new int[]{-r, s2 * 2});
+			out.add(new int[]{r, s2 * 2});
+			out.add(new int[]{0, s2 * r});
+		}
+		return out.toArray(new int[0][]);
+	}
+
 	private static void buildAltar(ServerLevel level) {
 		int cx = Arena.ALTAR_X, r = Arena.ALTAR_R;
 		islandBase(level, cx, 0, r + 1, r + 1, FLOOR, 16, 2);
@@ -881,17 +894,39 @@ public final class ArenaBuilder {
 		// the dais: 3x3, one up, a glowing heart
 		for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++) set(level, cx + x, FLOOR + 1, z, x == 0 && z == 0 ? Blocks.CRYING_OBSIDIAN : Blocks.POLISHED_BLACKSTONE);
 		for (int[] step : new int[][]{{-2, 0}, {2, 0}, {0, -2}, {0, 2}}) set(level, cx + step[0], FLOOR + 1, step[1], Blocks.POLISHED_BLACKSTONE_SLAB);
-		// the pillars
+		// paths in from the bridge (west) and its mirror (east); north and south have a pillar on the axis (AltarRitual.pillar)
+		for (int d = 4; d <= r; d++) {
+			for (int sx : new int[]{-1, 1}) set(level, cx + sx * d, FLOOR, 0, d == r ? Blocks.CHISELED_POLISHED_BLACKSTONE : Blocks.POLISHED_BLACKSTONE_BRICKS);
+		}
+		// the rim: a low wall, open west and east, lanterns on the diagonals, either side of the openings and behind the axis pillars
+		for (int x = -r - 1; x <= r + 1; x++) {
+			for (int z = -r - 1; z <= r + 1; z++) {
+				double d = Math.sqrt(x * x + z * z);
+				if (d <= r - 0.5 || d > r + 0.5) continue;
+				boolean gap = Math.abs(z) <= 1;
+				set(level, cx + x, FLOOR + 1, z, gap ? Blocks.AIR : Blocks.POLISHED_BLACKSTONE_BRICK_WALL);
+				set(level, cx + x, FLOOR + 2, z, Blocks.AIR);
+			}
+		}
+		for (int[] post : rimPosts(r)) {
+			set(level, cx + post[0], FLOOR + 1, post[1], Blocks.POLISHED_BLACKSTONE_BRICKS);
+			set(level, cx + post[0], FLOOR + 2, post[1], Blocks.SOUL_LANTERN);
+		}
+		// the dais: candles on its corners
+		for (int[] c : new int[][]{{-1, -1}, {-1, 1}, {1, -1}, {1, 1}}) {
+			set(level, cx + c[0], FLOOR + 1, c[1], Blocks.CHISELED_POLISHED_BLACKSTONE);
+			set(level, cx + c[0], FLOOR + 2, c[1], Blocks.BLACK_CANDLE.defaultBlockState()
+					.setValue(net.minecraft.world.level.block.CandleBlock.CANDLES, 3).setValue(net.minecraft.world.level.block.CandleBlock.LIT, true));
+		}
+		// the pillars: a block column for collision, hidden inside the altar_pillar model (AltarRitual.spawnPillars)
 		java.util.List<com.toast.aurapoints.ability.AuraType> auras = AltarRitual.auras();
 		for (int i = 0; i < auras.size(); i++) {
 			Vec3 p = AltarRitual.pillar(i, auras.size());
 			int px = (int) Math.floor(p.x), pz = (int) Math.floor(p.z);
-			set(level, px, FLOOR + 1, pz, Blocks.CHISELED_QUARTZ_BLOCK);
-			set(level, px, FLOOR + 2, pz, Blocks.QUARTZ_PILLAR);
-			set(level, px, FLOOR + 3, pz, Blocks.QUARTZ_PILLAR);
-			set(level, px, FLOOR + 4, pz, Blocks.SEA_LANTERN);
-			set(level, px, FLOOR + 5, pz, ArenaFx.glassOf(auras.get(i)));
+			for (int y = 1; y <= 4; y++) set(level, px, FLOOR + y, pz, Blocks.POLISHED_BLACKSTONE);
+			for (int y = 5; y <= 6; y++) set(level, px, FLOOR + y, pz, Blocks.AIR);
 		}
+		AltarRitual.spawnPillars(level);
 		// the bridge from the lobby, and the gap in the lobby's rail it starts at
 		for (int x = LOBBY_R - 2; x < cx - r; x++) {
 			for (int z = -1; z <= 1; z++) {

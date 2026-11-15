@@ -160,6 +160,9 @@ public class AuraPoints {
 	public static final DeferredItem<Item> ALTAR_CORE = ITEMS.registerSimpleItem("altar_core");
 	public static final DeferredItem<Item> ALTAR_CAP = ITEMS.registerSimpleItem("altar_cap");
 	public static final DeferredItem<Item> ALTAR_SIGIL = ITEMS.registerSimpleItem("altar_sigil");
+	// the altar's carved pillars and their glowing slits (altar_slit picks its aura by custom_model_data 1..10), 5.29
+	public static final DeferredItem<Item> ALTAR_PILLAR = ITEMS.registerSimpleItem("altar_pillar");
+	public static final DeferredItem<Item> ALTAR_SLIT = ITEMS.registerSimpleItem("altar_slit");
 	/** Not obtainable: the shadow dragon's body segments, shown by datapacks as item displays (16 px long on Z, 8x8 cross-section). */
 	public static final DeferredItem<Item> DRAGON_SEGMENT_A = ITEMS.registerSimpleItem("dragon_segment_a");
 	public static final DeferredItem<Item> DRAGON_SEGMENT_B = ITEMS.registerSimpleItem("dragon_segment_b");

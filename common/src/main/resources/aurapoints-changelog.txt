@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.29.0
+- The Awakening Altar is rebuilt: carved pillars with glowing slits in each aura's colour (they fill from bottom to top during the ritual), a lantern-lit rim wall, paths and a candle-lit dais, and the pillar ring is now properly symmetrical.
+
 == 5.28.1
 - Aura Trial: each chain now says what it does, casts that need someone else say what to aim at, a Training Hall dummy stands in for the ally of Lifeline and Mending Beam, and the Ultimate ticks off when you use it. No DPS challenge during a trial.
 

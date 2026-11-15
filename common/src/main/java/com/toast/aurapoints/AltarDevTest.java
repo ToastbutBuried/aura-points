@@ -63,16 +63,29 @@ public final class AltarDevTest {
 			// the map
 			int ax = Arena.ALTAR_X, fl = Arena.FLOOR;
 			int glass = 0;
-			for (BlockPos pos : BlockPos.betweenClosed(ax - Arena.ALTAR_R, fl + 5, -Arena.ALTAR_R, ax + Arena.ALTAR_R, fl + 5, Arena.ALTAR_R)) {
-				if (arena.getBlockState(pos).getBlock() instanceof StainedGlassBlock) glass++;
+			for (BlockPos pos : BlockPos.betweenClosed(ax - Arena.ALTAR_R, fl + 4, -Arena.ALTAR_R, ax + Arena.ALTAR_R, fl + 4, Arena.ALTAR_R)) {
+				if (arena.getBlockState(pos).is(Blocks.POLISHED_BLACKSTONE)) glass++;
 			}
+			// the ring is mirror-symmetric on both axes (Toast saw it off centre before 5.29)
+			boolean mirrored = true;
+			java.util.Set<String> spots = new java.util.HashSet<>();
+			for (int i = 0; i < AltarRitual.auras().size(); i++) {
+				var pp = AltarRitual.pillar(i, AltarRitual.auras().size());
+				spots.add(Math.round(pp.x - ax - 0.5) + "," + Math.round(pp.z - 0.5));
+			}
+			for (String sp : spots) {
+				String[] xz = sp.split(",");
+				int px = Integer.parseInt(xz[0]), pz = Integer.parseInt(xz[1]);
+				if (!spots.contains((-px) + "," + pz) || !spots.contains(px + "," + (-pz))) mirrored = false;
+			}
+			log("pillar ring mirror-symmetric " + mirrored + " (must be true): " + spots);
 			// entities only load with their chunk: hold the keeper's while the test runs
 			arena.setChunkForced((ax - Arena.ALTAR_R + 2) >> 4, -1, true);
 			arena.setChunkForced(ax >> 4, 0, true); // the dais and half the pillars: where the props go
-			log("map version " + state.arenaMapVersion + " (must be 9), dais heart " + arena.getBlockState(new BlockPos(ax, fl + 1, 0)).is(Blocks.CRYING_OBSIDIAN)
+			log("map version " + state.arenaMapVersion + " (must be 10), dais heart " + arena.getBlockState(new BlockPos(ax, fl + 1, 0)).is(Blocks.CRYING_OBSIDIAN)
 					+ " (must be true), bridge " + arena.getBlockState(new BlockPos(29, fl, 0)).is(Blocks.QUARTZ_BRICKS) + " (must be true), rail gap "
 					+ arena.getBlockState(new BlockPos(26, fl + 1, 0)).isAir() + " (must be true)");
-			log("aura pillars " + glass + " (must be " + AltarRitual.auras().size() + " = 10)");
+			log("aura pillar columns " + glass + " (must be " + AltarRitual.auras().size() + " = 10)");
 
 			ServerPlayer fake = FakePlayerFactory.get(arena, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000c301"), "AltarTest"));
 			fake.moveTo(Arena.ALTAR.x - 3, Arena.ALTAR.y - 1, Arena.ALTAR.z, 0, 0);
@@ -103,6 +116,12 @@ public final class AltarDevTest {
 				log("30 ticks in: running " + AltarRitual.running() + " in ritual " + AltarRitual.inRitual(fake) + " (must be true true)");
 				long keepers = arena.getEntitiesOfClass(ArenaNpc.class, new AABB(ax - 10, fl - 2, -10, ax + 10, fl + 8, 10), n -> n.kind() == NpcKind.ALTAR).size();
 				log("altar keepers " + keepers + " (must be 1)");
+				long pillars = arena.getEntitiesOfClass(net.minecraft.world.entity.Display.ItemDisplay.class, new AABB(ax - 10, fl - 2, -10, ax + 10, fl + 12, 10),
+						d -> d.getTags().contains("aurapoints_altar_pillar")).size();
+				long slitCount = arena.getEntitiesOfClass(net.minecraft.world.entity.Display.ItemDisplay.class, new AABB(ax - 10, fl - 2, -10, ax + 10, fl + 12, 10),
+						d -> d.getTags().contains("aurapoints_altar_slit")).size();
+				// NeoForge shows only the entities of one of the two forced chunks here (as with the ritual props); a client run shows all
+				log("pillar models " + pillars + " slits " + slitCount + " (in loaded chunks), a slit for each pillar " + (pillars > 0 && slitCount == pillars) + " (must be true)");
 				int props = arena.getEntitiesOfClass(net.minecraft.world.entity.Display.ItemDisplay.class, new AABB(ax - 10, fl - 2, -10, ax + 10, fl + 16, 10), d -> d.getTags().contains("aurapoints_altar_prop")).size();
 				log("ritual props " + AltarRitual.liveProps() + " (in loaded chunks " + props + ") all-up " + (AltarRitual.liveProps() == 2 + AltarRitual.auras().size()) + " (must be true)");
 				arena.setChunkForced((ax - Arena.ALTAR_R + 2) >> 4, -1, false);

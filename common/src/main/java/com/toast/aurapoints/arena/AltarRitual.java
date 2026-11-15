@@ -75,10 +75,15 @@ public final class AltarRitual {
 	}
 
 	/** Where pillar {@code i} of {@code n} stands (block centre, floor level), in a ring round the dais. */
-	static Vec3 pillar(int i, int n) {
+	public static Vec3 pillar(int i, int n) {
 		// half a step off the axes: the way in from the bridge (west) runs between two pillars
 		double a = 2 * Math.PI * (i + 0.5) / n;
-		return new Vec3(Arena.ALTAR_X + 0.5 + Math.round(Math.cos(a) * (Arena.ALTAR_R - 1.5)), Arena.FLOOR + 1, 0.5 + Math.round(Math.sin(a) * (Arena.ALTAR_R - 1.5)));
+		// rounded away from zero (Math.round takes -5.5 to -5 but 5.5 to 6, which put the ring off centre): mirror-symmetric on both axes
+		return new Vec3(Arena.ALTAR_X + 0.5 + away(Math.cos(a) * (Arena.ALTAR_R - 1.5)), Arena.FLOOR + 1, 0.5 + away(Math.sin(a) * (Arena.ALTAR_R - 1.5)));
+	}
+
+	private static long away(double v) {
+		return (long) Math.signum(v) * Math.round(Math.abs(v));
 	}
 
 	private static final class Run {
@@ -88,6 +93,8 @@ public final class AltarRitual {
 		int t;
 		Display.ItemDisplay sigil, core;
 		Display.ItemDisplay[] caps;
+		/** The altar's own slit displays (not ours to remove), by pillar. */
+		Display.ItemDisplay[] slits;
 		double sigilYaw, coreYaw;
 
 		Run(UUID id, AuraType aura, boolean replay) {
@@ -530,12 +537,78 @@ public final class AltarRitual {
 		r.core = prop(level, c.add(0, CORE_Y, 0), new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_CORE.get()));
 		List<AuraType> auras = auras();
 		r.caps = new Display.ItemDisplay[auras.size()];
+		r.slits = slits(level, auras.size());
+		for (Display.ItemDisplay d : r.slits) fill(d, SLIT_IDLE, 0);
 		for (int i = 0; i < auras.size(); i++) {
 			ItemStack cap = new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_CAP.get());
 			cap.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(capModel(auras.get(i))));
-			// the model's base is 0.4 px up from its bottom: sit it on the pillar's glass (floor + 6)
-			r.caps[i] = prop(level, pillar(i, auras.size()).add(0, 5 + (8 - 0.4) / 16.0 * CAP_SCALE, 0), cap);
+			// in the pillar model's cradle (its floor is 17.9 px up = 4.475 blocks at scale 4), the cap's base 0.4 px above its bottom
+			r.caps[i] = prop(level, pillar(i, auras.size()).add(0, PILLAR_SCALE * 17.9 / 16.0 + (8 - 0.4) / 16.0 * CAP_SCALE, 0), cap);
 		}
+	}
+
+	// ---- the pillars (5.29): a carved altar_pillar model around each block column, and its altar_slit glow in the aura's colour.
+	// Both are arena build entities (ArenaBuilder.claim), spawned with the map. Idle the slits glow at the bottom only;
+	// in the ritual each fills up from the bottom as its pillar joins, and sinks back after. ----
+
+	/** Both models are 1 unit = 1/16 block at scale 1; the pillar is built at 1/4 block per unit. */
+	static final float PILLAR_SCALE = 4f;
+	/** The slits' strips run from model y 3 to 15.5; idle they are lit this far up. */
+	static final float SLIT_IDLE = 0.14f;
+	private static final String PILLAR_TAG = "aurapoints_altar_pillar", SLIT_TAG = "aurapoints_altar_slit";
+
+	/** ArenaBuilder.buildAltar: the pillar and slit displays (the block column inside is ArenaBuilder's). */
+	static void spawnPillars(ServerLevel level) {
+		List<AuraType> auras = auras();
+		for (int i = 0; i < auras.size(); i++) {
+			// model y 0 = the pillar's foot (floor + 1); the display sits on the model's middle (y 8 = 2 blocks up)
+			Vec3 at = pillar(i, auras.size()).add(0, PILLAR_SCALE * 8 / 16.0, 0);
+			Display.ItemDisplay body = pillarDisplay(level, at, new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_PILLAR.get()));
+			pose(body, PILLAR_SCALE, 0, 0);
+			body.addTag(PILLAR_TAG);
+			ItemStack glow = new ItemStack(com.toast.aurapoints.AuraPoints.ALTAR_SLIT.get());
+			glow.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(capModel(auras.get(i))));
+			Display.ItemDisplay slit = pillarDisplay(level, at, glow);
+			slit.addTag(SLIT_TAG);
+			slit.addTag(SLIT_TAG + "_" + i);
+			fill(slit, SLIT_IDLE, 0);
+		}
+	}
+
+	private static Display.ItemDisplay pillarDisplay(ServerLevel level, Vec3 at, ItemStack stack) {
+		Display.ItemDisplay d = new Display.ItemDisplay(EntityType.ITEM_DISPLAY, level);
+		d.setPos(at.x, at.y, at.z);
+		((ItemDisplayAccessor) d).aurapoints$setItemStack(stack);
+		((ItemDisplayAccessor) d).aurapoints$setItemTransform(ItemDisplayContext.FIXED);
+		DisplayAccessor acc = (DisplayAccessor) d;
+		acc.aurapoints$setViewRange(4.0f);
+		acc.aurapoints$setBrightnessOverride(new Brightness(15, 15));
+		ArenaBuilder.claim(d);
+		level.addFreshEntity(d);
+		return d;
+	}
+
+	/** A slit lit {@code k} of the way up (0..1), easing over {@code ticks}: scaled in y about the strips' foot (model y 3). */
+	static void fill(Display.ItemDisplay d, float k, int ticks) {
+		if (d == null || d.isRemoved()) return;
+		float s = PILLAR_SCALE, ky = Math.max(0.001f, k);
+		// the foot at model y 3 is (3 - 8) / 16 * s blocks from the middle; keep it there whatever ky is
+		float foot = (3 - 8) / 16f * s;
+		DisplayAccessor acc = (DisplayAccessor) d;
+		acc.aurapoints$setTransformation(new Transformation(new Vector3f(0, foot - foot * ky, 0), new Quaternionf(), new Vector3f(s, s * ky, s), null));
+		acc.aurapoints$setInterpolationDuration(ticks);
+		d.getEntityData().set(DisplayAccessor.aurapoints$startDelta(), 0, true);
+	}
+
+	/** The slit displays round the altar by pillar index (loaded ones only). */
+	private static Display.ItemDisplay[] slits(ServerLevel level, int n) {
+		Display.ItemDisplay[] out = new Display.ItemDisplay[n];
+		Vec3 c = Arena.ALTAR;
+		for (Display.ItemDisplay d : level.getEntitiesOfClass(Display.ItemDisplay.class, new net.minecraft.world.phys.AABB(c, c).inflate(Arena.ALTAR_R + 2, 8, Arena.ALTAR_R + 2),
+				d -> d.getTags().contains(SLIT_TAG))) {
+			for (int i = 0; i < n; i++) if (d.getTags().contains(SLIT_TAG + "_" + i)) out[i] = d;
+		}
+		return out;
 	}
 
 	/** altar_cap's custom_model_data for an aura (1..10, the model's override order). */
@@ -557,6 +630,9 @@ public final class AltarRitual {
 
 	private static void removeProps(Run r) {
 		if (r == null) return;
+		// the slits are the altar's: they sink back to idle
+		if (r.slits != null) for (Display.ItemDisplay d : r.slits) fill(d, SLIT_IDLE, 40);
+		r.slits = null;
 		List<Display.ItemDisplay> all = new ArrayList<>();
 		all.add(r.sigil);
 		all.add(r.core);
@@ -583,7 +659,11 @@ public final class AltarRitual {
 		for (int i = 0; i < n; i++) {
 			int k = (i - own + n) % n; // order of joining
 			int lit = k == 0 ? GATHER : GATHER + 20 + k * 6;
-			if (t == lit) pose(r.caps[i], CAP_SCALE * 1.35f, i, 6);
+			if (t == lit) {
+				pose(r.caps[i], CAP_SCALE * 1.35f, i, 6);
+				// the slit fills up from the bottom in the aura's colour
+				if (r.slits != null) fill(r.slits[i], 1f, 30);
+			}
 			if (t == lit + 6) pose(r.caps[i], CAP_SCALE, i + 0.4, 8);
 			if (t > lit + 6 && t % 20 == (i * 2) % 20) pose(r.caps[i], CAP_SCALE, i + t * 0.04, 20);
 			if (t == REVEAL) pose(r.caps[i], CAP_SCALE * 1.5f, i + t * 0.04, 4);
