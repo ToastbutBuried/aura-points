@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.28.0
+- Earth: sneak + Boulder Toss throws Rubble Spray - three small rocks at once in a fan, no pick-up, on a shorter cooldown (Mastery II).
+
 == 5.27.0
 - The Aura Trial: whenever you get an aura (or any time from the Aura Book, /aura trial), try every one of its abilities, sneak and hold casts and chains in the Training Hall - the whole kit is lent to you there, whatever you bought or your Mastery. Retake it whenever you like.
 - Resonance can't be rolled any more (whoever has it keeps it). Optional cap on how far a chained hit can stack with other bonuses (Balance Tome > General > Chains, off by default).

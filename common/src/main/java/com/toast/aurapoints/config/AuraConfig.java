@@ -204,6 +204,14 @@ public final class AuraConfig {
 	/** Tunnel (sneak + Quake): a 3x3 passage this many blocks ahead through plain stone, dirt, sand and gravel; drops only if set; never in the arena. */
 	public static int EARTH_TUNNEL_LENGTH = 6;
 	public static boolean EARTH_TUNNEL_DROPS = false;
+	/** Rubble Spray (sneak + Boulder Toss, 5.28): EARTH_RUBBLE_COUNT small rocks thrown at once in a fan EARTH_RUBBLE_SPREAD_DEGREES apart,
+	 * no pick-up; each hits for EARTH_RUBBLE_DAMAGE_FACTOR of a boulder (no splash) and flies EARTH_RUBBLE_RANGE blocks at most. */
+	public static int EARTH_RUBBLE_COUNT = 3;
+	public static double EARTH_RUBBLE_SPREAD_DEGREES = 12;
+	public static float EARTH_RUBBLE_DAMAGE_FACTOR = 0.4f;
+	public static float EARTH_RUBBLE_SCALE = 0.45f;
+	public static double EARTH_RUBBLE_RANGE = 16;
+	public static double EARTH_RUBBLE_COOLDOWN_FACTOR = 0.6;
 	public static double EARTH_TUNNEL_COOLDOWN_FACTOR = 0.5;
 	/** Great Quake (hold Quake): radius and damage factors. */
 	public static double EARTH_QUAKE_CHARGED_RADIUS_FACTOR = 1.5;

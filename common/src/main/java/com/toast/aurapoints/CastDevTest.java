@@ -82,6 +82,10 @@ public final class CastDevTest {
 									|| ability == Ability.BLOOD_TETHER || ability == Ability.PRISM_BEAM && mode == CastMode.SNEAK;
 							boolean fired = AuraAbilities.tryActivate(fake, ability, server.getTickCount(), mode);
 							log(aura + " " + ability + " " + mode + " fired=" + fired + (needsOther ? " (must be false: nobody to target)" : " (must be true)"));
+							if (ability == Ability.BOULDER_TOSS && mode == CastMode.SNEAK) {
+								log("Rubble Spray: rocks in flight " + com.toast.aurapoints.ability.Earth.rubbleInFlight() + " (must be " + AuraConfig.EARTH_RUBBLE_COUNT
+										+ "), a boulder held " + com.toast.aurapoints.ability.Earth.isHolding(fake) + " (must be false)");
+							}
 							// the keys that hold: let go again; the Blood lunge/tether refuse a new press while they run
 							if (ability == Ability.ABYSSAL_BUBBLE) AbyssalBubble.release(fake, server.getTickCount());
 							if (ability == Ability.ICE_SPIKE) com.toast.aurapoints.ability.IceSpike.release(fake, server.getTickCount());

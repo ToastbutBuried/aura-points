@@ -189,7 +189,8 @@ public final class Casts {
 			// a viper out: the key calls it back, as always
 			case VERDANT_VIPER -> VerdantViper.isSteering(player) ? VerdantViper.press(player, now) : venomSpit(player, now);
 			case PILLAR_LIFT -> Earth.pillar(player, now, mode);
-			case BOULDER_TOSS -> Earth.boulder(player, now, true);
+			// sneak = Rubble Spray, unless a boulder is held (then the press throws it, as always)
+			case BOULDER_TOSS -> sneak && !Earth.isHolding(player) ? Earth.rubble(player, now) : Earth.boulder(player, now, !sneak);
 			case QUAKE -> sneak ? tunnel(player, now) : Earth.quake(player, now, AuraConfig.EARTH_QUAKE_CHARGED_RADIUS_FACTOR, AuraConfig.EARTH_QUAKE_CHARGED_DAMAGE_FACTOR);
 			case RADIANT_PULSE -> sneak ? guidingLight(player, now) : Light.pulse(player, now, mode);
 			case SOLAR_FLASH -> Light.flash(player, now, mode);
@@ -1021,7 +1022,7 @@ public final class Casts {
 			// most sneak casts name their own cooldown share; the general factor only matters for the rest
 			boolean ownShare = ability == Ability.DASH || ability == Ability.ABYSSAL_BUBBLE || ability == Ability.SUPER_WIND_CHARGE || ability == Ability.ICE_SPIKE
 					|| ability == Ability.THUNDERBOLT || ability == Ability.CHIDORI || ability == Ability.VINE_HOOK || ability == Ability.ENTANGLEMENT || ability == Ability.VERDANT_VIPER
-					|| ability == Ability.PILLAR_LIFT || ability == Ability.QUAKE || ability == Ability.RADIANT_PULSE || ability == Ability.SOLAR_FLASH || ability == Ability.PRISM_BEAM
+					|| ability == Ability.PILLAR_LIFT || ability == Ability.BOULDER_TOSS || ability == Ability.QUAKE || ability == Ability.RADIANT_PULSE || ability == Ability.SOLAR_FLASH || ability == Ability.PRISM_BEAM
 					|| ability == Ability.HEMORRHAGE || ability == Ability.BLOOD_TETHER || ability == Ability.CRIMSON_SACRIFICE || ability == Ability.RIFT_STEP;
 			out.add("Sneak + key (Mastery " + Mastery.roman(AuraConfig.CAST_SNEAK_MASTERY) + "): " + sneak
 					+ (AuraConfig.CAST_SNEAK_COOLDOWN_FACTOR != 1.0 && !ownShare ? " " + pct(AuraConfig.CAST_SNEAK_COOLDOWN_FACTOR) + "% cooldown." : ""));
@@ -1075,6 +1076,8 @@ public final class Casts {
 					+ pct(AuraConfig.VIPER_SPIT_COOLDOWN_FACTOR) + "% cooldown.";
 			case PILLAR_LIFT -> "Catapult - a pillar under yourself that throws you " + pct(AuraConfig.EARTH_CATAPULT_LAUNCH_FACTOR) + "% as high, "
 					+ pct(AuraConfig.EARTH_CATAPULT_COOLDOWN_FACTOR) + "% cooldown.";
+			case BOULDER_TOSS -> "Rubble Spray - " + AuraConfig.EARTH_RUBBLE_COUNT + " small rocks at once in a fan, no pick-up, each "
+					+ pct(AuraConfig.EARTH_RUBBLE_DAMAGE_FACTOR) + "% of a boulder's damage (no splash), " + pct(AuraConfig.EARTH_RUBBLE_COOLDOWN_FACTOR) + "% cooldown.";
 			case QUAKE -> "Tunnel - digs a 3x3 passage " + AuraConfig.EARTH_TUNNEL_LENGTH + " blocks ahead through plain stone, dirt, sand and gravel (not in the arena), "
 					+ pct(AuraConfig.EARTH_TUNNEL_COOLDOWN_FACTOR) + "% cooldown.";
 			case RADIANT_PULSE -> "Guiding Light - Night Vision " + secs(AuraConfig.LIGHT_GUIDING_TICKS) + " for you and every friend in the pulse's reach, "

@@ -47,9 +47,9 @@ public enum CastMode {
 		put(Ability.VINE_HOOK, SNEAK, CHARGED);
 		put(Ability.ENTANGLEMENT, SNEAK, CHARGED);
 		put(Ability.VERDANT_VIPER, SNEAK);
-		// Earth (Boulder Toss is pick up, then press again to throw: the charged press picks up a Great Boulder)
+		// Earth (Boulder Toss is pick up, then press again to throw: the charged press picks up a Great Boulder, sneak throws Rubble Spray)
 		put(Ability.PILLAR_LIFT, SNEAK, CHARGED);
-		put(Ability.BOULDER_TOSS, CHARGED);
+		put(Ability.BOULDER_TOSS, SNEAK, CHARGED);
 		put(Ability.QUAKE, SNEAK, CHARGED);
 		// Light (the Prism Beam holds)
 		put(Ability.RADIANT_PULSE, SNEAK, CHARGED);

@@ -223,6 +223,8 @@ public final class Earth {
 		double flown;
 		/** The Great Boulder (a charged toss) is this many times bigger, and hits and splashes harder. */
 		float scale = 1f;
+		/** One rock of a Rubble Spray (sneak toss): small, no splash, shorter range. */
+		boolean rubble;
 
 		Boulder(UUID owner, ServerLevel level, BlockState block, Vec3 from, Vector3f axis) {
 			this.owner = owner;
@@ -235,7 +237,14 @@ public final class Earth {
 	}
 
 	private static final Map<UUID, Boulder> BOULDERS = new HashMap<>();
+	/** Rubble Spray rocks in flight (several per player). */
+	private static final List<Boulder> RUBBLE = new ArrayList<>();
 	private static final double BOULDER_GRAVITY = 0.035;
+
+	/** Rubble Spray rocks in flight (dev tests). */
+	public static int rubbleInFlight() {
+		return RUBBLE.size();
+	}
 
 	public static boolean isHolding(ServerPlayer p) {
 		Boulder b = BOULDERS.get(p.getUUID());
@@ -292,6 +301,40 @@ public final class Earth {
 			speed.addTransientModifier(new AttributeModifier(BOULDER_SLOW, -0.35, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
 		}
 		NetworkHandler.sendBendAnim(p, BendingAnimPacket.BOULDER_HOLD);
+		return true;
+	}
+
+	/** Rubble Spray (sneak + Boulder Toss): a fan of small rocks, thrown at once from in front of you. */
+	static boolean rubble(ServerPlayer p, long now) {
+		if (!AuraAbilities.checkCooldown(p, Ability.BOULDER_TOSS, AuraConfig.EARTH_BOULDER_COOLDOWN_TICKS, now)) return false;
+		ServerLevel level = p.serverLevel();
+		BlockPos g = ground(level, p.position(), 3);
+		BlockState rock = g == null ? Blocks.COBBLESTONE.defaultBlockState() : rock(level.getBlockState(g));
+		Vec3 start = p.getEyePosition().add(p.getLookAngle().scale(0.9)).add(0, -0.35, 0);
+		Vec3 aim = Handhelds.aim(p, Math.max(4, AuraConfig.EARTH_RUBBLE_RANGE)).subtract(start);
+		Vec3 dir = aim.lengthSqr() < 1.0e-4 ? p.getLookAngle() : aim.normalize();
+		double speed = Math.max(0.3, AuraConfig.EARTH_BOULDER_SPEED) * 1.15;
+		int n = Math.max(1, AuraConfig.EARTH_RUBBLE_COUNT);
+		var random = p.getRandom();
+		for (int i = 0; i < n; i++) {
+			double yaw = Math.toRadians((i - (n - 1) / 2.0) * AuraConfig.EARTH_RUBBLE_SPREAD_DEGREES);
+			Boulder b = new Boulder(p.getUUID(), level, i == 1 ? Blocks.COBBLESTONE.defaultBlockState() : rock, start,
+					new Vector3f(random.nextFloat() - 0.5f, 0.6f, random.nextFloat() - 0.5f).normalize());
+			b.rubble = true;
+			b.flying = true;
+			b.scale = Math.max(0.15f, AuraConfig.EARTH_RUBBLE_SCALE);
+			b.vel = dir.yRot((float) yaw).scale(speed).add(0, 0.06, 0);
+			b.turn.rotateXYZ(random.nextFloat(), random.nextFloat(), random.nextFloat());
+			b.offsets.add(new Vector3f());
+			b.sizes.add(b.scale);
+			b.parts.add(Props.spawn(level, start, b.block, Props.cube(new Vector3f(), b.scale, b.turn), -1, 1));
+			RUBBLE.add(b);
+		}
+		dust(level, start, rock, 16, 0.4);
+		sound(level, start, SoundEvents.STONE_BREAK, 1.2f, 0.9f);
+		sound(level, start, AuraSounds.PLAYER_ATTACK_SWEEP.value(), 0.9f, 0.8f);
+		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_EARTH, 1);
+		Casts.used(p, Ability.BOULDER_TOSS, now, AuraConfig.EARTH_RUBBLE_COOLDOWN_FACTOR);
 		return true;
 	}
 
@@ -390,7 +433,7 @@ public final class Earth {
 		place(b);
 		if (b.t % 2 == 0) AuraFx.particles(level, new BlockParticleOption(ParticleTypes.BLOCK, b.block), b.pos.x, b.pos.y, b.pos.z, 2, 0.3, 0.3, 0.3, 0);
 		if (b.t % 5 == 0) sound(level, b.pos, SoundEvents.ROOTED_DIRT_STEP, 0.5f, 0.5f);
-		if (b.flown > Math.max(4, AuraConfig.EARTH_BOULDER_RANGE) || b.t > 200) {
+		if (b.flown > Math.max(4, b.rubble ? AuraConfig.EARTH_RUBBLE_RANGE : AuraConfig.EARTH_BOULDER_RANGE) || b.t > 200) {
 			crumble(b, b.pos);
 			return false;
 		}
@@ -401,16 +444,16 @@ public final class Earth {
 		ServerLevel level = b.level;
 		Vec3 push = flat(b.vel);
 		boolean great = b.scale > 1f;
-		float damageFactor = great ? AuraConfig.EARTH_BOULDER_CHARGED_DAMAGE_FACTOR : 1f;
+		float damageFactor = b.rubble ? AuraConfig.EARTH_RUBBLE_DAMAGE_FACTOR : great ? AuraConfig.EARTH_BOULDER_CHARGED_DAMAGE_FACTOR : 1f;
 		if (p != null) {
 			if (hit != null) {
 				Handhelds.hurt(p, hit, boulderDamage(p) * damageFactor);
-				double k = AuraConfig.EARTH_BOULDER_KNOCKBACK;
+				double k = AuraConfig.EARTH_BOULDER_KNOCKBACK * (b.rubble ? 0.35 : 1.0);
 				hit.setDeltaMovement(hit.getDeltaMovement().scale(0.2).add(push.x * k, 0.45, push.z * k));
 				hit.hurtMarked = true;
 			}
 			double splash = Math.max(0.5, AuraConfig.EARTH_BOULDER_SPLASH_RADIUS) * (great ? AuraConfig.EARTH_BOULDER_CHARGED_SPLASH_FACTOR : 1.0);
-			for (LivingEntity e : Handhelds.enemies(p, level, at, splash)) {
+			for (LivingEntity e : b.rubble ? List.<LivingEntity>of() : Handhelds.enemies(p, level, at, splash)) {
 				if (e == hit) continue;
 				Handhelds.hurt(p, e, boulderSplash(p) * damageFactor);
 				Vec3 out = flat(e.position().subtract(at));
@@ -419,6 +462,10 @@ public final class Earth {
 			}
 		}
 		crumble(b, at);
+		if (b.rubble) {
+			sound(level, at, SoundEvents.STONE_HIT, 1.0f, 0.8f);
+			return;
+		}
 		AuraFx.particles(level, ParticleTypes.EXPLOSION, at.x, at.y, at.z, 1, 0, 0, 0, 0);
 		sound(level, at, AuraSounds.MACE_SMASH_GROUND_HEAVY.value(), 1.5f, 0.7f);
 		sound(level, at, SoundEvents.GENERIC_EXPLODE.value(), 0.6f, 1.3f);
@@ -674,6 +721,17 @@ public final class Earth {
 				if (!alive) BOULDERS.remove(b.owner);
 			}
 		}
+		if (!RUBBLE.isEmpty()) {
+			RUBBLE.removeIf(b -> {
+				try {
+					return !tickBoulder(server, b);
+				} catch (Exception ex) {
+					com.toast.aurapoints.AuraPoints.LOGGER.error("Rubble Spray failed", ex);
+					for (Display.BlockDisplay d : b.parts) Props.remove(d);
+					return true;
+				}
+			});
+		}
 		if (!RIPPLES.isEmpty()) RIPPLES.removeIf(r -> !tickRipple(server, r));
 	}
 
@@ -684,6 +742,11 @@ public final class Earth {
 	public static void onLogout(ServerPlayer p) {
 		Boulder b = BOULDERS.remove(p.getUUID());
 		if (b != null) for (Display.BlockDisplay d : b.parts) Props.remove(d);
+		RUBBLE.removeIf(r -> {
+			if (!r.owner.equals(p.getUUID())) return false;
+			for (Display.BlockDisplay d : r.parts) Props.remove(d);
+			return true;
+		});
 		release(p);
 		SAFE_FALL.remove(p.getUUID());
 		ON_STONE.remove(p.getUUID());
@@ -691,6 +754,7 @@ public final class Earth {
 
 	public static void clearAll() {
 		BOULDERS.clear();
+		RUBBLE.clear();
 		RIPPLES.clear();
 		SAFE_FALL.clear();
 		ON_STONE.clear();
