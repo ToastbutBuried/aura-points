@@ -261,9 +261,10 @@ public final class TrainingHall {
 	}
 
 	/** Cooldowns stay on for a player doing the challenge, whatever their switch says. */
-	/** Dev test: would the DPS kiosk refuse because of a running Aura Trial? */
-	public static boolean trialBlocksChallenge(ServerPlayer player) {
-		return AuraTrial.running(player);
+	/** Dev test: presses the DPS kiosk for {@code player}; true if a challenge started (it is cancelled again at once). */
+	public static boolean devTryChallenge(ServerPlayer player) {
+		startChallenge(player);
+		return CHALLENGES.remove(player.getUUID()) != null;
 	}
 
 	public static boolean inChallenge(ServerPlayer player) {
