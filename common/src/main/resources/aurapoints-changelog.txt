@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.36.0
+- The Aura Book has a new "What's new" page: the latest updates in one place, with the ones you haven't seen yet glowing.
+- Frost gets a second chain, Cold Snap: after an Ice Spike, Frost Path comes back sooner.
+
 == 5.35.0
 - The Altar Hall is much bigger and airier: a wider floor, a high flat ceiling and slimmer, taller pillars that reach all the way up to it, with their crystals under the roof.
 

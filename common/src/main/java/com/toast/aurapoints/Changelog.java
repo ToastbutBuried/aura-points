@@ -62,6 +62,39 @@ public final class Changelog {
 		return out;
 	}
 
+	/** One changelog entry as the Aura Book shows it. */
+	public record View(String version, List<String> points) {
+	}
+
+	/** The newest entries first, at most {@code max}. */
+	public static List<View> recent(int max) {
+		List<View> out = new ArrayList<>();
+		for (Entry e : entries()) {
+			if (out.size() >= max) break;
+			out.add(new View(e.version(), List.copyOf(e.points())));
+		}
+		return out;
+	}
+
+	/** True if this player has not looked at the newest entry yet (a first-time player counts as up to date). */
+	public static boolean unseen(AuraPlayerData data) {
+		String newest = newest();
+		return !newest.isEmpty() && !data.changelogSeen.isEmpty() && compare(newest, data.changelogSeen) > 0;
+	}
+
+	/** True if the entry is newer than the version the player had seen. */
+	public static boolean isNew(String seen, String version) {
+		return !seen.isEmpty() && compare(version, seen) > 0;
+	}
+
+	/** The player has now seen everything up to the newest entry. */
+	public static void markSeen(ServerPlayer player, AuraPlayerData data) {
+		String newest = newest();
+		if (newest.isEmpty() || newest.equals(data.changelogSeen)) return;
+		data.changelogSeen = newest;
+		AuraState.get(player.getServer()).markDirty();
+	}
+
 	/** The newest version in the changelog ("" if there is none). */
 	public static String newest() {
 		List<Entry> all = entries();

@@ -385,6 +385,17 @@ final class DevTest {
 									com.toast.aurapoints.ability.CastMode.has(ability, mode), com.toast.aurapoints.ability.CastMode.unlocked(p, ability, mode), fired);
 							return 1;
 						})))));
+		// /auradev own: you own every active of your aura and its current branch (for playtest scenarios; /auradev cast needs it)
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("own").executes(ctx -> {
+			net.minecraft.server.level.ServerPlayer p = ctx.getSource().getPlayer();
+			if (p == null) return 0;
+			var data = com.toast.aurapoints.data.AuraState.get(ctx.getSource().getServer()).getOrCreate(p.getUUID());
+			if (data.aura == null) return 0;
+			for (var a : data.aura.abilities) if (a.active) data.owned.add(a);
+			var branch = com.toast.aurapoints.ability.Branch.current(data);
+			if (branch != null && branch.abilities() != null) for (var a : branch.abilities()) if (a.active) data.owned.add(a);
+			return 1;
+		})));
 		// /auradev holds: every hold breaks when its holder is paralyzed (stun) and when frozen
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("holds").executes(ctx -> {
 			ServerLevel level = ctx.getSource().getServer().overworld();
@@ -670,6 +681,18 @@ final class DevTest {
 			rlog("earn back: " + at.apply(4) + " (must be Booker's Aura)");
 			click.accept(4);
 			rlog("header click: " + at.apply(4) + " (must be Earn Aura)");
+			// What's new page (5.36.0): the main icon glows for an update you have not seen, the page lists entries and marks them seen
+			data.aura = com.toast.aurapoints.ability.AuraType.FROST;
+			String seenWas = data.changelogSeen;
+			data.changelogSeen = "0.0.1";
+			com.toast.aurapoints.menu.AuraBook.open(p);
+			rlog("news icon: " + at.apply(34) + " glint " + p.containerMenu.getSlot(34).getItem().hasFoil() + " (must be What's new, true)");
+			click.accept(34);
+			rlog("news page: " + at.apply(4) + " | newest " + at.apply(20) + " glint " + p.containerMenu.getSlot(20).getItem().hasFoil()
+					+ " | seen now " + data.changelogSeen + " (must be Aura Points - What's New | " + com.toast.aurapoints.Changelog.newest() + " glint true | newest)");
+			click.accept(45);
+			rlog("news icon after: glint " + p.containerMenu.getSlot(34).getItem().hasFoil() + " (must be false)");
+			data.changelogSeen = seenWas;
 			// Reactions and Arena pages (5.8.0)
 			data.aura = com.toast.aurapoints.ability.AuraType.FROST;
 			com.toast.aurapoints.menu.AuraBook.open(p);

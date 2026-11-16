@@ -430,6 +430,8 @@ public final class Chains {
 		add(json, "wind", "super_wind_charge", "dash", "Tailspin", 0.0, "refund", 0.40);
 		// Frost Path puts the spike on half its cooldown: the spike right after, while the path still lasts
 		add(json, "frost", "ice_spike:sneak", "ice_spike:tap", "Black Ice", 0.35, "chill", 0).addProperty("window", 10);
+		// the way back: after a spike, Frost Path comes sooner (the window outlasts the spike's own cooldown, both casts share a key)
+		add(json, "frost", "ice_spike:tap", "ice_spike:sneak", "Cold Snap", 0.0, "refund", 0.30).addProperty("window", 12);
 		add(json, "verdant", "vine_hook", "entanglement", "Snare", 0.25, "slow", 3);
 		add(json, "verdant", "entanglement", "verdant_viper", "Ambush Bite", 0.35, "poison", 4).addProperty("lasts", 8);
 		// Chidori waits for the Thunderbolt combo to end

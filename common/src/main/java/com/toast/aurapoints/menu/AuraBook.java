@@ -292,7 +292,7 @@ public final class AuraBook {
 	}
 
 	static final class MainPage extends Page {
-		static final int HEADER = 4, AURA = 20, ROLL = 21, SKILLS = 22, COSMETICS = 23, WEEKLY = 24, TRIAL = 25, SETTINGS = 30, EARN = 31, TUTORIAL = 32, ARENA = 29, REACTIONS = 33;
+		static final int HEADER = 4, AURA = 20, ROLL = 21, SKILLS = 22, COSMETICS = 23, WEEKLY = 24, TRIAL = 25, SETTINGS = 30, EARN = 31, TUTORIAL = 32, ARENA = 29, REACTIONS = 33, NEWS = 34;
 
 		@Override
 		Component title(ServerPlayer player) {
@@ -353,6 +353,13 @@ public final class AuraBook {
 			slots[REACTIONS] = icon(Items.BLAZE_POWDER, text("Reactions", ChatFormatting.GOLD), List.of(
 					text("What happens when two elements meet.", ChatFormatting.GRAY),
 					text("Click: all reactions", ChatFormatting.YELLOW)), false);
+			String newest = com.toast.aurapoints.Changelog.newest();
+			if (!newest.isEmpty()) {
+				boolean fresh = com.toast.aurapoints.Changelog.unseen(data);
+				slots[NEWS] = icon(Items.KNOWLEDGE_BOOK, text("What's new", ChatFormatting.AQUA), List.of(
+						text("Latest: " + newest + (fresh ? "  ·  new since you looked" : ""), fresh ? ChatFormatting.GREEN : ChatFormatting.GRAY),
+						text("Click: the last updates", ChatFormatting.YELLOW)), fresh);
+			}
 			if (data.aura != null) {
 				boolean running = com.toast.aurapoints.arena.AuraTrial.running(player);
 				List<Component> trialLore = new ArrayList<>(wrap("Try every ability, cast and chain of " + data.aura.displayName
@@ -407,6 +414,11 @@ public final class AuraBook {
 				case REACTIONS -> {
 					pageSound(player);
 					open(player, new ReactionsPage());
+				}
+				case NEWS -> {
+					if (com.toast.aurapoints.Changelog.newest().isEmpty()) return;
+					pageSound(player);
+					open(player, new NewsPage());
 				}
 				case TUTORIAL -> Tutorial.menuClick(player, data);
 				case TRIAL -> {
@@ -929,6 +941,48 @@ public final class AuraBook {
 						text(leaves != null ? "so allies' elements can react to them." : "but they set off reactions.", ChatFormatting.GRAY)), false);
 			}
 			bar(slots, true);
+		}
+
+		@Override
+		void click(ServerPlayer player, AuraPlayerData data, int slot) {
+			barClick(player, slot);
+		}
+	}
+
+	/** What's new: the last few changelog entries, the ones you have not looked at yet glow. Opening it marks them seen. */
+	static final class NewsPage extends Page {
+		static final int[] SPOTS = {20, 21, 22, 23, 24};
+		/** What the player had seen when the page opened (opening marks everything seen, the glow still shows what was new). */
+		private String seenBefore = "";
+
+		@Override
+		Component title(ServerPlayer player) {
+			return Component.literal("What's new");
+		}
+
+		@Override
+		void fill(ServerPlayer player, AuraPlayerData data, ItemStack[] slots) {
+			slots[4] = icon(Items.KNOWLEDGE_BOOK, text("Aura Points - What's New", ChatFormatting.GOLD, ChatFormatting.BOLD), List.of(
+					text("The latest updates, newest first.", ChatFormatting.GRAY),
+					text("Glowing = new since you last looked.", ChatFormatting.DARK_GRAY)), false);
+			var entries = com.toast.aurapoints.Changelog.recent(SPOTS.length);
+			for (int i = 0; i < entries.size(); i++) {
+				var e = entries.get(i);
+				boolean fresh = com.toast.aurapoints.Changelog.isNew(seenBefore, e.version());
+				List<Component> lore = new ArrayList<>();
+				for (String point : e.points()) lore.addAll(wrap("• " + point, 38, ChatFormatting.WHITE));
+				if (fresh) lore.add(text("New since you last looked", ChatFormatting.GREEN));
+				slots[SPOTS[i]] = icon(i == 0 ? Items.WRITTEN_BOOK : Items.PAPER, text(e.version(), ChatFormatting.AQUA, ChatFormatting.BOLD), lore, fresh);
+			}
+			slots[31] = icon(Items.BOOK, text("Older updates", ChatFormatting.GRAY), List.of(
+					text("Type /changelog for the list in chat.", ChatFormatting.DARK_GRAY)), false);
+			bar(slots, true);
+		}
+
+		@Override
+		void opened(ServerPlayer player, AuraPlayerData data) {
+			seenBefore = data.changelogSeen;
+			com.toast.aurapoints.Changelog.markSeen(player, data);
 		}
 
 		@Override

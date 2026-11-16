@@ -66,7 +66,7 @@ public final class ChainDevTest {
 				}
 				data.branches.remove(aura);
 			}
-			log("links tested: " + links + " (must be 23 with the default table)");
+			log("links tested: " + links + " (must be 24 with the default table)");
 
 			// 2. the rules, on a Fire player
 			ServerPlayer fire = fake(level, 70, "ChainRules");
