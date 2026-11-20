@@ -177,6 +177,37 @@ public final class ChainDevTest {
 			});
 			return 1;
 		})));
+		// /auradev coldsnap: a real Ice Spike, then Frost Path just inside Cold Snap's window, cooldowns on
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("coldsnap").executes(ctx -> {
+			MinecraftServer server = ctx.getSource().getServer();
+			AuraState state = AuraState.get(server);
+			boolean cooldownsBefore = state.cooldownsDisabled;
+			ServerPlayer frost = fake(server.overworld(), 74, "ChainFrost");
+			setUp(state, frost, AuraType.FROST);
+			Chains.Link snap = null;
+			for (Chains.Link l : Chains.all().getOrDefault("frost", java.util.List.of())) if (l.name().equals("Cold Snap")) snap = l;
+			if (snap == null) {
+				log("coldsnap: no Cold Snap link in the table");
+				return 0;
+			}
+			int window = snap.window() > 0 ? (int) Math.round(snap.window() * 20) : AuraConfig.CHAINS_WINDOW_TICKS;
+			state.cooldownsDisabled = false;
+			AuraAbilities.clearCooldowns(frost);
+			boolean spike = AuraAbilities.tryActivate(frost, Ability.ICE_SPIKE, server.getTickCount(), CastMode.TAP);
+			AuraFx.later(server, 10, () -> com.toast.aurapoints.ability.IceSpike.release(frost, server.getTickCount()));
+			AuraFx.later(server, 12, () -> {
+				int cd = AuraAbilities.cooldownTicksLeft(frost, Ability.ICE_SPIKE, server.getTickCount());
+				log("Ice Spike " + spike + ", thrown after 10 ticks: cooldown " + cd + " ticks, Cold Snap window " + window + " ticks from the press (window must be longer)");
+			});
+			AuraFx.later(server, window - 5, () -> {
+				boolean path = AuraAbilities.tryActivate(frost, Ability.ICE_SPIKE, server.getTickCount(), CastMode.SNEAK);
+				log("Frost Path " + (window - 5) + " ticks after the spike: " + path + ", chain '" + Chains.active(frost) + "' (must be true 'Cold Snap')");
+				AuraAbilities.clearCooldowns(frost);
+				state.cooldownsDisabled = cooldownsBefore;
+				log("coldsnap done");
+			});
+			return 1;
+		})));
 	}
 
 	private static ServerPlayer fake(ServerLevel level, int n, String name) {
