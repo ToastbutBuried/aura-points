@@ -630,6 +630,44 @@ public final class StormFx {
 	}
 
 	private static final ResourceLocation FROST = ResourceLocation.withDefaultNamespace("textures/misc/powder_snow_outline.png");
+	/** A ragged, cloudy frame (white, alpha only; made by tools/storm_vignette.py), tinted per storm. */
+	private static final ResourceLocation VIGNETTE = ResourceLocation.fromNamespaceAndPath("aurapoints", "textures/misc/storm_vignette.png");
+
+	/** The frame round your view inside a storm: its colour and how thick. */
+	private static int vignetteRgb(StormType t) {
+		return switch (t) {
+			case BLIZZARD -> 0xF4FAFF;
+			case THUNDERHEAD -> 0x262B42;
+			case DOWNPOUR -> 0x2E5C8C;
+			case HEAT_HAZE -> 0xFF6A1A;
+			case GALE -> 0xE4F2EA;
+			case SPORE_BLOOM -> 0x5FA83A;
+			case TREMOR -> 0x6E5638;
+			case AURORA -> 0x40E8B0;
+			case UMBRA -> 0x06030C;
+			case CRIMSON_MOON -> 0x70060F;
+		};
+	}
+
+	private static float vignetteAlpha(StormType t) {
+		return switch (t) {
+			case UMBRA, BLIZZARD -> 0.95f;
+			case AURORA -> 0.6f;
+			default -> 0.85f;
+		};
+	}
+
+	/** The storm's frame, breathing slowly (still with reduced motion). */
+	private static void vignette(GuiGraphics g, int w, int h, StormType type, float amount, float t, boolean calm) {
+		int rgb = vignetteRgb(type);
+		float breath = calm ? 0 : Mth.sin(t * 0.8f);
+		int k = Math.round(w * 0.015f * breath);
+		RenderSystem.enableBlend();
+		RenderSystem.defaultBlendFunc();
+		RenderSystem.setShaderColor(((rgb >> 16) & 255) / 255f, ((rgb >> 8) & 255) / 255f, (rgb & 255) / 255f, Math.min(1f, amount * (0.92f + 0.08f * breath)));
+		g.blit(VIGNETTE, -k, -k, -90, 0f, 0f, w + 2 * k, h + 2 * k, w + 2 * k, h + 2 * k);
+		RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+	}
 
 	private static void render(GuiGraphics g, DeltaTracker delta) {
 		Minecraft mc = Minecraft.getInstance();
@@ -643,6 +681,8 @@ public final class StormFx {
 		float t = System.currentTimeMillis() / 1000f;
 		int rgb = current.rgb;
 		if (sting > 0.02f) StatusOverlays.edges(g, w, h, rgb, 0.6f * sting * s, Math.round(h * 0.35f));
+		// every storm frames your view in its element, so you always know you're in it
+		vignette(g, w, h, current, vignetteAlpha(current) * s * Math.max(0.6f, lvl), t, calm);
 		switch (current) {
 			case BLIZZARD -> {
 				// the bell's whiteout, plus frost creeping in from the edges
