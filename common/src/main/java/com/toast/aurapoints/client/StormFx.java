@@ -17,6 +17,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.FogRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.toast.aurapoints.shim.neoforge.client.event.RenderLevelStageEvent;
+import org.joml.Matrix4f;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -381,27 +387,29 @@ public final class StormFx {
 			}
 			case AURORA -> {
 				// curtains of light in the sky, waving slowly, green to teal to violet
-				int m = Math.round(40 * s * lvl);
+				int m = Math.round(90 * s * lvl);
 				float t = time * 0.02f;
 				for (int i = 0; i < m; i++) {
 					int band = i % 3;
-					double u = (r.nextDouble() - 0.5) * 140;
-					double along = u, across = 30 + band * 14 + Math.sin(u * 0.045 + t + band * 1.7) * 9;
+					double u = (r.nextDouble() - 0.5) * 90;
+					// curtains on both sides of you, so one is always in view
+					double side = (i / 3) % 2 == 0 ? 1 : -1;
+					double along = u, across = side * (14 + band * 9 + Math.sin(u * 0.06 + t + band * 1.7) * 7);
 					double x = p.getX() + along * -w.z + across * w.x, z = p.getZ() + along * w.x + across * w.z;
-					double y = p.getY() + 34 + band * 4 + r.nextDouble() * 14;
-					float h = (float) ((u / 140 + 0.5) * 0.6 + band * 0.2) % 1f;
-					Vector3f c = h < 0.45f ? new Vector3f(0.35f, 1f, 0.6f) : h < 0.75f ? new Vector3f(0.3f, 0.95f, 0.95f) : new Vector3f(0.7f, 0.45f, 1f);
-					level.addAlwaysVisibleParticle(new DustParticleOptions(c, 4f), x, y, z, 0, -0.01, 0);
+					double y = p.getY() + 16 + band * 3 + r.nextDouble() * 12;
+					// self-lit: GLOW (green-teal) for the body of the curtain, END_ROD sparks along its lower hem
+					level.addAlwaysVisibleParticle(i % 4 == 0 ? ParticleTypes.END_ROD : ParticleTypes.GLOW, x, y, z, 0, i % 4 == 0 ? -0.02 : 0.01, 0);
 				}
 				if (time % 3 == 0) level.addParticle(ParticleTypes.END_ROD, p.getX() + (r.nextDouble() - 0.5) * 16, p.getY() + 5 + r.nextDouble() * 4, p.getZ() + (r.nextDouble() - 0.5) * 16, 0, -0.02, 0);
 				if (time % 40 == 0) sound(mc, SoundEvents.AMETHYST_BLOCK_CHIME, 0.9f * s, 0.6f + r.nextFloat() * 0.6f);
 			}
 			case UMBRA -> {
 				for (int i = 0; i < n; i++) {
-					double x = p.getX() + (r.nextDouble() - 0.5) * 16, y = p.getY() - 1 + r.nextDouble() * 5, z = p.getZ() + (r.nextDouble() - 0.5) * 16;
+					double a = r.nextDouble() * Math.PI * 2, d = 3 + r.nextDouble() * 9; // never right on the camera
+					double x = p.getX() + Math.cos(a) * d, y = p.getY() - 1 + r.nextDouble() * 5, z = p.getZ() + Math.sin(a) * d;
 					int k = r.nextInt(6);
-					if (k < 3) level.addParticle(ParticleTypes.SQUID_INK, x, y, z, 0, 0.02, 0);
-					else if (k < 5) level.addParticle(ParticleTypes.LARGE_SMOKE, x, y, z, 0, 0.03, 0);
+					if (k < 3) level.addParticle(new DustParticleOptions(new Vector3f(0.12f, 0.06f, 0.2f), 2.2f), x, y, z, 0, 0.03, 0);
+					else if (k < 5) level.addParticle(ParticleTypes.SMOKE, x, y, z, 0, 0.04, 0);
 					else level.addParticle(ParticleTypes.SOUL, x, y, z, 0, 0.02, 0);
 				}
 				if (time % 90 == 0) sound(mc, SoundEvents.AMBIENT_SOUL_SAND_VALLEY_ADDITIONS.value(), 1f * s, 0.6f);
@@ -500,7 +508,7 @@ public final class StormFx {
 			case SPORE_BLOOM -> ParticleTypes.SPORE_BLOSSOM_AIR;
 			case TREMOR -> new BlockParticleOption(ParticleTypes.FALLING_DUST, Blocks.COARSE_DIRT.defaultBlockState());
 			case AURORA -> ParticleTypes.END_ROD;
-			case UMBRA -> ParticleTypes.SQUID_INK;
+			case UMBRA -> ParticleTypes.LARGE_SMOKE;
 			case CRIMSON_MOON -> ParticleTypes.CRIMSON_SPORE;
 		};
 	}
@@ -519,6 +527,97 @@ public final class StormFx {
 			case DOWNPOUR, THUNDERHEAD, CRIMSON_MOON -> -0.2;
 			default -> -0.05;
 		};
+	}
+
+	// ---------------------------------------------------------------
+	// The wall: a tall curtain of the element round the storm, seen from outside
+	// ---------------------------------------------------------------
+
+	/** Curtain colour (lifted for the dark storms so they read against the sky). */
+	private static int wallRgb(StormType t) {
+		return switch (t) {
+			case BLIZZARD -> 0xF0F8FF;
+			case THUNDERHEAD -> 0x4A5070;
+			case DOWNPOUR -> 0x4A7AAA;
+			case HEAT_HAZE -> 0xFF8A3A;
+			case GALE -> 0xD8EAE2;
+			case SPORE_BLOOM -> 0x8FCF5A;
+			case TREMOR -> 0xA08860;
+			case AURORA -> 0x60FFC8;
+			case UMBRA -> 0x1A1228;
+			case CRIMSON_MOON -> 0x9A1020;
+		};
+	}
+
+	/** How the streaks in the curtain move: >0 falling (rain, snow), <0 rising (heat, spores, shadow), 0 = sideways (wind). */
+	private static float wallFlow(StormType t) {
+		return switch (t) {
+			case BLIZZARD, DOWNPOUR, THUNDERHEAD, CRIMSON_MOON -> 1.6f;
+			case TREMOR -> 0.6f;
+			case HEAT_HAZE, SPORE_BLOOM, UMBRA, AURORA -> -0.7f;
+			case GALE -> 0f;
+		};
+	}
+
+	@SubscribeEvent
+	public static void onRenderLevel(RenderLevelStageEvent event) {
+		if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.level == null || mc.player == null || mc.level.dimension() != Level.OVERWORLD || ClientStorms.all().isEmpty()) return;
+		Vec3 cam = event.getCamera().getPosition();
+		float t = (mc.level.getGameTime() + event.getPartialTick().getGameTimeDeltaPartialTick(false)) / 20f;
+		MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
+		VertexConsumer vc = null;
+		for (var s : ClientStorms.all()) {
+			double dx = cam.x - s.nowX(), dz = cam.z - s.nowZ(), d = Math.sqrt(dx * dx + dz * dz);
+			// fades in as you step out of it, out with distance, and with the storm's own strength
+			float out = (float) Mth.clamp((d - s.radius() * 0.85) / (s.radius() * 0.2), 0, 1);
+			float far = (float) Mth.clamp(1 - (d - s.radius() - 250) / 150, 0, 1);
+			float a = out * far * s.strength();
+			if (a <= 0.01f) continue;
+			if (vc == null) vc = buffers.getBuffer(RenderType.debugQuads());
+			drawWall(vc, event.getPoseStack(), cam, s, a, t);
+		}
+		if (vc != null) buffers.endBatch(RenderType.debugQuads());
+	}
+
+	private static void drawWall(VertexConsumer vc, PoseStack pose, Vec3 cam, ClientStorms.Storm s, float alpha, float t) {
+		Matrix4f m = pose.last().pose();
+		int rgb = wallRgb(s.type());
+		float r = ((rgb >> 16) & 255) / 255f, g = ((rgb >> 8) & 255) / 255f, b = (rgb & 255) / 255f;
+		double cx = s.nowX() - cam.x, cz = s.nowZ() - cam.z;
+		double y0 = Math.max(cam.y - 40, -64) - cam.y, top = 96;
+		int segs = 160, rows = 10;
+		float flow = wallFlow(s.type());
+		boolean dark = s.type() == StormType.UMBRA || s.type() == StormType.CRIMSON_MOON;
+		for (int i = 0; i < segs; i++) {
+			double a0 = i * Math.PI * 2 / segs, a1 = (i + 1) * Math.PI * 2 / segs;
+			// a ragged edge: the radius breathes a little along the ring and over time
+			double r0 = s.radius() + Math.sin(a0 * 7 + t * 0.3) * 3, r1 = s.radius() + Math.sin(a1 * 7 + t * 0.3) * 3;
+			double x0 = cx + Math.cos(a0) * r0, z0 = cz + Math.sin(a0) * r0, x1 = cx + Math.cos(a1) * r1, z1 = cz + Math.sin(a1) * r1;
+			// streaks: each column has its own phase; they fall, rise, or (Gale) race round the ring
+			float col = flow == 0 ? Mth.sin(i * 0.9f - t * 6f) : Mth.sin(i * 2.3f);
+			for (int k = 0; k < rows; k++) {
+				double ya = y0 + (top - y0) * k / rows, yb = y0 + (top - y0) * (k + 1) / rows;
+				float fa = fade(k / (float) rows), fb = fade((k + 1) / (float) rows);
+				float sa = streak(col, ya, t, flow, i), sb = streak(col, yb, t, flow, i);
+				float base = (dark ? 0.75f : 0.55f) * alpha;
+				vc.addVertex(m, (float) x0, (float) ya, (float) z0).setColor(r, g, b, base * fa * sa);
+				vc.addVertex(m, (float) x1, (float) ya, (float) z1).setColor(r, g, b, base * fa * sa);
+				vc.addVertex(m, (float) x1, (float) yb, (float) z1).setColor(r, g, b, base * fb * sb);
+				vc.addVertex(m, (float) x0, (float) yb, (float) z0).setColor(r, g, b, base * fb * sb);
+			}
+		}
+	}
+
+	/** Thick at the bottom, thinning into the sky. */
+	private static float fade(float h) {
+		return h < 0.08f ? h / 0.08f : 1f - (float) Math.pow((h - 0.08f) / 0.92f, 1.6);
+	}
+
+	private static float streak(float col, double y, float t, float flow, int i) {
+		if (flow == 0) return 0.7f + 0.3f * col;
+		return 0.65f + 0.35f * Mth.sin((float) (y * 0.12 + t * flow * 3 + i * 1.7f + col * 2));
 	}
 
 	// ---------------------------------------------------------------

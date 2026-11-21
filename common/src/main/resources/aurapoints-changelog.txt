@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.43.0
+- Storms got a full visual rework: each one now looks like its element (whiteout Blizzard, real rain and lightning in a Thunderhead, embers in a Heat Haze, darkness in Umbra, a heartbeat under the Crimson Moon...), and from outside you see a towering wall of it.
+- Shadow's Dark branch keeps Phantom Step: sneak while falling to land without fall damage and vanish for a moment.
+
 == 5.42.1
 - Wave Survival: the host can pause a run with /aura match pause (mobs, shots and players freeze until it's run again). Leaving as the last one standing no longer saves the run as a record.
 - Shadow: while you're invisible, mobs can't see or target you at all, even right after you hit them. Removing a shrine now gives back the ground it was built on.

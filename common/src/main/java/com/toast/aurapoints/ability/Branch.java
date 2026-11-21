@@ -202,7 +202,7 @@ public enum Branch {
 			() -> List.of(
 					"Your actives become Void Pull, Rift Step and Null Orb; Dash and Vanish are given up.",
 					"Event Horizon and Entropy come with it, and Singularity replaces Eclipse as your Ultimate.",
-					"You deal more damage to Light and Wind auras. Bloodrush and Nightstalker stay.",
+					"You deal more damage to Light and Wind auras. Bloodrush, Nightstalker and Phantom Step stay.",
 					"The three Void actives are yours free when you pick it.")) {
 		@Override
 		boolean kit() {
@@ -293,7 +293,7 @@ public enum Branch {
 	private static final List<AuraAbilities.Ability> DARK_ABILITIES = List.of(
 			AuraAbilities.Ability.VOID_PULL, AuraAbilities.Ability.RIFT_STEP, AuraAbilities.Ability.NULL_ORB,
 			AuraAbilities.Ability.EVENT_HORIZON, AuraAbilities.Ability.ENTROPY,
-			AuraAbilities.Ability.BLOODRUSH, AuraAbilities.Ability.NIGHTSTALKER);
+			AuraAbilities.Ability.BLOODRUSH, AuraAbilities.Ability.NIGHTSTALKER, AuraAbilities.Ability.PHANTOM_STEP);
 	private static final List<AuraAbilities.Ability> DARK_KEYS = List.of(
 			AuraAbilities.Ability.RIFT_STEP, AuraAbilities.Ability.VOID_PULL, AuraAbilities.Ability.NULL_ORB);
 

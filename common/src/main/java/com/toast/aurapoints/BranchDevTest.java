@@ -101,8 +101,9 @@ final class BranchDevTest {
 		log("Dark kit: Void Pull " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.VOID_PULL) + " Rift Step " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.RIFT_STEP)
 				+ " Null Orb " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.NULL_ORB) + " Horizon " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.EVENT_HORIZON)
 				+ " Entropy " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.ENTROPY) + " Bloodrush " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.BLOODRUSH)
-				+ " Nightstalker " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.NIGHTSTALKER) + " (all must be true), Dash " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.DASH)
-				+ " Vanish " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.VANISH) + " Phantom Step " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.PHANTOM_STEP) + " (must be false)");
+				+ " Nightstalker " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.NIGHTSTALKER) + " Phantom Step " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.PHANTOM_STEP)
+				+ " (all must be true), Dash " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.DASH)
+				+ " Vanish " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.VANISH) + " Vanish Step " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.VANISH_STEP) + " (must be false)");
 		log("Dark free actives: owned " + data.owned.containsAll(java.util.List.of(AuraAbilities.Ability.VOID_PULL, AuraAbilities.Ability.RIFT_STEP, AuraAbilities.Ability.NULL_ORB))
 				+ " (must be true), Aura " + AuraCurrency.get(p) + " (must be 1000: the first pick is free)");
 		log("Dark keys " + AuraType.SHADOW.keySlots(Branch.current(data)) + " (must be [RIFT_STEP, VOID_PULL, NULL_ORB]), slot 0 " + AuraType.SHADOW.slot(0, Branch.current(data)) + ", Ultimate "
