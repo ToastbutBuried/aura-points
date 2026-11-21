@@ -177,7 +177,28 @@ public final class Shrines {
 		dirty(level.getServer());
 		BlockPos top = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, site);
 		if (!level.getFluidState(top.below()).isEmpty() || !level.getFluidState(top).isEmpty() || top.getY() < level.getSeaLevel() - 2) return;
+		if (lived(level, top.above())) return;
 		place(level, top.above(), true, null);
+	}
+
+	/** Players spend this long near a chunk (summed per player) before it counts as lived in. */
+	private static final long LIVED_TICKS = 3 * 60 * 20;
+
+	/**
+	 * Ground a ruin must not be built on: a chunk it touches where players have spent a while (their
+	 * builds and farms), or any block with a block entity (chest, furnace, sign, bed...) in the space
+	 * {@link #build} clears or fills.
+	 */
+	static boolean lived(ServerLevel level, BlockPos core) {
+		for (int dx = -4; dx <= 4; dx += 8) {
+			for (int dz = -4; dz <= 4; dz += 8) {
+				if (level.getChunkAt(core.offset(dx, 0, dz)).getInhabitedTime() > LIVED_TICKS) return true;
+			}
+		}
+		for (BlockPos b : BlockPos.betweenClosed(core.offset(-4, -4, -4), core.offset(4, 5, 4))) {
+			if (level.getBlockEntity(b) != null) return true;
+		}
+		return false;
 	}
 
 	/** Builds a shrine with its core at {@code core} (ruined or whole) and registers it. */
