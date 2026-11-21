@@ -974,7 +974,10 @@ public class AuraPoints {
 
 		@SubscribeEvent
 		public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
-			if (event.getEntity() instanceof ServerPlayer player) com.toast.aurapoints.arena.Arena.onChangedDimension(player, event.getFrom(), event.getTo());
+			if (event.getEntity() instanceof ServerPlayer player) {
+				com.toast.aurapoints.arena.Arena.onChangedDimension(player, event.getFrom(), event.getTo());
+				com.toast.aurapoints.rift.Rifts.onChangedDimension(player, event.getFrom(), event.getTo());
+			}
 		}
 
 		@SubscribeEvent

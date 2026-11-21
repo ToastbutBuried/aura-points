@@ -612,6 +612,26 @@ public final class Rifts {
 		}
 	}
 
+	/**
+	 * Out of the rift some other way (/tp, a home command, a portal mod): out of the run too, and the
+	 * game mode from before the rift comes back. The position stays where they went.
+	 */
+	public static void onChangedDimension(ServerPlayer p, ResourceKey<net.minecraft.world.level.Level> from, ResourceKey<net.minecraft.world.level.Level> to) {
+		if (from != KEY || to == KEY || p.getServer() == null) return;
+		Run run = runOf(p);
+		if (run != null) {
+			run.players.remove(p.getUUID());
+			run.down.remove(p.getUUID());
+			if (run.bar != null) run.bar.removePlayer(p);
+		}
+		AuraPlayerData data = AuraState.get(p.getServer()).getOrCreate(p.getUUID());
+		CompoundTag t = data.riftReturn;
+		if (t == null) return; // sendBack did it
+		data.riftReturn = null;
+		p.setGameMode(GameType.byName(t.getString("mode"), GameType.SURVIVAL));
+		AuraState.get(p.getServer()).markDirty();
+	}
+
 	/** Logged in inside a rift (the run is gone): back to where they came from. */
 	public static void onLogin(ServerPlayer p) {
 		if (in(p) && runOf(p) == null) sendBack(p);
@@ -647,6 +667,8 @@ public final class Rifts {
 			data.riftReturn = null;
 			return;
 		}
+		// cleared before the teleport, so onChangedDimension sees a planned way out
+		data.riftReturn = null;
 		if (to == null || to.dimension() == KEY) {
 			to = server.overworld();
 			BlockPos spawn = to.getSharedSpawnPos();
@@ -656,7 +678,6 @@ public final class Rifts {
 		}
 		p.setGameMode(mode);
 		p.fallDistance = 0;
-		data.riftReturn = null;
 		AuraState.get(server).markDirty();
 	}
 
