@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.41.0
+- Aura Rifts: now and then a rift tears open near a player (/aura rift shows where). Walk in with up to 3 friends: four rooms of one aura's touched mobs, then its champion. Pays Aura, mastery XP and a relic of that aura (always on your first clear), plus the titles Riftwalker and Rift Breaker.
+
 == 5.40.0
 - Elemental relics: ten relics, one per aura, found in dungeon and temple chests or bought with Aura (/aura relic, Aura Book). Wear another aura's relic in an accessory slot for a small echo of its passives (two count at once).
 - Loadouts can remember a relic set (/aura loadout relics) and put it on when you switch.

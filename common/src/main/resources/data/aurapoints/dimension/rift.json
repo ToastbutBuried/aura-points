@@ -1,0 +1,18 @@
+{
+  "type": "aurapoints:rift",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "aurapoints:arena",
+      "lakes": false,
+      "features": false,
+      "layers": [
+        {
+          "block": "minecraft:air",
+          "height": 1
+        }
+      ],
+      "structure_overrides": []
+    }
+  }
+}

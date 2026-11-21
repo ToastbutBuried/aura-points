@@ -77,6 +77,8 @@ public final class Cosmetics {
 		TITLE_ALCHEMIST(Kind.TITLE, "Alchemist", 0, "Set off 50 elemental reactions", p -> reactions(p) >= 50),
 		TITLE_CHAMPION(Kind.TITLE, "Weekly Champion", 0, "Finish all three weekly challenges in one week", p -> data(p).weeklyFullWeeks >= 1),
 		TITLE_WAVE_BREAKER(Kind.TITLE, "Wave Breaker", 0, "Clear wave 20 in Wave Survival", p -> bestWave(p) >= 20),
+		TITLE_RIFTWALKER(Kind.TITLE, "Riftwalker", 0, "Clear an Aura Rift", p -> stat(p, com.toast.aurapoints.ability.AuraStats.RIFTS_CLEARED) >= 1),
+		TITLE_RIFT_BREAKER(Kind.TITLE, "Rift Breaker", 0, "Clear a rift of all ten auras", p -> data(p).riftAuras.size() >= 10),
 
 		POSE_SKY_CALL(Kind.POSE, "Sky Call", 300, null, null),
 		POSE_KNEEL(Kind.POSE, "Kneel", 200, null, null),

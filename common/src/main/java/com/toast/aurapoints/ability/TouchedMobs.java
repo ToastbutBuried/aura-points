@@ -133,7 +133,8 @@ public final class TouchedMobs {
 	/** LivingDeathEvent: whoever killed a touched mob gets Aura Points and mastery XP. */
 	public static void onDeath(LivingEntity dead, net.minecraft.world.damagesource.DamageSource source) {
 		AuraType aura = auraOf(dead);
-		if (aura == null) return;
+		// rift mobs: the rift pays for its rooms
+		if (aura == null || com.toast.aurapoints.rift.Rifts.isRiftMob(dead)) return;
 		ServerPlayer killer = source.getEntity() instanceof ServerPlayer p ? p
 				: dead.getKillCredit() instanceof ServerPlayer p ? p : null;
 		if (killer == null || killer.isSpectator() || AuraAbilities.progressPaused(killer)) return;

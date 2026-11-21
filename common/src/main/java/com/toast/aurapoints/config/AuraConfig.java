@@ -1722,6 +1722,32 @@ public final class AuraConfig {
 	public static double STORM_UMBRA_SIGHT = 12;
 
 	// ---------------------------------------------------------------
+	// Aura Rifts (5.41.0): general
+	// ---------------------------------------------------------------
+
+	/** Rifts: a tear opens in the overworld now and then; walk in for rooms of an aura's touched mobs and a champion. */
+	public static boolean RIFT_ENABLED = true;
+	/** Minutes between tears (each time 75-125% of this), near a random overworld player. */
+	public static double RIFT_INTERVAL_MINUTES = 90;
+	/** How long a tear stays open, and how many can go in. */
+	public static int RIFT_OPEN_SECONDS = 600;
+	public static int RIFT_MAX_PLAYERS = 4;
+	/** A room's mob budget (zombie 1 ... blaze 5): BASE + PER_ROOM x room, +50% per extra player. */
+	public static int RIFT_BUDGET_BASE = 8;
+	public static int RIFT_BUDGET_PER_ROOM = 4;
+	/** Extra health and damage per room (0.15 = +15% in room 2, +30% in room 3...). */
+	public static double RIFT_SCALE_PER_ROOM = 0.15;
+	/** The champion's health, and the share more per extra player. */
+	public static double RIFT_BOSS_HEALTH = 400;
+	public static double RIFT_BOSS_HEALTH_PER_PLAYER = 0.5;
+	/** Rewards: Aura and mastery XP per room cleared and for the champion; relic chance (always on your first clear of an aura). */
+	public static int RIFT_ROOM_AURA = 20;
+	public static int RIFT_BOSS_AURA = 80;
+	public static int RIFT_ROOM_MASTERY_XP = 15;
+	public static int RIFT_BOSS_MASTERY_XP = 60;
+	public static double RIFT_RELIC_CHANCE = 0.35;
+
+	// ---------------------------------------------------------------
 	// Elemental relics (5.40.0): general
 	// ---------------------------------------------------------------
 

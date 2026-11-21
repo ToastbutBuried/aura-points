@@ -66,6 +66,15 @@ public final class Holograms {
 		return display;
 	}
 
+	/** For code outside the arena (rift tears): a hologram not yet added, owned by the caller. */
+	public static Display.TextDisplay makePublic(ServerLevel level, Vec3 at, Component text, float scale, int background) {
+		return make(level, at, text, scale, background);
+	}
+
+	public static void setTextPublic(Display.TextDisplay display, Component text) {
+		setText(display, text);
+	}
+
 	static void setText(Display.TextDisplay display, Component text) {
 		((TextDisplayAccessor) display).aurapoints$setText(text);
 	}

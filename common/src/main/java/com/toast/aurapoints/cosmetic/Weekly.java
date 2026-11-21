@@ -49,7 +49,8 @@ public final class Weekly {
 		WAVES("Clear wave %d in Wave Survival", new int[]{10, 15, 20}),
 		COMBOS("Pull off %d team combos with an ally", new int[]{3, 6, 10}),
 		CHAINS("Pull off %d ability chains", new int[]{15, 30, 50}),
-		TRAINER("Finish %d Training Hall challenge cards", new int[]{3, 6, 10});
+		TRAINER("Finish %d Training Hall challenge cards", new int[]{3, 6, 10}),
+		RIFTS("Clear %d Aura Rift%s", new int[]{1, 2, 3});
 
 		final String text;
 		final int[] targets;
@@ -79,7 +80,7 @@ public final class Weekly {
 		String text() {
 			int n = target();
 			return switch (type) {
-				case DUEL_WINS -> String.format(type.text, n, n == 1 ? "" : "s");
+				case DUEL_WINS, RIFTS -> String.format(type.text, n, n == 1 ? "" : "s");
 				case TOUCHED_AURA -> String.format(type.text, n, aura.displayName, n == 1 ? "" : "s");
 				case REACTION_ONE -> String.format(type.text, n, reaction.displayName);
 				default -> String.format(type.text, n);
@@ -108,6 +109,9 @@ public final class Weekly {
 	/** Monday 2026-11-23: the first week that can roll a training-card challenge (5.37.0). */
 	private static final long TRAINER_WEEK = LocalDate.of(2026, 11, 23).toEpochDay();
 
+	/** Monday 2026-11-30: the first week that can roll a rift challenge (5.41.0). */
+	private static final long RIFTS_WEEK = LocalDate.of(2026, 11, 30).toEpochDay();
+
 	/** This week's three challenges. */
 	static List<Challenge> challenges() {
 		long week = week();
@@ -120,7 +124,7 @@ public final class Weekly {
 				: week < TRAINER_WEEK ? (a < 0.4 ? Type.DPS : a < 0.6 ? Type.DUEL_WINS : a < 0.8 ? Type.DUEL_ROUNDS : Type.WAVES)
 				: a < 0.3 ? Type.DPS : a < 0.5 ? Type.DUEL_WINS : a < 0.65 ? Type.DUEL_ROUNDS : a < 0.82 ? Type.WAVES : Type.TRAINER;
 		out.add(new Challenge(arena, r.nextInt(3), null, null));
-		Type[] hunts = {Type.TOUCHED, Type.TOUCHED_AURA, Type.MONSTERS};
+		Type[] hunts = week < RIFTS_WEEK ? new Type[]{Type.TOUCHED, Type.TOUCHED_AURA, Type.MONSTERS} : new Type[]{Type.TOUCHED, Type.TOUCHED_AURA, Type.MONSTERS, Type.RIFTS};
 		out.add(new Challenge(hunts[r.nextInt(hunts.length)], r.nextInt(3), AuraType.values()[r.nextInt(AuraType.values().length)], null));
 		Type[] stats = week < COMBOS_WEEK ? new Type[]{Type.REACTIONS, Type.REACTION_ONE, Type.MASTERY}
 				: week < CHAINS_WEEK ? new Type[]{Type.REACTIONS, Type.REACTION_ONE, Type.MASTERY, Type.COMBOS}
@@ -202,6 +206,11 @@ public final class Weekly {
 			AuraState.get(player.getServer()).markDirty();
 		}
 		check(player);
+	}
+
+	/** Rifts: a rift was cleared. */
+	public static void onRiftCleared(ServerPlayer player) {
+		count(player, Type.RIFTS, 1, false, null);
 	}
 
 	/** TrainerCards: a challenge card was finished. */
@@ -292,6 +301,7 @@ public final class Weekly {
 			case COMBOS -> devStat(p, AuraStats.combo("glacier"), n);
 			case CHAINS -> devStat(p, AuraStats.CHAINS, n);
 			case TRAINER -> { for (int k = 0; k < n; k++) onTrainerCard(p); }
+			case RIFTS -> { for (int k = 0; k < n; k++) onRiftCleared(p); }
 		}
 		check(p);
 	}

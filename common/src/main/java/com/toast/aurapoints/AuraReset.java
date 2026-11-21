@@ -189,6 +189,7 @@ public final class AuraReset {
 		data.rolled.clear();
 		data.loadouts.clear();
 		data.activeLoadout.clear();
+		data.riftAuras.clear();
 		data.mastery.clear();
 		data.branches.clear();
 		reset(player, data, Part.COSMETICS);

@@ -339,6 +339,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.VoidAura.tickAll(server);
 			com.toast.aurapoints.ability.Reactions.tickAll(server);
 			com.toast.aurapoints.weather.Storms.tickAll(server);
+			com.toast.aurapoints.rift.Rifts.tickAll(server);
 			com.toast.aurapoints.ability.Combos.tickAll(server);
 			com.toast.aurapoints.arena.AltarRitual.tickAll(server);
 			com.toast.aurapoints.arena.AuraTrial.tickAll(server);
@@ -807,6 +808,7 @@ public class AuraPoints {
 				com.toast.aurapoints.ability.Loadouts.forget(player.getUUID());
 				com.toast.aurapoints.weather.Storms.forget(player.getUUID());
 				com.toast.aurapoints.ability.Relics.forget(player.getUUID());
+				com.toast.aurapoints.rift.Rifts.onLogout(player);
 				com.toast.aurapoints.ability.Ultimates.onLogout(player);
 				com.toast.aurapoints.ability.Earth.onLogout(player);
 				com.toast.aurapoints.ability.Light.onLogout(player);
@@ -862,7 +864,8 @@ public class AuraPoints {
 		/** The Aura Arena: a hit that would kill a dueller is a knockout instead (last, after every other change to the damage). */
 		@SubscribeEvent(priority = com.toast.aurapoints.shim.bus.api.EventPriority.LOWEST)
 		public static void onDamageLethal(LivingDamageEvent.Pre event) {
-			if (event.getNewDamage() > 0 && com.toast.aurapoints.arena.Arena.catchLethal(event.getEntity(), event.getSource(), event.getNewDamage())) {
+			if (event.getNewDamage() > 0 && (com.toast.aurapoints.arena.Arena.catchLethal(event.getEntity(), event.getSource(), event.getNewDamage())
+					|| com.toast.aurapoints.rift.Rifts.catchLethal(event.getEntity(), event.getNewDamage()))) {
 				event.setNewDamage(0);
 			}
 		}
@@ -870,7 +873,7 @@ public class AuraPoints {
 		/** Nobody dies in the Aura Arena (before anything else hears of the death: no drops, no gravestone). */
 		@SubscribeEvent(priority = com.toast.aurapoints.shim.bus.api.EventPriority.HIGHEST)
 		public static void onArenaDeath(LivingDeathEvent event) {
-			if (com.toast.aurapoints.arena.Arena.catchDeath(event.getEntity(), event.getSource())) event.setCanceled(true);
+			if (com.toast.aurapoints.arena.Arena.catchDeath(event.getEntity(), event.getSource()) || com.toast.aurapoints.rift.Rifts.catchDeath(event.getEntity())) event.setCanceled(true);
 		}
 
 		/** Arena entities from an older build of the map (or stray damage numbers) don't come back when their chunk loads; the animated ones start moving. */
@@ -885,15 +888,21 @@ public class AuraPoints {
 			}
 		}
 
+		/** Rift tears from before a restart, and rift mobs loaded from disk (their run is gone), don't come back. */
+		@SubscribeEvent
+		public static void onRiftEntityLoads(com.toast.aurapoints.shim.neoforge.event.entity.EntityJoinLevelEvent event) {
+			if (!event.getLevel().isClientSide() && com.toast.aurapoints.rift.Rifts.isLeftover(event.getEntity(), event.loadedFromDisk())) event.setCanceled(true);
+		}
+
 		/** Wave Survival mobs drop nothing (else the ring is a farm). */
 		@SubscribeEvent(priority = com.toast.aurapoints.shim.bus.api.EventPriority.HIGH)
 		public static void onWaveDrops(com.toast.aurapoints.shim.neoforge.event.entity.living.LivingDropsEvent event) {
-			if (com.toast.aurapoints.arena.Waves.isWaveMob(event.getEntity())) event.setCanceled(true);
+			if (com.toast.aurapoints.arena.Waves.isWaveMob(event.getEntity()) || com.toast.aurapoints.rift.Rifts.isRiftMob(event.getEntity())) event.setCanceled(true);
 		}
 
 		@SubscribeEvent
 		public static void onWaveXp(com.toast.aurapoints.shim.neoforge.event.entity.living.LivingExperienceDropEvent event) {
-			if (com.toast.aurapoints.arena.Waves.isWaveMob(event.getEntity())) event.setCanceled(true);
+			if (com.toast.aurapoints.arena.Waves.isWaveMob(event.getEntity()) || com.toast.aurapoints.rift.Rifts.isRiftMob(event.getEntity())) event.setCanceled(true);
 		}
 
 		/** Nothing in the Aura Arena breaks or sets fire to the map: creepers, blazes, ravagers, evokers. */
@@ -1122,6 +1131,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.Mjolnir.onLogin(player);
 			com.toast.aurapoints.ability.Handhelds.onLogin(player);
 			com.toast.aurapoints.arena.Arena.onLogin(player);
+			com.toast.aurapoints.rift.Rifts.onLogin(player);
 			com.toast.aurapoints.ability.Ultimates.onLogin(player);
 			Tickets.onLogin(player);
 

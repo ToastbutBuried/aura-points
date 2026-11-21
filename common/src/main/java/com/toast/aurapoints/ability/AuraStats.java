@@ -101,6 +101,8 @@ public final class AuraStats {
 	public static final ResourceLocation DUEL_WINS = stat("duel_wins");
 	// Wave Survival: waves cleared (all runs) and the best wave reached
 	public static final ResourceLocation WAVES_CLEARED = stat("waves_cleared");
+	/** Aura Rifts cleared (5.41.0). */
+	public static final ResourceLocation RIFTS_CLEARED = stat("rifts_cleared");
 	public static final ResourceLocation BEST_WAVE = stat("best_wave");
 	/** The best 30-second DPS challenge, in tenths (shown with one decimal). */
 	public static final ResourceLocation DPS_BEST = stat("dps_best", true);

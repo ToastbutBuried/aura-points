@@ -72,6 +72,9 @@ public class AuraPlayerData {
 	public final java.util.Set<AuraType> altarUnlocked = java.util.EnumSet.noneOf(AuraType.class);
 	/** Auras whose Aura Trial (arena/AuraTrial) this player finished at least once (retakes are always open). */
 	public final java.util.Set<AuraType> trialDone = java.util.EnumSet.noneOf(AuraType.class);
+	/** Aura Rifts (5.41.0): the auras whose rift this player cleared, and where a rift sends them back to (null = not in one). */
+	public final java.util.Set<AuraType> riftAuras = java.util.EnumSet.noneOf(AuraType.class);
+	public CompoundTag riftReturn = null;
 	/** Loadout presets per aura (5.38.0, ability/Loadouts) and which one is on. */
 	public final java.util.Map<AuraType, java.util.List<LoadoutPreset>> loadouts = new java.util.EnumMap<>(AuraType.class);
 	public final java.util.Map<AuraType, Integer> activeLoadout = new java.util.EnumMap<>(AuraType.class);
@@ -206,6 +209,10 @@ public class AuraPlayerData {
 			lo.put(e.getKey().name(), one);
 		}
 		nbt.put("loadouts", lo);
+		net.minecraft.nbt.ListTag ra = new net.minecraft.nbt.ListTag();
+		for (AuraType a : riftAuras) ra.add(net.minecraft.nbt.StringTag.valueOf(a.name()));
+		nbt.put("riftAuras", ra);
+		if (riftReturn != null) nbt.put("riftReturn", riftReturn);
 		return nbt;
 	}
 
@@ -331,6 +338,12 @@ public class AuraPlayerData {
 			data.mastery.merge(AuraType.SHADOW, 5, Math::max);
 			data.rolled.add(AuraType.SHADOW);
 		}
+		var ra = nbt.getList("riftAuras", net.minecraft.nbt.Tag.TAG_STRING);
+		for (int i = 0; i < ra.size(); i++) {
+			AuraType a = parseAura(ra.getString(i), new boolean[1]);
+			if (a != null) data.riftAuras.add(a);
+		}
+		if (nbt.contains("riftReturn")) data.riftReturn = nbt.getCompound("riftReturn");
 		CompoundTag lo = nbt.getCompound("loadouts");
 		for (String key : lo.getAllKeys()) {
 			AuraType a = parseAura(key, new boolean[1]);
