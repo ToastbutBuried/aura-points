@@ -420,6 +420,7 @@ public final class Shrines {
 		if (now % 20 != 0) return;
 		List<ServerPlayer> players = level.players().stream().filter(p -> !p.isSpectator()).toList();
 		if (now % 100 == 0) for (ServerPlayer p : players) lookForSites(level, p);
+		double reach = Math.max(DRAIN_RANGE, AuraConfig.SHRINE_RADIUS);
 		for (Shrine s : SHRINES) {
 			// decay
 			if (s.owned()) {
@@ -430,7 +431,8 @@ public final class Shrines {
 			for (ServerPlayer p : players) {
 				double d = p.position().distanceToSqr(Vec3.atCenterOf(s.core));
 				if (d < 64 * 64) near = true;
-				if (!s.owned()) continue;
+				// the team lookup (FTB Teams reflection) only for players close enough to drain or be healed
+				if (!s.owned() || d > reach * reach) continue;
 				Allies.TeamInfo team = Allies.teamOf(p);
 				boolean member = s.team.equals(team.id());
 				// a rival at the core drains it
