@@ -17,6 +17,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.FloatTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.LongTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
@@ -37,6 +38,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
@@ -76,6 +79,8 @@ public final class Shrines {
 		Display.ItemDisplay crystal;
 		Display.TextDisplay label;
 		long warnedAt = -100000;
+		/** The ground before the shrine was built (5.42.1; null for older shrines): put back on remove. */
+		CompoundTag before;
 
 		Shrine(int id, BlockPos core, boolean ruined) {
 			this.id = id;
@@ -100,6 +105,7 @@ public final class Shrines {
 			t.putString("teamName", teamName);
 			if (aura != null) t.putString("aura", aura.id());
 			t.putDouble("power", power);
+			if (before != null) t.put("before", before);
 			return t;
 		}
 
@@ -109,6 +115,7 @@ public final class Shrines {
 			s.teamName = t.getString("teamName");
 			s.aura = t.contains("aura") ? AuraType.byId(t.getString("aura")) : null;
 			s.power = t.getDouble("power");
+			if (t.contains("before", Tag.TAG_COMPOUND)) s.before = t.getCompound("before");
 			return s;
 		}
 	}
@@ -207,10 +214,78 @@ public final class Shrines {
 		for (Shrine s : SHRINES) id = Math.max(id, s.id + 1);
 		Shrine s = new Shrine(id, core, ruined);
 		if (aura != null && !ruined) s.aura = null;
+		s.before = snapshot(level, core);
 		SHRINES.add(s);
 		build(level, s);
 		dirty(level.getServer());
 		return s;
+	}
+
+	/** Everything {@link #build} can touch: x/z -4..4 around the core, y from 4 below to 5 above it. */
+	private static Iterable<BlockPos> footprint(BlockPos core) {
+		return BlockPos.betweenClosed(core.offset(-4, -4, -4), core.offset(4, 5, 4));
+	}
+
+	/** The footprint's block states (palette + index per block, bottom to top) and block entities. */
+	private static CompoundTag snapshot(ServerLevel level, BlockPos core) {
+		List<BlockState> palette = new ArrayList<>();
+		Map<BlockState, Integer> index = new HashMap<>();
+		List<Integer> cells = new ArrayList<>();
+		ListTag entities = new ListTag();
+		for (BlockPos b : footprint(core)) {
+			BlockState st = level.getBlockState(b);
+			cells.add(index.computeIfAbsent(st, k -> {
+				palette.add(k);
+				return palette.size() - 1;
+			}));
+			BlockEntity be = level.getBlockEntity(b);
+			if (be != null) {
+				CompoundTag bt = be.saveWithFullMetadata(level.registryAccess());
+				bt.putLong("aurapoints_pos", b.asLong());
+				entities.add(bt);
+			}
+		}
+		CompoundTag t = new CompoundTag();
+		ListTag pal = new ListTag();
+		for (BlockState st : palette) pal.add(NbtUtils.writeBlockState(st));
+		t.put("palette", pal);
+		t.putIntArray("cells", cells.stream().mapToInt(Integer::intValue).toArray());
+		t.put("entities", entities);
+		return t;
+	}
+
+	/** Puts the ground from {@link #snapshot} back; false if there is none (shrine from before 5.42.1). */
+	private static boolean restore(ServerLevel level, Shrine s) {
+		if (s.before == null) return false;
+		var blocks = level.holderLookup(net.minecraft.core.registries.Registries.BLOCK);
+		ListTag pal = s.before.getList("palette", Tag.TAG_COMPOUND);
+		BlockState[] palette = new BlockState[pal.size()];
+		for (int i = 0; i < palette.length; i++) palette[i] = NbtUtils.readBlockState(blocks, pal.getCompound(i));
+		int[] cells = s.before.getIntArray("cells");
+		int i = 0;
+		for (BlockPos b : footprint(s.core)) {
+			if (i >= cells.length) break;
+			int k = cells[i++];
+			if (k >= 0 && k < palette.length) level.setBlock(b, palette[k], 2);
+		}
+		ListTag entities = s.before.getList("entities", Tag.TAG_COMPOUND);
+		for (int e = 0; e < entities.size(); e++) {
+			CompoundTag bt = entities.getCompound(e);
+			BlockPos at = BlockPos.of(bt.getLong("aurapoints_pos"));
+			BlockEntity be = BlockEntity.loadStatic(at, level.getBlockState(at), bt, level.registryAccess());
+			if (be != null) level.setBlockEntity(be);
+		}
+		return true;
+	}
+
+	/** Takes a shrine away: its displays go, the ground it was built on comes back (when it was recorded). */
+	public static boolean remove(ServerLevel level, Shrine s) {
+		removeDisplays(s);
+		SHRINES.remove(s);
+		CHANNELS.values().removeIf(c -> c[0] == s.id);
+		boolean restored = restore(level, s);
+		dirty(level.getServer());
+		return restored;
 	}
 
 	private static void set(ServerLevel level, BlockPos p, Block b) {
@@ -622,10 +697,9 @@ public final class Shrines {
 				.then(net.minecraft.commands.Commands.literal("remove").executes(ctx -> {
 					Shrine s = nearest(ctx.getSource().getPosition());
 					if (s == null) return 0;
-					removeDisplays(s);
-					SHRINES.remove(s);
-					dirty(ctx.getSource().getServer());
-					ctx.getSource().sendSuccess(() -> Component.literal("Shrine #" + s.id + " removed (its blocks stay)."), true);
+					boolean restored = remove(ctx.getSource().getServer().overworld(), s);
+					ctx.getSource().sendSuccess(() -> Component.literal("Shrine #" + s.id + " removed" + (restored ? ", the ground is back as it was."
+							: " (placed before 5.42.1: no record of the old ground, its blocks stay)")), true);
 					return 1;
 				}))
 				.then(net.minecraft.commands.Commands.literal("power").then(net.minecraft.commands.Commands.argument("n", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, 100))

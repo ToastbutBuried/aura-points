@@ -85,6 +85,25 @@ public final class ShrineDevTest {
 				int before = Shrines.all().size();
 				Shrines.read(tag);
 				log("saved and loaded: shrines " + Shrines.all().size() + " (must be " + before + ")");
+
+				// remove gives the old ground back (ticket 12), chest contents included
+				BlockPos g = new BlockPos(core.getX() + 30, core.getY(), core.getZ());
+				for (BlockPos b : BlockPos.betweenClosed(g.offset(-4, -4, -4), g.offset(4, 5, 4))) level.setBlock(b, (b.getY() < g.getY() ? Blocks.DIRT : Blocks.AIR).defaultBlockState(), 2);
+				level.setBlock(g.offset(2, 0, 1), Blocks.OAK_LOG.defaultBlockState(), 2);
+				level.setBlock(g.offset(-1, 1, 3), Blocks.CHEST.defaultBlockState(), 2);
+				if (level.getBlockEntity(g.offset(-1, 1, 3)) instanceof net.minecraft.world.level.block.entity.ChestBlockEntity chest) chest.setItem(0, new ItemStack(Items.DIAMOND, 5));
+				var placed = Shrines.place(level, g, false, null);
+				boolean built = level.getBlockState(g).is(Blocks.LODESTONE);
+				int count = Shrines.all().size();
+				boolean restored = Shrines.remove(level, placed);
+				Shrines.write(tag);
+				Shrines.read(tag);
+				boolean chestBack = level.getBlockEntity(g.offset(-1, 1, 3)) instanceof net.minecraft.world.level.block.entity.ChestBlockEntity c2 && c2.getItem(0).is(Items.DIAMOND) && c2.getItem(0).getCount() == 5;
+				log("remove: built " + built + " (must be true), restored " + restored + " (must be true), core now " + level.getBlockState(g).getBlock()
+						+ " (must be air), log back " + level.getBlockState(g.offset(2, 0, 1)).is(Blocks.OAK_LOG) + " (must be true), floor dirt "
+						+ level.getBlockState(g.below()).is(Blocks.DIRT) + " (must be true), chest with 5 diamonds " + chestBack + " (must be true), shrines "
+						+ Shrines.all().size() + " (must be " + (count - 1) + ")");
+				log("cleanup: test shrine removed " + Shrines.remove(level, s) + " (must be true)");
 			} finally {
 				Shrines.TEST_PLAYERS.clear();
 				od.aura = null;
