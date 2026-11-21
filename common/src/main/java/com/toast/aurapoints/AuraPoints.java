@@ -340,6 +340,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.Reactions.tickAll(server);
 			com.toast.aurapoints.weather.Storms.tickAll(server);
 			com.toast.aurapoints.rift.Rifts.tickAll(server);
+			com.toast.aurapoints.shrine.Shrines.tickAll(server);
 			com.toast.aurapoints.ability.Combos.tickAll(server);
 			com.toast.aurapoints.arena.AltarRitual.tickAll(server);
 			com.toast.aurapoints.arena.AuraTrial.tickAll(server);
@@ -532,6 +533,8 @@ public class AuraPoints {
 
 			// a local storm of the attacker's aura (5.39)
 			if (event.getAmount() > 0) event.setAmount(com.toast.aurapoints.weather.Storms.damage(attacker, event.getAmount()));
+			// a shrine of the attacker's team nearby (5.42)
+			event.setAmount(com.toast.aurapoints.shrine.Shrines.damage(attacker, event.getAmount()));
 			// elemental relics worn (5.40): Ember, Rime, Thorn, Vein
 			event.setAmount(com.toast.aurapoints.ability.Relics.attack(attacker, victim, event.getAmount(), melee));
 
@@ -654,6 +657,12 @@ public class AuraPoints {
 			if (event.getEntity() instanceof ServerPlayer player && event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND
 					&& com.toast.aurapoints.arena.Arena.in(player)) {
 				com.toast.aurapoints.arena.TrainingHall.press(player, event.getPos());
+			}
+			// a shrine's core (5.42)
+			if (event.getEntity() instanceof ServerPlayer player && com.toast.aurapoints.shrine.Shrines.at(event.getPos()) != null) {
+				if (event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND) com.toast.aurapoints.shrine.Shrines.onUse(player, event.getPos());
+				event.setCanceled(true);
+				return;
 			}
 			// doors, trapdoors, gates and chests creak (Resonance)
 			if (!event.getLevel().isClientSide()) {
@@ -809,6 +818,7 @@ public class AuraPoints {
 				com.toast.aurapoints.weather.Storms.forget(player.getUUID());
 				com.toast.aurapoints.ability.Relics.forget(player.getUUID());
 				com.toast.aurapoints.rift.Rifts.onLogout(player);
+				com.toast.aurapoints.shrine.Shrines.forget(player.getUUID());
 				com.toast.aurapoints.ability.Ultimates.onLogout(player);
 				com.toast.aurapoints.ability.Earth.onLogout(player);
 				com.toast.aurapoints.ability.Light.onLogout(player);
@@ -891,7 +901,8 @@ public class AuraPoints {
 		/** Rift tears from before a restart, and rift mobs loaded from disk (their run is gone), don't come back. */
 		@SubscribeEvent
 		public static void onRiftEntityLoads(com.toast.aurapoints.shim.neoforge.event.entity.EntityJoinLevelEvent event) {
-			if (!event.getLevel().isClientSide() && com.toast.aurapoints.rift.Rifts.isLeftover(event.getEntity(), event.loadedFromDisk())) event.setCanceled(true);
+			if (!event.getLevel().isClientSide() && (com.toast.aurapoints.rift.Rifts.isLeftover(event.getEntity(), event.loadedFromDisk())
+					|| com.toast.aurapoints.shrine.Shrines.isLeftover(event.getEntity()))) event.setCanceled(true);
 		}
 
 		/** Wave Survival mobs drop nothing (else the ring is a farm). */

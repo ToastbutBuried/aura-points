@@ -1722,6 +1722,33 @@ public final class AuraConfig {
 	public static double STORM_UMBRA_SIGHT = 12;
 
 	// ---------------------------------------------------------------
+	// Territory shrines (5.42.0): general
+	// ---------------------------------------------------------------
+
+	/** Shrines: ruins in the wild to rebuild, attune to your FTB team and aura, keep powered and defend. */
+	public static boolean SHRINE_ENABLED = true;
+	/** One ruined shrine per region this many blocks wide (a seeded spot, built when a player first comes near). */
+	public static int SHRINE_SPACING = 640;
+	/** What rebuilding a ruin takes: "item*count" separated by commas. */
+	public static String SHRINE_REPAIR_ITEMS = "minecraft:stone_bricks*32,minecraft:gold_ingot*8";
+	/** Attuning: seconds standing at the core, then this much Aura. */
+	public static int SHRINE_CHANNEL_SECONDS = 10;
+	public static int SHRINE_POWER_COST = 150;
+	/** Topping up: Aura for this much power (out of 100). */
+	public static int SHRINE_TOPUP_COST = 50;
+	public static double SHRINE_TOPUP_POWER = 25;
+	/** Power lost per Minecraft day (20 min). */
+	public static double SHRINE_DECAY_PER_DAY = 20;
+	/** The team's buff within this radius: damage for every member, more for the shrine's own aura, Regeneration at this power or more. */
+	public static int SHRINE_RADIUS = 48;
+	public static double SHRINE_TEAM_DAMAGE = 0.05;
+	public static double SHRINE_AURA_DAMAGE = 0.05;
+	public static double SHRINE_REGEN_POWER = 75;
+	/** A rival at the core drains this much power per second (this share of it while no owner is online). */
+	public static double SHRINE_DRAIN_PER_SECOND = 2;
+	public static double SHRINE_OFFLINE_DRAIN_SHARE = 0.5;
+
+	// ---------------------------------------------------------------
 	// Aura Rifts (5.41.0): general
 	// ---------------------------------------------------------------
 

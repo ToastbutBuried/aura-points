@@ -74,6 +74,7 @@ public class AuraState extends SavedData {
 		state.arenaMapVersion = tag.getInt("arenaMapVersion");
 		state.nextStormAt = tag.getLong("nextStormAt");
 		com.toast.aurapoints.weather.Storms.read(tag, "storms");
+		com.toast.aurapoints.shrine.Shrines.read(tag);
 		state.arenaBuildId = tag.getInt("arenaBuildId");
 		readRecords(tag.getList("dpsRecords", CompoundTag.TAG_COMPOUND), state.dpsRecords);
 		readRecords(tag.getList("rotationRecords", CompoundTag.TAG_COMPOUND), state.rotationRecords);
@@ -155,6 +156,7 @@ public class AuraState extends SavedData {
 		tag.putInt("arenaMapVersion", arenaMapVersion);
 		tag.putLong("nextStormAt", nextStormAt);
 		tag.put("storms", com.toast.aurapoints.weather.Storms.write());
+		com.toast.aurapoints.shrine.Shrines.write(tag);
 		tag.putInt("arenaBuildId", arenaBuildId);
 		tag.put("dpsRecords", writeRecords(dpsRecords));
 		tag.put("rotationRecords", writeRecords(rotationRecords));

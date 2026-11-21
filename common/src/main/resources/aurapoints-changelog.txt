@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.42.0
+- Territory shrines: ruined shrines wait out in the wild (/aura shrine finds the nearest). Bring stone bricks and gold to rebuild one, then attune it to your team and aura: your team hits harder near it and regenerates while it's well powered. Keep it powered with Aura; rivals can drain it and take it over.
+
 == 5.41.0
 - Aura Rifts: now and then a rift tears open near a player (/aura rift shows where). Walk in with up to 3 friends: four rooms of one aura's touched mobs, then its champion. Pays Aura, mastery XP and a relic of that aura (always on your first clear), plus the titles Riftwalker and Rift Breaker.
 

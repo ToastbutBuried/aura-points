@@ -69,6 +69,7 @@ final class MasteryCommand {
 		com.toast.aurapoints.weather.Storms.register(dispatcher);
 		com.toast.aurapoints.ability.Relics.register(dispatcher);
 		com.toast.aurapoints.rift.Rifts.register(dispatcher);
+		com.toast.aurapoints.shrine.Shrines.register(dispatcher);
 		// the Training Hall's daily challenge cards (5.37.0)
 		dispatcher.register(Commands.literal("aura").then(Commands.literal("trainer")
 				.executes(ctx -> {

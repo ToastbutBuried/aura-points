@@ -38,6 +38,37 @@ public final class Allies {
 		return Match.teammates(a, b) || party(a, b);
 	}
 
+	/** A player's team for shrines (5.42): their FTB party, or just themselves (no party, no FTB Teams). */
+	public record TeamInfo(UUID id, String name, boolean party) {
+	}
+
+	private static final UUID TEST_TEAM = UUID.fromString("5d1e3c1a-0000-4000-8000-0000000071a3");
+	private static Method teamFor, teamId, teamShortName, teamIsParty;
+
+	public static TeamInfo teamOf(ServerPlayer p) {
+		if (TEST_PARTY.contains(p.getUUID())) return new TeamInfo(TEST_TEAM, "Test Party", true);
+		sameTeam(p.getUUID(), p.getUUID());
+		if (api != null) {
+			try {
+				if (teamFor == null) {
+					Class<?> tm = Class.forName("dev.ftb.mods.ftbteams.api.TeamManager"), team = Class.forName("dev.ftb.mods.ftbteams.api.Team");
+					teamFor = tm.getMethod("getTeamForPlayerID", UUID.class);
+					teamId = team.getMethod("getId");
+					teamShortName = team.getMethod("getShortName");
+					teamIsParty = team.getMethod("isPartyTeam");
+				}
+				Object m = manager.invoke(api.invoke(null));
+				Object opt = m == null ? null : teamFor.invoke(m, p.getUUID());
+				if (opt instanceof java.util.Optional<?> o && o.isPresent() && Boolean.TRUE.equals(teamIsParty.invoke(o.get()))) {
+					return new TeamInfo((UUID) teamId.invoke(o.get()), String.valueOf(teamShortName.invoke(o.get())), true);
+				}
+			} catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+				// no team info: the player alone
+			}
+		}
+		return new TeamInfo(p.getUUID(), p.getGameProfile().getName(), false);
+	}
+
 	private static boolean sameTeam(UUID a, UUID b) {
 		if (!looked) {
 			looked = true;
