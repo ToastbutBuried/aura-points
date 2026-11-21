@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.38.0
+- Loadouts: put your abilities on the keys in your own order, swap an ability's tap and sneak casts, and keep up to 3 presets per aura (Aura Book > your aura > Loadouts, or /aura loadout). Switching waits until you're out of combat.
+
 == 5.37.0
 - Combo trainer in the Training Hall: the dummy you hit now shows your chains, reactions, casts and combo as they happen.
 - New ROTATION kiosk (30 s, damage + chains, reactions and different casts, own record board) and three daily training cards for Aura (/aura trainer or the Aura Book).

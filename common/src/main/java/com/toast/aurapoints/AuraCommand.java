@@ -513,7 +513,7 @@ public final class AuraCommand {
 			for (AuraAbilities.Ability a : actives) {
 				MutableComponent line = Component.literal(" • ").withStyle(style -> style.withColor(accent))
 						.append(Component.literal(a.displayName).withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD));
-				int slot = aura.keySlots(br).indexOf(a);
+				int slot = (mine ? com.toast.aurapoints.ability.Loadouts.keySlots(data) : aura.keySlots(br)).indexOf(a);
 				line.append(Component.literal(slot >= 0 ? "  [Ability " + (slot + 1) + " key]" : "  [jump key]").withStyle(ChatFormatting.DARK_AQUA));
 				if (AuraAbilities.DISABLED.contains(a)) {
 					line.append(Component.literal("  switched off").withStyle(ChatFormatting.RED));

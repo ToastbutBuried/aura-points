@@ -242,7 +242,32 @@ public final class ClientAuraState {
 	/** The branch of the held aura (null = base kit), from the HUD packet's "shadow:dark". */
 	public static com.toast.aurapoints.ability.Branch branch = null;
 
+	/** The loadout's order of the Ability keys (5.38), from the HUD packet's "|A,B,C"; null = the aura's own. */
+	public static java.util.List<AuraAbilities.Ability> keyOrder = null;
+
+	/** The held aura's abilities on Ability 1/2/3, in the loadout's order. */
+	public static java.util.List<AuraAbilities.Ability> keySlots() {
+		if (aura == null) return java.util.List.of();
+		java.util.List<AuraAbilities.Ability> base = aura.keySlots(branch);
+		return keyOrder != null && keyOrder.size() == base.size() && new java.util.HashSet<>(keyOrder).equals(new java.util.HashSet<>(base)) ? keyOrder : base;
+	}
+
 	public static synchronized void setAura(String wire) {
+		int bar = wire.indexOf('|');
+		java.util.List<AuraAbilities.Ability> order = null;
+		if (bar >= 0) {
+			order = new java.util.ArrayList<>();
+			for (String name : wire.substring(bar + 1).split(",")) {
+				try {
+					order.add(AuraAbilities.Ability.valueOf(name));
+				} catch (IllegalArgumentException e) {
+					order = null;
+					break;
+				}
+			}
+			wire = wire.substring(0, bar);
+		}
+		keyOrder = order;
 		int sep = wire.indexOf(':');
 		String id = sep < 0 ? wire : wire.substring(0, sep);
 		branch = sep < 0 ? null : com.toast.aurapoints.ability.Branch.byId(wire.substring(sep + 1));

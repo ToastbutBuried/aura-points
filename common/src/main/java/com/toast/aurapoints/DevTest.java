@@ -31,6 +31,7 @@ final class DevTest {
 		ChainStackDevTest.register(dispatcher);
 		TrialDevTest.register(dispatcher);
 		TrainerDevTest.register(dispatcher);
+		LoadoutDevTest.register(dispatcher);
 		UtilDevTest.register(dispatcher);
 		AltarDevTest.register(dispatcher);
 		// balance editor write path: set a value + a switch through AuraBalance.apply, check, then put both back

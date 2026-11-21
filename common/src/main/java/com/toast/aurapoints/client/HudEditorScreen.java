@@ -126,7 +126,7 @@ public class HudEditorScreen extends Screen {
 	private List<Ability> previewAbilities() {
 		AuraType aura = aura();
 		List<Ability> shown = new ArrayList<>(ClientAuraHud.shownAbilities(aura));
-		if (shown.isEmpty()) shown.addAll(aura.keySlots(ClientAuraState.branch));
+		if (shown.isEmpty()) shown.addAll(aura == ClientAuraState.aura ? ClientAuraState.keySlots() : aura.keySlots(ClientAuraState.branch));
 		return shown;
 	}
 

@@ -1687,6 +1687,19 @@ public final class AuraConfig {
 	 */
 	public static int TRAINING_CHALLENGE_CLEAN_SECONDS = 30;
 
+	// ---------------------------------------------------------------
+	// Loadouts (5.38.0): general
+	// ---------------------------------------------------------------
+
+	/** Loadout presets: your own order of the Ability 1/2/3 keys and tap/sneak swaps, a few presets per aura (/aura loadout). */
+	public static boolean LOADOUT_ENABLED = true;
+	/** Presets per aura. */
+	public static int LOADOUT_MAX = 3;
+	/** No switching or editing for this long after a hit dealt to or taken from a living thing. */
+	public static int LOADOUT_COMBAT_SECONDS = 10;
+	/** Between two preset switches (editing the keys of the one you have on is not limited). */
+	public static int LOADOUT_SWAP_COOLDOWN_SECONDS = 30;
+
 	/** Combo trainer (5.37.0): the live readout over the dummy you hit (chains, reactions, casts, combo counter). */
 	public static boolean TRAINING_READOUT_ENABLED = true;
 	/** Combo steps (chains, reactions, cast variants) less than this many ticks apart keep the combo going. */

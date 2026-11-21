@@ -775,6 +775,8 @@ public class AuraPoints {
 				com.toast.aurapoints.ability.IdleAnimations.forget(player);
 				com.toast.aurapoints.ability.Nightstalker.forget(player);
 				com.toast.aurapoints.ability.Chains.forget(player.getUUID());
+				com.toast.aurapoints.ability.CombatTag.forget(player.getUUID());
+				com.toast.aurapoints.ability.Loadouts.forget(player.getUUID());
 				com.toast.aurapoints.ability.Ultimates.onLogout(player);
 				com.toast.aurapoints.ability.Earth.onLogout(player);
 				com.toast.aurapoints.ability.Light.onLogout(player);
@@ -928,6 +930,8 @@ public class AuraPoints {
 			if (event.getSource().getEntity() instanceof net.minecraft.world.entity.LivingEntity attacker) {
 				com.toast.aurapoints.ability.Noise.add(attacker, AuraConfig.NOISE_ATTACK);
 			}
+			// a hit dealt or taken: in combat for a while (loadout switches wait)
+			com.toast.aurapoints.ability.CombatTag.onHit(event.getEntity(), event.getSource().getEntity());
 			// a hit on someone wrapped in Entanglement's roots loosens them
 			com.toast.aurapoints.ability.Entanglement.onDamaged(event.getEntity(), event.getSource());
 			// and doesn't pop an Abyssal Bubble just by knocking its holder's aim around

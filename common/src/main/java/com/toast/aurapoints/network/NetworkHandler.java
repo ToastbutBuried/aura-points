@@ -28,7 +28,7 @@ public final class NetworkHandler {
 
 	@SubscribeEvent
 	public static void register(RegisterPayloadHandlersEvent event) {
-		PayloadRegistrar registrar = event.registrar("44");
+		PayloadRegistrar registrar = event.registrar("45");
 		registrar.playToServer(
 				AbilityKeyPacket.TYPE,
 				AbilityKeyPacket.STREAM_CODEC,
@@ -197,7 +197,9 @@ public final class NetworkHandler {
 
 	/** Tells the player's HUD which aura they hold now (call whenever it changes, and on login). */
 	public static void syncAura(ServerPlayer player, AuraPlayerData data) {
-		PacketDistributor.sendToPlayer(player, new AuraHudPacket(com.toast.aurapoints.ability.Branch.wire(data.aura, com.toast.aurapoints.ability.Branch.current(data))));
+		// the aura, its branch and (5.38) the loadout's key order: "earth|BOULDER_TOSS,QUAKE,PILLAR_LIFT"
+		PacketDistributor.sendToPlayer(player, new AuraHudPacket(com.toast.aurapoints.ability.Branch.wire(data.aura, com.toast.aurapoints.ability.Branch.current(data))
+				+ com.toast.aurapoints.ability.Loadouts.wire(data)));
 		com.toast.aurapoints.AuraHooks.syncAura(player, data);
 		sendBloodBar(player, data.bloodBar);
 		// and the label over their name, for them and everyone who sees them
@@ -441,7 +443,7 @@ public final class NetworkHandler {
 			AuraAbilities.Ability[] held = HELD_SLOTS.computeIfAbsent(player.getUUID(), k -> new AuraAbilities.Ability[slots]);
 			AuraAbilities.Ability ability;
 			if (packet.down()) {
-				ability = data.aura == null ? null : data.aura.slot(packet.key(), com.toast.aurapoints.ability.Branch.current(data));
+				ability = com.toast.aurapoints.ability.Loadouts.slot(data, packet.key());
 				held[packet.key()] = ability;
 			} else {
 				ability = held[packet.key()];
@@ -482,10 +484,12 @@ public final class NetworkHandler {
 			setKeyFlag(server, player, ability, packet.down());
 
 			long now = server.getTickCount();
+			// a loadout can swap the tap and sneak casts of an ability
+			boolean sneak = player.isShiftKeyDown() ^ com.toast.aurapoints.ability.Loadouts.swapped(data, ability);
 			if (com.toast.aurapoints.ability.WindLaunch.handlesKey(data, ability)) {
 				// Wind's hold keys: Dash (tap = dash, hold = launch), Super Wind Charge (tap = throw, hold = air bending).
 				// A sneak press with the sneak cast unlocked is that cast instead (not with a wind ball in hand: that press fires it).
-				if (packet.down() && player.isShiftKeyDown() && com.toast.aurapoints.ability.CastMode.unlocked(player, ability, com.toast.aurapoints.ability.CastMode.SNEAK)
+				if (packet.down() && sneak && com.toast.aurapoints.ability.CastMode.unlocked(player, ability, com.toast.aurapoints.ability.CastMode.SNEAK)
 						&& !com.toast.aurapoints.ability.AirBending.isHolding(player)) {
 					AuraAbilities.tryActivate(player, ability, now, com.toast.aurapoints.ability.CastMode.SNEAK);
 				} else if (packet.down()) {
@@ -495,7 +499,7 @@ public final class NetworkHandler {
 				}
 			} else if (packet.down()) {
 				// sneak + key = the sneak cast; an ability with a charged cast fires on the release (Casts says tap or charge); else the normal cast now
-				if (player.isShiftKeyDown() && com.toast.aurapoints.ability.CastMode.unlocked(player, ability, com.toast.aurapoints.ability.CastMode.SNEAK)) {
+				if (sneak && com.toast.aurapoints.ability.CastMode.unlocked(player, ability, com.toast.aurapoints.ability.CastMode.SNEAK)) {
 					AuraAbilities.tryActivate(player, ability, now, com.toast.aurapoints.ability.CastMode.SNEAK);
 				} else if (com.toast.aurapoints.ability.CastMode.unlocked(player, ability, com.toast.aurapoints.ability.CastMode.CHARGED)) {
 					com.toast.aurapoints.ability.Casts.beginCharge(player, ability, now);

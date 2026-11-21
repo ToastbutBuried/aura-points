@@ -187,6 +187,8 @@ public final class AuraReset {
 		data.altarUnlocked.clear();
 		data.trialDone.clear();
 		data.rolled.clear();
+		data.loadouts.clear();
+		data.activeLoadout.clear();
 		data.mastery.clear();
 		data.branches.clear();
 		reset(player, data, Part.COSMETICS);

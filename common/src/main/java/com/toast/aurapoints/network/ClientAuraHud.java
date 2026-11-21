@@ -794,7 +794,7 @@ public final class ClientAuraHud {
 			return name.length() > 8 ? name.substring(0, 8) : name;
 		}
 		AuraType aura = ClientAuraState.aura;
-		int index = aura == null ? -1 : aura.keySlots(ClientAuraState.branch).indexOf(ability);
+		int index = aura == null ? -1 : ClientAuraState.keySlots().indexOf(ability);
 		if (index < 0) return null;
 		KeyMapping key = ClientKeyHandler.KEYS[index];
 		if (key.isUnbound()) return null;

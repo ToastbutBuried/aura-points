@@ -80,7 +80,7 @@ public final class AuraTrial {
 		List<Item> out = new ArrayList<>();
 		AuraType aura = data.aura;
 		Branch branch = Branch.current(data);
-		List<Ability> keys = aura.keySlots(branch);
+		List<Ability> keys = com.toast.aurapoints.ability.Loadouts.keySlots(data);
 		for (int i = 0; i < keys.size(); i++) {
 			Ability a = keys.get(i);
 			String key = "Ability " + (i + 1) + " key";

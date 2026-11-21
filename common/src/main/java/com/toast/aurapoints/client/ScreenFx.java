@@ -402,7 +402,7 @@ public final class ScreenFx {
 		if (aura != null && (aura != warnedFor || ClientAuraState.branch != warnedBranch)) {
 			warnedFor = aura;
 			warnedBranch = ClientAuraState.branch;
-			List<Ability> slots = aura.keySlots(ClientAuraState.branch);
+			List<Ability> slots = ClientAuraState.keySlots();
 			for (int i = 0; i < slots.size(); i++) {
 				Ability a = slots.get(i);
 				if (ClientAuraState.isOwned(a) && !ClientAuraState.isDisabled(a))

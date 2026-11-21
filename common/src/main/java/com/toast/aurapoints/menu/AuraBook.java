@@ -497,6 +497,15 @@ public final class AuraBook {
 						text("Click: see both branches", ChatFormatting.YELLOW)), picked != null);
 			}
 
+			if (AuraConfig.LOADOUT_ENABLED && aura == data.aura) {
+				var preset = com.toast.aurapoints.ability.Loadouts.active(data);
+				slots[2] = icon(Items.ARMOR_STAND, text("Loadouts", ChatFormatting.AQUA), List.of(
+						text("Now: " + (preset == null ? "Loadout 1" : preset.name), ChatFormatting.WHITE),
+						text(com.toast.aurapoints.ability.Loadouts.describeKeys(data), ChatFormatting.GRAY),
+						text("Your own key order, tap/sneak swaps,", ChatFormatting.DARK_GRAY),
+						text("up to " + AuraConfig.LOADOUT_MAX + " presets.", ChatFormatting.DARK_GRAY),
+						text("Click: edit and switch", ChatFormatting.YELLOW)), false);
+			}
 			slots[10] = icon(Items.BLAZE_ROD, text("Actives", ChatFormatting.GOLD), List.of(
 					text("Bought once, used with your keys.", ChatFormatting.GRAY),
 					text("Sneak + key / hold the key: extra casts", ChatFormatting.DARK_AQUA),
@@ -510,7 +519,7 @@ public final class AuraBook {
 				List<Component> lore = new ArrayList<>(wrap(a.description(), 38, ChatFormatting.GRAY));
 				for (String cast : com.toast.aurapoints.ability.Casts.describe(a, aura)) lore.addAll(wrap(cast, 38, ChatFormatting.DARK_AQUA));
 				for (String chain : com.toast.aurapoints.ability.Chains.describe(a, aura)) lore.addAll(wrap(chain, 38, ChatFormatting.GOLD));
-				int key = aura.keySlots(branch).indexOf(a);
+				int key = (aura == data.aura ? com.toast.aurapoints.ability.Loadouts.keySlots(data) : aura.keySlots(branch)).indexOf(a);
 				lore.add(text(key >= 0 ? "Key: Ability " + (key + 1) : "Key: jump", ChatFormatting.DARK_AQUA));
 				if (a.cooldownTicks() > 0) lore.add(text("Cooldown: " + AuraAbilities.fmt(a.cooldownTicks() / 20f) + "s", ChatFormatting.DARK_GRAY));
 				if (off) lore.add(text("Switched off on this server", ChatFormatting.RED));
@@ -542,6 +551,11 @@ public final class AuraBook {
 			if (barClick(player, slot) || data.aura == null) return;
 			if (slot == 6 && !com.toast.aurapoints.ability.Branch.of(data.aura).isEmpty() && AuraConfig.BRANCHES_ENABLED) {
 				open(player, new BranchPage());
+				return;
+			}
+			if (slot == 2 && AuraConfig.LOADOUT_ENABLED) {
+				pageSound(player);
+				open(player, new LoadoutPage());
 				return;
 			}
 			List<AuraAbilities.Ability> actives = actives(data.aura, com.toast.aurapoints.ability.Branch.current(data));
@@ -960,6 +974,89 @@ public final class AuraBook {
 		void click(ServerPlayer player, AuraPlayerData data, int slot) {
 			barClick(player, slot);
 		}
+	}
+
+	/**
+	 * Loadouts (ability/Loadouts): the presets on top (click one to switch), the keys of the one you have
+	 * on below (click two keys to swap them), and under each key its tap/sneak swap. Every click runs the
+	 * same /aura loadout command a player could type, so the rules (combat, duels, trial) apply.
+	 */
+	static final class LoadoutPage extends Page {
+		static final int[] PRESETS = {11, 13, 15}, KEYS = {29, 31, 33}, CASTS = {38, 40, 42};
+		/** The first key clicked for a swap (-1 = none). */
+		int picked = -1;
+
+		@Override
+		Component title(ServerPlayer player) {
+			return Component.literal("Loadouts");
+		}
+
+		@Override
+		void fill(ServerPlayer player, AuraPlayerData data, ItemStack[] slots) {
+			if (data.aura == null) return;
+			var list = data.loadouts.getOrDefault(data.aura, List.of());
+			int active = list.isEmpty() ? 0 : data.activeLoadout.getOrDefault(data.aura, 0);
+			slots[4] = icon(Items.ARMOR_STAND, text("Loadouts · " + data.aura.displayName, ChatFormatting.AQUA, ChatFormatting.BOLD), List.of(
+					text("Click a preset to switch (not in combat,", ChatFormatting.GRAY),
+					text("a duel, a match or the trial).", ChatFormatting.GRAY),
+					text("Click two keys to swap their abilities.", ChatFormatting.GRAY),
+					text("Rename: /aura loadout name <name>", ChatFormatting.DARK_GRAY)), false);
+			for (int i = 0; i < PRESETS.length && i < AuraConfig.LOADOUT_MAX; i++) {
+				boolean on = i == active;
+				String name = i < list.size() ? list.get(i).name : "Loadout " + (i + 1);
+				slots[PRESETS[i]] = icon(on ? Items.LIME_BANNER : i < list.size() ? Items.WHITE_BANNER : Items.GRAY_BANNER,
+						text(name, on ? ChatFormatting.GREEN : ChatFormatting.WHITE), List.of(
+								text(on ? "On now" : i < list.size() ? "Click: switch to it" : "Click: new, a copy of the one on now",
+										on ? ChatFormatting.GREEN : ChatFormatting.YELLOW)), on);
+			}
+			var keys = com.toast.aurapoints.ability.Loadouts.keySlots(data);
+			for (int i = 0; i < keys.size() && i < KEYS.length; i++) {
+				AuraAbilities.Ability a = keys.get(i);
+				boolean sel = picked == i;
+				slots[KEYS[i]] = icon(sel ? Items.ENCHANTED_BOOK : Items.BOOK, text("Ability " + (i + 1) + ": " + a.displayName, sel ? ChatFormatting.GOLD : ChatFormatting.WHITE),
+						List.of(text(sel ? "Now click another key to swap" : "Click, then another key: swap them", ChatFormatting.YELLOW)), sel);
+				String sneakName = com.toast.aurapoints.ability.Casts.variantName(a, data.aura, com.toast.aurapoints.ability.CastMode.SNEAK);
+				if (sneakName == null) continue;
+				boolean swapped = com.toast.aurapoints.ability.Loadouts.swapped(data, a);
+				slots[CASTS[i]] = icon(swapped ? Items.REDSTONE_TORCH : Items.LEVER, text(swapped ? "Casts swapped" : "Casts normal", swapped ? ChatFormatting.LIGHT_PURPLE : ChatFormatting.GRAY), List.of(
+						text("Tap: " + (swapped ? sneakName : a.displayName), ChatFormatting.WHITE),
+						text("Sneak + key: " + (swapped ? a.displayName : sneakName), ChatFormatting.WHITE),
+						text("Click: swap them", ChatFormatting.YELLOW)), swapped);
+			}
+			slots[44] = icon(Items.BARRIER, text("Reset keys and casts", ChatFormatting.RED), List.of(
+					text("Back to the aura's own order.", ChatFormatting.GRAY)), false);
+			bar(slots, true);
+		}
+
+		@Override
+		void click(ServerPlayer player, AuraPlayerData data, int slot) {
+			if (barClick(player, slot) || data.aura == null) return;
+			for (int i = 0; i < PRESETS.length; i++) {
+				if (PRESETS[i] == slot) {
+					run(player, "aura loadout use " + (i + 1));
+					return;
+				}
+			}
+			for (int i = 0; i < KEYS.length; i++) {
+				if (KEYS[i] != slot || i >= com.toast.aurapoints.ability.Loadouts.keySlots(data).size()) continue;
+				if (picked < 0) picked = i;
+				else {
+					if (picked != i) run(player, "aura loadout swap " + (picked + 1) + " " + (i + 1));
+					picked = -1;
+				}
+				return;
+			}
+			for (int i = 0; i < CASTS.length; i++) {
+				if (CASTS[i] == slot) {
+					run(player, "aura loadout cast " + (i + 1));
+					return;
+				}
+			}
+			if (slot == 44) {
+				run(player, "aura loadout reset");
+			}
+		}
+
 	}
 
 	/** The Training Hall's daily challenge cards (arena/TrainerCards) and what the trainer does. */

@@ -72,6 +72,9 @@ public class AuraPlayerData {
 	public final java.util.Set<AuraType> altarUnlocked = java.util.EnumSet.noneOf(AuraType.class);
 	/** Auras whose Aura Trial (arena/AuraTrial) this player finished at least once (retakes are always open). */
 	public final java.util.Set<AuraType> trialDone = java.util.EnumSet.noneOf(AuraType.class);
+	/** Loadout presets per aura (5.38.0, ability/Loadouts) and which one is on. */
+	public final java.util.Map<AuraType, java.util.List<LoadoutPreset>> loadouts = new java.util.EnumMap<>(AuraType.class);
+	public final java.util.Map<AuraType, Integer> activeLoadout = new java.util.EnumMap<>(AuraType.class);
 	/** Training Hall challenge cards (5.37.0): the day (epoch day) and aura id they were rolled for, and which of the three are done (bits). */
 	public long trainerDay = Long.MIN_VALUE;
 	public String trainerAura = "";
@@ -192,6 +195,17 @@ public class AuraPlayerData {
 		weekly.putInt("completed", weeklyCompleted);
 		weekly.putInt("fullWeeks", weeklyFullWeeks);
 		nbt.put("weekly", weekly);
+		CompoundTag lo = new CompoundTag();
+		for (var e : loadouts.entrySet()) {
+			if (e.getValue().isEmpty()) continue;
+			CompoundTag one = new CompoundTag();
+			net.minecraft.nbt.ListTag list = new net.minecraft.nbt.ListTag();
+			for (LoadoutPreset p : e.getValue()) list.add(p.write());
+			one.put("presets", list);
+			one.putInt("active", activeLoadout.getOrDefault(e.getKey(), 0));
+			lo.put(e.getKey().name(), one);
+		}
+		nbt.put("loadouts", lo);
 		return nbt;
 	}
 
@@ -316,6 +330,18 @@ public class AuraPlayerData {
 			data.branches.put(AuraType.SHADOW, com.toast.aurapoints.ability.Branch.DARK);
 			data.mastery.merge(AuraType.SHADOW, 5, Math::max);
 			data.rolled.add(AuraType.SHADOW);
+		}
+		CompoundTag lo = nbt.getCompound("loadouts");
+		for (String key : lo.getAllKeys()) {
+			AuraType a = parseAura(key, new boolean[1]);
+			if (a == null) continue;
+			CompoundTag one = lo.getCompound(key);
+			var list = one.getList("presets", net.minecraft.nbt.Tag.TAG_COMPOUND);
+			java.util.List<LoadoutPreset> presets = new java.util.ArrayList<>();
+			for (int i = 0; i < list.size(); i++) presets.add(LoadoutPreset.read(list.getCompound(i)));
+			if (presets.isEmpty()) continue;
+			data.loadouts.put(a, presets);
+			data.activeLoadout.put(a, one.getInt("active"));
 		}
 		return data;
 	}
