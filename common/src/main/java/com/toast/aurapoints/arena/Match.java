@@ -99,6 +99,11 @@ public final class Match {
 		Waves.Modifier mod = Waves.Modifier.NONE;
 		/** WAVES: the break after a boss wave, when players may switch aura (WaveAuras). */
 		boolean auraSwitch;
+		/** WAVES: paused (5.42.1) - who did it, since when, and where each standing player is held (pos, then yaw/pitch). */
+		boolean paused;
+		String pausedBy = "";
+		long pausedAt;
+		final Map<UUID, Vec3[]> held = new HashMap<>();
 
 		Game(Mode mode, ServerPlayer host, long now) {
 			this.mode = mode;
@@ -365,6 +370,10 @@ public final class Match {
 		}
 		ServerLevel arena = Arena.level(server);
 		if (arena == null) return;
+		if (g.paused) {
+			holdPaused(server, arena, g);
+			return;
+		}
 		g.ticks--;
 		switch (g.phase) {
 			case COUNTDOWN -> {
@@ -456,7 +465,7 @@ public final class Match {
 	private static String standing(Game g) {
 		int alive = 0;
 		for (UUID id : g.players.keySet()) if (g.alive(id)) alive++;
-		if (g.mode == Mode.WAVES) return g.run == null ? alive + " in" : "wave " + g.run.wave + " · " + g.run.left() + " left · " + alive + " standing";
+		if (g.mode == Mode.WAVES) return g.run == null ? alive + " in" : (g.paused ? "paused · " : "") + "wave " + g.run.wave + " · " + g.run.left() + " left · " + alive + " standing";
 		if (g.mode == Mode.TEAMS) return "Red " + g.wins[0] + " – " + g.wins[1] + " Blue · " + alive + " standing";
 		return "Round " + Math.min(g.round, g.rounds) + "/" + g.rounds + " · " + alive + " standing";
 	}
@@ -510,15 +519,75 @@ public final class Match {
 		}
 	}
 
-	/** Everyone down at once (or gone): the run is over. Score = the last wave cleared. */
-	private static void finishWaves(MinecraftServer server, Game g) {
+	/**
+	 * /aura match pause (5.42.1): the host or an owner freezes a running Wave Survival - wave mobs, shots in the
+	 * air, the standing players and every timer (wave, break, twist vote) - and runs it again to go on.
+	 */
+	public static int pause(ServerPlayer player, boolean owner) {
+		Game g = current;
+		if (g == null || g.mode != Mode.WAVES || g.phase == Phase.LOBBY || g.run == null) return fail(player, "There's no Wave Survival run to pause.");
+		if (!owner && !g.host.equals(player.getUUID())) return fail(player, "Only the host (" + g.players.get(g.host) + ") can pause the run.");
+		setPaused(player.getServer(), g, !g.paused, player.getGameProfile().getName());
+		return 1;
+	}
+
+	private static void setPaused(MinecraftServer server, Game g, boolean on, String by) {
+		if (g.paused == on) return;
+		ServerLevel arena = Arena.level(server);
+		g.paused = on;
+		g.held.clear();
+		Waves.freeze(arena, g.run, on);
+		if (on) {
+			g.pausedBy = by;
+			g.pausedAt = server.getTickCount();
+		} else {
+			g.run.waveStarted += server.getTickCount() - g.pausedAt; // the glow-the-last-ones timer doesn't count the pause
+		}
+		if (by == null) return;
+		Component msg = on ? Component.literal("⏸ " + by + " paused the run.").withStyle(ChatFormatting.YELLOW)
+				: Component.literal("▶ " + by + " resumed the run.").withStyle(ChatFormatting.GREEN);
+		toPlayers(server, g, msg);
+		for (ServerPlayer p : online(server, g, false)) {
+			ArenaFx.title(p, Component.literal(on ? "PAUSED" : "GO!").withStyle(on ? ChatFormatting.YELLOW : ChatFormatting.GREEN, ChatFormatting.BOLD), Component.empty());
+			AuraFx.sound(p.serverLevel(), p, on ? SoundEvents.NOTE_BLOCK_BASS.value() : SoundEvents.NOTE_BLOCK_BELL.value(), 1f, on ? 0.7f : 1.4f);
+		}
+	}
+
+	/** Each tick while paused: standing players stay put, the mobs stay frozen, a reminder on the action bar. */
+	private static void holdPaused(MinecraftServer server, ServerLevel arena, Game g) {
+		for (ServerPlayer p : online(server, g, true)) {
+			Vec3[] h = g.held.computeIfAbsent(p.getUUID(), k -> new Vec3[]{p.position(), new Vec3(p.getYRot(), p.getXRot(), 0)});
+			if (p.level() != arena || p.position().distanceToSqr(h[0]) > 0.01) p.teleportTo(arena, h[0].x, h[0].y, h[0].z, p.getYRot(), p.getXRot());
+			p.setDeltaMovement(Vec3.ZERO);
+			p.hurtMarked = true;
+			p.fallDistance = 0;
+		}
+		Waves.holdFrozen(arena, g.run);
+		if (server.getTickCount() % 20 == 0) {
+			Component bar = Component.literal("⏸ Paused by " + g.pausedBy + " · /aura match pause to go on").withStyle(ChatFormatting.YELLOW);
+			for (ServerPlayer p : online(server, g, false)) p.displayClientMessage(bar, true);
+		}
+	}
+
+	/** Paused state for dev tests: "paused=true held=2". */
+	static String debugPause() {
+		Game g = current;
+		return g == null ? "none" : "paused=" + g.paused + " held=" + g.held.size();
+	}
+
+	/**
+	 * Everyone down at once (or gone): the run is over. Score = the last wave cleared. {@code abandoned} = the last one
+	 * standing left (/aura leave, left the arena, logged out): nothing goes on the record boards and nothing is broadcast.
+	 */
+	private static void finishWaves(MinecraftServer server, Game g, boolean abandoned) {
+		if (g.paused) setPaused(server, g, false, null);
 		current = null;
 		RingPillars.stop();
 		Spectate.duelOver(server);
 		ServerLevel arena = Arena.level(server);
 		int cleared = g.run == null ? 0 : g.phase == Phase.BREAK ? g.run.wave : g.run.wave - 1;
 		Waves.cleanup(arena, g.run);
-		boolean record = Waves.record(server, cleared, g.players, g.mod, WaveTwists.hardTaken(g.run));
+		boolean record = !abandoned && Waves.record(server, cleared, g.players, g.mod, WaveTwists.hardTaken(g.run));
 		for (UUID id : g.players.keySet()) {
 			ServerPlayer p = player(server, id);
 			if (p == null) continue;
@@ -526,12 +595,16 @@ public final class Match {
 			WaveAuras.restore(p);
 			WaveTwists.restore(p);
 			int earned = g.run == null ? 0 : g.run.earned.getOrDefault(id, 0);
-			ArenaFx.title(p, Component.literal(cleared > 0 ? "WAVE " + cleared + " CLEARED" : "OVERRUN").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
+			ArenaFx.title(p, Component.literal(abandoned ? "RUN ABANDONED" : cleared > 0 ? "WAVE " + cleared + " CLEARED" : "OVERRUN").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
 					Component.literal((earned > 0 ? "+" + earned + " Aura this run" : "No wave cleared") + (record ? " · new record!" : "")).withStyle(ChatFormatting.YELLOW));
 			com.toast.aurapoints.cosmetic.Cosmetics.checkEarned(p);
 			AuraFx.later(server, 100, () -> {
 				if (AuraFx.alive(p) && Arena.in(p) && !isIn(p) && !Duel.isIn(p)) Arena.toLobby(p);
 			});
+		}
+		if (abandoned) {
+			toPlayers(server, g, Component.literal("The Wave Survival run was abandoned (the last one standing left): no record is saved.").withStyle(ChatFormatting.GRAY));
+			return;
 		}
 		if (arena != null && cleared > 0) ArenaFx.victory(arena, 0xFFC83D);
 		if (arena != null) Holograms.updateBoards(arena);
@@ -695,7 +768,7 @@ public final class Match {
 			boolean anyone = false;
 			for (UUID id : g.players.keySet()) if (g.alive(id) && player(server, id) != null) anyone = true;
 			if (!anyone) {
-				finishWaves(server, g);
+				finishWaves(server, g, false);
 				return true;
 			}
 			ArenaFx.title(loser, Component.literal("Knocked out").withStyle(ChatFormatting.RED, ChatFormatting.BOLD), Component.literal("Back in when this wave is cleared").withStyle(ChatFormatting.GRAY));
@@ -808,7 +881,11 @@ public final class Match {
 			if (g.run != null && g.run.bar != null) g.run.bar.removePlayer(quitter);
 			boolean anyone = false;
 			for (UUID id : g.players.keySet()) if (g.alive(id) && player(server, id) != null) anyone = true;
-			if (!anyone && (g.phase == Phase.FIGHT || g.players.isEmpty())) finishWaves(server, g);
+			if (!anyone && (g.phase == Phase.FIGHT || g.players.isEmpty())) {
+				// the last one standing quit: the run is abandoned, not overrun - no record (5.42.1)
+				quitter.sendSystemMessage(Component.literal("You left the Wave Survival run: it isn't saved as a record.").withStyle(ChatFormatting.GRAY));
+				finishWaves(server, g, true);
+			}
 			return;
 		}
 		// whole sides that are gone for good
@@ -825,6 +902,7 @@ public final class Match {
 	public static int stop(MinecraftServer server) {
 		Game g = current;
 		if (g == null) return 0;
+		if (g.paused) setPaused(server, g, false, null);
 		current = null;
 		RingPillars.stop();
 		if (g.run != null) Waves.cleanup(Arena.level(server), g.run);
@@ -886,13 +964,13 @@ public final class Match {
 	/** Waiting for "FIGHT!", knocked out, or between rounds: no abilities. */
 	public static boolean holdsStill(ServerPlayer player) {
 		Game g = current;
-		return isIn(player) && (g.phase != Phase.FIGHT || !g.alive(player.getUUID()));
+		return isIn(player) && (g.paused || g.phase != Phase.FIGHT || !g.alive(player.getUUID()));
 	}
 
 	/** May {@code attacker} (null = no one) hurt this player? Mid-fight only, never a teammate or someone who's out. */
 	static boolean canBeHurt(ServerPlayer victim, Entity attacker) {
 		Game g = current;
-		if (g == null || g.phase != Phase.FIGHT || !g.alive(victim.getUUID())) return false;
+		if (g == null || g.paused || g.phase != Phase.FIGHT || !g.alive(victim.getUUID())) return false;
 		if (!(attacker instanceof ServerPlayer a)) return true;
 		if (!g.alive(a.getUUID())) return false;
 		if (g.mode == Mode.WAVES) return false; // everyone in a Wave Survival run is on one side

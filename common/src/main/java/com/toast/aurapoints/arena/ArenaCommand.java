@@ -127,6 +127,7 @@ public final class ArenaCommand {
 								})
 								.executes(ctx -> Match.switchAura(ctx.getSource().getPlayerOrException(),
 										com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "aura")))))
+						.then(Commands.literal("pause").executes(ctx -> Match.pause(ctx.getSource().getPlayerOrException(), owner(ctx.getSource()))))
 						.then(Commands.literal("twist").then(Commands.argument("n", com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 3))
 								.executes(ctx -> Match.voteTwist(ctx.getSource().getPlayerOrException(),
 										com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(ctx, "n")))))

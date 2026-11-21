@@ -142,6 +142,8 @@ public final class Waves {
 		final Map<UUID, Integer> earned = new HashMap<>();
 		/** The twists voted in so far (5.15.0). */
 		final WaveTwists.State twists = new WaveTwists.State();
+		/** Paused (5.42.1): projectiles held in the air -> their speed and gravity before. */
+		final Map<Entity, Object[]> heldShots = new HashMap<>();
 
 		Run(long seed) {
 			this.seed = seed;
@@ -578,6 +580,72 @@ public final class Waves {
 			out.merge(EntityType.getKey(m.getType()).getPath() + (m.isAlive() ? "" : "(dead)") + (m.isRemoved() ? "(removed)" : ""), 1, Integer::sum);
 		}
 		return out.toString();
+	}
+
+	private static AABB ringBox() {
+		return new AABB(-Arena.RING_R - 4, Arena.RING_FLOOR - 4, Arena.RING_Z - Arena.RING_R - 4,
+				Arena.RING_R + 4, Arena.FLOOR + 30, Arena.RING_Z + Arena.RING_R + 4);
+	}
+
+	/**
+	 * Pause (5.42.1): every wave mob in the ring stops (no AI, can't be hurt, creepers stop swelling) and the
+	 * projectiles in flight hang where they are; {@code false} lets it all go again.
+	 */
+	static void freeze(ServerLevel arena, Run run, boolean on) {
+		if (arena == null) return;
+		for (Mob m : runMobs(arena, run)) {
+			m.setNoAi(on);
+			m.setInvulnerable(on);
+			if (on) {
+				m.setDeltaMovement(Vec3.ZERO);
+				if (m instanceof net.minecraft.world.entity.monster.Creeper c) c.setSwellDir(-1);
+			}
+		}
+		if (on) {
+			freezeNewShots(arena, run);
+		} else {
+			for (var e : run.heldShots.entrySet()) {
+				Entity shot = e.getKey();
+				if (shot.isRemoved()) continue;
+				shot.setDeltaMovement((Vec3) e.getValue()[0]);
+				shot.setNoGravity((Boolean) e.getValue()[1]);
+				shot.hurtMarked = true;
+			}
+			run.heldShots.clear();
+		}
+	}
+
+	/** While paused: what still moves (pushed mobs, shots fired the tick it began) is stopped again. */
+	static void holdFrozen(ServerLevel arena, Run run) {
+		if (arena == null) return;
+		for (Mob m : runMobs(arena, run)) {
+			if (!m.isNoAi()) {
+				m.setNoAi(true);
+				m.setInvulnerable(true);
+			}
+			Vec3 v = m.getDeltaMovement();
+			if (v.x != 0 || v.z != 0 || v.y > 0) m.setDeltaMovement(0, Math.min(0, v.y), 0);
+		}
+		for (var e : run.heldShots.keySet()) if (!e.isRemoved()) e.setDeltaMovement(Vec3.ZERO);
+		freezeNewShots(arena, run);
+	}
+
+	/** The run's mobs (counted, extras, boss) plus any other wave mob in the ring - a fresh one may still be at a gate. */
+	private static Set<Mob> runMobs(ServerLevel arena, Run run) {
+		Set<Mob> all = new HashSet<>(arena.getEntitiesOfClass(Mob.class, ringBox(), Waves::isWaveMob));
+		all.addAll(run.alive);
+		all.addAll(run.extras);
+		if (run.boss != null) all.add(run.boss);
+		all.removeIf(Entity::isRemoved);
+		return all;
+	}
+
+	private static void freezeNewShots(ServerLevel arena, Run run) {
+		for (var shot : arena.getEntitiesOfClass(net.minecraft.world.entity.projectile.Projectile.class, ringBox(), e -> !run.heldShots.containsKey(e))) {
+			run.heldShots.put(shot, new Object[]{shot.getDeltaMovement(), shot.isNoGravity()});
+			shot.setDeltaMovement(Vec3.ZERO);
+			shot.setNoGravity(true);
+		}
 	}
 
 	static void clearAll() {

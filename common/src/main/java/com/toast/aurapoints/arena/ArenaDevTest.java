@@ -177,9 +177,19 @@ public final class ArenaDevTest {
 				log("wave 1 under way: " + Match.debugState() + ", spawned " + run.alive.size() + ", in ring " + Waves.devCountInRing(arena)
 						+ ", cooldown 100 -> " + Waves.cooldown(ps[0], 100) + " (must be 50), held " + Duel.holdsStill(ps[0]));
 				log("late join mid-wave: " + Match.join(ps[1]) + " (must be 0)");
-				Waves.devClear(run);
+				// pause (5.42.1): only the host, mobs frozen and unhurtable, players held, nothing spawns or ends
+				log("pause by a non-host: " + Match.pause(ps[1], false) + " (must be 0), by the host: " + Match.pause(ps[0], false) + " (must be 1) -> " + Match.debugPause());
+				var m0 = run.alive.isEmpty() ? null : run.alive.get(0);
+				log("paused: mob frozen=" + (m0 != null && m0.isNoAi()) + " (must be true), mob unhurtable=" + (m0 != null && m0.isInvulnerableTo(arena.damageSources().playerAttack(ps[0])))
+						+ " (must be true), W1 held=" + Duel.holdsStill(ps[0]) + " (must be true), W1 hurt blocked=" + Arena.blocksDamage(ps[0], arena.damageSources().generic()) + " (must be true)");
+				int left = run.left();
+				AuraFx.later(server, 15, () -> {
+					log("15 ticks paused: left the same=" + (run.left() == left) + " (must be true), " + Match.debugState());
+					log("resume: " + Match.pause(ps[0], false) + " (must be 1) -> " + Match.debugPause() + ", mob moving again=" + (m0 != null && !m0.isNoAi()) + " (must be true), W1 held=" + Duel.holdsStill(ps[0]) + " (must be false)");
+					Waves.devClear(run);
+				});
 			});
-			t += 5;
+			t += 20;
 			AuraFx.later(server, t, () -> {
 				log("cleared: " + Match.debugState() + ", W1 aura " + aura0 + " -> " + com.toast.aurapoints.AuraCurrency.get(ps[0]) + " (must be +" + com.toast.aurapoints.config.AuraConfig.WAVES_AURA_PER_WAVE + ")");
 				log("late join in the break: " + Match.join(ps[1]) + " (must be 1) -> " + Match.debugState());
@@ -232,6 +242,36 @@ public final class ArenaDevTest {
 						+ (rec == null ? "none" : rec.best + " with " + rec.party) + " (must be 5.0), W1 aura " + aura0 + " -> " + com.toast.aurapoints.AuraCurrency.get(ps[0]));
 				var d1 = state.getOrCreate(ps[0].getUUID());
 				log("W1 after the run: aura " + d1.aura + " real " + d1.arenaRealAura + " (must be FIRE / null)");
+				Duel.TEST_PLAYERS.clear();
+			});
+			return 1;
+		})).then(Commands.literal("wavequit").executes(ctx -> {
+			// /auradev wavequit (5.42.1): a duo, W1 knocked out, then the last one standing (W2) leaves - the run is
+			// abandoned: no record on either board for anyone
+			MinecraftServer server = ctx.getSource().getServer();
+			ServerLevel arena = Arena.level(server);
+			if (arena == null) return 0;
+			AuraState state = AuraState.get(server);
+			net.minecraft.server.level.ServerPlayer[] ps = new net.minecraft.server.level.ServerPlayer[2];
+			for (int i = 0; i < 2; i++) {
+				ps[i] = FakePlayerFactory.get(arena, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000e0" + (30 + i)), "Q" + (i + 1)));
+				state.getOrCreate(ps[i].getUUID()).aura = i == 0 ? AuraType.FIRE : AuraType.WATER;
+				Duel.TEST_PLAYERS.put(ps[i].getUUID(), ps[i]);
+				ps[i].moveTo(Arena.LOBBY.x + i, Arena.LOBBY.y, Arena.LOBBY.z);
+			}
+			java.util.function.Function<UUID, String> recs = id -> {
+				var solo = state.waveRecords.get(id);
+				var party = state.partyWaveRecords.get(id);
+				return "solo " + (solo == null ? "-" : solo.wins + "/" + solo.best) + " party " + (party == null ? "-" : party.wins + "/" + party.best);
+			};
+			String q1 = recs.apply(ps[0].getUUID()), q2 = recs.apply(ps[1].getUUID());
+			log("quit create " + Match.create(ps[0], Match.Mode.WAVES) + " join " + Match.join(ps[1]) + " start " + Match.start(ps[0]));
+			int t = Math.max(1, com.toast.aurapoints.config.AuraConfig.DUEL_COUNTDOWN_SECONDS) * 20 + 30;
+			AuraFx.later(server, t, () -> {
+				Match.devRun().wave = 4; // 3 waves cleared, as far as a record goes
+				log("quit: Q1 knocked out " + Arena.catchLethal(ps[0], arena.damageSources().generic(), 500f) + ", Q2 leaves " + Match.leave(ps[1]) + " -> " + Match.debugState() + " (must be none)");
+				log("quit: Q1 records unchanged " + q1.equals(recs.apply(ps[0].getUUID())) + " (must be true), Q2 records unchanged " + q2.equals(recs.apply(ps[1].getUUID()))
+						+ " (must be true), wave mobs left " + Waves.devCountInRing(arena) + " (must be 0)");
 				Duel.TEST_PLAYERS.clear();
 			});
 			return 1;
