@@ -9,6 +9,7 @@ import com.toast.aurapoints.network.StormPacket;
 import com.toast.aurapoints.shim.neoforge.network.PacketDistributor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -35,6 +36,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -107,6 +109,8 @@ public final class Storms {
 	static final List<Storm> STORMS = new ArrayList<>();
 	/** player -> the storm id they were in last second (for the "you enter" line). */
 	private static final Map<UUID, Integer> INSIDE = new HashMap<>();
+	/** Blizzard: who is frosting over (refreshed every second, held every tick against the vanilla thaw). */
+	private static final Set<LivingEntity> FROSTING = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
 	/** player -> the storm list last sent to their client (unchanged lists aren't sent again). */
 	private static final Map<UUID, String> SENT = new HashMap<>();
 
@@ -197,6 +201,7 @@ public final class Storms {
 		ServerLevel level = server.overworld();
 		long now = level.getGameTime();
 		if (!AuraConfig.STORM_ENABLED) {
+			FROSTING.clear();
 			if (!STORMS.isEmpty() && now % 20 == 0) {
 				STORMS.clear();
 				dirty(server);
@@ -204,7 +209,9 @@ public final class Storms {
 			}
 			return;
 		}
+		frost(now);
 		if (now % 20 != 0) return;
+		FROSTING.clear();
 		AuraState state = AuraState.get(server);
 		boolean changed = false;
 		// move, end
@@ -305,9 +312,10 @@ public final class Storms {
 				}
 			}
 			case BLIZZARD -> {
-				// freezing builds slowly but never reaches the damage point
+				// frosting over (held each tick in frost()); a few flakes so others see it too
 				for (LivingEntity e : around(level, p, 24)) {
-					if (e.canFreeze()) e.setTicksFrozen(Math.min(AuraConfig.STORM_FREEZE_CAP, e.getTicksFrozen() + 4));
+					if (!e.canFreeze() || !FROSTING.add(e) || e.getTicksFrozen() < 40) continue;
+					level.sendParticles(ParticleTypes.SNOWFLAKE, e.getX(), e.getY() + e.getBbHeight() * 0.6, e.getZ(), 3, e.getBbWidth() * 0.4, e.getBbHeight() * 0.3, e.getBbWidth() * 0.4, 0.01);
 				}
 			}
 			case HEAT_HAZE -> {
@@ -343,6 +351,21 @@ public final class Storms {
 			}
 			default -> {
 			}
+		}
+	}
+
+	/**
+	 * Blizzard frost, every tick: vanilla thaws 2 a tick outside powder snow, so +2 holds it and an
+	 * extra +1 every other tick builds it up to STORM_FREEZE_CAP (~10 s from nothing to 100). Never
+	 * lowers a freeze that is already past the cap (powder snow, Ice Spike).
+	 */
+	private static void frost(long now) {
+		if (FROSTING.isEmpty()) return;
+		int add = now % 2 == 0 ? 3 : 2;
+		for (LivingEntity e : FROSTING) {
+			if (e.isRemoved() || !e.isAlive() || !e.canFreeze()) continue;
+			int t = e.getTicksFrozen();
+			if (t < AuraConfig.STORM_FREEZE_CAP) e.setTicksFrozen(Math.min(AuraConfig.STORM_FREEZE_CAP, t + add));
 		}
 	}
 
@@ -446,5 +469,6 @@ public final class Storms {
 		STORMS.clear();
 		INSIDE.clear();
 		SENT.clear();
+		FROSTING.clear();
 	}
 }

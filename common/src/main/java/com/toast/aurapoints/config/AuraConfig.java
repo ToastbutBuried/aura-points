@@ -1712,7 +1712,7 @@ public final class AuraConfig {
 	public static double STORM_COOLDOWN_CUT = 0.10;
 	/** Thunderhead: chance per second per player of a harmless bolt nearby. */
 	public static double STORM_LIGHTNING_CHANCE = 0.03;
-	/** Blizzard: freeze ticks build up to this cap (140 = freezing damage starts, so keep it under). */
+	/** Blizzard: freeze ticks build up to this cap, about +10 a second (140 = freezing damage starts, so keep it under). */
 	public static int STORM_FREEZE_CAP = 100;
 	/** Gale: sideways push per second along the storm's drift. */
 	public static double STORM_GALE_PUSH = 0.12;
