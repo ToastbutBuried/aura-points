@@ -84,6 +84,15 @@ public final class RiftDevTest {
 				log("lethal hit caught " + caught + " (must be true): " + Rifts.devState(fake) + " (must be down 1, done true: the only player is down)");
 				AuraFx.later(server, 120, () -> {
 					log("after the fail: " + Rifts.devState(fake) + " (must be no run)");
+					// out by /tp or a home command: out of the run, game mode from before back
+					Rifts.open(server, AuraType.FROST, null, new Vec3(0.5, 120, 0.5));
+					fake.setGameMode(net.minecraft.world.level.GameType.SURVIVAL); // was a spectator from the knockout
+					Rifts.devEnter(server, fake);
+					fake.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);
+					Rifts.onChangedDimension(fake, Rifts.KEY, net.minecraft.world.level.Level.OVERWORLD);
+					log("teleported out: " + Rifts.devState(fake) + " (must be no run), mode " + fake.gameMode.getGameModeForPlayer().getName()
+							+ " (must be survival), return point " + (data.riftReturn != null) + " (must be false)");
+					Rifts.clearAll();
 					Rifts.TEST_PLAYERS.clear();
 					data.aura = null;
 					log("rifttest done");

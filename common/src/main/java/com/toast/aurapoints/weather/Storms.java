@@ -118,6 +118,11 @@ public final class Storms {
 		return List.copyOf(STORMS);
 	}
 
+	/** Dev test: as if a Blizzard scan this second found the entity. */
+	public static void devFrost(LivingEntity e) {
+		FROSTING.add(e);
+	}
+
 	/** Dev test: a storm as given. */
 	public static void devAdd(Storm s) {
 		STORMS.add(s);

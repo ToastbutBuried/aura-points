@@ -54,6 +54,13 @@ public final class ShrineDevTest {
 			Shrines.TEST_PLAYERS.put(rival.getUUID(), rival);
 			var s = Shrines.place(level, core, true, null);
 			try {
+				// a ruin never lands on someone's build
+				BlockPos chestAt = new BlockPos(core.getX() + 60, core.getY(), core.getZ());
+				boolean bare = Shrines.lived(level, chestAt);
+				level.setBlock(chestAt.offset(3, 1, -2), Blocks.CHEST.defaultBlockState(), 2);
+				boolean withChest = Shrines.lived(level, chestAt);
+				level.setBlock(chestAt.offset(3, 1, -2), Blocks.AIR.defaultBlockState(), 2);
+				log("site check: bare ground lived " + bare + " (must be false unless this dev chunk was played in), with a chest " + withChest + " (must be true)");
 				log("placed ruined: core " + level.getBlockState(core).getBlock() + " (must be chiseled stone bricks), ruined " + s.ruined);
 				Shrines.devRepair(level, owner, s);
 				log("repair without materials: ruined " + s.ruined + " (must be true)");

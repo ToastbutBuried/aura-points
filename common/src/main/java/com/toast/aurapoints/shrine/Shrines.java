@@ -189,7 +189,7 @@ public final class Shrines {
 	 * builds and farms), or any block with a block entity (chest, furnace, sign, bed...) in the space
 	 * {@link #build} clears or fills.
 	 */
-	static boolean lived(ServerLevel level, BlockPos core) {
+	public static boolean lived(ServerLevel level, BlockPos core) {
 		for (int dx = -4; dx <= 4; dx += 8) {
 			for (int dz = -4; dz <= 4; dz += 8) {
 				if (level.getChunkAt(core.offset(dx, 0, dz)).getInhabitedTime() > LIVED_TICKS) return true;

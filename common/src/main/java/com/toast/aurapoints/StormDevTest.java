@@ -17,6 +17,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.entity.monster.Zombie;
 
 import java.util.UUID;
@@ -36,6 +37,48 @@ public final class StormDevTest {
 	}
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+		// /auradev frosttest: Blizzard frost builds against the vanilla thaw and stops at the cap
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("frosttest").executes(ctx -> {
+			MinecraftServer server = ctx.getSource().getServer();
+			ServerLevel level = server.overworld();
+			boolean enabledWas = AuraConfig.STORM_ENABLED;
+			AuraConfig.STORM_ENABLED = true;
+			int cx = 3100 >> 4;
+			level.setChunkForced(cx, cx, true);
+			Pig held = EntityType.PIG.create(level), loose = EntityType.PIG.create(level), deep = EntityType.PIG.create(level); // pigs: zombies burn by day, and fire thaws
+			for (Pig zb : new Pig[]{held, loose, deep}) {
+				zb.moveTo(3100, 200, 3100, 0, 0);
+				zb.setNoAi(true);
+				zb.setNoGravity(true);
+				zb.setPersistenceRequired();
+				level.addFreshEntity(zb);
+			}
+			loose.setTicksFrozen(100);
+			deep.setTicksFrozen(AuraConfig.STORM_FREEZE_CAP + 30);
+			int[] t = {0};
+			int[] seen = new int[2];
+			Runnable[] step = new Runnable[1];
+			step[0] = () -> {
+				Storms.devFrost(held);
+				Storms.devFrost(deep);
+				if (t[0] == 100) seen[0] = held.getTicksFrozen();
+				if (t[0] == 0) seen[1] = deep.getTicksFrozen();
+				t[0]++;
+				if (t[0] <= 260) {
+					com.toast.aurapoints.ability.AuraFx.later(server, 1, step[0]);
+					return;
+				}
+				log("frost: held after 5 s " + seen[0] + " (must be 40-70), after 13 s " + held.getTicksFrozen() + " (must be " + (AuraConfig.STORM_FREEZE_CAP - 2) + "-" + AuraConfig.STORM_FREEZE_CAP
+						+ ": the cap, less the last thaw), over the cap at start " + seen[1] + " (must be " + (AuraConfig.STORM_FREEZE_CAP + 30) + ", not lowered), now " + deep.getTicksFrozen()
+						+ " (must be " + (AuraConfig.STORM_FREEZE_CAP - 2) + "-" + AuraConfig.STORM_FREEZE_CAP + "), not held " + loose.getTicksFrozen() + " (must be 0: vanilla thaw)");
+				for (Pig zb : new Pig[]{held, loose, deep}) zb.discard();
+				level.setChunkForced(cx, cx, false);
+				AuraConfig.STORM_ENABLED = enabledWas;
+				log("frosttest done");
+			};
+			step[0].run();
+			return 1;
+		})));
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("stormtest").executes(ctx -> {
 			MinecraftServer server = ctx.getSource().getServer();
 			ServerLevel level = server.overworld();
