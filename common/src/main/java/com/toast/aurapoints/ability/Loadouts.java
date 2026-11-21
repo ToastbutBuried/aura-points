@@ -158,6 +158,13 @@ public final class Loadouts {
 		while (list.size() < n) list.add(from.copy("Loadout " + (list.size() + 1)));
 		data.activeLoadout.put(data.aura, n - 1);
 		LAST_SWAP.put(player.getUUID(), now);
+		// its relic set, if it has one (5.40)
+		List<AuraType> set = new ArrayList<>();
+		for (String id : list.get(n - 1).relics) {
+			AuraType a = AuraType.byId(id);
+			if (a != null) set.add(a);
+		}
+		if (!set.isEmpty()) Relics.applySet(player, set);
 		changed(player, data);
 		player.displayClientMessage(Component.literal("Loadout: " + list.get(n - 1).name + "  " + describeKeys(data)).withStyle(ChatFormatting.AQUA), true);
 		AuraFx.sound(player.serverLevel(), player, net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_CHAIN.value(), 0.7f, 1.3f);
@@ -195,6 +202,19 @@ public final class Loadouts {
 		changed(player, data);
 		player.displayClientMessage(Component.literal(on ? a.displayName + ": tap = " + sneakName + ", sneak = the normal cast" : a.displayName + ": casts back to normal")
 				.withStyle(ChatFormatting.AQUA), true);
+		return true;
+	}
+
+	/** Remembers the relics worn now as the active preset's relic set (none worn = forget the set). */
+	public static boolean saveRelics(ServerPlayer player) {
+		AuraPlayerData data = AuraState.get(player.getServer()).getOrCreate(player.getUUID());
+		if (!check(player, data)) return false;
+		LoadoutPreset p = editable(data);
+		p.relics.clear();
+		for (AuraType a : Relics.worn(player)) p.relics.add(a.id());
+		AuraState.get(player.getServer()).markDirty();
+		player.displayClientMessage(Component.literal(p.relics.isEmpty() ? "This loadout no longer changes your relics."
+				: "This loadout puts on: " + String.join(", ", Relics.worn(player).stream().map(Relics::name).toList())).withStyle(ChatFormatting.AQUA), true);
 		return true;
 	}
 
@@ -263,7 +283,7 @@ public final class Loadouts {
 		if (n >= 3) edit.append(button(" [2+3]", "/aura loadout swap 2 3", "Swap the abilities on keys 2 and 3"));
 		edit.append(button(" [Reset]", "/aura loadout reset", "Back to the aura's own keys and casts"));
 		player.sendSystemMessage(edit);
-		player.sendSystemMessage(Component.literal("   /aura loadout cast <key> swaps tap and sneak · /aura loadout name <name>").withStyle(ChatFormatting.DARK_GRAY));
+		player.sendSystemMessage(Component.literal("   /aura loadout cast <key> swaps tap and sneak · /aura loadout relics remembers the relics you wear · /aura loadout name <name>").withStyle(ChatFormatting.DARK_GRAY));
 	}
 
 	private static Component button(String text, String command, String hover) {
@@ -286,6 +306,7 @@ public final class Loadouts {
 						.executes(ctx -> toggleCast(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "key")) ? 1 : 0)))
 				.then(Commands.literal("name").then(Commands.argument("name", StringArgumentType.greedyString())
 						.executes(ctx -> rename(ctx.getSource().getPlayerOrException(), StringArgumentType.getString(ctx, "name")) ? 1 : 0)))
+				.then(Commands.literal("relics").executes(ctx -> saveRelics(ctx.getSource().getPlayerOrException()) ? 1 : 0))
 				.then(Commands.literal("reset").executes(ctx -> reset(ctx.getSource().getPlayerOrException()) ? 1 : 0))));
 	}
 

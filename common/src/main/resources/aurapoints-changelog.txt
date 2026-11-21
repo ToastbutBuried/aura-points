@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.40.0
+- Elemental relics: ten relics, one per aura, found in dungeon and temple chests or bought with Aura (/aura relic, Aura Book). Wear another aura's relic in an accessory slot for a small echo of its passives (two count at once).
+- Loadouts can remember a relic set (/aura loadout relics) and put it on when you switch.
+
 == 5.39.0
 - Local storms: now and then a Thunderhead, Blizzard, Downpour, Heat Haze, Gale, Spore Bloom, Tremor, Aurora, Umbra or Crimson Moon drifts across the world. Inside one, its aura deals +10% damage with 10% shorter cooldowns, and everything inside carries its reaction mark. /aura storm shows where they are.
 

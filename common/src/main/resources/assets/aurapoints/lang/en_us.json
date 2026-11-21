@@ -213,5 +213,15 @@
   "stat.aurapoints.mastery_light": "Light Mastery XP",
   "stat.aurapoints.mastery_blood": "Blood Mastery XP",
   "item.aurapoints.blue_bell": "Blue Bell",
-  "entity.aurapoints.frost_bear": "Frost Bear"
+  "entity.aurapoints.frost_bear": "Frost Bear",
+  "item.aurapoints.relic_fire": "Ember Relic",
+  "item.aurapoints.relic_water": "Tide Relic",
+  "item.aurapoints.relic_wind": "Zephyr Relic",
+  "item.aurapoints.relic_frost": "Rime Relic",
+  "item.aurapoints.relic_verdant": "Thorn Relic",
+  "item.aurapoints.relic_thunder": "Storm Relic",
+  "item.aurapoints.relic_earth": "Bedrock Relic",
+  "item.aurapoints.relic_light": "Halo Relic",
+  "item.aurapoints.relic_shadow": "Dusk Relic",
+  "item.aurapoints.relic_blood": "Vein Relic"
 }

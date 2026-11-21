@@ -506,6 +506,12 @@ public final class AuraBook {
 						text("up to " + AuraConfig.LOADOUT_MAX + " presets.", ChatFormatting.DARK_GRAY),
 						text("Click: edit and switch", ChatFormatting.YELLOW)), false);
 			}
+			if (AuraConfig.RELIC_ENABLED && aura == data.aura) {
+				slots[8] = icon(Items.AMETHYST_CLUSTER, text("Relics", ChatFormatting.LIGHT_PURPLE), List.of(
+						text("Wear another aura's relic for a", ChatFormatting.GRAY),
+						text("small echo of its passives.", ChatFormatting.GRAY),
+						text("Click: all relics, buy one", ChatFormatting.YELLOW)), false);
+			}
 			slots[10] = icon(Items.BLAZE_ROD, text("Actives", ChatFormatting.GOLD), List.of(
 					text("Bought once, used with your keys.", ChatFormatting.GRAY),
 					text("Sneak + key / hold the key: extra casts", ChatFormatting.DARK_AQUA),
@@ -551,6 +557,11 @@ public final class AuraBook {
 			if (barClick(player, slot) || data.aura == null) return;
 			if (slot == 6 && !com.toast.aurapoints.ability.Branch.of(data.aura).isEmpty() && AuraConfig.BRANCHES_ENABLED) {
 				open(player, new BranchPage());
+				return;
+			}
+			if (slot == 8 && AuraConfig.RELIC_ENABLED) {
+				pageSound(player);
+				open(player, new RelicPage());
 				return;
 			}
 			if (slot == 2 && AuraConfig.LOADOUT_ENABLED) {
@@ -973,6 +984,52 @@ public final class AuraBook {
 		@Override
 		void click(ServerPlayer player, AuraPlayerData data, int slot) {
 			barClick(player, slot);
+		}
+	}
+
+	/** Elemental relics (ability/Relics): every relic with its echo, the ones you wear glowing, and a buy button. */
+	static final class RelicPage extends Page {
+		static final int[] SPOTS = {19, 20, 21, 22, 23, 28, 29, 30, 31, 32};
+		static final int BUY = 25, REROLL = 34;
+
+		@Override
+		Component title(ServerPlayer player) {
+			return Component.literal("Relics");
+		}
+
+		@Override
+		void fill(ServerPlayer player, AuraPlayerData data, ItemStack[] slots) {
+			var worn = com.toast.aurapoints.ability.Relics.scan(player);
+			slots[4] = icon(Items.AMETHYST_CLUSTER, text("Elemental relics", ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD), List.of(
+					text("Wear one in an accessory slot (next to", ChatFormatting.GRAY),
+					text("your armor). Up to " + com.toast.aurapoints.ability.Relics.maxEquipped() + " different ones count;", ChatFormatting.GRAY),
+					text("your own aura's relic does nothing.", ChatFormatting.GRAY),
+					text("Found in dungeon and temple chests and rifts.", ChatFormatting.DARK_GRAY)), false);
+			var auras = com.toast.aurapoints.ability.Relics.AURAS;
+			for (int i = 0; i < auras.size() && i < SPOTS.length; i++) {
+				var a = auras.get(i);
+				ItemStack s = com.toast.aurapoints.ability.Relics.stack(a);
+				boolean on = worn.contains(a);
+				List<Component> lore = new ArrayList<>();
+				lore.add(text(com.toast.aurapoints.ability.Relics.describe(a), ChatFormatting.GRAY));
+				if (on) lore.add(text("Wearing it", ChatFormatting.GREEN));
+				else if (a == data.aura) lore.add(text("Your own aura: no effect for you", ChatFormatting.DARK_GRAY));
+				slots[SPOTS[i]] = icon(s.getItem(), text(com.toast.aurapoints.ability.Relics.name(a), a.color), lore, on);
+			}
+			slots[BUY] = icon(Items.EMERALD, text("Buy a random relic", ChatFormatting.GREEN), List.of(
+					text(AuraConfig.RELIC_SHOP_COST + " Aura, never your own aura's.", ChatFormatting.GRAY),
+					text("Click: buy", ChatFormatting.YELLOW)), false);
+			slots[REROLL] = icon(Items.GRINDSTONE, text("Reroll the relic in your hand", ChatFormatting.AQUA), List.of(
+					text(AuraConfig.RELIC_REROLL_COST + " Aura: trade it for a different one.", ChatFormatting.GRAY),
+					text("Click: reroll", ChatFormatting.YELLOW)), false);
+			bar(slots, true);
+		}
+
+		@Override
+		void click(ServerPlayer player, AuraPlayerData data, int slot) {
+			if (barClick(player, slot)) return;
+			if (slot == BUY) run(player, "aura relic buy");
+			else if (slot == REROLL) run(player, "aura relic reroll");
 		}
 	}
 

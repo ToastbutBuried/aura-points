@@ -1722,6 +1722,44 @@ public final class AuraConfig {
 	public static double STORM_UMBRA_SIGHT = 12;
 
 	// ---------------------------------------------------------------
+	// Elemental relics (5.40.0): general
+	// ---------------------------------------------------------------
+
+	/** Relics: worn in an accessory slot, a relic of another aura gives a small echo of its passives (/aura relic). */
+	public static boolean RELIC_ENABLED = true;
+	/** How many different relics count at once. */
+	public static int RELIC_MAX_EQUIPPED = 2;
+	/** Chance that a chest filled from one of RELIC_CHEST_TABLES also holds a relic. */
+	public static double RELIC_CHEST_CHANCE = 0.08;
+	public static String RELIC_CHEST_TABLES = "minecraft:chests/simple_dungeon,minecraft:chests/desert_pyramid,minecraft:chests/jungle_temple,"
+			+ "minecraft:chests/stronghold_corridor,minecraft:chests/ancient_city,minecraft:chests/bastion_treasure,minecraft:chests/end_city_treasure,"
+			+ "minecraft:chests/woodland_mansion,minecraft:chests/abandoned_mineshaft,minecraft:chests/pillager_outpost";
+	/** Buying a random relic, and trading the one in your hand for another. */
+	public static int RELIC_SHOP_COST = 300;
+	public static int RELIC_REROLL_COST = 100;
+	/** Ember (Fire): more damage to targets under this share of their health. */
+	public static double RELIC_EMBER_BONUS = 0.10;
+	public static double RELIC_EMBER_HEALTH = 0.30;
+	/** Tide (Water): less damage taken from attacks. */
+	public static double RELIC_TIDE_REDUCTION = 0.06;
+	/** Zephyr (Wind): less fall damage. */
+	public static double RELIC_ZEPHYR_FALL = 0.40;
+	/** Rime (Frost): more damage to frozen or slowed targets. */
+	public static double RELIC_RIME_BONUS = 0.08;
+	/** Thorn (Verdant): more damage to poisoned targets. */
+	public static double RELIC_THORN_BONUS = 0.12;
+	/** Bedrock (Earth): knockback resistance (1.0 = none at all). */
+	public static double RELIC_BEDROCK_KNOCKBACK = 0.20;
+	/** Halo (Light): heal this much every RELIC_HALO_SECONDS. */
+	public static double RELIC_HALO_HEAL = 1.0;
+	public static int RELIC_HALO_SECONDS = 8;
+	/** Dusk (Shadow): speed in the dark (light 7 or less). */
+	public static double RELIC_DUSK_SPEED = 0.06;
+	/** Vein (Blood): melee hits heal this share of the damage, at most RELIC_VEIN_MAX_HEAL. */
+	public static double RELIC_VEIN_LIFESTEAL = 0.04;
+	public static double RELIC_VEIN_MAX_HEAL = 2.0;
+
+	// ---------------------------------------------------------------
 	// Loadouts (5.38.0): general
 	// ---------------------------------------------------------------
 

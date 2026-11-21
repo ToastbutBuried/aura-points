@@ -3,8 +3,31 @@
   "minVersion": "0.8",
   "package": "com.toast.aurapoints.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": ["EntityMixin", "MobMixin", "InventoryMenuMixin", "AbstractContainerMenuInvoker", "SlotRangesMixin", "PlayerMixin", "DisplayAccessor", "BlockDisplayAccessor", "InteractionAccessor", "ItemDisplayAccessor", "TextDisplayAccessor", "TrackedEntityMixin"],
-  "client": ["AbstractContainerScreenAccessor", "MinecraftMixin", "MouseHandlerMixin", "PlayerRendererMixin", "ClientLevelMixin", "CameraMixin", "ClientPacketListenerMixin", "BlockDisplayRendererMixin"],
+  "mixins": [
+    "EntityMixin",
+    "MobMixin",
+    "InventoryMenuMixin",
+    "AbstractContainerMenuInvoker",
+    "SlotRangesMixin",
+    "PlayerMixin",
+    "DisplayAccessor",
+    "BlockDisplayAccessor",
+    "InteractionAccessor",
+    "ItemDisplayAccessor",
+    "TextDisplayAccessor",
+    "TrackedEntityMixin",
+    "LootTableMixin"
+  ],
+  "client": [
+    "AbstractContainerScreenAccessor",
+    "MinecraftMixin",
+    "MouseHandlerMixin",
+    "PlayerRendererMixin",
+    "ClientLevelMixin",
+    "CameraMixin",
+    "ClientPacketListenerMixin",
+    "BlockDisplayRendererMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

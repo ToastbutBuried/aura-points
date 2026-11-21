@@ -19,6 +19,8 @@ public final class LoadoutPreset {
 	public String name;
 	public final List<Ability> keys = new ArrayList<>();
 	public final EnumSet<Ability> castSwap = EnumSet.noneOf(Ability.class);
+	/** Relics this preset puts on when switched to (5.40), as aura ids; empty = leave them as they are. */
+	public final List<String> relics = new ArrayList<>();
 
 	public LoadoutPreset(String name) {
 		this.name = name;
@@ -28,6 +30,7 @@ public final class LoadoutPreset {
 		LoadoutPreset p = new LoadoutPreset(newName);
 		p.keys.addAll(keys);
 		p.castSwap.addAll(castSwap);
+		p.relics.addAll(relics);
 		return p;
 	}
 
@@ -40,6 +43,9 @@ public final class LoadoutPreset {
 		ListTag s = new ListTag();
 		for (Ability a : castSwap) s.add(StringTag.valueOf(a.name()));
 		tag.put("castSwap", s);
+		ListTag r = new ListTag();
+		for (String a : relics) r.add(StringTag.valueOf(a));
+		tag.put("relics", r);
 		return tag;
 	}
 
@@ -55,6 +61,8 @@ public final class LoadoutPreset {
 			Ability a = parse(s.getString(i));
 			if (a != null) p.castSwap.add(a);
 		}
+		ListTag r = tag.getList("relics", Tag.TAG_STRING);
+		for (int i = 0; i < r.size(); i++) p.relics.add(r.getString(i));
 		return p;
 	}
 

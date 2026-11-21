@@ -154,6 +154,18 @@ public class AuraPoints {
 	/** Dropped by the Frost Bear when it flees; flies and strikes, then a blizzard (item/BlueBellItem). */
 	public static final DeferredItem<Item> BLUE_BELL = ITEMS.registerItem("blue_bell", com.toast.aurapoints.item.BlueBellItem::new, new Item.Properties());
 
+	/** Elemental relics (5.40.0, ability/Relics): one per aura but Resonance, "relic_<aura>". */
+	public static final java.util.Map<com.toast.aurapoints.ability.AuraType, DeferredItem<Item>> RELICS = registerRelics();
+
+	private static java.util.Map<com.toast.aurapoints.ability.AuraType, DeferredItem<Item>> registerRelics() {
+		java.util.Map<com.toast.aurapoints.ability.AuraType, DeferredItem<Item>> out = new java.util.EnumMap<>(com.toast.aurapoints.ability.AuraType.class);
+		for (com.toast.aurapoints.ability.AuraType a : com.toast.aurapoints.ability.Relics.AURAS) {
+			out.put(a, ITEMS.registerItem("relic_" + a.id(), props -> new com.toast.aurapoints.item.RelicItem(a, props),
+					new Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.RARE)));
+		}
+		return out;
+	}
+
 	/** Not obtainable: only the frost shard model the Frost aura's Ice Spike shows in the hand and in flight (ability/IceSpike). */
 	public static final DeferredItem<Item> ICE_SPIKE_SHARD = ITEMS.registerSimpleItem("ice_spike_shard");
 	// the Awakening Altar's ritual props (AltarRitual flies them as item displays); altar_cap picks its aura by custom_model_data 1..10
@@ -246,7 +258,10 @@ public class AuraPoints {
 			event.accept(BOSS_SIGIL_ITEM);
 			event.accept(BLUE_BELL);
 		}
-		if (event.getTabKey().equals(tab("tools_and_utilities"))) event.accept(AURA_BOOK);
+		if (event.getTabKey().equals(tab("tools_and_utilities"))) {
+			event.accept(AURA_BOOK);
+			for (DeferredItem<Item> relic : RELICS.values()) event.accept(relic);
+		}
 
 	}
 
@@ -337,6 +352,7 @@ public class AuraPoints {
 				AuraPlayerData data = state.getOrCreate(player.getUUID());
 				AuraAbilities.tickPassives(player, data, server.getTickCount());
 				com.toast.aurapoints.ability.Earth.tickPassives(player, data, server.getTickCount());
+				com.toast.aurapoints.ability.Relics.tick(player, server.getTickCount());
 				com.toast.aurapoints.ability.Light.tickPassives(player, data, server.getTickCount());
 				com.toast.aurapoints.ability.Blood.tickPassives(player, data, server.getTickCount());
 				com.toast.aurapoints.ability.VoidAura.tickPassives(player, data, server.getTickCount());
@@ -413,6 +429,12 @@ public class AuraPoints {
 					event.setAmount(AuraAbilities.applyIronSkinReduction(victim, before));
 					AuraStats.add(victim, AuraStats.IRON_SKIN_BLOCKED, Math.round((before - event.getAmount()) * 10));
 					AuraAbilities.ironSkinFx(victim);
+				}
+				// elemental relics worn (5.40): Tide, Zephyr, Storm
+				event.setAmount(com.toast.aurapoints.ability.Relics.defend(victim, event.getSource(), event.getAmount()));
+				if (event.getAmount() <= 0) {
+					event.setCanceled(true);
+					return;
 				}
 			}
 
@@ -509,6 +531,8 @@ public class AuraPoints {
 
 			// a local storm of the attacker's aura (5.39)
 			if (event.getAmount() > 0) event.setAmount(com.toast.aurapoints.weather.Storms.damage(attacker, event.getAmount()));
+			// elemental relics worn (5.40): Ember, Rime, Thorn, Vein
+			event.setAmount(com.toast.aurapoints.ability.Relics.attack(attacker, victim, event.getAmount(), melee));
 
 			// Elemental reactions: an ability hit leaves its element as a mark, or sets off a reaction with one already there
 			if (abilityHit) com.toast.aurapoints.ability.Reactions.onAbilityHit(event, attacker, attackerData);
@@ -782,6 +806,7 @@ public class AuraPoints {
 				com.toast.aurapoints.ability.CombatTag.forget(player.getUUID());
 				com.toast.aurapoints.ability.Loadouts.forget(player.getUUID());
 				com.toast.aurapoints.weather.Storms.forget(player.getUUID());
+				com.toast.aurapoints.ability.Relics.forget(player.getUUID());
 				com.toast.aurapoints.ability.Ultimates.onLogout(player);
 				com.toast.aurapoints.ability.Earth.onLogout(player);
 				com.toast.aurapoints.ability.Light.onLogout(player);
