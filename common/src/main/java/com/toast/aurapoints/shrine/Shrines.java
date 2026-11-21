@@ -665,4 +665,12 @@ public final class Shrines {
 	public static void devRepair(ServerLevel level, ServerPlayer p, Shrine s) {
 		repair(level, p, s);
 	}
+
+	/** Server stopped (after the last save): nothing static survives into the next world. */
+	public static void clearAll() {
+		SHRINES.clear();
+		SITES.clear();
+		CHANNELS.clear();
+		TEST_PLAYERS.clear();
+	}
 }

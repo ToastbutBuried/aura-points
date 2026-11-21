@@ -356,4 +356,9 @@ public final class Relics {
 	public static void devWear(ServerPlayer player, Set<AuraType> relics) {
 		WORN.put(player.getUUID(), EnumSet.copyOf(relics.isEmpty() ? EnumSet.noneOf(AuraType.class) : relics));
 	}
+
+	/** Server stopped: nothing worn carries into the next world. */
+	public static void clearAll() {
+		WORN.clear();
+	}
 }

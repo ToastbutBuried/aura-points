@@ -313,4 +313,9 @@ public final class Loadouts {
 	public static void forget(UUID id) {
 		LAST_SWAP.remove(id);
 	}
+
+	/** Server stopped: tick counts start over in the next world. */
+	public static void clearAll() {
+		LAST_SWAP.clear();
+	}
 }

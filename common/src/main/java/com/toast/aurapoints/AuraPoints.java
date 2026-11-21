@@ -764,6 +764,13 @@ public class AuraPoints {
 
 		@SubscribeEvent
 		public static void onServerStopped(com.toast.aurapoints.shim.neoforge.event.server.ServerStoppedEvent event) {
+			// after the last save: storms and shrines are saved state, so they can't go at ServerStopping
+			com.toast.aurapoints.weather.Storms.clearAll();
+			com.toast.aurapoints.shrine.Shrines.clearAll();
+			com.toast.aurapoints.rift.Rifts.clearAll();
+			com.toast.aurapoints.ability.CombatTag.clearAll();
+			com.toast.aurapoints.ability.Loadouts.clearAll();
+			com.toast.aurapoints.ability.Relics.clearAll();
 			AuraState.forget();
 		}
 

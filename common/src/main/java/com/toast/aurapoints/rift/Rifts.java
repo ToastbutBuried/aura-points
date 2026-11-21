@@ -750,6 +750,7 @@ public final class Rifts {
 	public static void clearAll() {
 		tear = null;
 		RUNS.clear();
+		TEST_PLAYERS.clear();
 		nextTearAt = 0;
 	}
 }

@@ -92,6 +92,7 @@ public final class ClientAuraHud {
 		FRAME_FX.clear();
 		BAR_FX.clear();
 		RING_DONE.clear();
+		ClientStorms.clear();
 		slidAura = null;
 	}
 

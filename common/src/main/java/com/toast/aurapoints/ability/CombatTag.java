@@ -45,4 +45,9 @@ public final class CombatTag {
 	public static void forget(UUID id) {
 		LAST.remove(id);
 	}
+
+	/** Server stopped: tick counts start over in the next world. */
+	public static void clearAll() {
+		LAST.clear();
+	}
 }
