@@ -15,6 +15,7 @@ public final class AuraClientConfig {
 	public static final ModConfigSpec.BooleanValue SHADER_SAFE_WIND_CHARGES;
 	public static final ModConfigSpec.BooleanValue AURA_NAMETAGS;
 	public static final ModConfigSpec.BooleanValue FIRST_PERSON_EXTRAS;
+	public static final ModConfigSpec.BooleanValue STORM_WALLS;
 	public static final ModConfigSpec.EnumValue<AnimationMode> ANIMATIONS;
 	public static final ModConfigSpec.BooleanValue FULL_BODY;
 	public static final ModConfigSpec.BooleanValue SHOW_IDLE_ANIMATIONS, IDLE_FIRST_PERSON, AURA_TRAILS, OWN_TRAIL;
@@ -169,6 +170,10 @@ public final class AuraClientConfig {
 				.comment("Show your own aura's body extras over your shoulders in first person.")
 				.translation("aurapoints.configuration.firstPersonExtras")
 				.define("firstPersonExtras", true);
+		STORM_WALLS = b
+				.comment("Draw the tall wall of a storm seen from outside it. Turn off if it clashes with a render mod.")
+				.translation("aurapoints.configuration.stormWalls")
+				.define("stormWalls", true);
 
 		b.comment("The ability panel, charge bar and crosshair marks. /aurahud opens a screen to drag them around.")
 				.translation("aurapoints.configuration.hud").push("hud");

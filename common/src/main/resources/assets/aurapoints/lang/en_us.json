@@ -88,6 +88,8 @@
   "item.aurapoints.resonance_bud": "Hollow Bud",
   "aurapoints.configuration.firstPersonExtras": "Aura extras in first person",
   "aurapoints.configuration.firstPersonExtras.tooltip": "Show your own aura's body extras over your shoulders in first person.",
+  "aurapoints.configuration.stormWalls": "Storm walls",
+  "aurapoints.configuration.stormWalls.tooltip": "Draw the tall wall of a storm seen from outside it. Turn off if it clashes with a render mod (shaders, Distant Horizons).",
   "key.aurapoints.edit_hud": "Edit Aura HUD",
   "subtitles.aurapoints.charge": "Aura charges",
   "subtitles.aurapoints.charged": "Aura fully charged",

@@ -20,6 +20,7 @@ import net.minecraft.client.renderer.FogRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.toast.aurapoints.shim.neoforge.client.event.RenderLevelStageEvent;
 import org.joml.Matrix4f;
@@ -474,6 +475,8 @@ public final class StormFx {
 				double rr = s.radius() - r.nextDouble() * 4;
 				double x = s.nowX() + Math.cos(base) * rr, z = s.nowZ() + Math.sin(base) * rr;
 				double y = mc.player.getY() + r.nextDouble() * 40 - 6;
+				double px = x - mc.player.getX(), py = y - mc.player.getEyeY(), pz = z - mc.player.getZ();
+				if (px * px + py * py + pz * pz < 10 * 10) continue; // huge blotches right in your face otherwise
 				boolean colour = i % 2 == 0;
 				level.addAlwaysVisibleParticle(colour ? dust(s.type()) : wall(s.type()), x, y, z, w.x * wallSpeed(s.type()), wallFall(s.type()), w.z * wallSpeed(s.type()));
 			}
@@ -496,7 +499,7 @@ public final class StormFx {
 		int rgb = type.rgb;
 		float lift = type == StormType.UMBRA ? 0.35f : type == StormType.CRIMSON_MOON ? 0.25f : 0f;
 		return new DustParticleOptions(new Vector3f(Math.min(1f, ((rgb >> 16) & 255) / 255f + lift), Math.min(1f, ((rgb >> 8) & 255) / 255f + lift * 0.3f),
-				Math.min(1f, (rgb & 255) / 255f + lift * 0.4f)), 4.0f);
+				Math.min(1f, (rgb & 255) / 255f + lift * 0.4f)), 2.5f);
 	}
 
 	/** The element itself in the wall. */
@@ -559,29 +562,56 @@ public final class StormFx {
 		};
 	}
 
+	/** An Iris shader pack is on: shader packs draw plain coloured geometry wrong (black), so no wall then. */
+	private static boolean shaderPack() {
+		try {
+			Class<?> api = Class.forName("net.irisshaders.iris.api.v0.IrisApi");
+			Object inst = api.getMethod("getInstance").invoke(null);
+			return (Boolean) api.getMethod("isShaderPackInUse").invoke(inst);
+		} catch (Throwable e) {
+			return false;
+		}
+	}
+
 	@SubscribeEvent
 	public static void onRenderLevel(RenderLevelStageEvent event) {
 		if (event.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) return;
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.level == null || mc.player == null || mc.level.dimension() != Level.OVERWORLD || ClientStorms.all().isEmpty()) return;
+		if (!AuraClientConfig.STORM_WALLS.get() || shaderPack()) return;
 		Vec3 cam = event.getCamera().getPosition();
 		float t = (mc.level.getGameTime() + event.getPartialTick().getGameTimeDeltaPartialTick(false)) / 20f;
-		MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
-		VertexConsumer vc = null;
+		// only inside the normal view distance (LOD mods like Distant Horizons draw past it; the wall must never cover them)
+		double reach = Math.max(48, mc.options.getEffectiveRenderDistance() * 16 - 16);
+		BufferBuilder bb = null;
 		for (var s : ClientStorms.all()) {
 			double dx = cam.x - s.nowX(), dz = cam.z - s.nowZ(), d = Math.sqrt(dx * dx + dz * dz);
 			// fades in as you step out of it, out with distance, and with the storm's own strength
-			float out = (float) Mth.clamp((d - s.radius() * 0.85) / (s.radius() * 0.2), 0, 1);
-			float far = (float) Mth.clamp(1 - (d - s.radius() - 250) / 150, 0, 1);
-			float a = out * far * s.strength();
-			if (a <= 0.01f) continue;
-			if (vc == null) vc = buffers.getBuffer(RenderType.debugQuads());
-			drawWall(vc, event.getPoseStack(), cam, s, a, t);
+			// nothing up close (it read as a glass pane right next to you); there the edge particles carry it
+			float out = (float) Mth.clamp((d - s.radius() - 12) / 48, 0, 1);
+			float a = out * s.strength();
+			if (a <= 0.01f || d - s.radius() > reach) continue;
+			if (bb == null) bb = com.mojang.blaze3d.vertex.Tesselator.getInstance().begin(com.mojang.blaze3d.vertex.VertexFormat.Mode.QUADS,
+					com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR);
+			drawWall(bb, event.getPoseStack(), cam, s, a, t, reach);
 		}
-		if (vc != null) buffers.endBatch(RenderType.debugQuads());
+		if (bb == null) return;
+		var mesh = bb.build();
+		if (mesh == null) return;
+		// blended on top, never writing depth: it can't stamp over terrain, LODs or other mods' drawing
+		RenderSystem.enableBlend();
+		RenderSystem.defaultBlendFunc();
+		RenderSystem.disableCull();
+		RenderSystem.enableDepthTest();
+		RenderSystem.depthMask(false);
+		RenderSystem.setShader(net.minecraft.client.renderer.GameRenderer::getPositionColorShader);
+		com.mojang.blaze3d.vertex.BufferUploader.drawWithShader(mesh);
+		RenderSystem.depthMask(true);
+		RenderSystem.enableCull();
+		RenderSystem.disableBlend();
 	}
 
-	private static void drawWall(VertexConsumer vc, PoseStack pose, Vec3 cam, ClientStorms.Storm s, float alpha, float t) {
+	private static void drawWall(VertexConsumer vc, PoseStack pose, Vec3 cam, ClientStorms.Storm s, float alpha, float t, double reach) {
 		Matrix4f m = pose.last().pose();
 		int rgb = wallRgb(s.type());
 		float r = ((rgb >> 16) & 255) / 255f, g = ((rgb >> 8) & 255) / 255f, b = (rgb & 255) / 255f;
@@ -595,13 +625,17 @@ public final class StormFx {
 			// a ragged edge: the radius breathes a little along the ring and over time
 			double r0 = s.radius() + Math.sin(a0 * 7 + t * 0.3) * 3, r1 = s.radius() + Math.sin(a1 * 7 + t * 0.3) * 3;
 			double x0 = cx + Math.cos(a0) * r0, z0 = cz + Math.sin(a0) * r0, x1 = cx + Math.cos(a1) * r1, z1 = cz + Math.sin(a1) * r1;
+			// each piece fades out before the edge of your view distance
+			double dist = Math.sqrt(((x0 + x1) / 2) * ((x0 + x1) / 2) + ((z0 + z1) / 2) * ((z0 + z1) / 2));
+			float near = (float) Mth.clamp((reach - dist) / 32, 0, 1);
+			if (near <= 0) continue;
 			// streaks: each column has its own phase; they fall, rise, or (Gale) race round the ring
 			float col = flow == 0 ? Mth.sin(i * 0.9f - t * 6f) : Mth.sin(i * 2.3f);
 			for (int k = 0; k < rows; k++) {
 				double ya = y0 + (top - y0) * k / rows, yb = y0 + (top - y0) * (k + 1) / rows;
 				float fa = fade(k / (float) rows), fb = fade((k + 1) / (float) rows);
 				float sa = streak(col, ya, t, flow, i), sb = streak(col, yb, t, flow, i);
-				float base = (dark ? 0.75f : 0.55f) * alpha;
+				float base = (dark ? 0.75f : 0.55f) * alpha * near;
 				vc.addVertex(m, (float) x0, (float) ya, (float) z0).setColor(r, g, b, base * fa * sa);
 				vc.addVertex(m, (float) x1, (float) ya, (float) z1).setColor(r, g, b, base * fa * sa);
 				vc.addVertex(m, (float) x1, (float) yb, (float) z1).setColor(r, g, b, base * fb * sb);

@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.43.2
+- Storm walls no longer draw over other mods (Distant Horizons, shaders) or look like a glass pane up close; new client option "Storm walls" to turn them off.
+
 == 5.43.1
 - Inside a storm your view is now framed in its element (frost, fire, rain, dust, darkness...), so you always know which one you're in.
 
