@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.39.0
+- Local storms: now and then a Thunderhead, Blizzard, Downpour, Heat Haze, Gale, Spore Bloom, Tremor, Aurora, Umbra or Crimson Moon drifts across the world. Inside one, its aura deals +10% damage with 10% shorter cooldowns, and everything inside carries its reaction mark. /aura storm shows where they are.
+
 == 5.38.0
 - Loadouts: put your abilities on the keys in your own order, swap an ability's tap and sneak casts, and keep up to 3 presets per aura (Aura Book > your aura > Loadouts, or /aura loadout). Switching waits until you're out of combat.
 

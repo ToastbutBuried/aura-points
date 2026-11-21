@@ -34,6 +34,8 @@ public class AuraState extends SavedData {
 
 	/** The arena map version built into the arena dimension (0 = not built yet); see arena/ArenaBuilder. */
 	public int arenaMapVersion = 0;
+	/** Local storms (5.39.0): overworld game time the next one may form (0 = pick one). The storms themselves are weather/Storms. */
+	public long nextStormAt = 0;
 
 	/** Counts arena (re)builds; the entities of a build are tagged with it (arena/ArenaBuilder.isStale). */
 	public int arenaBuildId = 0;
@@ -70,6 +72,8 @@ public class AuraState extends SavedData {
 		state.cooldownsDisabled = tag.getBoolean("cooldownsDisabled");
 		state.allLocked = tag.getBoolean("allLocked");
 		state.arenaMapVersion = tag.getInt("arenaMapVersion");
+		state.nextStormAt = tag.getLong("nextStormAt");
+		com.toast.aurapoints.weather.Storms.read(tag, "storms");
 		state.arenaBuildId = tag.getInt("arenaBuildId");
 		readRecords(tag.getList("dpsRecords", CompoundTag.TAG_COMPOUND), state.dpsRecords);
 		readRecords(tag.getList("rotationRecords", CompoundTag.TAG_COMPOUND), state.rotationRecords);
@@ -149,6 +153,8 @@ public class AuraState extends SavedData {
 		tag.putBoolean("cooldownsDisabled", cooldownsDisabled);
 		tag.putBoolean("allLocked", allLocked);
 		tag.putInt("arenaMapVersion", arenaMapVersion);
+		tag.putLong("nextStormAt", nextStormAt);
+		tag.put("storms", com.toast.aurapoints.weather.Storms.write());
 		tag.putInt("arenaBuildId", arenaBuildId);
 		tag.put("dpsRecords", writeRecords(dpsRecords));
 		tag.put("rotationRecords", writeRecords(rotationRecords));

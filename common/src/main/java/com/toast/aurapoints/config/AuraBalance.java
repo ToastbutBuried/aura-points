@@ -47,7 +47,7 @@ public final class AuraBalance {
 	private static final String LEGACY = "aurapoints-balance.json";
 
 	/** The five files, in order: general first, then one per aura. */
-	private static final List<String> SECTIONS = List.of("general", "shadow", "water", "fire", "wind", "frost", "verdant", "thunder", "resonance", "earth", "light", "blood", "void", "handhelds", "arena", "ultimates", "reactions", "combos", "touched", "weekly");
+	private static final List<String> SECTIONS = List.of("general", "shadow", "water", "fire", "wind", "frost", "verdant", "thunder", "resonance", "earth", "light", "blood", "void", "handhelds", "arena", "ultimates", "reactions", "combos", "touched", "weekly", "weather");
 
 	/** Field name prefix -> section. Anything not listed is general. */
 	private static final Map<String, String> PREFIXES = new LinkedHashMap<>();
@@ -73,6 +73,7 @@ public final class AuraBalance {
 		PREFIXES.put("REACTION_", "reactions");
 		PREFIXES.put("COMBO_", "combos");
 		PREFIXES.put("TOUCHED_", "touched");
+		PREFIXES.put("STORM_", "weather");
 		for (String p : List.of("WEEKLY_", "COSMETIC")) PREFIXES.put(p, "weekly");
 	}
 

@@ -1688,6 +1688,40 @@ public final class AuraConfig {
 	public static int TRAINING_CHALLENGE_CLEAN_SECONDS = 30;
 
 	// ---------------------------------------------------------------
+	// Local storms (5.39.0): aurapoints-weather.json
+	// ---------------------------------------------------------------
+
+	/** Drifting storms in the overworld, one per aura: the matching aura hits harder and recovers faster inside, everything inside carries the storm's reaction mark. */
+	public static boolean STORM_ENABLED = true;
+	/** Minutes between storms forming (each time 75-125% of this), near a random player in the overworld. */
+	public static double STORM_INTERVAL_MINUTES = 45;
+	/** At most this many at once. */
+	public static int STORM_MAX = 2;
+	/** How long one lasts, its radius in blocks and the fade at each end. */
+	public static int STORM_MINUTES = 20;
+	public static int STORM_RADIUS = 120;
+	public static int STORM_FADE_SECONDS = 30;
+	/** Where a new one forms: this many blocks from the player it picked. */
+	public static int STORM_SPAWN_MIN = 300;
+	public static int STORM_SPAWN_MAX = 600;
+	/** Drift speed, blocks per second. */
+	public static double STORM_SPEED_MIN = 1.0;
+	public static double STORM_SPEED_MAX = 3.0;
+	/** Inside a storm of your aura: damage multiplier bonus (0.1 = +10%) and cooldown reduction (0.1 = 10% shorter). */
+	public static double STORM_DAMAGE_BONUS = 0.10;
+	public static double STORM_COOLDOWN_CUT = 0.10;
+	/** Thunderhead: chance per second per player of a harmless bolt nearby. */
+	public static double STORM_LIGHTNING_CHANCE = 0.03;
+	/** Blizzard: freeze ticks build up to this cap (140 = freezing damage starts, so keep it under). */
+	public static int STORM_FREEZE_CAP = 100;
+	/** Gale: sideways push per second along the storm's drift. */
+	public static double STORM_GALE_PUSH = 0.12;
+	/** Spore Bloom: crops near each player given a bone meal grow per second. */
+	public static int STORM_SPORE_GROWTH = 2;
+	/** Umbra: mobs lose a target farther than this many blocks. */
+	public static double STORM_UMBRA_SIGHT = 12;
+
+	// ---------------------------------------------------------------
 	// Loadouts (5.38.0): general
 	// ---------------------------------------------------------------
 

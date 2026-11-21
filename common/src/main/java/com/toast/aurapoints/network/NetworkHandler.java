@@ -28,7 +28,7 @@ public final class NetworkHandler {
 
 	@SubscribeEvent
 	public static void register(RegisterPayloadHandlersEvent event) {
-		PayloadRegistrar registrar = event.registrar("45");
+		PayloadRegistrar registrar = event.registrar("46");
 		registrar.playToServer(
 				AbilityKeyPacket.TYPE,
 				AbilityKeyPacket.STREAM_CODEC,
@@ -57,6 +57,11 @@ public final class NetworkHandler {
 				AuraHudPacket.TYPE,
 				AuraHudPacket.STREAM_CODEC,
 				(packet, context) -> context.enqueueWork(() -> ClientAuraState.setAura(packet.aura()))
+		);
+		registrar.playToClient(
+				StormPacket.TYPE,
+				StormPacket.STREAM_CODEC,
+				(packet, context) -> context.enqueueWork(() -> ClientStorms.set(packet.storms()))
 		);
 		registrar.playToClient(
 				CooldownPacket.TYPE,

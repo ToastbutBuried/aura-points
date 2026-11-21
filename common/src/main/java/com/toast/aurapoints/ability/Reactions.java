@@ -77,13 +77,15 @@ public final class Reactions {
 
 		/** The world puts this mark on by itself right now (never used up by a reaction). */
 		boolean environment(LivingEntity e) {
-			return switch (this) {
+			boolean world = switch (this) {
 				case WET -> e.isInWaterOrRain() || e.isInWaterRainOrBubble();
 				case BURNING -> e.isOnFire();
 				case CHILLED -> e.getTicksFrozen() > 0;
 				case POISONED -> e.hasEffect(MobEffects.POISON);
 				case CHARGED -> false;
 			};
+			// a local storm marks everything inside it (5.39)
+			return world || com.toast.aurapoints.weather.Storms.gives(e, this);
 		}
 	}
 

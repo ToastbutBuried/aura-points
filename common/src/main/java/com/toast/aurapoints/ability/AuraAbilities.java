@@ -543,7 +543,7 @@ public final class AuraAbilities {
 		EnumMap<Ability, Integer> overrides = LENGTH_OVERRIDE.get(player.getUUID());
 		if (overrides != null) overrides.remove(ability);
 		int ticks = ability.cooldownTicks();
-		int flowed = com.toast.aurapoints.arena.Waves.cooldown(player, flowCooldown(player, Mastery.cooldown(player, Branch.cooldown(player, ability, ticks))));
+		int flowed = com.toast.aurapoints.arena.Waves.cooldown(player, com.toast.aurapoints.weather.Storms.cooldown(player, flowCooldown(player, Mastery.cooldown(player, Branch.cooldown(player, ability, ticks)))));
 		if (flowed != ticks) LENGTH_OVERRIDE.computeIfAbsent(player.getUUID(), k -> new EnumMap<>(Ability.class)).put(ability, flowed);
 		if (!cooldownsDisabled(player)) NetworkHandler.sendCooldown(player, ability, flowed);
 	}
@@ -571,7 +571,7 @@ public final class AuraAbilities {
 	public static void startCooldown(ServerPlayer player, Ability ability, int ticks, long now) {
 		com.toast.aurapoints.AuraHooks.abilityUsed(player, ability);
 		if (cooldownsDisabled(player)) return;
-		ticks = com.toast.aurapoints.arena.Waves.cooldown(player, flowCooldown(player, Mastery.cooldown(player, ticks)));
+		ticks = com.toast.aurapoints.arena.Waves.cooldown(player, com.toast.aurapoints.weather.Storms.cooldown(player, flowCooldown(player, Mastery.cooldown(player, ticks))));
 		LAST_USE.computeIfAbsent(player.getUUID(), k -> new EnumMap<>(Ability.class)).put(ability, now);
 		LENGTH_OVERRIDE.computeIfAbsent(player.getUUID(), k -> new EnumMap<>(Ability.class)).put(ability, ticks);
 		NetworkHandler.sendCooldown(player, ability, ticks);

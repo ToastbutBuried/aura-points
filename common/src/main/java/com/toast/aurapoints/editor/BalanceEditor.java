@@ -402,6 +402,7 @@ public final class BalanceEditor {
 			case "general" -> "General";
 			case "handhelds" -> "Handheld Weapons";
 			case "reactions" -> "Elemental Reactions";
+			case "weather" -> "Local Storms";
 			case "combos" -> "Team Combos";
 			case "touched" -> "Aura-touched Mobs";
 			case "weekly" -> "Weekly & Cosmetics";
@@ -433,6 +434,7 @@ public final class BalanceEditor {
 			case "arena" -> Items.TARGET;
 			case "ultimates" -> Items.DRAGON_BREATH;
 			case "reactions" -> Items.BREWING_STAND;
+			case "weather" -> Items.LIGHTNING_ROD;
 			case "combos" -> Items.FIRE_CHARGE;
 			case "touched" -> Items.ZOMBIE_HEAD;
 			case "weekly" -> Items.CLOCK;

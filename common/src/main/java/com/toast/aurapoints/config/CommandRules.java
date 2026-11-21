@@ -68,7 +68,7 @@ public final class CommandRules {
 			DEFAULTS.put(key, new Rule(true, 2, false, Set.of()));
 		}
 		for (String key : List.of("aura mjolnir", "aura frostbear", "aura bluebell", "aura handheld", "aura worthy", "aura lock", "aura unlock", "aura balance whitelist", "aura arena rebuild",
-				"aura arena duel stop", "aura arena match stop", "aura arena layout")) {
+				"aura arena duel stop", "aura arena match stop", "aura arena layout", "aura storm spawn", "aura storm clear")) {
 			DEFAULTS.put(key, new Rule(true, 0, true, Set.of()));
 		}
 	}

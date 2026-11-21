@@ -15,6 +15,7 @@ public abstract class ClientLevelMixin {
 	private void aurapoints$bloodMoonSky(Vec3 pos, float partialTick, CallbackInfoReturnable<Vec3> cir) {
 		float s = com.toast.aurapoints.client.BloodMoonSky.strength();
 		if (s > 0) cir.setReturnValue(com.toast.aurapoints.client.BloodMoonSky.tint(cir.getReturnValue(), s));
+		if (com.toast.aurapoints.client.StormFx.strength() > 0) cir.setReturnValue(com.toast.aurapoints.client.StormFx.tintSky(cir.getReturnValue()));
 		float r = com.toast.aurapoints.client.RitualCutscene.tintStrength();
 		if (r > 0) cir.setReturnValue(com.toast.aurapoints.client.RitualCutscene.tintSky(cir.getReturnValue(), r));
 	}

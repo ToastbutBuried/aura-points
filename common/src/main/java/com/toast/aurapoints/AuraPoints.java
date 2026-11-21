@@ -323,6 +323,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.Blood.tickAll(server);
 			com.toast.aurapoints.ability.VoidAura.tickAll(server);
 			com.toast.aurapoints.ability.Reactions.tickAll(server);
+			com.toast.aurapoints.weather.Storms.tickAll(server);
 			com.toast.aurapoints.ability.Combos.tickAll(server);
 			com.toast.aurapoints.arena.AltarRitual.tickAll(server);
 			com.toast.aurapoints.arena.AuraTrial.tickAll(server);
@@ -505,6 +506,9 @@ public class AuraPoints {
 			if (AuraAbilities.hasAbility(attackerData, AuraAbilities.Ability.FLOW) && event.getAmount() > 0) {
 				event.setAmount(AuraAbilities.flowDamage(attacker, event.getAmount()));
 			}
+
+			// a local storm of the attacker's aura (5.39)
+			if (event.getAmount() > 0) event.setAmount(com.toast.aurapoints.weather.Storms.damage(attacker, event.getAmount()));
 
 			// Elemental reactions: an ability hit leaves its element as a mark, or sets off a reaction with one already there
 			if (abilityHit) com.toast.aurapoints.ability.Reactions.onAbilityHit(event, attacker, attackerData);
@@ -777,6 +781,7 @@ public class AuraPoints {
 				com.toast.aurapoints.ability.Chains.forget(player.getUUID());
 				com.toast.aurapoints.ability.CombatTag.forget(player.getUUID());
 				com.toast.aurapoints.ability.Loadouts.forget(player.getUUID());
+				com.toast.aurapoints.weather.Storms.forget(player.getUUID());
 				com.toast.aurapoints.ability.Ultimates.onLogout(player);
 				com.toast.aurapoints.ability.Earth.onLogout(player);
 				com.toast.aurapoints.ability.Light.onLogout(player);
