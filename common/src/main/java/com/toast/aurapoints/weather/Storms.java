@@ -107,6 +107,8 @@ public final class Storms {
 	static final List<Storm> STORMS = new ArrayList<>();
 	/** player -> the storm id they were in last second (for the "you enter" line). */
 	private static final Map<UUID, Integer> INSIDE = new HashMap<>();
+	/** player -> the storm list last sent to their client (unchanged lists aren't sent again). */
+	private static final Map<UUID, String> SENT = new HashMap<>();
 
 	public static List<Storm> all() {
 		return List.copyOf(STORMS);
@@ -361,7 +363,9 @@ public final class Storms {
 						.append(s.radius).append(',').append(String.format(java.util.Locale.ROOT, "%.2f", s.strength(now)))
 						.append(',').append(String.format(java.util.Locale.ROOT, "%.2f", s.vx)).append(',').append(String.format(java.util.Locale.ROOT, "%.2f", s.vz));
 			}
-			PacketDistributor.sendToPlayer(p, new StormPacket(sb.toString()));
+			String wire = sb.toString();
+			if (wire.equals(SENT.put(p.getUUID(), wire))) continue;
+			PacketDistributor.sendToPlayer(p, new StormPacket(wire));
 		}
 	}
 
@@ -376,6 +380,7 @@ public final class Storms {
 
 	public static void forget(UUID id) {
 		INSIDE.remove(id);
+		SENT.remove(id);
 	}
 
 	// ---------------------------------------------------------------
@@ -440,5 +445,6 @@ public final class Storms {
 	public static void clearAll() {
 		STORMS.clear();
 		INSIDE.clear();
+		SENT.clear();
 	}
 }
