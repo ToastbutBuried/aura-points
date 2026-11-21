@@ -18,7 +18,8 @@ import java.util.UUID;
 /**
  * Shadow aura perk: while a Shadow player is invisible (Vanish, Phantom Step,
  * or any other source) they are COMPLETELY hidden - other clients skip drawing
- * them, armor and held items included - and mobs ignore their armor too. To
+ * them, armor and held items included - and mobs can't see them at all (5.42.1: not even
+ * one they hit; MobMixin refuses them as a target, {@link #blindMobs} drops old targets). To
  * keep them findable, a faint particle outline flickers on their silhouette
  * and they leave a black trail on the floor while moving.
  *
@@ -55,6 +56,7 @@ public final class ShadowCloak {
 			LAST_POS.remove(player.getUUID());
 			return;
 		}
+		if (!was || now % 5 == 0) blindMobs(player);
 
 		Vec3 pos = player.position();
 		if (now % 2 == 0) drawOutline(player, pos);
@@ -68,6 +70,21 @@ public final class ShadowCloak {
 		AuraFx.particles(level, AuraFx.dust(0x0A0A0F, 1.5f), pos.x, pos.y + 0.05, pos.z,
 				AuraConfig.SHADOW_TRAIL_PARTICLES, 0.22, 0.0, 0.22, 0.0);
 		if (now % 6 == 0) AuraFx.particles(level, ParticleTypes.SMOKE, pos.x, pos.y + 0.1, pos.z, 2, 0.15, 0.02, 0.15, 0.005);
+	}
+
+	/** Mobs nearby that are after this player forget them: goal AI target, brain attack target, anger. */
+	static void blindMobs(ServerPlayer player) {
+		var box = player.getBoundingBox().inflate(48);
+		for (var mob : player.serverLevel().getEntitiesOfClass(net.minecraft.world.entity.Mob.class, box)) {
+			if (mob.getTarget() == player) mob.setTarget(null);
+			var brain = mob.getBrain();
+			var attack = net.minecraft.world.entity.ai.memory.MemoryModuleType.ATTACK_TARGET;
+			var angry = net.minecraft.world.entity.ai.memory.MemoryModuleType.ANGRY_AT;
+			// hasMemoryValue first: getMemory throws for a memory the mob's brain doesn't have
+			if (brain.hasMemoryValue(attack) && brain.getMemory(attack).filter(t -> t == player).isPresent()) brain.eraseMemory(attack);
+			if (brain.hasMemoryValue(angry) && brain.getMemory(angry).filter(u -> u.equals(player.getUUID())).isPresent()) brain.eraseMemory(angry);
+			if (mob instanceof net.minecraft.world.entity.NeutralMob n && player.getUUID().equals(n.getPersistentAngerTarget())) n.stopBeingAngry();
+		}
 	}
 
 	/**

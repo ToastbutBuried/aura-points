@@ -36,6 +36,7 @@ final class DevTest {
 		RelicDevTest.register(dispatcher);
 		RiftDevTest.register(dispatcher);
 		ShrineDevTest.register(dispatcher);
+		CloakDevTest.register(dispatcher);
 		UtilDevTest.register(dispatcher);
 		AltarDevTest.register(dispatcher);
 		// balance editor write path: set a value + a switch through AuraBalance.apply, check, then put both back
