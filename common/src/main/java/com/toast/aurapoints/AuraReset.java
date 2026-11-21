@@ -125,6 +125,9 @@ public final class AuraReset {
 				java.util.Arrays.fill(data.weeklyBase, 0);
 				data.weeklyCompleted = 0;
 				data.weeklyFullWeeks = 0;
+				data.trainerDay = Long.MIN_VALUE;
+				data.trainerAura = "";
+				data.trainerDone = 0;
 				return "weeklies cleared";
 			}
 			case TUTORIAL -> {

@@ -718,6 +718,7 @@ public final class AuraAbilities {
 			if (fired) {
 				Chains.onPressed(player, ability, Chains.castMode);
 				com.toast.aurapoints.arena.AuraTrial.onPressed(player, ability, Chains.castMode);
+				com.toast.aurapoints.arena.ComboTrainer.onCast(player, ability, Chains.castMode);
 			}
 			return fired;
 		} finally {

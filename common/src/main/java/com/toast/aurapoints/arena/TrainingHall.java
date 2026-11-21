@@ -45,7 +45,8 @@ public final class TrainingHall {
 		RESET(3, Items.HAY_BLOCK),
 		ARMOR(9, Items.IRON_CHESTPLATE),
 		PATROL(15, Items.MINECART),
-		DRILL(21, Items.BOOK);
+		DRILL(21, Items.BOOK),
+		ROTATION(-21, Items.NETHER_STAR);
 
 		final int x;
 		final Item item;
@@ -78,13 +79,43 @@ public final class TrainingHall {
 
 	private static final int CHALLENGE_COUNTDOWN = 60, CHALLENGE_TICKS = 30 * 20;
 
-	/** A running DPS challenge: when the 30 s start (after the countdown), and the damage so far. */
+	/** What a rotation run scores besides damage (ComboTrainer reports them). */
+	enum Score {CHAIN, REACTION, USE}
+
+	/**
+	 * A running DPS challenge or rotation run: when the 30 s start (after the countdown), the damage so far,
+	 * and for a rotation the chains, reactions and distinct casts (ability:mode) used.
+	 */
 	private static final class Challenge {
 		final long start;
+		final boolean rotation;
 		float damage;
+		int chains, reactions;
+		final java.util.Set<String> used = new java.util.HashSet<>();
 
-		Challenge(long start) {
+		Challenge(long start, boolean rotation) {
 			this.start = start;
+			this.rotation = rotation;
+		}
+
+		boolean live(long now) {
+			return now >= start && now < start + CHALLENGE_TICKS;
+		}
+
+		double score() {
+			return damage + chains * AuraConfig.TRAINING_ROTATION_CHAIN_POINTS + reactions * AuraConfig.TRAINING_ROTATION_REACTION_POINTS
+					+ used.size() * AuraConfig.TRAINING_ROTATION_VARIETY_POINTS;
+		}
+	}
+
+	/** ComboTrainer: a chain, reaction or cast for a running rotation. */
+	static void rotationEvent(ServerPlayer player, Score kind, String key) {
+		Challenge c = CHALLENGES.get(player.getUUID());
+		if (c == null || !c.rotation || !c.live(player.serverLevel().getGameTime())) return;
+		switch (kind) {
+			case CHAIN -> c.chains++;
+			case REACTION -> c.reactions++;
+			case USE -> c.used.add(key);
 		}
 	}
 
@@ -149,7 +180,8 @@ public final class TrainingHall {
 						writeKiosks(player.serverLevel(), -1, speed);
 					}
 				}
-				case CHALLENGE -> startChallenge(player);
+				case CHALLENGE -> startChallenge(player, false);
+				case ROTATION -> startChallenge(player, true);
 				case DRILL -> Drill.start(player);
 			}
 			return true;
@@ -167,6 +199,8 @@ public final class TrainingHall {
 		List<AuraState.ArenaRecord> top = top(AuraState.get(level.getServer()).dpsRecords, r -> r.best);
 		String record = top.isEmpty() ? "Record: none yet" : String.format(java.util.Locale.ROOT, "Record: %.1f", top.get(0).best);
 		String holder = top.isEmpty() ? "" : "by " + top.get(0).name;
+		List<AuraState.ArenaRecord> rot = top(AuraState.get(level.getServer()).rotationRecords, r -> r.best);
+		String rotRecord = rot.isEmpty() ? "Record: none yet" : String.format(java.util.Locale.ROOT, "Record: %.0f", rot.get(0).best);
 		for (Control c : Control.values()) {
 			String[] lines = switch (c) {
 				case CHALLENGE -> new String[]{"DPS CHALLENGE", "30 s, cooldowns on", record, holder};
@@ -176,6 +210,7 @@ public final class TrainingHall {
 				case ARMOR -> new String[]{"DUMMY ARMOR", "click to cycle", "now: " + ARMOR_NAMES[armor], ""};
 				case PATROL -> new String[]{"MOVING DUMMY", "off/slow/fast", "now: " + SPEEDS[speed], ""};
 				case DRILL -> new String[]{"BASICS DRILL", "3 quick steps,", "click to start", "or to stop"};
+				case ROTATION -> new String[]{"ROTATION", "30 s: damage +", "chains, combos", rotRecord};
 			};
 			ArenaBuilder.writeSign(level, c.sign(), lines);
 		}
@@ -231,9 +266,9 @@ public final class TrainingHall {
 	// DPS challenge: 3-2-1, then 30 seconds on the dummies with cooldowns on
 	// ---------------------------------------------------------------
 
-	private static void startChallenge(ServerPlayer player) {
+	private static void startChallenge(ServerPlayer player, boolean rotation) {
 		if (CHALLENGES.containsKey(player.getUUID())) {
-			player.displayClientMessage(Component.literal("Your DPS challenge is already running!").withStyle(ChatFormatting.RED), true);
+			player.displayClientMessage(Component.literal(CHALLENGES.get(player.getUUID()).rotation ? "Your rotation run is already running!" : "Your DPS challenge is already running!").withStyle(ChatFormatting.RED), true);
 			return;
 		}
 		if (AuraState.get(player.getServer()).cooldownsDisabled) {
@@ -254,17 +289,20 @@ public final class TrainingHall {
 					+ " s so nothing left over counts, then start the challenge.").withStyle(ChatFormatting.RED));
 			return;
 		}
-		CHALLENGES.put(player.getUUID(), new Challenge(now + CHALLENGE_COUNTDOWN));
+		CHALLENGES.put(player.getUUID(), new Challenge(now + CHALLENGE_COUNTDOWN, rotation));
 		// a fair start: cooldowns on (see Arena.freeCooldowns) and all ready
 		Arena.resetCooldowns(player);
-		player.sendSystemMessage(Component.literal("DPS challenge: hit the dummies as hard as you can for 30 seconds! Cooldowns are on for it.").withStyle(ChatFormatting.GOLD));
+		player.sendSystemMessage(Component.literal(rotation
+				? String.format(java.util.Locale.ROOT, "Rotation: 30 seconds on the dummies. Score = damage + %d per chain + %d per reaction + %d per different cast. Cooldowns are on for it.",
+				AuraConfig.TRAINING_ROTATION_CHAIN_POINTS, AuraConfig.TRAINING_ROTATION_REACTION_POINTS, AuraConfig.TRAINING_ROTATION_VARIETY_POINTS)
+				: "DPS challenge: hit the dummies as hard as you can for 30 seconds! Cooldowns are on for it.").withStyle(ChatFormatting.GOLD));
 	}
 
 	/** Cooldowns stay on for a player doing the challenge, whatever their switch says. */
 	/** Dev test: presses the DPS kiosk for {@code player}; true if a challenge started (it is cancelled again at once). */
 	public static boolean devTryChallenge(ServerPlayer player) {
 		LAST_FREE_USE.remove(player.getUUID());
-		startChallenge(player);
+		startChallenge(player, false);
 		return CHALLENGES.remove(player.getUUID()) != null;
 	}
 
@@ -273,26 +311,28 @@ public final class TrainingHall {
 	}
 
 	/** From TrainingDummy: a hit counts for its attacker's challenge (once it has started). */
-	static void onDummyHit(DamageSource source, float amount, long now, boolean abilityHit, boolean patrolling) {
+	static void onDummyHit(TrainingDummy dummy, DamageSource source, float amount, long now, boolean abilityHit, boolean patrolling) {
 		Drill.onDummyHit(source.getEntity(), abilityHit, patrolling);
 		if (!(source.getEntity() instanceof ServerPlayer attacker)) return;
+		ComboTrainer.onHit(attacker, dummy, amount, abilityHit);
 		Challenge c = CHALLENGES.get(attacker.getUUID());
-		if (c != null && now >= c.start && now < c.start + CHALLENGE_TICKS) c.damage += amount;
+		if (c != null && c.live(now)) c.damage += amount;
 	}
 
 	static void tick(MinecraftServer server) {
 		Drill.tick(server);
+		ComboTrainer.tick(server);
 		for (Iterator<Map.Entry<UUID, Challenge>> it = CHALLENGES.entrySet().iterator(); it.hasNext(); ) {
 			Map.Entry<UUID, Challenge> e = it.next();
 			ServerPlayer p = server.getPlayerList().getPlayer(e.getKey());
 			Challenge c = e.getValue();
 			if (p == null || !Arena.inTraining(p)) {
-				if (p != null) p.sendSystemMessage(Component.literal("DPS challenge cancelled (you left the hall).").withStyle(ChatFormatting.GRAY));
+				if (p != null) p.sendSystemMessage(Component.literal((c.rotation ? "Rotation run" : "DPS challenge") + " cancelled (you left the hall).").withStyle(ChatFormatting.GRAY));
 				it.remove();
 				continue;
 			}
 			if (AuraState.get(server).cooldownsDisabled) {
-				p.sendSystemMessage(Component.literal("DPS challenge cancelled (cooldowns were switched off for everyone).").withStyle(ChatFormatting.RED));
+				p.sendSystemMessage(Component.literal((c.rotation ? "Rotation run" : "DPS challenge") + " cancelled (cooldowns were switched off for everyone).").withStyle(ChatFormatting.RED));
 				it.remove();
 				continue;
 			}
@@ -312,13 +352,16 @@ public final class TrainingHall {
 			long left = c.start + CHALLENGE_TICKS - now;
 			if (left > 0) {
 				if (left % 5 == 0) {
-					p.displayClientMessage(Component.literal(String.format(java.util.Locale.ROOT, "DPS challenge: %d s left · %.0f damage", (left + 19) / 20, c.damage))
+					p.displayClientMessage(Component.literal(c.rotation
+									? String.format(java.util.Locale.ROOT, "Rotation: %d s left · %.0f pts (%d chains, %d reactions, %d casts)", (left + 19) / 20, c.score(), c.chains, c.reactions, c.used.size())
+									: String.format(java.util.Locale.ROOT, "DPS challenge: %d s left · %.0f damage", (left + 19) / 20, c.damage))
 							.withStyle(ChatFormatting.GOLD), true);
 				}
 				continue;
 			}
 			it.remove();
-			finishChallenge(p, c.damage);
+			if (c.rotation) finishRotation(p, c);
+			else finishChallenge(p, c.damage);
 		}
 	}
 
@@ -356,6 +399,48 @@ public final class TrainingHall {
 			writeBoards(player.serverLevel());
 			writeKiosks(player.serverLevel(), -1, -1);
 		}
+	}
+
+	private static void finishRotation(ServerPlayer player, Challenge c) {
+		double score = c.score();
+		AuraState state = AuraState.get(player.getServer());
+		AuraState.ArenaRecord record = state.rotationRecords.computeIfAbsent(player.getUUID(), id -> new AuraState.ArenaRecord(player.getGameProfile().getName()));
+		record.name = player.getGameProfile().getName();
+		boolean best = score > record.best;
+		boolean top = best && top(state.rotationRecords, r -> r.best).stream().noneMatch(r -> r.best >= score);
+		var stat = net.minecraft.stats.Stats.CUSTOM.get(com.toast.aurapoints.ability.AuraStats.ROTATION_BEST);
+		player.getStats().setValue(player, stat, Math.max(player.getStats().getValue(stat), (int) Math.round(score)));
+		if (best) {
+			record.best = score;
+			state.markDirty();
+		}
+		ArenaFx.title(player, Component.literal(String.format(java.util.Locale.ROOT, "%.0f points", score)).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD),
+				Component.literal(top ? "NEW ROTATION RECORD!" : best ? "personal best!" : "rotation score").withStyle(ChatFormatting.YELLOW));
+		player.sendSystemMessage(Component.literal(String.format(java.util.Locale.ROOT,
+				"Rotation: %.0f damage + %d chains x%d + %d reactions x%d + %d different casts x%d = %.0f",
+				c.damage, c.chains, AuraConfig.TRAINING_ROTATION_CHAIN_POINTS, c.reactions, AuraConfig.TRAINING_ROTATION_REACTION_POINTS,
+				c.used.size(), AuraConfig.TRAINING_ROTATION_VARIETY_POINTS, score)).withStyle(ChatFormatting.AQUA));
+		AuraFx.sound(player.serverLevel(), player, best ? SoundEvents.UI_TOAST_CHALLENGE_COMPLETE : SoundEvents.NOTE_BLOCK_CHIME.value(), 0.8f, 1.1f);
+		if (top) {
+			for (ServerPlayer p : player.serverLevel().players()) {
+				p.sendSystemMessage(Component.literal(String.format(java.util.Locale.ROOT, "✦ %s set a new rotation record: %.0f!", player.getGameProfile().getName(), score)).withStyle(ChatFormatting.AQUA));
+			}
+			ArenaFx.firework(player.serverLevel(), Control.ROTATION.itemPos().add(0, 0.5, 0), 0x6FE3FF, 0xB06FFF);
+		}
+		if (best) {
+			writeBoards(player.serverLevel());
+			writeKiosks(player.serverLevel(), -1, -1);
+		}
+	}
+
+	/** Dev test: runs a rotation's scoring on made-up numbers and returns the score (no record written). */
+	public static double devRotationScore(float damage, int chains, int reactions, int casts) {
+		Challenge c = new Challenge(0, true);
+		c.damage = damage;
+		c.chains = chains;
+		c.reactions = reactions;
+		for (int i = 0; i < casts; i++) c.used.add("x" + i);
+		return c.score();
 	}
 
 	// ---------------------------------------------------------------
@@ -406,5 +491,6 @@ public final class TrainingHall {
 		CHALLENGES.clear();
 		LAST_FREE_USE.clear();
 		Drill.clearAll();
+		ComboTrainer.clearAll();
 	}
 }

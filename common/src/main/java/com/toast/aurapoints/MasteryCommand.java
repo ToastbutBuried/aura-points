@@ -65,6 +65,12 @@ final class MasteryCommand {
 					com.toast.aurapoints.arena.AuraTrial.stop(ctx.getSource().getPlayerOrException(), "Aura Trial stopped.");
 					return 1;
 				}))));
+		// the Training Hall's daily challenge cards (5.37.0)
+		dispatcher.register(Commands.literal("aura").then(Commands.literal("trainer")
+				.executes(ctx -> {
+					com.toast.aurapoints.arena.TrainerCards.show(ctx.getSource().getPlayerOrException());
+					return 1;
+				})));
 		dispatcher.register(Commands.literal("aura").then(Commands.literal("altar")
 				.executes(ctx -> {
 					com.toast.aurapoints.arena.AltarRitual.menu(ctx.getSource().getPlayerOrException());

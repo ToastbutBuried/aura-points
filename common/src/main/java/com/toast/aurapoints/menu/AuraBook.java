@@ -292,7 +292,7 @@ public final class AuraBook {
 	}
 
 	static final class MainPage extends Page {
-		static final int HEADER = 4, AURA = 20, ROLL = 21, SKILLS = 22, COSMETICS = 23, WEEKLY = 24, TRIAL = 25, SETTINGS = 30, EARN = 31, TUTORIAL = 32, ARENA = 29, REACTIONS = 33, NEWS = 34;
+		static final int HEADER = 4, AURA = 20, ROLL = 21, SKILLS = 22, COSMETICS = 23, WEEKLY = 24, TRIAL = 25, SETTINGS = 30, EARN = 31, TUTORIAL = 32, ARENA = 29, REACTIONS = 33, NEWS = 34, TRAINER = 35;
 
 		@Override
 		Component title(ServerPlayer player) {
@@ -353,6 +353,14 @@ public final class AuraBook {
 			slots[REACTIONS] = icon(Items.BLAZE_POWDER, text("Reactions", ChatFormatting.GOLD), List.of(
 					text("What happens when two elements meet.", ChatFormatting.GRAY),
 					text("Click: all reactions", ChatFormatting.YELLOW)), false);
+			if (data.aura != null && AuraConfig.TRAINING_CARDS_ENABLED) {
+				int done = 0;
+				for (int i = 0; i < 3; i++) if (com.toast.aurapoints.arena.TrainerCards.done(player, i)) done++;
+				slots[TRAINER] = icon(Items.TARGET, text("Training cards", ChatFormatting.AQUA), List.of(
+						text(done + " / 3 done today", done == 3 ? ChatFormatting.GREEN : ChatFormatting.GRAY),
+						text("Daily challenges in the Training Hall", ChatFormatting.GRAY),
+						text("Click: today's cards", ChatFormatting.YELLOW)), done < 3);
+			}
 			String newest = com.toast.aurapoints.Changelog.newest();
 			if (!newest.isEmpty()) {
 				boolean fresh = com.toast.aurapoints.Changelog.unseen(data);
@@ -414,6 +422,11 @@ public final class AuraBook {
 				case REACTIONS -> {
 					pageSound(player);
 					open(player, new ReactionsPage());
+				}
+				case TRAINER -> {
+					if (data.aura == null) return;
+					pageSound(player);
+					open(player, new TrainerPage());
 				}
 				case NEWS -> {
 					if (com.toast.aurapoints.Changelog.newest().isEmpty()) return;
@@ -940,6 +953,47 @@ public final class AuraBook {
 						text(leaves != null ? "Your hits leave: " + leaves : "Your hits leave no mark,", leaves != null ? ChatFormatting.AQUA : ChatFormatting.GRAY),
 						text(leaves != null ? "so allies' elements can react to them." : "but they set off reactions.", ChatFormatting.GRAY)), false);
 			}
+			bar(slots, true);
+		}
+
+		@Override
+		void click(ServerPlayer player, AuraPlayerData data, int slot) {
+			barClick(player, slot);
+		}
+	}
+
+	/** The Training Hall's daily challenge cards (arena/TrainerCards) and what the trainer does. */
+	static final class TrainerPage extends Page {
+		static final int[] SPOTS = {20, 22, 24};
+
+		@Override
+		Component title(ServerPlayer player) {
+			return Component.literal("Training cards");
+		}
+
+		@Override
+		void fill(ServerPlayer player, AuraPlayerData data, ItemStack[] slots) {
+			slots[4] = icon(Items.TARGET, text("Combo trainer", ChatFormatting.AQUA, ChatFormatting.BOLD), List.of(
+					text("In the Training Hall the dummy you hit shows", ChatFormatting.GRAY),
+					text("your chains, reactions, casts and combo.", ChatFormatting.GRAY),
+					text("ROTATION kiosk: 30 s, scored on damage", ChatFormatting.GRAY),
+					text("plus chains, reactions and different casts.", ChatFormatting.GRAY),
+					text("Cards count with your cooldowns on.", ChatFormatting.DARK_GRAY)), false);
+			var cards = com.toast.aurapoints.arena.TrainerCards.cards(player);
+			for (int i = 0; i < cards.size() && i < SPOTS.length; i++) {
+				boolean done = com.toast.aurapoints.arena.TrainerCards.done(player, i);
+				List<Component> lore = new ArrayList<>(wrap(cards.get(i).text(), 36, done ? ChatFormatting.DARK_GRAY : ChatFormatting.WHITE));
+				lore.add(text(done ? "Done today" : com.toast.aurapoints.arena.TrainerCards.progressText(player, i), done ? ChatFormatting.GREEN : ChatFormatting.DARK_AQUA));
+				lore.add(text("+" + AuraConfig.TRAINING_CARD_AURA + " Aura", ChatFormatting.LIGHT_PURPLE));
+				slots[SPOTS[i]] = icon(done ? Items.LIME_DYE : switch (cards.get(i).kind()) {
+					case CHAIN -> Items.CHAIN;
+					case CAST -> Items.BLAZE_ROD;
+					case COMBO -> Items.FIREWORK_ROCKET;
+					case DAMAGE -> Items.IRON_SWORD;
+				}, text("Card " + (i + 1), done ? ChatFormatting.GREEN : ChatFormatting.GOLD), lore, done);
+			}
+			slots[40] = icon(Items.GOLD_NUGGET, text("All three: +" + AuraConfig.TRAINING_CARDS_BONUS + " Aura", ChatFormatting.GOLD), List.of(
+					text("New cards every day, for the aura you hold.", ChatFormatting.GRAY)), false);
 			bar(slots, true);
 		}
 

@@ -394,6 +394,7 @@ public final class Reactions {
 				.withStyle(s -> s.withColor(TextColor.fromRgb(r.rgb)).withBold(true)), true);
 		var stat = AuraStats.reaction(r.id());
 		if (stat != null) AuraStats.add(attacker, stat, 1);
+		com.toast.aurapoints.arena.ComboTrainer.onReaction(attacker, r.displayName, r.symbol, r.rgb);
 		// the first of each is a stunt
 		MinecraftServer server = attacker.getServer();
 		if (server == null || AuraAbilities.progressPaused(attacker)) return;

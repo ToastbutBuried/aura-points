@@ -32,8 +32,17 @@ public final class Holograms {
 
 	/** Places a hologram; {@code key} (or null) makes it a live one. {@code background} is ARGB (0 = none). */
 	static void spawn(ServerLevel level, Vec3 at, Component text, float scale, int background, String key) {
-		Display.TextDisplay display = EntityType.TEXT_DISPLAY.create(level);
+		Display.TextDisplay display = make(level, at, text, scale, background);
 		if (display == null) return;
+		ArenaBuilder.claim(display);
+		if (key != null) display.addTag("ah_" + key);
+		level.addFreshEntity(display);
+	}
+
+	/** A hologram not yet added to the level (not claimed by the map build: the caller owns it). */
+	static Display.TextDisplay make(ServerLevel level, Vec3 at, Component text, float scale, int background) {
+		Display.TextDisplay display = EntityType.TEXT_DISPLAY.create(level);
+		if (display == null) return null;
 		CompoundTag tag = new CompoundTag();
 		tag.putString("text", Component.Serializer.toJson(text, level.registryAccess()));
 		tag.putString("billboard", "center");
@@ -54,9 +63,11 @@ public final class Holograms {
 		tag.put("transformation", transformation);
 		display.load(tag);
 		display.moveTo(at.x, at.y, at.z, 0f, 0f);
-		ArenaBuilder.claim(display);
-		if (key != null) display.addTag("ah_" + key);
-		level.addFreshEntity(display);
+		return display;
+	}
+
+	static void setText(Display.TextDisplay display, Component text) {
+		((TextDisplayAccessor) display).aurapoints$setText(text);
 	}
 
 	private static ListTag floats(float... values) {
@@ -112,6 +123,8 @@ public final class Holograms {
 		set("board_weekly", com.toast.aurapoints.cosmetic.Weekly.board());
 		set("board_waves", waveBoard(TrainingHall.top(state.waveRecords, r -> r.best), TrainingHall.top(state.partyWaveRecords, r -> r.best)));
 		set("board_dps", board("★ DPS RECORDS", ChatFormatting.GOLD, dps, r -> String.format(java.util.Locale.ROOT, "%.1f DPS", r.best)));
+		set("board_rotation", board("✦ ROTATION RECORDS", ChatFormatting.AQUA, TrainingHall.top(state.rotationRecords, r -> r.best),
+				r -> String.format(java.util.Locale.ROOT, "%.0f pts", r.best)));
 	}
 
 	/** Wave records: the best solo runs on top, the best party runs under them. */

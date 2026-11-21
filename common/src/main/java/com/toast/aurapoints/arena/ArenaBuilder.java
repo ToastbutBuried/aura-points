@@ -68,7 +68,7 @@ public final class ArenaBuilder {
 	}
 
 	/** Raise when the layout changes: every server rebuilds the map on its next start. */
-	public static final int MAP_VERSION = 15;
+	public static final int MAP_VERSION = 16;
 
 	private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
 	/** Barrier walls and roof of the ring go up to here. */
@@ -520,6 +520,8 @@ public final class ArenaBuilder {
 		Holograms.spawn(level, new Vec3(-10.5, FLOOR + 3, 13.5), Component.literal("⚔ TOP DUELISTS"), 1.1f, 0x90000000, "board_duels");
 		Holograms.spawn(level, new Vec3(11.5, FLOOR + 3, 13.5), Component.literal("★ DPS RECORDS"), 1.1f, 0x90000000, "board_dps");
 		Holograms.spawn(level, new Vec3(-3.5, FLOOR + 3, RING_Z + RING_R + 4.5), Component.literal("☠ WAVE RECORDS"), 1.1f, 0x90000000, "board_waves");
+		// the ROTATION kiosk's board, above its sign in the Training Hall's Control Gallery (5.37.0)
+		Holograms.spawn(level, new Vec3(TrainingHall.Control.ROTATION.x + 0.5, FLOOR + 6.2, TrainingHall.KIOSK_Z + 0.5), Component.literal("✦ ROTATION RECORDS"), 0.8f, 0x90000000, "board_rotation");
 		// what's on in the ring, over its south rim (Holograms.ringBoard)
 		Holograms.spawn(level, new Vec3(0.5, FLOOR + 7, RING_Z + RING_R + 2), Component.literal("⚔ THE RING"), 1.4f, 0x90000000, "ring_live");
 	}

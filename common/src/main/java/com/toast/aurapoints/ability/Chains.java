@@ -205,6 +205,7 @@ public final class Chains {
 		st.hitsLeft = AuraConfig.CHAINS_MAX_HITS;
 		AuraStats.add(player, AuraStats.CHAINS, 1);
 		com.toast.aurapoints.arena.AuraTrial.onChain(player, link);
+		com.toast.aurapoints.arena.ComboTrainer.onChain(player, link, st.streak);
 		castEffect(player, st, link, ability, now);
 		cue(player, data.aura, link, st.streak);
 	}

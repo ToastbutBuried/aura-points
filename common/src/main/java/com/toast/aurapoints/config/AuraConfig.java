@@ -1687,6 +1687,26 @@ public final class AuraConfig {
 	 */
 	public static int TRAINING_CHALLENGE_CLEAN_SECONDS = 30;
 
+	/** Combo trainer (5.37.0): the live readout over the dummy you hit (chains, reactions, casts, combo counter). */
+	public static boolean TRAINING_READOUT_ENABLED = true;
+	/** Combo steps (chains, reactions, cast variants) less than this many ticks apart keep the combo going. */
+	public static int TRAINING_COMBO_GAP_TICKS = 60;
+	/** ROTATION kiosk: points per chain, per reaction and per different cast (ability + tap/sneak/hold), on top of the damage. */
+	public static int TRAINING_ROTATION_CHAIN_POINTS = 40;
+	public static int TRAINING_ROTATION_REACTION_POINTS = 30;
+	public static int TRAINING_ROTATION_VARIETY_POINTS = 25;
+	/** Daily challenge cards in the Training Hall (/aura trainer): three per day, Aura per card and a bonus for all three. */
+	public static boolean TRAINING_CARDS_ENABLED = true;
+	public static int TRAINING_CARD_AURA = 15;
+	public static int TRAINING_CARDS_BONUS = 25;
+	public static int TRAINING_CARD_MASTERY_XP = 20;
+	/** Chain and cast cards: that many times within this many seconds. */
+	public static int TRAINING_CARD_WINDOW_SECONDS = 30;
+	/** Damage cards: three tiers (MIN, MIN + STEP, MIN + 2 STEP), dealt within TRAINING_CARD_DAMAGE_SECONDS. */
+	public static int TRAINING_CARD_DAMAGE_MIN = 100;
+	public static int TRAINING_CARD_DAMAGE_STEP = 50;
+	public static int TRAINING_CARD_DAMAGE_SECONDS = 15;
+
 	// ---------------------------------------------------------------
 	// Earth: aurapoints-earth.json
 	// ---------------------------------------------------------------

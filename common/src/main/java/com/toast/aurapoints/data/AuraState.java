@@ -53,6 +53,8 @@ public class AuraState extends SavedData {
 
 	/** Training Hall DPS challenge bests and duel results, per player (shown on the arena's sign boards). */
 	public final Map<UUID, ArenaRecord> dpsRecords = new HashMap<>();
+	/** Training Hall ROTATION kiosk bests (5.37.0): damage + chains, reactions and different casts. */
+	public final Map<UUID, ArenaRecord> rotationRecords = new HashMap<>();
 	public final Map<UUID, ArenaRecord> duelRecords = new HashMap<>();
 	/** Wave Survival: best wave cleared (best), runs (wins), with whom (party). */
 	public final Map<UUID, ArenaRecord> waveRecords = new HashMap<>();
@@ -70,6 +72,7 @@ public class AuraState extends SavedData {
 		state.arenaMapVersion = tag.getInt("arenaMapVersion");
 		state.arenaBuildId = tag.getInt("arenaBuildId");
 		readRecords(tag.getList("dpsRecords", CompoundTag.TAG_COMPOUND), state.dpsRecords);
+		readRecords(tag.getList("rotationRecords", CompoundTag.TAG_COMPOUND), state.rotationRecords);
 		readRecords(tag.getList("duelRecords", CompoundTag.TAG_COMPOUND), state.duelRecords);
 		readRecords(tag.getList("waveRecords", CompoundTag.TAG_COMPOUND), state.waveRecords);
 		readRecords(tag.getList("partyWaveRecords", CompoundTag.TAG_COMPOUND), state.partyWaveRecords);
@@ -148,6 +151,7 @@ public class AuraState extends SavedData {
 		tag.putInt("arenaMapVersion", arenaMapVersion);
 		tag.putInt("arenaBuildId", arenaBuildId);
 		tag.put("dpsRecords", writeRecords(dpsRecords));
+		tag.put("rotationRecords", writeRecords(rotationRecords));
 		tag.put("duelRecords", writeRecords(duelRecords));
 		tag.put("waveRecords", writeRecords(waveRecords));
 		tag.put("partyWaveRecords", writeRecords(partyWaveRecords));

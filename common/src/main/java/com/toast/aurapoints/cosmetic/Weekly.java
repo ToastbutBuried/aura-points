@@ -48,7 +48,8 @@ public final class Weekly {
 		MASTERY("Earn %d Aura Mastery XP", new int[]{200, 400, 700}),
 		WAVES("Clear wave %d in Wave Survival", new int[]{10, 15, 20}),
 		COMBOS("Pull off %d team combos with an ally", new int[]{3, 6, 10}),
-		CHAINS("Pull off %d ability chains", new int[]{15, 30, 50});
+		CHAINS("Pull off %d ability chains", new int[]{15, 30, 50}),
+		TRAINER("Finish %d Training Hall challenge cards", new int[]{3, 6, 10});
 
 		final String text;
 		final int[] targets;
@@ -104,6 +105,9 @@ public final class Weekly {
 	/** Monday 2026-11-16: the first week that can roll an ability-chain challenge (5.24.0). */
 	private static final long CHAINS_WEEK = LocalDate.of(2026, 11, 16).toEpochDay();
 
+	/** Monday 2026-11-23: the first week that can roll a training-card challenge (5.37.0). */
+	private static final long TRAINER_WEEK = LocalDate.of(2026, 11, 23).toEpochDay();
+
 	/** This week's three challenges. */
 	static List<Challenge> challenges() {
 		long week = week();
@@ -113,7 +117,8 @@ public final class Weekly {
 		// arena: the DPS test, duels or (from the week Wave Survival came out, so the week before keeps its rolls) waves
 		double a = r.nextDouble();
 		Type arena = week < WAVES_WEEK ? (a < 0.5 ? Type.DPS : a < 0.75 ? Type.DUEL_WINS : Type.DUEL_ROUNDS)
-				: a < 0.4 ? Type.DPS : a < 0.6 ? Type.DUEL_WINS : a < 0.8 ? Type.DUEL_ROUNDS : Type.WAVES;
+				: week < TRAINER_WEEK ? (a < 0.4 ? Type.DPS : a < 0.6 ? Type.DUEL_WINS : a < 0.8 ? Type.DUEL_ROUNDS : Type.WAVES)
+				: a < 0.3 ? Type.DPS : a < 0.5 ? Type.DUEL_WINS : a < 0.65 ? Type.DUEL_ROUNDS : a < 0.82 ? Type.WAVES : Type.TRAINER;
 		out.add(new Challenge(arena, r.nextInt(3), null, null));
 		Type[] hunts = {Type.TOUCHED, Type.TOUCHED_AURA, Type.MONSTERS};
 		out.add(new Challenge(hunts[r.nextInt(hunts.length)], r.nextInt(3), AuraType.values()[r.nextInt(AuraType.values().length)], null));
@@ -199,6 +204,11 @@ public final class Weekly {
 		check(player);
 	}
 
+	/** TrainerCards: a challenge card was finished. */
+	public static void onTrainerCard(ServerPlayer player) {
+		count(player, Type.TRAINER, 1, false, null);
+	}
+
 	public static void onDps(ServerPlayer player, double dps) {
 		count(player, Type.DPS, (int) Math.floor(dps), true, null);
 	}
@@ -281,6 +291,7 @@ public final class Weekly {
 			case WAVES -> onWaveCleared(p, n);
 			case COMBOS -> devStat(p, AuraStats.combo("glacier"), n);
 			case CHAINS -> devStat(p, AuraStats.CHAINS, n);
+			case TRAINER -> { for (int k = 0; k < n; k++) onTrainerCard(p); }
 		}
 		check(p);
 	}

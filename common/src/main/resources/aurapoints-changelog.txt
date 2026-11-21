@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.37.0
+- Combo trainer in the Training Hall: the dummy you hit now shows your chains, reactions, casts and combo as they happen.
+- New ROTATION kiosk (30 s, damage + chains, reactions and different casts, own record board) and three daily training cards for Aura (/aura trainer or the Aura Book).
+
 == 5.36.1
 - Cold Snap now really works: after an Ice Spike you have 18 s to follow up with Frost Path (the old 12 s ran out before the spike's cooldown did).
 

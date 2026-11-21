@@ -104,6 +104,10 @@ public final class AuraStats {
 	public static final ResourceLocation BEST_WAVE = stat("best_wave");
 	/** The best 30-second DPS challenge, in tenths (shown with one decimal). */
 	public static final ResourceLocation DPS_BEST = stat("dps_best", true);
+	/** Best Training Hall rotation score (5.37.0), in points. */
+	public static final ResourceLocation ROTATION_BEST = stat("rotation_best");
+	/** Training Hall challenge cards done (5.37.0). */
+	public static final ResourceLocation TRAINER_CARDS = stat("trainer_cards");
 
 	/** Aura Mastery XP, one counter per aura: "aurapoints:mastery_fire" ... */
 	private static final java.util.Map<AuraType, ResourceLocation> MASTERY = new java.util.EnumMap<>(AuraType.class);

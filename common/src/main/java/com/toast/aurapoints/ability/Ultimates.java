@@ -163,6 +163,7 @@ public final class Ultimates {
 		AuraAbilities.markUsed(player, ult, now);
 		// the Ultimate key doesn't go through AuraAbilities.tryActivate, so it tells the Aura Trial itself
 		com.toast.aurapoints.arena.AuraTrial.onPressed(player, ult, CastMode.TAP);
+		com.toast.aurapoints.arena.ComboTrainer.onCast(player, ult, CastMode.TAP);
 	}
 
 	private static void start(ServerPlayer player, Ability ult, long now) {

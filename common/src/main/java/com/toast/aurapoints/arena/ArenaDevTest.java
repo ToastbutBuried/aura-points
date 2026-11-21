@@ -226,7 +226,8 @@ public final class ArenaDevTest {
 			});
 			t += 5;
 			AuraFx.later(server, t, () -> {
-				var rec = state.waveRecords.get(ps[0].getUUID());
+				// two players: a party run, so the party board (solo runs go to waveRecords since 5.18)
+				var rec = state.partyWaveRecords.get(ps[0].getUUID());
 				log("end: running " + Match.running() + ", wave mobs left " + Waves.devCountInRing(arena) + " (must be 0), W1 record "
 						+ (rec == null ? "none" : rec.best + " with " + rec.party) + " (must be 5.0), W1 aura " + aura0 + " -> " + com.toast.aurapoints.AuraCurrency.get(ps[0]));
 				var d1 = state.getOrCreate(ps[0].getUUID());

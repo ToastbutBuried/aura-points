@@ -72,6 +72,10 @@ public class AuraPlayerData {
 	public final java.util.Set<AuraType> altarUnlocked = java.util.EnumSet.noneOf(AuraType.class);
 	/** Auras whose Aura Trial (arena/AuraTrial) this player finished at least once (retakes are always open). */
 	public final java.util.Set<AuraType> trialDone = java.util.EnumSet.noneOf(AuraType.class);
+	/** Training Hall challenge cards (5.37.0): the day (epoch day) and aura id they were rolled for, and which of the three are done (bits). */
+	public long trainerDay = Long.MIN_VALUE;
+	public String trainerAura = "";
+	public int trainerDone = 0;
 	/** Not saved: an Aura Trial runs and the player is in the Training Hall, so the whole kit works (AuraAbilities.hasAbility, casts, chains). */
 	public transient boolean trialKit = false;
 
@@ -158,6 +162,11 @@ public class AuraPlayerData {
 		net.minecraft.nbt.ListTag trialList = new net.minecraft.nbt.ListTag();
 		for (AuraType a : trialDone) trialList.add(net.minecraft.nbt.StringTag.valueOf(a.name()));
 		nbt.put("trialDone", trialList);
+		net.minecraft.nbt.CompoundTag trainer = new net.minecraft.nbt.CompoundTag();
+		trainer.putLong("day", trainerDay);
+		trainer.putString("aura", trainerAura);
+		trainer.putInt("done", trainerDone);
+		nbt.put("trainer", trainer);
 		net.minecraft.nbt.ListTag rolledList = new net.minecraft.nbt.ListTag();
 		for (AuraType a : rolled) rolledList.add(net.minecraft.nbt.StringTag.valueOf(a.name()));
 		nbt.put("rolled", rolledList);
@@ -236,6 +245,12 @@ public class AuraPlayerData {
 		for (int i = 0; i < altarList.size(); i++) {
 			AuraType a = parseAura(altarList.getString(i), voidAny);
 			if (a != null) data.altarUnlocked.add(a);
+		}
+		if (nbt.contains("trainer")) {
+			var trainer = nbt.getCompound("trainer");
+			data.trainerDay = trainer.getLong("day");
+			data.trainerAura = trainer.getString("aura");
+			data.trainerDone = trainer.getInt("done");
 		}
 		var trialList = nbt.getList("trialDone", net.minecraft.nbt.Tag.TAG_STRING);
 		for (int i = 0; i < trialList.size(); i++) {

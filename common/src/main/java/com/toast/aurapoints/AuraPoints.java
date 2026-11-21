@@ -665,6 +665,7 @@ public class AuraPoints {
 					|| com.toast.aurapoints.ability.Mjolnir.isLeftover(event.getEntity())
 					|| com.toast.aurapoints.ability.IceSpike.isLeftover(event.getEntity())
 					|| com.toast.aurapoints.arena.AltarRitual.isLeftover(event.getEntity())
+					|| com.toast.aurapoints.arena.ComboTrainer.isLeftover(event.getEntity())
 					|| com.toast.aurapoints.ability.Ultimates.isLeftover(event.getEntity())
 					|| com.toast.aurapoints.ability.Earth.isLeftover(event.getEntity()))) event.setCanceled(true);
 		}
