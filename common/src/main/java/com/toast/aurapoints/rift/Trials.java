@@ -16,6 +16,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.WallBannerBlock;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -301,10 +302,44 @@ final class Trials {
 			for (int f = backF() - 3; f <= backF() + 4; f++)
 				for (int l = -3; l <= 3; l++) if (level.getBlockState(arena(f, l, 0)).isAir()) set(level, f, l, 0, pal.floor());
 			label(level, Vec3.atBottomCenterOf(at(hall - 3, 0, TrialPortal.H + 4)), Component.literal(name()).withStyle(s -> s.withColor(rgb).withBold(true)), 2.2f);
+			dressWing(level);
 			built = true;
 			com.toast.aurapoints.AuraPoints.LOGGER.debug("[rift] built the {} arena in {} ms", name(), (System.nanoTime() - t0) / 1_000_000);
 			gate.setOpen(level, true, pal.gate());
 			back.setOpen(level, true, pal.gate());
+		}
+
+		private static final Block[] WING_CARPET = {Blocks.BLUE_CARPET, Blocks.LIME_CARPET, Blocks.YELLOW_CARPET, Blocks.RED_CARPET};
+		private static final Block[] WING_BANNER = {Blocks.BLUE_WALL_BANNER, Blocks.LIME_WALL_BANNER, Blocks.YELLOW_WALL_BANNER, Blocks.RED_WALL_BANNER};
+
+		/** Air only: a block of the wing's dressing. */
+		private void putW(ServerLevel level, int f, int l, int dy, net.minecraft.world.level.block.state.BlockState st) {
+			BlockPos p = at(f, l, dy);
+			if (level.getBlockState(p).isAir()) RealmBuilder.set(level, p.getX(), p.getY(), p.getZ(), st);
+		}
+
+		/**
+		 * The antechamber is no empty box: a carpet runner in the wing's colour from the door to the portal, pillars with a
+		 * brazier at their feet in pairs down both sides, and the wing's banners on the long walls under the windows.
+		 * Everything stays off the path (|l| <= 3 from the door to the portal) and out of the portal's frame.
+		 */
+		private void dressWing(ServerLevel level) {
+			int idx = Math.max(0, Math.min(3, index));
+			for (int f = -hall + 1; f <= hall - 6; f++) for (int l = -1; l <= 1; l++) putW(level, f, l, 1, WING_CARPET[idx].defaultBlockState());
+			for (int f : new int[]{-11, -4, 3, 10}) {
+				for (int side = -1; side <= 1; side += 2) {
+					for (int dy = 1; dy <= 9; dy++) putW(level, f, side * 8, dy, pal.edge().defaultBlockState());
+					putW(level, f, side * 8, 10, pal.accent().defaultBlockState());
+					putW(level, f, side * 5, 1, pal.edge().defaultBlockState());
+					putW(level, f, side * 5, 2, pal.accent().defaultBlockState());
+					putW(level, f, side * 5, 3, pal.light().defaultBlockState());
+				}
+			}
+			for (int f : new int[]{-12, -6, 0, 6, 12}) {
+				for (int side = -1; side <= 1; side += 2) {
+					putW(level, f, side * hall, 6, WING_BANNER[idx].defaultBlockState().setValue(WallBannerBlock.FACING, TrialDecor.dir(this, 0, -side)));
+				}
+			}
 		}
 
 		/** Base tick: portals, the intro, enter/leave; then the trial's own tick with the arena players. */

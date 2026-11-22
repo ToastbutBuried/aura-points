@@ -142,6 +142,9 @@ public final class TrialsDevTest {
 		Vec3 g = Vec3.atBottomCenterOf(t.gate.base.above());
 		fake.moveTo(g.x, g.y, g.z);
 		t.tickAll(rift, List.of(fake), now);
+		boolean pathClear = true;
+		for (int f = -t.hall + 1; f <= t.hall - 6; f++) for (int l = -1; l <= 1; l++) for (int dy = 2; dy <= 3; dy++) if (!rift.getBlockState(t.at(f, l, dy)).isAir()) pathClear = false;
+		log("antechamber: path clear " + pathClear + " (must be true), carpet runner " + rift.getBlockState(t.at(0, 0, 1)).getBlock().getDescriptionId().contains("carpet") + " (must be true), braziers " + rift.getBlockState(t.at(-11, 5, 3)).is(t.pal.light()) + " (must be true)");
 		log("portal in: in the arena " + t.inArena(fake.position()) + " (must be true)");
 		Vec3 b = Vec3.atBottomCenterOf(t.back.base.above());
 		fake.moveTo(b.x, b.y, b.z);
@@ -186,6 +189,15 @@ public final class TrialsDevTest {
 					// a Frost (or Wind: "enterwind") gate at the caller, and straight in
 					if (!Rifts.devTearOpen()) Rifts.open(p.getServer(), what.equals("enterwind") ? AuraType.WIND : AuraType.FROST, null, p.position().add(0, 1.6, 0));
 					Rifts.devEnter(p.getServer(), p);
+				}
+				case "wing0", "wing1", "wing2", "wing3" -> {
+					// inside the wing hall just past the door, looking at the portal (client playtests)
+					Rifts.Run run = Rifts.runOf(p);
+					if (run == null) return 0;
+					Trials.Trial t = run.trials[what.charAt(4) - '0'];
+					Vec3 g = Vec3.atBottomCenterOf(t.at(-t.hall + 3, 0, 1));
+					float yaw = (float) Math.toDegrees(Math.atan2(-t.fx, t.fz));
+					p.teleportTo((ServerLevel) p.level(), g.x, g.y, g.z, yaw, 8f);
 				}
 				case "gate0", "gate1", "gate2", "gate3" -> {
 					// onto the trial's portal into its arena (client playtests); the camera intro follows
