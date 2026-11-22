@@ -123,6 +123,7 @@ public final class ScreenFx {
 			case FxPacket.RITUAL -> RitualCutscene.onPacket(p.value(), p.text());
 			case FxPacket.PORTAL -> StatusOverlays.portal(p.value(), p.text());
 			case FxPacket.RIFT_CAM -> RiftCamera.onPacket(p.value(), p.text());
+			case FxPacket.RIFT_SKY -> RiftSky.set(p.text());
 			default -> {
 			}
 		}

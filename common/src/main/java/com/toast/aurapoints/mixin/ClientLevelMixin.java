@@ -16,7 +16,16 @@ public abstract class ClientLevelMixin {
 		float s = com.toast.aurapoints.client.BloodMoonSky.strength();
 		if (s > 0) cir.setReturnValue(com.toast.aurapoints.client.BloodMoonSky.tint(cir.getReturnValue(), s));
 		if (com.toast.aurapoints.client.StormFx.strength() > 0) cir.setReturnValue(com.toast.aurapoints.client.StormFx.tintSky(cir.getReturnValue()));
+		Vec3 rift = com.toast.aurapoints.client.RiftSky.sky();
+		if (rift != null) cir.setReturnValue(rift);
 		float r = com.toast.aurapoints.client.RitualCutscene.tintStrength();
 		if (r > 0) cir.setReturnValue(com.toast.aurapoints.client.RitualCutscene.tintSky(cir.getReturnValue(), r));
+	}
+
+	/** A rift realm's daylight (client/RiftSky): bright for Wind and Light, near night for Shadow. */
+	@Inject(method = "getSkyDarken", at = @At("RETURN"), cancellable = true)
+	private void aurapoints$riftDaylight(float partialTick, CallbackInfoReturnable<Float> cir) {
+		float d = com.toast.aurapoints.client.RiftSky.daylight();
+		if (d >= 0) cir.setReturnValue(d);
 	}
 }

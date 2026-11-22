@@ -199,16 +199,31 @@ public final class Monument {
 	/** Swaps the role blocks while a tile is placed (keeps a pane's connections). */
 	private static final class Remap extends StructureProcessor {
 		private final Map<Block, BlockState> map;
+		private final AuraType aura;
 
-		Remap(Map<Block, BlockState> map) {
+		Remap(Map<Block, BlockState> map, AuraType aura) {
 			this.map = map;
+			this.aura = aura;
 		}
 
 		@Override
 		public StructureTemplate.StructureBlockInfo processBlock(LevelReader level, BlockPos offset, BlockPos pos, StructureTemplate.StructureBlockInfo raw,
 				StructureTemplate.StructureBlockInfo info, StructurePlaceSettings settings) {
+			if (info.state().is(Blocks.LIGHT)) {
+				// hidden light, bright or dim by element
+				int lvl = switch (aura) {
+					case WIND, LIGHT, FROST -> 15;
+					case SHADOW, BLOOD, FIRE, THUNDER -> 11;
+					default -> 12;
+				};
+				return new StructureTemplate.StructureBlockInfo(info.pos(), info.state().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, lvl), info.nbt());
+			}
 			BlockState to = map.get(info.state().getBlock());
-			if (to == null) return info;
+			if (to == null) {
+				// the element's own building materials (5.48)
+				BlockState themed = Themes.swap(aura, info.state());
+				return themed == null ? info : new StructureTemplate.StructureBlockInfo(info.pos(), themed, info.nbt());
+			}
 			if (to.hasProperty(IronBarsBlock.NORTH) && info.state().hasProperty(IronBarsBlock.NORTH)) {
 				to = to.setValue(IronBarsBlock.NORTH, info.state().getValue(IronBarsBlock.NORTH))
 						.setValue(IronBarsBlock.EAST, info.state().getValue(IronBarsBlock.EAST))
@@ -241,11 +256,14 @@ public final class Monument {
 			this.level = level;
 			this.origin = origin(slot);
 			this.aura = aura;
-			this.settings = new StructurePlaceSettings().setIgnoreEntities(true).addProcessor(new Remap(roles(aura)));
+			this.settings = new StructurePlaceSettings().setIgnoreEntities(true).addProcessor(new Remap(roles(aura), aura));
 		}
 
+		/** Clouds still to place (Wind, Light: the realm floats in a sky of them). */
+		private int clouds = -1;
+
 		public boolean done() {
-			return next >= anchors().tiles.size();
+			return next >= anchors().tiles.size() && clouds == 0;
 		}
 
 		/** 0..1 */
@@ -254,8 +272,21 @@ public final class Monument {
 		}
 
 		/** Places the next tile. */
+		private boolean cleared;
+
 		public void step() {
 			if (done()) return;
+			if (!cleared) {
+				// whatever an earlier run left in the slot (clouds, the pre-5.47 islands) goes first
+				cleared = true;
+				clearColumns(level, origin.getX() - 240, origin.getZ() - 220, 480);
+				return;
+			}
+			if (next >= anchors().tiles.size()) {
+				if (clouds < 0) clouds = aura == AuraType.WIND || aura == AuraType.LIGHT ? CLOUDS : 0;
+				if (clouds > 0) cloud(level, origin, aura, CLOUDS - clouds--);
+				return;
+			}
 			Tile t = anchors().tiles.get(next++);
 			BlockPos at = origin.offset(t.min());
 			clearColumns(level, at.getX(), at.getZ(), 32);
@@ -269,7 +300,41 @@ public final class Monument {
 
 		/** Everything at once (dev tests). */
 		public void finish() {
+			if (clouds < 0 && next >= anchors().tiles.size()) clouds = aura == AuraType.WIND || aura == AuraType.LIGHT ? CLOUDS : 0;
 			while (!done()) step();
+		}
+	}
+
+	private static final int CLOUDS = 46;
+
+	/**
+	 * Cloud {@code i} of a sky realm: a puffy cluster of white wool and snow, a few soft glass blocks round its rim.
+	 * Seeded by its index, so every run's sky is the same; a ring of banks below and around the island, some at the
+	 * level of the floor so the bridges seem to run over them, a few high above.
+	 */
+	static void cloud(ServerLevel level, BlockPos origin, AuraType aura, int i) {
+		RandomSource r = RandomSource.create(9173L * (i + 1));
+		double a = r.nextDouble() * Math.PI * 2, d = 60 + r.nextDouble() * 140;
+		int band = i % 4;
+		int y = band == 0 ? -60 - r.nextInt(30) : band == 1 ? -18 - r.nextInt(20) : band == 2 ? -6 + r.nextInt(8) : 40 + r.nextInt(50);
+		int cx = (int) Math.round(Math.cos(a) * d), cz = 25 + (int) Math.round(Math.sin(a) * d * 1.2);
+		int puffs = 4 + r.nextInt(5);
+		BlockState wool = Blocks.WHITE_WOOL.defaultBlockState(), snow = Blocks.SNOW_BLOCK.defaultBlockState(),
+				rim = (aura == AuraType.LIGHT ? Blocks.YELLOW_STAINED_GLASS : Blocks.WHITE_STAINED_GLASS).defaultBlockState();
+		for (int k = 0; k < puffs; k++) {
+			int px = cx + r.nextInt(17) - 8, pz = cz + r.nextInt(13) - 6, py = y + r.nextInt(3);
+			int rx = 4 + r.nextInt(6), ry = 2 + r.nextInt(3), rz = 3 + r.nextInt(5);
+			for (int dx = -rx; dx <= rx; dx++) {
+				for (int dy = -ry; dy <= ry; dy++) {
+					for (int dz = -rz; dz <= rz; dz++) {
+						double e = (dx * dx) / (double) (rx * rx) + (dy * dy) / (double) (ry * ry) * (dy < 0 ? 2.2 : 1) + (dz * dz) / (double) (rz * rz);
+						if (e > 1) continue;
+						BlockPos p = origin.offset(px + dx, py + dy, pz + dz);
+						if (!level.getBlockState(p).isAir()) continue;
+						level.setBlock(p, e > 0.82 ? rim : (r.nextInt(5) == 0 ? snow : wool), 2 | 16);
+					}
+				}
+			}
 		}
 	}
 

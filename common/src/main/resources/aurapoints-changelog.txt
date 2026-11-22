@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.48.0
+- Every Reliquary now wears its element: Wind is a white-and-gold palace floating among clouds under a bright sky, Fire a black basalt forge under an ember sky, Frost an ice palace, Water a prismarine temple, Verdant an overgrown ruin, Thunder a copper storm citadel, Earth a sandstone canyon temple, Light a golden sanctum, Blood a nether keep - each with its own sky, fog and daylight. Clients must update.
+
 == 5.47.1
 - Rifts: falling off the Reliquary during the difficulty vote brings you back to the landing (it put you past the sealed doors). The bridges are wide and whole now, worn only at the edges, and the causeway has no gaps to jump.
 

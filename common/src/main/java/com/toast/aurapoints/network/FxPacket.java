@@ -37,6 +37,8 @@ public record FxPacket(byte kind, int value, String text) implements CustomPacke
 	public static final byte PORTAL = 10;
 	/** A rift camera shot (5.47, client/RiftCamera, rift/RiftCam): value = length in ticks (0 = stop), text = see RiftCamera.onPacket. */
 	public static final byte RIFT_CAM = 11;
+	/** The rift realm's sky (5.48, client/RiftSky): text = the realm's aura id ("" = none). */
+	public static final byte RIFT_SKY = 12;
 
 	public static final Type<FxPacket> TYPE =
 			new Type<>(ResourceLocation.fromNamespaceAndPath("aurapoints", "fx"));

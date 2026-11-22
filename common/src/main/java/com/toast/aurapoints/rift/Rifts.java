@@ -377,6 +377,8 @@ public final class Rifts {
 				.append(Component.literal(run.phase() == Reliquary.Phase.VOTE ? "Vote on the difficulty: stand on a plate in the entry hall." : "")
 						.withStyle(ChatFormatting.GRAY)));
 		if (run.phase() != Reliquary.Phase.VOTE) trialList(run, player);
+		if (!com.toast.aurapoints.shim.Platform.get().isFakePlayer(player))
+			com.toast.aurapoints.network.NetworkHandler.sendFx(player, com.toast.aurapoints.network.FxPacket.RIFT_SKY, 0, run.aura.id());
 		Reliquary.arrivalShot(run, player);
 	}
 
