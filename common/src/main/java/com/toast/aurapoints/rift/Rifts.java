@@ -38,6 +38,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -56,13 +57,14 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Aura Rifts (5.41.0). Now and then a tear opens in the overworld near a random player (announced, open for
- * RIFT_OPEN_SECONDS). Walking into it takes you, and up to RIFT_MAX_PLAYERS others, into the aurapoints:rift
- * dimension: a chain of floating rooms in the rift's aura colours, each holding that aura's touched mobs, the gate
- * to the next opening once a room is clear, then a boss room with a champion. A lethal hit is a knockout (you
- * watch until the next room); if everyone is down the run fails. Clearing pays Aura, mastery XP and a relic
- * of the rift's aura (always on your first clear of it), counts toward two earn-only titles and a weekly type.
- * Runs are not saved: logging in inside a rift sends you back to where you came from.
+ * Aura Rifts (5.41.0; Relic Trials 5.46.0). Now and then a Rift Gate opens in the overworld near a random player
+ * (RiftGate, announced, open for RIFT_OPEN_SECONDS). Stepping in takes you, and up to RIFT_MAX_PLAYERS others, into
+ * the aurapoints:rift dimension: a realm built for the run (RealmBuilder) - a hub island with an altar and four trial
+ * islands. Each trial (Trials: a puzzle; mistakes call up the aura's touched mobs) frees a Relic Shard; the four shards
+ * set on the altar (Altar) forge the aura's relic, and its guardian (Guardian) tears out of the altar and takes it.
+ * A lethal hit is a knockout (back at the altar after RIFT_KNOCKOUT_SECONDS); if everyone is down at once, or the time
+ * limit runs out, the run fails. Winning pays Aura, mastery XP and the relic (always on your first clear of an aura).
+ * Runs are not saved: logging in inside a rift sends you back to where you came from; shards never leave the rift.
  */
 public final class Rifts {
 
@@ -76,7 +78,8 @@ public final class Rifts {
 			BOSS_SIZE_ID = ResourceLocation.fromNamespaceAndPath(AuraPoints.MOD_ID, "rift_boss_size");
 
 	private static final int PULL_TICKS = 18;
-	static final int FLOOR = 64, ROOMS = 4, SPACING = 30, ROOM_R = 9, BOSS_R = 13;
+	public static final String SHARD_TAG = "aurapoints_rift_shard";
+	static final int FLOOR = 64;
 
 	public static ServerLevel level(MinecraftServer server) {
 		return server.getLevel(KEY);
@@ -108,20 +111,25 @@ public final class Rifts {
 		}
 	}
 
-	/** A party's run through one instance. */
+	/** A party's run through one realm. */
 	static final class Run {
 		final int id, slot;
 		final AuraType aura;
 		final Set<UUID> players = new LinkedHashSet<>(), down = new HashSet<>();
-		/** The room being fought (0..ROOMS = the boss room), -1 before the first. */
-		int room = -1;
-		boolean fighting, boss, done;
+		/** Knocked out players -> the game time they come back. */
+		final Map<UUID, Long> backAt = new java.util.HashMap<>();
+		Trials.Trial[] trials = new Trials.Trial[0];
+		/** Trials whose shard is on the altar. */
+		final Set<Integer> placedTrials = new HashSet<>();
+		Altar altar;
+		boolean built, done, won;
+		/** The guardian is up. */
+		boolean boss;
 		final List<Mob> mobs = new ArrayList<>();
 		Mob champion;
 		ServerBossEvent bar;
-		long endAt = -1;
-		boolean won;
-		int cleared;
+		long startedAt = -1, endAt = -1;
+		boolean warnedTime;
 
 		Run(int id, AuraType aura) {
 			this.id = id;
@@ -129,13 +137,30 @@ public final class Rifts {
 			this.aura = aura;
 		}
 
-		Vec3 center(int room) {
-			int z = room < ROOMS ? room * SPACING : ROOMS * SPACING + (BOSS_R - ROOM_R);
-			return new Vec3(slot * 1024 + 0.5, FLOOR + 1, z + 0.5);
+		/** The hub island's floor block in the middle (under the altar's focus). */
+		BlockPos hub() {
+			return new BlockPos(slot * 1024, FLOOR, 0);
 		}
 
-		int radius(int room) {
-			return room < ROOMS ? ROOM_R : BOSS_R;
+		BlockPos island(int i) {
+			int[] d = RealmBuilder.DIRS[i];
+			return hub().offset(d[0] * RealmBuilder.DIST, 0, d[1] * RealmBuilder.DIST);
+		}
+
+		BlockPos pedestal(int i) {
+			int[] d = RealmBuilder.DIRS[i];
+			return hub().offset(d[0] * RealmBuilder.PEDESTAL, 0, d[1] * RealmBuilder.PEDESTAL);
+		}
+
+		/** Where players arrive and come back: the hub, south of the altar. */
+		Vec3 spawn() {
+			return Vec3.atBottomCenterOf(hub()).add(2.5, 1, 9);
+		}
+
+		int solved() {
+			int n = 0;
+			for (Trials.Trial t : trials) if (t.solved) n++;
+			return n;
 		}
 	}
 
@@ -213,7 +238,8 @@ public final class Rifts {
 			for (RiftGate g : CLOSING) if (e == g.core) return false;
 			return true;
 		}
-		return loadedFromDisk && e.getTags().contains(MOB_TAG);
+		// runs are never saved: their mobs, shards and trial displays are leftovers once loaded again
+		return loadedFromDisk && (e.getTags().contains(MOB_TAG) || e.getTags().contains(SHARD_TAG) || e.getTags().contains(Trials.DISPLAY_TAG));
 	}
 
 	public static boolean isRiftMob(Entity e) {
@@ -252,7 +278,7 @@ public final class Rifts {
 	}
 
 	private static void tickTear(MinecraftServer server, ServerLevel ow, long now) {
-		if (now >= tear.closes || (tear.run != null && (tear.run.room > 0 || tear.run.done))) {
+		if (now >= tear.closes || (tear.run != null && (tear.run.solved() > 0 || tear.run.done))) {
 			closeTear(server, true);
 			return;
 		}
@@ -292,7 +318,7 @@ public final class Rifts {
 		}
 	}
 
-	/** A player walks into the tear: into its run (made on the first). */
+	/** A player walks into the tear: into its run (the realm is made for the first). */
 	static void enter(MinecraftServer server, ServerPlayer player) {
 		ServerLevel rift = level(server);
 		if (rift == null || tear == null) return;
@@ -300,7 +326,6 @@ public final class Rifts {
 		if (tear.run == null) {
 			tear.run = new Run(nextId++, tear.aura);
 			RUNS.add(tear.run);
-			RiftBuilder.build(rift, tear.run);
 		}
 		Run run = tear.run;
 		if (run.players.size() >= AuraConfig.RIFT_MAX_PLAYERS) {
@@ -309,28 +334,46 @@ public final class Rifts {
 		}
 		saveReturn(server, player);
 		run.players.add(player.getUUID());
-		Vec3 start = run.center(0).add(0, 0, -(ROOM_R - 2));
+		if (!run.built) build(rift, run);
+		Vec3 start = run.spawn();
 		if (!com.toast.aurapoints.shim.Platform.get().isFakePlayer(player)) {
-			player.teleportTo(rift, start.x, start.y, start.z, 0f, 0f);
+			player.teleportTo(rift, start.x, start.y, start.z, 180f, 0f);
 			player.setGameMode(GameType.ADVENTURE);
 		}
 		player.setHealth(player.getMaxHealth());
 		AuraFx.title(player, Component.literal(run.aura.displayName + " Rift").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),
-				Component.literal(ROOMS + " rooms, then the champion").withStyle(ChatFormatting.GRAY));
-		if (run.room < 0) {
-			run.room = 0;
-			// the first room wakes after a short breath, so the others can follow
-			AuraFx.later(server, 100, () -> {
-				if (!run.done && run.room == 0 && !run.fighting) startRoom(server, run);
-			});
+				Component.literal("find the four shards, forge the relic").withStyle(ChatFormatting.GRAY));
+		player.sendSystemMessage(Component.literal("✦ " + Relics.name(run.aura) + " lies broken in four trials:").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb))));
+		String[] dirs = {"North", "East", "South", "West"};
+		for (Trials.Trial t : run.trials) {
+			player.sendSystemMessage(Component.literal("  " + dirs[t.index] + ": " + t.name() + (t.solved ? " ✔" : "")).withStyle(t.solved ? ChatFormatting.GREEN : ChatFormatting.GRAY));
 		}
+		player.sendSystemMessage(Component.literal("  Bring the shards to the altar in the middle.").withStyle(ChatFormatting.DARK_GRAY));
+	}
+
+	/** Dev tests: the trial kinds of the next realm (null = random). */
+	static List<Trials.Kind> DEV_KINDS;
+
+	/** The realm for a new run: four trials picked from the five kinds, the islands, the altar. */
+	private static void build(ServerLevel rift, Run run) {
+		run.built = true;
+		run.startedAt = rift.getGameTime();
+		var r = net.minecraft.util.RandomSource.create(run.id * 31L + rift.getGameTime());
+		List<Trials.Kind> kinds = new ArrayList<>(List.of(Trials.Kind.values()));
+		java.util.Collections.shuffle(kinds, new java.util.Random(r.nextLong()));
+		if (DEV_KINDS != null) kinds = new ArrayList<>(DEV_KINDS);
+		run.trials = new Trials.Trial[4];
+		for (int i = 0; i < 4; i++) run.trials[i] = Trials.make(kinds.get(i), run, i);
+		run.altar = new Altar(run);
+		RealmBuilder.build(rift, run);
+		for (Trials.Trial t : run.trials) t.build(rift, r);
 	}
 
 	// ---------------------------------------------------------------
 	// A run
 	// ---------------------------------------------------------------
 
-	private static List<ServerPlayer> online(MinecraftServer server, Run run) {
+	static List<ServerPlayer> online(MinecraftServer server, Run run) {
 		List<ServerPlayer> out = new ArrayList<>();
 		for (UUID id : run.players) {
 			ServerPlayer p = player(server, id);
@@ -344,49 +387,190 @@ public final class Rifts {
 		return p != null ? p : TEST_PLAYERS.get(id);
 	}
 
-	private static void startRoom(MinecraftServer server, Run run) {
-		ServerLevel rift = level(server);
-		if (rift == null) return;
-		run.fighting = true;
-		int players = Math.max(1, run.players.size());
-		boolean boss = run.room >= ROOMS;
-		Vec3 c = run.center(run.room);
-		if (boss) {
-			run.boss = true;
-			spawnChampion(rift, run, c, players);
-			for (int k = 0; k < 2 + players; k++) run.mobs.add(spawnMob(rift, run, k % 2 == 0 ? EntityType.SKELETON : EntityType.ZOMBIE, c, run.radius(run.room)));
-		} else {
-			int budget = (int) Math.round((AuraConfig.RIFT_BUDGET_BASE + AuraConfig.RIFT_BUDGET_PER_ROOM * run.room) * (1 + 0.5 * (players - 1)));
-			var r = rift.random;
-			while (budget > 0) {
-				int pick = r.nextInt(KINDS.length);
-				Kind k = KINDS[pick];
-				if (k.cost > budget || k.fromRoom > run.room) {
-					if (budget < 2) k = KINDS[0];
-					else continue;
-				}
-				budget -= k.cost;
-				Mob m = spawnMob(rift, run, k.type, c, run.radius(run.room));
-				if (m != null) run.mobs.add(m);
+	private static void tickRun(MinecraftServer server, ServerLevel rift, Run run) {
+		long now = rift.getGameTime();
+		List<ServerPlayer> here = online(server, run);
+		if (run.done) {
+			if (now >= run.endAt) finish(server, run);
+			return;
+		}
+		if (!run.built) return;
+		if (here.isEmpty() && (tear == null || tear.run != run)) {
+			end(server, run, false);
+			return;
+		}
+		// the time limit
+		if (AuraConfig.RIFT_TIME_LIMIT_MINUTES > 0) {
+			long left = run.startedAt + AuraConfig.RIFT_TIME_LIMIT_MINUTES * 1200L - now;
+			if (left <= 1200 && !run.warnedTime) {
+				run.warnedTime = true;
+				for (ServerPlayer p : here) p.sendSystemMessage(Component.literal("The realm begins to unravel - one minute left.").withStyle(ChatFormatting.RED));
+			}
+			if (left <= 0) {
+				end(server, run, false);
+				return;
 			}
 		}
-		run.mobs.removeIf(java.util.Objects::isNull);
-		for (ServerPlayer p : online(server, run)) {
-			p.displayClientMessage(Component.literal(boss ? "The champion wakes!" : "Room " + (run.room + 1) + " of " + ROOMS + ": " + run.mobs.size() + " foes")
-					.withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb))), true);
+		List<ServerPlayer> up = new ArrayList<>();
+		for (ServerPlayer p : here) {
+			if (run.down.contains(p.getUUID())) {
+				Long back = run.backAt.get(p.getUUID());
+				if (back != null && now >= back) revive(rift, run, p);
+				continue;
+			}
+			up.add(p);
+			// off the edge: back to the island you fell from (trials catch their own holes first)
+			if (p.getY() < FLOOR - 25) {
+				Vec3 to = run.spawn();
+				for (Trials.Trial t : run.trials) if (t.contains(new Vec3(p.getX(), FLOOR, p.getZ()))) to = Vec3.atBottomCenterOf(t.at(-RealmBuilder.ISLAND_R + 2, 0, 1));
+				p.teleportTo(rift, to.x, to.y, to.z, p.getYRot(), 0f);
+				p.fallDistance = 0;
+			}
 		}
-		rift.playSound(null, c.x, c.y, c.z, boss ? SoundEvents.WITHER_SPAWN : SoundEvents.EVOKER_PREPARE_SUMMON, net.minecraft.sounds.SoundSource.HOSTILE, 1f, 1f);
+		for (Trials.Trial t : run.trials) {
+			List<ServerPlayer> on = new ArrayList<>();
+			for (ServerPlayer p : up) if (t.contains(p.position())) on.add(p);
+			if (!t.started && !on.isEmpty()) {
+				t.started = true;
+				for (ServerPlayer p : on) {
+					AuraFx.title(p, Component.literal(t.name()).withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)), Component.empty());
+					p.sendSystemMessage(Component.literal("✦ " + t.name() + ": ").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)))
+							.append(Component.literal(t.hint()).withStyle(ChatFormatting.GRAY)));
+				}
+				t.begin(rift, on);
+			}
+			t.tick(rift, on, now);
+		}
+		if (now % 40 == 0) keepShards(rift, run);
+		if (run.altar.tick(rift)) wakeGuardian(rift, run, Math.max(1, up.size()));
+		if (run.bar != null && run.champion != null && now % 5 == 0) {
+			run.bar.setProgress(Math.max(0f, run.champion.getHealth() / run.champion.getMaxHealth()));
+		}
+		if (now % 10 != 0) return;
+		run.mobs.removeIf(m -> {
+			if (m.getY() < FLOOR - 30) m.discard();
+			return !m.isAlive() || m.isRemoved();
+		});
+		if (run.boss && (run.champion == null || !run.champion.isAlive() || run.champion.isRemoved())) {
+			if (run.bar != null) run.bar.removeAllPlayers();
+			end(server, run, true);
+		}
 	}
 
-	private record Kind(EntityType<? extends Mob> type, int cost, int fromRoom) {
+	// ---------------------------------------------------------------
+	// Trials, shards, the altar
+	// ---------------------------------------------------------------
+
+	/** A right-click on a block inside a rift (main hand). True = a trial or the altar took it (cancel the click). */
+	public static boolean onUse(ServerPlayer p, BlockPos pos) {
+		if (!in(p)) return false;
+		Run run = runOf(p);
+		if (run == null || !run.built || run.done || run.down.contains(p.getUUID())) return false;
+		ServerLevel rift = (ServerLevel) p.level();
+		if (run.altar.use(rift, p, pos)) return true;
+		for (Trials.Trial t : run.trials) if (t.contains(Vec3.atCenterOf(pos)) && t.use(rift, p, pos)) return true;
+		return false;
 	}
 
-	private static final Kind[] KINDS = {
+	static void onTrialSolved(ServerLevel level, Run run, Trials.Trial t, Vec3 shardAt) {
+		Vec3 c = Vec3.atBottomCenterOf(t.c).add(0, 1, 0);
+		level.sendParticles(ParticleTypes.END_ROD, c.x, c.y, c.z, 40, 0.3, 4, 0.3, 0.05);
+		if (shardAt != null) {
+			dropShard(level, run, t, shardAt);
+			level.sendParticles(ParticleTypes.FLASH, shardAt.x, shardAt.y, shardAt.z, 1, 0, 0, 0, 0);
+			level.playSound(null, shardAt.x, shardAt.y, shardAt.z, SoundEvents.AMETHYST_CLUSTER_BREAK, net.minecraft.sounds.SoundSource.BLOCKS, 1.5f, 0.6f);
+		}
+		// the trial's pedestal lights up
+		BlockPos ped = run.pedestal(t.index);
+		RealmBuilder.set(level, ped.getX(), FLOOR + 1, ped.getZ(), RealmBuilder.palette(run.aura).light());
+		int n = run.solved();
+		for (ServerPlayer p : online(level.getServer(), run)) {
+			p.sendSystemMessage(Component.literal("✔ " + t.name() + " solved - a shard is free (" + n + "/4)").withStyle(ChatFormatting.GREEN));
+		}
+	}
+
+	/** Puts trial {@code t}'s shard into the world at {@code at} (glowing, never despawning). */
+	static void dropShard(ServerLevel level, Run run, Trials.Trial t, Vec3 at) {
+		var item = new net.minecraft.world.entity.item.ItemEntity(level, at.x, at.y, at.z, com.toast.aurapoints.item.RelicShardItem.make(run.aura, run.id, t.index), 0, 0.15, 0);
+		item.setUnlimitedLifetime();
+		item.setGlowingTag(true);
+		item.setPickUpDelay(10);
+		item.addTag(SHARD_TAG);
+		level.addFreshEntity(item);
+		t.shardOut = true;
+	}
+
+	static boolean isShard(ItemStack s, Run run, int trial) {
+		return s.getItem() instanceof com.toast.aurapoints.item.RelicShardItem && com.toast.aurapoints.item.RelicShardItem.run(s) == run.id
+				&& com.toast.aurapoints.item.RelicShardItem.trial(s) == trial;
+	}
+
+	static boolean holdsShard(ServerPlayer p, Run run, int trial) {
+		var inv = p.getInventory();
+		for (int i = 0; i < inv.getContainerSize(); i++) if (isShard(inv.getItem(i), run, trial)) return true;
+		return isShard(p.containerMenu.getCarried(), run, trial);
+	}
+
+	static void takeShard(ServerPlayer p, Run run, int trial) {
+		var inv = p.getInventory();
+		for (int i = 0; i < inv.getContainerSize(); i++) if (isShard(inv.getItem(i), run, trial)) inv.setItem(i, ItemStack.EMPTY);
+		if (isShard(p.containerMenu.getCarried(), run, trial)) p.containerMenu.setCarried(ItemStack.EMPTY);
+	}
+
+	/** A shard that is out but nowhere any more (fell into the void, burned, left with a player) comes back to its plinth. */
+	private static void keepShards(ServerLevel rift, Run run) {
+		List<ServerPlayer> here = online(rift.getServer(), run);
+		var box = new net.minecraft.world.phys.AABB(Vec3.atCenterOf(run.hub()), Vec3.atCenterOf(run.hub())).inflate(90, 120, 90);
+		List<net.minecraft.world.entity.item.ItemEntity> items = rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, box, e -> e.getTags().contains(SHARD_TAG));
+		for (Trials.Trial t : run.trials) {
+			if (!t.shardOut || run.placedTrials.contains(t.index)) continue;
+			boolean found = false;
+			for (var it : items) {
+				if (isShard(it.getItem(), run, t.index)) {
+					if (it.getY() < FLOOR - 30) it.discard();
+					else found = true;
+				}
+			}
+			for (ServerPlayer p : here) if (holdsShard(p, run, t.index)) found = true;
+			if (!found) {
+				dropShard(rift, run, t, t.plinth());
+				for (ServerPlayer p : here) p.displayClientMessage(Component.literal("A lost shard drifts back to the " + t.name() + " island.").withStyle(ChatFormatting.GOLD), true);
+			}
+		}
+	}
+
+	/** A puzzle mistake's price: one of the aura's touched mobs (stronger with every trial solved). */
+	static Mob trialMob(ServerLevel rift, Run run, Vec3 at) {
+		Kind k = KINDS[rift.random.nextInt(Math.min(KINDS.length, 3 + run.solved() * 2))];
+		Mob m = spawnMob(rift, run, k.type, at, 2);
+		if (m != null) run.mobs.add(m);
+		return m;
+	}
+
+	/** Everything a rift hands out, taken back on the way out. */
+	static void purge(ServerPlayer p) {
+		var inv = p.getInventory();
+		for (int i = 0; i < inv.getContainerSize(); i++) {
+			ItemStack s = inv.getItem(i);
+			if (s.is(AuraPoints.RELIC_SHARD.get()) || s.is(AuraPoints.TUNING_FORK.get())) inv.setItem(i, ItemStack.EMPTY);
+		}
+		ItemStack c = p.containerMenu.getCarried();
+		if (c.is(AuraPoints.RELIC_SHARD.get()) || c.is(AuraPoints.TUNING_FORK.get())) p.containerMenu.setCarried(ItemStack.EMPTY);
+	}
+
+	// ---------------------------------------------------------------
+	// The guardian
+	// ---------------------------------------------------------------
+
+	record Kind(EntityType<? extends Mob> type, int cost, int fromRoom) {
+	}
+
+	static final Kind[] KINDS = {
 			new Kind(EntityType.ZOMBIE, 1, 0), new Kind(EntityType.SKELETON, 2, 0), new Kind(EntityType.SPIDER, 2, 0),
 			new Kind(EntityType.HUSK, 2, 1), new Kind(EntityType.STRAY, 2, 1), new Kind(EntityType.CREEPER, 3, 1),
 			new Kind(EntityType.WITCH, 4, 2), new Kind(EntityType.VINDICATOR, 5, 2), new Kind(EntityType.BLAZE, 5, 3)};
 
-	private static Mob spawnMob(ServerLevel rift, Run run, EntityType<? extends Mob> type, Vec3 c, int radius) {
+	static Mob spawnMob(ServerLevel rift, Run run, EntityType<? extends Mob> type, Vec3 c, int radius) {
 		Mob m = type.create(rift);
 		if (m == null) return null;
 		double a = rift.random.nextDouble() * Math.PI * 2, d = radius * (0.45 + rift.random.nextDouble() * 0.4);
@@ -399,7 +583,7 @@ public final class Rifts {
 			if (reinforce != null) reinforce.setBaseValue(0);
 		}
 		m.setPersistenceRequired();
-		double scale = AuraConfig.RIFT_SCALE_PER_ROOM * run.room;
+		double scale = AuraConfig.RIFT_SCALE_PER_ROOM * run.solved();
 		if (scale > 0) {
 			var hp = m.getAttribute(Attributes.MAX_HEALTH);
 			if (hp != null) hp.addPermanentModifier(new AttributeModifier(SCALE_ID, scale, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
@@ -413,95 +597,38 @@ public final class Rifts {
 		return m;
 	}
 
-	private static void spawnChampion(ServerLevel rift, Run run, Vec3 c, int players) {
-		EntityType<? extends Mob> type = switch (run.aura.ordinal() % 3) {
-			case 0 -> EntityType.RAVAGER;
-			case 1 -> EntityType.EVOKER;
-			default -> EntityType.WITHER_SKELETON;
-		};
-		Mob boss = spawnMob(rift, run, type, c, 1);
-		if (boss == null) return;
-		var hp = boss.getAttribute(Attributes.MAX_HEALTH);
-		if (hp != null) {
-			double target = AuraConfig.RIFT_BOSS_HEALTH * (1 + AuraConfig.RIFT_BOSS_HEALTH_PER_PLAYER * (players - 1)), cur = hp.getValue();
-			if (cur > 0) hp.addPermanentModifier(new AttributeModifier(BOSS_ID, target / cur - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
-			boss.setHealth(boss.getMaxHealth());
+	/** The altar's ritual is over: the realm's guardian takes the relic. */
+	private static void wakeGuardian(ServerLevel rift, Run run, int players) {
+		run.boss = true;
+		Vec3 c = Vec3.atBottomCenterOf(run.hub()).add(0, 2, 0);
+		Mob boss = Guardian.spawn(rift, run, c, players);
+		if (boss == null) {
+			end(rift.getServer(), run, true);
+			return;
 		}
-		var size = boss.getAttribute(Attributes.SCALE);
-		if (size != null) size.addPermanentModifier(new AttributeModifier(BOSS_SIZE_ID, 0.5, AttributeModifier.Operation.ADD_MULTIPLIED_BASE));
-		Component name = Component.literal("★ " + run.aura.displayName + " Rift Champion ★").withStyle(run.aura.color, ChatFormatting.BOLD);
-		boss.setCustomName(name);
 		run.champion = boss;
-		run.bar = new ServerBossEvent(name, BossEvent.BossBarColor.PURPLE, BossEvent.BossBarOverlay.NOTCHED_10);
-		for (ServerPlayer p : online(rift.getServer(), run)) run.bar.addPlayer(p);
 		run.mobs.add(boss);
-	}
-
-	private static void tickRun(MinecraftServer server, ServerLevel rift, Run run) {
-		long now = rift.getGameTime();
-		List<ServerPlayer> here = online(server, run);
-		if (run.done) {
-			if (now >= run.endAt) finish(server, run);
-			return;
+		Component name = boss.getCustomName() != null ? boss.getCustomName() : Component.literal("Guardian");
+		BossEvent.BossBarColor color = switch (run.aura) {
+			case FIRE, BLOOD -> BossEvent.BossBarColor.RED;
+			case WATER, FROST -> BossEvent.BossBarColor.BLUE;
+			case VERDANT -> BossEvent.BossBarColor.GREEN;
+			case THUNDER, EARTH, LIGHT -> BossEvent.BossBarColor.YELLOW;
+			case WIND -> BossEvent.BossBarColor.WHITE;
+			default -> BossEvent.BossBarColor.PURPLE;
+		};
+		run.bar = new ServerBossEvent(name, color, BossEvent.BossBarOverlay.NOTCHED_10);
+		for (ServerPlayer p : online(rift.getServer(), run)) {
+			run.bar.addPlayer(p);
+			// the name card: short enough for the title line
+			AuraFx.title(p, Component.literal("RELIC WARDEN").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),
+					Component.literal("it took the " + Relics.name(run.aura) + " - take it back").withStyle(ChatFormatting.GRAY));
+			p.sendSystemMessage(Component.literal("✦ Its attacks flash before they land: ").withStyle(ChatFormatting.GRAY)
+					.append(Component.literal("BLUE").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
+					.append(Component.literal(" - strike it right then to parry. ").withStyle(ChatFormatting.GRAY))
+					.append(Component.literal("YELLOW").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
+					.append(Component.literal(" - get out of the way.").withStyle(ChatFormatting.GRAY)));
 		}
-		if (here.isEmpty() && run.room >= 0 && (tear == null || tear.run != run)) {
-			end(server, run, false);
-			return;
-		}
-		for (ServerPlayer p : here) {
-			// off the edge: back to the room
-			if (p.getY() < FLOOR - 25) {
-				Vec3 c = run.center(Math.max(0, run.room));
-				p.teleportTo(rift, c.x, c.y + 1, c.z, p.getYRot(), 0f);
-				p.fallDistance = 0;
-			}
-		}
-		if (run.bar != null && run.champion != null && now % 5 == 0) {
-			run.bar.setProgress(Math.max(0f, run.champion.getHealth() / run.champion.getMaxHealth()));
-		}
-		if (now % 10 != 0) return;
-		if (run.fighting) {
-			run.mobs.removeIf(m -> {
-				if (m.getY() < FLOOR - 30) m.discard();
-				return !m.isAlive() || m.isRemoved();
-			});
-			if (run.mobs.isEmpty()) clearRoom(server, rift, run);
-		} else if (run.room >= 0 && run.room <= ROOMS && run.room > 0) {
-			// the next room wakes when someone steps in
-			Vec3 c = run.center(run.room);
-			double r = run.radius(run.room) - 2;
-			for (ServerPlayer p : here) {
-				if (run.down.contains(p.getUUID())) continue;
-				if (p.position().distanceToSqr(c.x, p.getY(), c.z) <= r * r) {
-					startRoom(server, run);
-					break;
-				}
-			}
-		}
-	}
-
-	private static void clearRoom(MinecraftServer server, ServerLevel rift, Run run) {
-		run.fighting = false;
-		run.cleared++;
-		if (run.boss) {
-			if (run.bar != null) run.bar.removeAllPlayers();
-			end(server, run, true);
-			return;
-		}
-		RiftBuilder.openGate(rift, run, run.room);
-		// the knocked out come back at the gate
-		Vec3 c = run.center(run.room);
-		for (ServerPlayer p : online(server, run)) {
-			if (run.down.remove(p.getUUID())) {
-				p.setGameMode(GameType.ADVENTURE);
-				p.setHealth(p.getMaxHealth());
-				p.teleportTo(rift, c.x, c.y, c.z + ROOM_R - 2, 0f, 0f);
-			}
-			p.displayClientMessage(Component.literal(run.room + 1 >= ROOMS ? "Room clear - the champion waits ahead" : "Room clear - the gate is open")
-					.withStyle(ChatFormatting.GREEN), true);
-		}
-		rift.playSound(null, c.x, c.y, c.z, SoundEvents.IRON_DOOR_OPEN, net.minecraft.sounds.SoundSource.BLOCKS, 1f, 0.7f);
-		run.room++;
 	}
 
 	/** The run is over (won or not); everyone goes back a few seconds later. */
@@ -514,31 +641,33 @@ public final class Rifts {
 		if (run.bar != null) run.bar.removeAllPlayers();
 		for (Mob m : run.mobs) if (m.isAlive()) m.discard();
 		run.mobs.clear();
+		if (run.altar != null) run.altar.remove();
+		for (Trials.Trial t : run.trials) t.remove();
 		for (ServerPlayer p : online(server, run)) {
 			if (won) {
-				AuraFx.title(p, Component.literal("RIFT CLEARED").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),
+				AuraFx.title(p, Component.literal("RELIC RECLAIMED").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),
 						Component.literal("back in a moment").withStyle(ChatFormatting.GRAY));
-				pay(p, run, true);
 			} else {
-				AuraFx.title(p, Component.literal("The rift collapses").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD),
-						Component.literal(run.cleared + " room(s) cleared").withStyle(ChatFormatting.GRAY));
-				pay(p, run, false);
+				AuraFx.title(p, Component.literal("The realm collapses").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD),
+						Component.literal(run.solved() + " trial(s) solved").withStyle(ChatFormatting.GRAY));
 			}
+			pay(p, run, won);
 		}
 	}
 
 	private static void pay(ServerPlayer p, Run run, boolean won) {
-		int rooms = Math.min(ROOMS, run.cleared);
-		int aura = rooms * AuraConfig.RIFT_ROOM_AURA + (won ? AuraConfig.RIFT_BOSS_AURA : 0);
+		int trials = run.solved();
+		int aura = trials * AuraConfig.RIFT_ROOM_AURA + (won ? AuraConfig.RIFT_BOSS_AURA : 0);
 		if (aura > 0) AuraCurrency.add(p, aura);
-		Mastery.addXp(p, rooms * AuraConfig.RIFT_ROOM_MASTERY_XP + (won ? AuraConfig.RIFT_BOSS_MASTERY_XP : 0));
-		p.sendSystemMessage(Component.literal((won ? "✔ Rift cleared: " : "Rift lost: ") + "+" + aura + " Aura").withStyle(won ? ChatFormatting.GREEN : ChatFormatting.GRAY));
+		Mastery.addXp(p, trials * AuraConfig.RIFT_ROOM_MASTERY_XP + (won ? AuraConfig.RIFT_BOSS_MASTERY_XP : 0));
+		p.sendSystemMessage(Component.literal((won ? "✔ Relic reclaimed: " : "Rift lost: ") + "+" + aura + " Aura").withStyle(won ? ChatFormatting.GREEN : ChatFormatting.GRAY));
 		if (!won) return;
 		AuraStats.add(p, AuraStats.RIFTS_CLEARED, 1);
 		AuraPlayerData data = AuraState.get(p.getServer()).getOrCreate(p.getUUID());
 		boolean first = data.riftAuras.add(run.aura);
 		AuraState.get(p.getServer()).markDirty();
 		if (first || p.getRandom().nextDouble() < AuraConfig.RIFT_RELIC_CHANCE) Relics.give(p, run.aura);
+		else p.sendSystemMessage(Component.literal("The relic crumbles to dust in your hands - it only remembers its first bearer.").withStyle(ChatFormatting.DARK_GRAY));
 		com.toast.aurapoints.cosmetic.Weekly.onRiftCleared(p);
 		com.toast.aurapoints.cosmetic.Cosmetics.checkEarned(p);
 	}
@@ -580,14 +709,28 @@ public final class Rifts {
 			sendBack(p);
 			return;
 		}
+		ServerLevel rift = level(p.getServer());
 		run.down.add(p.getUUID());
+		run.backAt.put(p.getUUID(), rift.getGameTime() + AuraConfig.RIFT_KNOCKOUT_SECONDS * 20L);
 		p.setGameMode(GameType.SPECTATOR);
-		Vec3 c = run.center(Math.max(0, Math.min(run.room, ROOMS)));
-		p.teleportTo(level(p.getServer()), c.x, c.y + 6, c.z, p.getYRot(), 40f);
-		AuraFx.title(p, Component.literal("Knocked out").withStyle(ChatFormatting.RED, ChatFormatting.BOLD), Component.literal("back in when the room is clear").withStyle(ChatFormatting.GRAY));
+		Vec3 c = Vec3.atBottomCenterOf(run.hub());
+		p.teleportTo(rift, c.x, c.y + 10, c.z + 6, 180f, 40f);
+		AuraFx.title(p, Component.literal("Knocked out").withStyle(ChatFormatting.RED, ChatFormatting.BOLD),
+				Component.literal("back at the altar in " + AuraConfig.RIFT_KNOCKOUT_SECONDS + " s").withStyle(ChatFormatting.GRAY));
 		boolean anyUp = false;
 		for (UUID id : run.players) if (!run.down.contains(id) && player(p.getServer(), id) != null) anyUp = true;
 		if (!anyUp) end(p.getServer(), run, false);
+	}
+
+	private static void revive(ServerLevel rift, Run run, ServerPlayer p) {
+		run.down.remove(p.getUUID());
+		run.backAt.remove(p.getUUID());
+		p.setGameMode(GameType.ADVENTURE);
+		p.setHealth(p.getMaxHealth());
+		Vec3 s = run.spawn();
+		p.teleportTo(rift, s.x, s.y, s.z, 180f, 0f);
+		p.fallDistance = 0;
+		AuraFx.burst(rift, s.x, s.y + 1, s.z, ParticleTypes.REVERSE_PORTAL, 30, 0.5, 0.2);
 	}
 
 	/** /aura leave or /aura rift leave: out of the rift (a run left by everyone ends). */
@@ -617,6 +760,7 @@ public final class Rifts {
 	 */
 	public static void onChangedDimension(ServerPlayer p, ResourceKey<net.minecraft.world.level.Level> from, ResourceKey<net.minecraft.world.level.Level> to) {
 		if (from != KEY || to == KEY || p.getServer() == null) return;
+		purge(p);
 		Run run = runOf(p);
 		if (run != null) {
 			run.players.remove(p.getUUID());
@@ -634,6 +778,7 @@ public final class Rifts {
 	/** Logged in inside a rift (the run is gone): back to where they came from. */
 	public static void onLogin(ServerPlayer p) {
 		if (in(p) && runOf(p) == null) sendBack(p);
+		else if (!in(p)) purge(p);
 	}
 
 	private static void saveReturn(MinecraftServer server, ServerPlayer p) {
@@ -661,6 +806,7 @@ public final class Rifts {
 			if (id != null) to = server.getLevel(ResourceKey.create(Registries.DIMENSION, id));
 		}
 		GameType mode = t == null ? GameType.SURVIVAL : GameType.byName(t.getString("mode"), GameType.SURVIVAL);
+		purge(p);
 		if (com.toast.aurapoints.shim.Platform.get().isFakePlayer(p)) {
 			// dev tests: a fake player can't travel between dimensions (NeoForge sends it packets it has no channel for)
 			data.riftReturn = null;
@@ -741,30 +887,84 @@ public final class Rifts {
 		enter(server, p);
 	}
 
-	/** The player's run as text: "room 1/4 fighting 6 mobs, cleared 0, down 0, done false". */
+	/** The player's run as text: "trials 1/4 placed 0 ritual -1 boss false mobs 0 down 0 done false won false". */
 	public static String devState(ServerPlayer p) {
 		Run r = runOf(p);
 		if (r == null) return "no run";
-		return "room " + r.room + " fighting " + r.fighting + " mobs " + r.mobs.size() + " cleared " + r.cleared + " down " + r.down.size() + " done " + r.done + " won " + r.won;
+		return "trials " + r.solved() + "/4 placed " + r.placedTrials.size() + " ritual " + (r.altar == null ? -1 : r.altar.ritual) + " boss " + r.boss
+				+ " mobs " + r.mobs.size() + " down " + r.down.size() + " done " + r.done + " won " + r.won;
 	}
 
-	/** Kills every mob of the player's current room. */
-	public static void devClearRoom(ServerPlayer p) {
+	/** The kinds of the player's run's trials, in order (N, E, S, W). */
+	public static String devKinds(ServerPlayer p) {
+		Run r = runOf(p);
+		if (r == null) return "no run";
+		StringBuilder b = new StringBuilder();
+		for (Trials.Trial t : r.trials) b.append(t.kind).append(t.solved ? "+" : "-").append(' ');
+		return b.toString().trim();
+	}
+
+	/** Solves trial {@code i} of the player's run the way the trial would (shard out, pedestal lit). */
+	public static void devSolve(ServerPlayer p, int i) {
+		Run r = runOf(p);
+		if (r == null || i < 0 || i >= r.trials.length) return;
+		Trials.Trial t = r.trials[i];
+		if (!t.started) {
+			t.started = true;
+			t.begin(level(p.getServer()), List.of());
+		}
+		t.solve(level(p.getServer()), t.kind == Trials.Kind.CARRY ? null : t.plinth().add(0, 1, 0));
+	}
+
+	/** Hands the player every shard that is out, and right-clicks each pedestal with one. */
+	public static void devPlaceAll(ServerPlayer p) {
 		Run r = runOf(p);
 		if (r == null) return;
-		for (Mob m : new ArrayList<>(r.mobs)) m.kill();
+		ServerLevel rift = level(p.getServer());
+		for (Trials.Trial t : r.trials) {
+			if (!t.shardOut) continue;
+			for (var it : rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(90, 120, 90),
+					e -> isShard(e.getItem(), r, t.index))) it.discard();
+			takeShard(p, r, t.index);
+			p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, com.toast.aurapoints.item.RelicShardItem.make(r.aura, r.id, t.index));
+			r.altar.use(rift, p, r.pedestal(t.index).above(2));
+		}
 	}
 
-	public static void devStartNext(ServerPlayer p) {
+	/** Runs the ritual to its end at once (the guardian wakes). */
+	public static void devFinishRitual(ServerPlayer p) {
 		Run r = runOf(p);
-		if (r != null && !r.fighting && !r.done) startRoom(p.getServer(), r);
+		if (r == null || r.altar.ritual < 0) return;
+		ServerLevel rift = level(p.getServer());
+		while (r.altar.ritual >= 0 && r.altar.ritual < Altar.RITUAL_TICKS) if (r.altar.tick(rift)) wakeGuardian(rift, r, 1);
 	}
 
-	public static boolean devStartFirst(ServerPlayer p) {
+	public static Mob devGuardian(ServerPlayer p) {
 		Run r = runOf(p);
-		if (r == null || r.fighting || r.room != 0) return false;
-		startRoom(p.getServer(), r);
-		return true;
+		return r == null ? null : r.champion;
+	}
+
+	public static boolean devHoldsShard(ServerPlayer p, int trial) {
+		Run r = runOf(p);
+		return r != null && holdsShard(p, r, trial);
+	}
+
+	public static int devShardItemsInWorld(ServerPlayer p) {
+		Run r = runOf(p);
+		if (r == null) return -1;
+		return level(p.getServer()).getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
+				new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(90, 120, 90), e -> e.getTags().contains(SHARD_TAG)).size();
+	}
+
+	/** A block of the run's realm: hub-relative. */
+	public static BlockPos devHub(ServerPlayer p) {
+		Run r = runOf(p);
+		return r == null ? null : r.hub();
+	}
+
+	public static void devTickRun(ServerPlayer p) {
+		Run r = runOf(p);
+		if (r != null) tickRun(p.getServer(), level(p.getServer()), r);
 	}
 
 	public static void clearAll() {

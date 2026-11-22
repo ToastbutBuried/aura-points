@@ -20,9 +20,10 @@ import net.minecraft.world.phys.Vec3;
 import java.util.UUID;
 
 /**
- * DEV ONLY (registered by DevTest): /auradev rifttest - Aura Rifts (5.41). Opens a Fire tear, a fake player (made in the rift
- * dimension: fakes don't travel on NeoForge) enters, the first room fills with mobs, every room is cleared by killing its
- * mobs, the champion goes down, the run pays Aura and the first-clear relic, and everyone goes back. Then a knockout.
+ * DEV ONLY (registered by DevTest): /auradev rifttest - Aura Rifts (5.41; Relic Trials 5.46). Opens a Fire gate, a fake
+ * player (made in the rift dimension: fakes don't travel on NeoForge) enters, the realm is built with four different
+ * trials, each trial is solved (shards out), the shards go on the altar, the ritual runs, the guardian wakes and goes
+ * down, the run pays Aura and the first-clear relic, shards are taken back on the way out. Then a knockout and a /tp out.
  */
 public final class RiftDevTest {
 
@@ -49,55 +50,58 @@ public final class RiftDevTest {
 			fake.getInventory().clearContent();
 			int aura0 = AuraCurrency.get(fake);
 			boolean opened = Rifts.open(server, AuraType.FIRE, null, new Vec3(0.5, 120, 0.5));
-			log("tear open " + opened + " " + Rifts.devTearOpen() + " (must be true true)");
+			log("gate open " + opened + " " + Rifts.devTearOpen() + " (must be true true)");
 			Rifts.devEnter(server, fake);
-			log("entered: " + Rifts.devState(fake) + " (must be room 0, not fighting)");
-			log("first room started " + Rifts.devStartFirst(fake) + " (must be true): " + Rifts.devState(fake));
-			step(server, fake, 0, aura0, data);
-			return 1;
-		})));
-	}
-
-	/** Clears room {@code n} (0..4), checks the run moved on, starts the next. */
-	private static void step(MinecraftServer server, ServerPlayer fake, int n, int aura0, AuraPlayerData data) {
-		Rifts.devClearRoom(fake);
-		AuraFx.later(server, 25, () -> {
-			log("after clearing room " + n + ": " + Rifts.devState(fake) + " (must be cleared " + (n + 1) + (n < 4 ? ", room " + (n + 1) + ", not fighting)" : ", done true won true)"));
-			if (n < 4) {
-				Rifts.devStartNext(fake);
-				log("room " + (n + 1) + " started: " + Rifts.devState(fake));
-				AuraFx.later(server, 5, () -> step(server, fake, n + 1, aura0, data));
-				return;
-			}
-			int paid = AuraCurrency.get(fake) - aura0;
-			int want = 4 * AuraConfig.RIFT_ROOM_AURA + AuraConfig.RIFT_BOSS_AURA;
-			int relics = 0;
-			for (int k = 0; k < fake.getInventory().getContainerSize(); k++) if (Relics.auraOf(fake.getInventory().getItem(k)) == AuraType.FIRE) relics++;
-			log("won: paid " + paid + " (must be " + want + "), Fire relics " + relics + " (must be 1), first clear saved " + data.riftAuras.contains(AuraType.FIRE) + " (must be true)");
-			AuraFx.later(server, 180, () -> {
-				log("after the end: " + Rifts.devState(fake) + " (must be no run), tear open " + Rifts.devTearOpen() + " (must be false)");
-				// a knockout: a new run, a lethal hit
-				Rifts.open(server, AuraType.FROST, null, new Vec3(0.5, 120, 0.5));
-				Rifts.devEnter(server, fake);
-				Rifts.devStartFirst(fake);
-				boolean caught = Rifts.catchLethal(fake, 9999f);
-				log("lethal hit caught " + caught + " (must be true): " + Rifts.devState(fake) + " (must be down 1, done true: the only player is down)");
-				AuraFx.later(server, 120, () -> {
-					log("after the fail: " + Rifts.devState(fake) + " (must be no run)");
-					// out by /tp or a home command: out of the run, game mode from before back
+			String kinds = Rifts.devKinds(fake);
+			log("entered: " + Rifts.devState(fake) + " (must be trials 0/4), kinds " + kinds + " (must be 4 different)");
+			var hub = Rifts.devHub(fake);
+			log("realm built: hub floor " + !rift.getBlockState(hub).isAir() + ", focus " + !rift.getBlockState(hub.above()).isAir()
+					+ ", north island " + !rift.getBlockState(hub.offset(0, 0, -48)).isAir() + " (must be true true true)");
+			// an empty-handed pedestal click is taken (and does nothing)
+			log("empty pedestal click taken " + Rifts.onUse(fake, hub.offset(0, 2, -6)) + " (must be true): " + Rifts.devState(fake) + " (must be placed 0)");
+			for (int i = 0; i < 4; i++) Rifts.devSolve(fake, i);
+			log("all solved: " + Rifts.devState(fake) + " (must be trials 4/4), shards in the world " + Rifts.devShardItemsInWorld(fake) + " (must be 4), kinds " + Rifts.devKinds(fake));
+			Rifts.devPlaceAll(fake);
+			log("shards set: " + Rifts.devState(fake) + " (must be placed 4, ritual 0), shards in the world " + Rifts.devShardItemsInWorld(fake) + " (must be 0)");
+			Rifts.devFinishRitual(fake);
+			var g = Rifts.devGuardian(fake);
+			log("ritual done: " + Rifts.devState(fake) + " (must be boss true), guardian " + (g != null && g.isAlive()) + " (must be true) hp " + (g == null ? 0 : g.getMaxHealth()));
+			// a shard and the fork in the pocket: both must be gone after the way out
+			fake.getInventory().add(new net.minecraft.world.item.ItemStack(AuraPoints.TUNING_FORK.get()));
+			if (g != null) g.kill();
+			AuraFx.later(server, 25, () -> {
+				log("guardian down: " + Rifts.devState(fake) + " (must be done true won true)");
+				int paid = AuraCurrency.get(fake) - aura0;
+				int want = 4 * AuraConfig.RIFT_ROOM_AURA + AuraConfig.RIFT_BOSS_AURA;
+				int relics = 0;
+				for (int k = 0; k < fake.getInventory().getContainerSize(); k++) if (Relics.auraOf(fake.getInventory().getItem(k)) == AuraType.FIRE) relics++;
+				log("won: paid " + paid + " (must be " + want + "), Fire relics " + relics + " (must be 1), first clear saved " + data.riftAuras.contains(AuraType.FIRE) + " (must be true)");
+				AuraFx.later(server, 180, () -> {
+					boolean fork = fake.getInventory().contains(new net.minecraft.world.item.ItemStack(AuraPoints.TUNING_FORK.get()));
+					log("after the end: " + Rifts.devState(fake) + " (must be no run), gate open " + Rifts.devTearOpen() + " (must be false), fork kept " + fork + " (must be false)");
+					// a knockout: a new run, a lethal hit
 					Rifts.open(server, AuraType.FROST, null, new Vec3(0.5, 120, 0.5));
-					fake.setGameMode(net.minecraft.world.level.GameType.SURVIVAL); // was a spectator from the knockout
 					Rifts.devEnter(server, fake);
-					fake.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);
-					Rifts.onChangedDimension(fake, Rifts.KEY, net.minecraft.world.level.Level.OVERWORLD);
-					log("teleported out: " + Rifts.devState(fake) + " (must be no run), mode " + fake.gameMode.getGameModeForPlayer().getName()
-							+ " (must be survival), return point " + (data.riftReturn != null) + " (must be false)");
-					Rifts.clearAll();
-					Rifts.TEST_PLAYERS.clear();
-					data.aura = null;
-					log("rifttest done");
+					boolean caught = Rifts.catchLethal(fake, 9999f);
+					log("lethal hit caught " + caught + " (must be true): " + Rifts.devState(fake) + " (must be down 1, done true: the only player is down)");
+					AuraFx.later(server, 120, () -> {
+						log("after the fail: " + Rifts.devState(fake) + " (must be no run)");
+						// out by /tp or a home command: out of the run, game mode from before back
+						Rifts.open(server, AuraType.FROST, null, new Vec3(0.5, 120, 0.5));
+						fake.setGameMode(net.minecraft.world.level.GameType.SURVIVAL); // was a spectator from the knockout
+						Rifts.devEnter(server, fake);
+						fake.setGameMode(net.minecraft.world.level.GameType.ADVENTURE);
+						Rifts.onChangedDimension(fake, Rifts.KEY, net.minecraft.world.level.Level.OVERWORLD);
+						log("teleported out: " + Rifts.devState(fake) + " (must be no run), mode " + fake.gameMode.getGameModeForPlayer().getName()
+								+ " (must be survival), return point " + (data.riftReturn != null) + " (must be false)");
+						Rifts.clearAll();
+						Rifts.TEST_PLAYERS.clear();
+						data.aura = null;
+						log("rifttest done");
+					});
 				});
 			});
-		});
+			return 1;
+		})));
 	}
 }

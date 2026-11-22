@@ -60,6 +60,12 @@ public class AuraPoints {
 					.<com.toast.aurapoints.geo.FrostBear>of(com.toast.aurapoints.geo.FrostBear::new, net.minecraft.world.entity.MobCategory.MONSTER)
 					.sized(1.4f, 1.5f).fireImmune().clientTrackingRange(16).updateInterval(2).build("frost_bear"));
 
+	/** The Relic Trials' guardian (rift/RelicWarden): never saved, one skin per relic aura. */
+	public static final java.util.function.Supplier<net.minecraft.world.entity.EntityType<com.toast.aurapoints.rift.RelicWarden>> RELIC_WARDEN =
+			ENTITY_TYPES.register("relic_warden", () -> net.minecraft.world.entity.EntityType.Builder
+					.<com.toast.aurapoints.rift.RelicWarden>of(com.toast.aurapoints.rift.RelicWarden::new, net.minecraft.world.entity.MobCategory.MONSTER)
+					.sized(1.8f, 3.6f).fireImmune().clientTrackingRange(16).updateInterval(2).noSave().build("relic_warden"));
+
 	/** The Aura Arena's training dummy (arena/TrainingDummy). */
 	public static final java.util.function.Supplier<net.minecraft.world.entity.EntityType<com.toast.aurapoints.arena.TrainingDummy>> TRAINING_DUMMY =
 			ENTITY_TYPES.register("training_dummy", () -> net.minecraft.world.entity.EntityType.Builder
@@ -166,6 +172,11 @@ public class AuraPoints {
 		return out;
 	}
 
+	/** Relic Trials (5.46.0, rift/): a rift's shard (aura + run in custom data, model by custom_model_data = Relics.AURAS index + 1) and the Resonance Hunt's fork. Only exist inside a rift. */
+	public static final DeferredItem<Item> RELIC_SHARD = ITEMS.registerItem("relic_shard", com.toast.aurapoints.item.RelicShardItem::new,
+			new Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.UNCOMMON));
+	public static final DeferredItem<Item> TUNING_FORK = ITEMS.registerItem("tuning_fork", com.toast.aurapoints.item.TuningForkItem::new, new Item.Properties().stacksTo(1));
+
 	/** Not obtainable: only the frost shard model the Frost aura's Ice Spike shows in the hand and in flight (ability/IceSpike). */
 	public static final DeferredItem<Item> ICE_SPIKE_SHARD = ITEMS.registerSimpleItem("ice_spike_shard");
 	// the Awakening Altar's ritual props (AltarRitual flies them as item displays); altar_cap picks its aura by custom_model_data 1..10
@@ -232,6 +243,7 @@ public class AuraPoints {
 			event.put(ARENA_NPC.get(), com.toast.aurapoints.arena.ArenaNpc.createAttributes().build());
 			event.put(DRAGON_HEAD.get(), com.toast.aurapoints.geo.DragonHead.createAttributes().build());
 			event.put(FROST_BEAR.get(), com.toast.aurapoints.geo.FrostBear.createAttributes().build());
+			event.put(RELIC_WARDEN.get(), com.toast.aurapoints.rift.RelicWarden.createAttributes().build());
 		});
 		com.toast.aurapoints.ability.AuraSounds.SOUNDS.register(modEventBus);
 		AuraConditions.CONDITIONS.register(modEventBus);
@@ -657,6 +669,12 @@ public class AuraPoints {
 			if (event.getEntity() instanceof ServerPlayer player && event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND
 					&& com.toast.aurapoints.arena.Arena.in(player)) {
 				com.toast.aurapoints.arena.TrainingHall.press(player, event.getPos());
+			}
+			// a rift realm's trials and altar (5.46)
+			if (event.getEntity() instanceof ServerPlayer player && event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND
+					&& com.toast.aurapoints.rift.Rifts.onUse(player, event.getPos())) {
+				event.setCanceled(true);
+				return;
 			}
 			// a shrine's core (5.42)
 			if (event.getEntity() instanceof ServerPlayer player && com.toast.aurapoints.shrine.Shrines.at(event.getPos()) != null) {

@@ -1,0 +1,68 @@
+{
+ "parent": "minecraft:item/generated",
+ "textures": {
+  "layer0": "aurapoints:item/relic_shard_fire"
+ },
+ "overrides": [
+  {
+   "predicate": {
+    "custom_model_data": 1
+   },
+   "model": "aurapoints:item/relic_shard_fire"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 2
+   },
+   "model": "aurapoints:item/relic_shard_water"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 3
+   },
+   "model": "aurapoints:item/relic_shard_wind"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 4
+   },
+   "model": "aurapoints:item/relic_shard_frost"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 5
+   },
+   "model": "aurapoints:item/relic_shard_verdant"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 6
+   },
+   "model": "aurapoints:item/relic_shard_thunder"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 7
+   },
+   "model": "aurapoints:item/relic_shard_earth"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 8
+   },
+   "model": "aurapoints:item/relic_shard_light"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 9
+   },
+   "model": "aurapoints:item/relic_shard_shadow"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 10
+   },
+   "model": "aurapoints:item/relic_shard_blood"
+  }
+ ]
+}

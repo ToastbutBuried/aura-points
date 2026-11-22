@@ -35,6 +35,9 @@ final class DevTest {
 		StormDevTest.register(dispatcher);
 		RelicDevTest.register(dispatcher);
 		RiftDevTest.register(dispatcher);
+		com.toast.aurapoints.rift.TrialsDevTest.register(dispatcher);
+		com.toast.aurapoints.rift.TrialsDevTest.registerStep(dispatcher);
+		com.toast.aurapoints.rift.TrialsDevTest.registerWarden(dispatcher);
 		ShrineDevTest.register(dispatcher);
 		SummonDevTest.register(dispatcher);
 		MjolnirSteerDevTest.register(dispatcher);

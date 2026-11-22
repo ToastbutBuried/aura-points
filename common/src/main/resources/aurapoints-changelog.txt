@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.46.0
+- Relic Trials: Aura Rifts are now a real quest. Step through the gate into a realm of floating islands: four trials (rune sequences, lights puzzles, a buried shard you find with a Tuning Fork, a memory path over the void, carrying a heavy shard over a crumbling bridge) each free a Relic Shard. Mistakes call up the aura's mobs.
+- Set the four shards on the altar to forge the relic - and the Relic Warden tears out to take it: five phases, combos, charges, barrages, a Core Beam to jump over, a shield of shard pylons and a last stand. Attacks that flash blue can be parried. Win and the relic is yours (always on your first clear). Clients must update.
+
 == 5.45.2
 - Wind's Dash has its own icon (it showed Shadow's purple one).
 - Rifts now open as a real gate: a ring of floating stones around a swirling portal in the rift's colours, cracks in the ground and a beam into the sky you can see from afar. Step in and it pulls you through.

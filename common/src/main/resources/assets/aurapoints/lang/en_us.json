@@ -227,5 +227,8 @@
   "item.aurapoints.relic_earth": "Bedrock Relic",
   "item.aurapoints.relic_light": "Halo Relic",
   "item.aurapoints.relic_shadow": "Dusk Relic",
-  "item.aurapoints.relic_blood": "Vein Relic"
+  "item.aurapoints.relic_blood": "Vein Relic",
+  "item.aurapoints.relic_shard": "Relic Shard",
+  "item.aurapoints.tuning_fork": "Tuning Fork",
+  "entity.aurapoints.relic_warden": "Relic Warden"
 }

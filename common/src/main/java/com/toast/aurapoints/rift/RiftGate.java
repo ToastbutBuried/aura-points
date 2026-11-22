@@ -57,7 +57,7 @@ final class RiftGate {
 	/** Unit vectors: out of the curtain's face (toward whoever it opened for) and along it. */
 	final Vec3 normal, right;
 	private final Quaternionf yaw;
-	private final RiftBuilder.Palette palette;
+	private final RealmBuilder.Palette palette;
 	private final List<Display.BlockDisplay> stones = new ArrayList<>(), strips = new ArrayList<>(), cracks = new ArrayList<>(), debris = new ArrayList<>();
 	private final float[] stoneSize = new float[STONES], stoneSpin = new float[STONES], crackAngle = new float[CRACKS], crackLen = new float[CRACKS],
 			crackY = new float[CRACKS], debrisAngle = new float[DEBRIS], debrisRad = new float[DEBRIS], debrisPhase = new float[DEBRIS];
@@ -76,7 +76,7 @@ final class RiftGate {
 		float a = (float) Math.atan2(normal.x, normal.z);
 		this.yaw = new Quaternionf().rotationY(a);
 		this.right = new Vec3(Math.cos(a), 0, -Math.sin(a));
-		this.palette = RiftBuilder.palette(aura);
+		this.palette = RealmBuilder.palette(aura);
 		build();
 	}
 

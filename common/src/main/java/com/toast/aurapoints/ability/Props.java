@@ -80,7 +80,7 @@ public final class Props {
 		});
 	}
 
-	static void move(Display.BlockDisplay d, Vec3 to) {
+	public static void move(Display.BlockDisplay d, Vec3 to) {
 		d.setPos(to.x, to.y, to.z);
 	}
 
