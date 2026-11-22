@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.47.1
+- Rifts: falling off the Reliquary during the difficulty vote brings you back to the landing (it put you past the sealed doors). The bridges are wide and whole now, worn only at the edges, and the causeway has no gaps to jump.
+
 == 5.47.0
 - Rifts now lead into the Shattered Reliquary: a huge ruined cathedral-fortress floating in the void, with four trial wings across broken bridges and a crypt arena beneath. Vote on the difficulty (Easy to Hardcore - one life each) on the plates in the entry hall. Bigger, harder trials; each shard goes in the altar socket of its colour (a trail shows the way).
 - Forging the relic breaks the floor: everyone falls into the crypt where the Relic Warden rises. Parrying is now about timing: yellow flash = one fully charged hit just before it lands; blue = dodge. Camera shots for the big moments. Clients must update.

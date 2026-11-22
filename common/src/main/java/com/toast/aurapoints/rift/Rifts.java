@@ -458,8 +458,11 @@ public final class Rifts {
 			up.add(p);
 			// fell into the void: back to the wing you fell from, the crypt in the boss fight, else the nave
 			if (p.getY() < FLOOR - 75) {
-				Vec3 to = phase == Reliquary.Phase.BOSS || phase == Reliquary.Phase.COLLAPSE ? Reliquary.cryptSpot(run, rift.random) : run.nave();
-				for (Trials.Trial t : run.trials) if (t.contains(new Vec3(p.getX(), FLOOR, p.getZ()))) to = Vec3.atBottomCenterOf(t.at(-t.hall + 2, 0, 1));
+				// during the vote the doors are shut: back to the arrival landing, never past them
+				Vec3 to = phase == Reliquary.Phase.BOSS || phase == Reliquary.Phase.COLLAPSE ? Reliquary.cryptSpot(run, rift.random)
+						: phase == Reliquary.Phase.VOTE ? run.spawn() : run.nave();
+				if (phase == Reliquary.Phase.TRIALS)
+					for (Trials.Trial t : run.trials) if (t.contains(new Vec3(p.getX(), FLOOR, p.getZ()))) to = Vec3.atBottomCenterOf(t.at(-t.hall + 2, 0, 1));
 				p.teleportTo(rift, to.x, to.y, to.z, p.getYRot(), 0f);
 				p.fallDistance = 0;
 			}
