@@ -160,6 +160,11 @@ public final class TrialsDevTest {
 		log("two strikes: count " + t.strikes + " (must be 2), hazard mobs " + (run.mobs.size() > mobs) + (t.kind == Trials.Kind.RINGS ? " (Rings: gusts, no mobs)" : " (must be true)"));
 		t.strike(rift, fake, fake.position(), List.of(fake));
 		log("third strike: count " + t.strikes + " (must be 0), total " + t.totalStrikes + " (must be 3)");
+		// the mobs a trial's mistakes call up are capped, and gone when the trial resets
+		t.punish(rift, fake.position(), 30);
+		log("hazard cap: " + t.hazards.size() + " (must be " + Math.min(12, Math.max(1, com.toast.aurapoints.config.AuraConfig.RIFT_TRIAL_MOB_CAP)) + ")");
+		for (int k = 0; k < 3; k++) t.strike(rift, fake, fake.position(), List.of(fake));
+		log("hazards after a reset: " + t.hazards.size() + " (must be 0), alive in the run " + run.mobs.stream().filter(m -> m.isAlive()).count() + " (must be 0)");
 		for (var m : run.mobs) m.discard();
 		run.mobs.clear();
 		t.strikes = 0;

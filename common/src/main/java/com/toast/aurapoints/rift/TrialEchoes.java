@@ -242,6 +242,13 @@ final class TrialEchoes extends Trials.Trial {
 		label(level, DigDecor.v(this, pf, -24, dy + 8.5), Component.literal("Seer's Perch").withStyle(s2 -> s2.withColor(rgb).withBold(true)), 1.2f);
 	}
 
+	private static final Block[] GLOW = {Blocks.BLUE_CONCRETE, Blocks.LIME_CONCRETE, Blocks.YELLOW_CONCRETE, Blocks.RED_CONCRETE};
+
+	/** The path's glow: the wing's colour in concrete, so it stands out on any palette (the light block vanished on white floors). */
+	private BlockState glowState() {
+		return GLOW[Math.max(0, Math.min(3, index))].defaultBlockState();
+	}
+
 	private Block tileBlock(int row, int col) {
 		Block alt = pal.base() != pal.floor() ? pal.base() : pal.edge();
 		return ((row + col) & 1) == 0 ? pal.floor() : alt;
@@ -322,6 +329,7 @@ final class TrialEchoes extends Trials.Trial {
 		restore(level, now);
 		if (now % 10 == 0) seerTick(level, here, now);
 		if (soloViewer != null && now >= soloUntil) revertSolo(level);
+		else if (soloViewer != null && now % 20 == 10) resendSolo(level);
 		if (here.size() == 1) {
 			ServerPlayer p = here.get(0);
 			if (soloAutoAt >= 0 && now >= soloAutoAt) {
@@ -399,6 +407,7 @@ final class TrialEchoes extends Trials.Trial {
 		int k = key(row, col);
 		if (broken.containsKey(k)) return false;
 		if (!pathSet.contains(k)) {
+			if (pushed(p)) return false;
 			breakTile(level, row, col, now, 60);
 			p.displayClientMessage(Component.literal("A false echo - the tile shatters!").withStyle(ChatFormatting.RED), true);
 			strike(level, p, Vec3.atBottomCenterOf(arena(rowF(row), colL(col), 0)), here);
@@ -412,7 +421,7 @@ final class TrialEchoes extends Trials.Trial {
 		revertSeer(level);
 		revertSolo(level);
 		for (int row = STAGES[stage][0]; row <= STAGES[stage][1]; row++) for (int col = 0; col < COLS; col++) tile(level, row, col, tileBlock(row, col));
-		for (int[] t : path) set(level, rowF(t[0]), colL(t[1]), 0, pal.light());
+		for (int[] t : path) set(level, rowF(t[0]), colL(t[1]), 0, glowState().getBlock());
 		broken.clear();
 		crumbleAt.clear();
 		stage++;
@@ -507,7 +516,7 @@ final class TrialEchoes extends Trials.Trial {
 		if (!seerOn || now >= nextSeerSend) {
 			nextSeerSend = now + 20;
 			seerOn = true;
-			BlockState glow = pal.light().defaultBlockState();
+			BlockState glow = glowState();
 			for (int[] t : path) {
 				if (broken.containsKey(key(t[0], t[1]))) continue;
 				BlockPos pos = arena(rowF(t[0]), colL(t[1]), 0);
@@ -535,7 +544,8 @@ final class TrialEchoes extends Trials.Trial {
 	void echo(ServerLevel level, ServerPlayer p, long now) {
 		revertSolo(level);
 		int show = showTicks();
-		BlockState glow = pal.light().defaultBlockState();
+		BlockState glow = glowState();
+		freezeHazards(true);
 		for (int[] t : path) {
 			int col = mirrored() ? COLS - 1 - t[1] : t[1];
 			int f = F0 + t[0] * T, l = L0 + col * T;
@@ -559,6 +569,21 @@ final class TrialEchoes extends Trials.Trial {
 		if (p != null) for (BlockPos pos : soloShown) send(p, pos, level.getBlockState(pos));
 		soloShown.clear();
 		soloViewer = null;
+		freezeHazards(false);
+	}
+
+	/** The echo's glow again every second: a client that had not loaded those chunks yet (the first time in) missed the first send. */
+	private void resendSolo(ServerLevel level) {
+		ServerPlayer p = find(level, soloViewer);
+		if (p == null) return;
+		BlockState glow = glowState();
+		for (BlockPos pos : soloShown) send(p, pos, glow);
+	}
+
+	/** Knocked about by a mob lately: being pushed onto a tile is not a step. */
+	private static boolean pushed(ServerPlayer p) {
+		int ts = p.getLastHurtByMobTimestamp();
+		return p.hurtTime > 0 || (ts > 0 && p.tickCount - ts < 30);
 	}
 
 	private void pad(ServerLevel level, ServerPlayer p, long now) {
@@ -614,7 +639,10 @@ final class TrialEchoes extends Trials.Trial {
 		crumbleAt.clear();
 		rollPath(random != null ? random : level.random);
 		punish(level, cp, 2 + tier / 2);
-		if (lastHere.size() == 1) soloAutoAt = lastNow + 40;
+		if (lastHere.size() == 1) {
+			soloAutoAt = lastNow + 40;
+			freezeHazards(true);
+		}
 	}
 
 	@Override

@@ -14,6 +14,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.WallBannerBlock;
@@ -131,6 +132,8 @@ final class Trials {
 		TrialPortal gate, back;
 		/** Players inside this trial (antechamber or arena) last tick. */
 		final Set<UUID> inside = new HashSet<>();
+		/** The mobs this trial's mistakes called up (capped by RIFT_TRIAL_MOB_CAP, cleared when the trial resets). */
+		final List<Mob> hazards = new ArrayList<>();
 		RandomSource random;
 
 		Trial(Rifts.Run run, int index, Kind kind) {
@@ -408,6 +411,7 @@ final class Trials {
 				onHazard(level, at);
 			} else {
 				strikes = 0;
+				clearHazards();
 				level.playSound(null, at.x, at.y, at.z, SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.HOSTILE, 2f, 0.6f);
 				for (ServerPlayer p : here) AuraFx.title(p, Component.literal("The trial resets").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD), Component.literal("a new layout").withStyle(ChatFormatting.GRAY));
 				onReset(level, random != null ? random : level.random);
@@ -455,8 +459,27 @@ final class Trials {
 
 		/** {@code n} of the aura's touched mobs at {@code at}. */
 		void punish(ServerLevel level, Vec3 at, int n) {
-			for (int k = 0; k < n; k++) Rifts.trialMob(level, run, at);
+			hazards.removeIf(m -> !m.isAlive());
+			int cap = Math.max(1, Math.min(12, com.toast.aurapoints.config.AuraConfig.RIFT_TRIAL_MOB_CAP));
+			for (int k = 0; k < n && hazards.size() < cap; k++) {
+				Mob m = Rifts.trialMob(level, run, at);
+				if (m != null) hazards.add(m);
+			}
 			level.playSound(null, at.x, at.y, at.z, SoundEvents.EVOKER_PREPARE_SUMMON, SoundSource.HOSTILE, 1f, 1.2f);
+		}
+
+		/** The trial resets: its mistakes' mobs go with the old layout. */
+		void clearHazards() {
+			for (Mob m : hazards) {
+				run.mobs.remove(m);
+				if (m.isAlive()) m.discard();
+			}
+			hazards.clear();
+		}
+
+		/** Hazard mobs stand still (a camera shot has the players' eyes: nothing may hit them meanwhile). */
+		void freezeHazards(boolean frozen) {
+			for (Mob m : hazards) if (m.isAlive()) m.setNoAi(frozen);
 		}
 
 		/**
