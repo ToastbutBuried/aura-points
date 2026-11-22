@@ -277,10 +277,13 @@ final class TrialEchoes extends Trials.Trial {
 		int r0 = STAGES[stage][0], r1 = STAGES[stage][1], rows = r1 - r0 + 1;
 		int len = lengths()[stage];
 		int[] side = new int[rows];
-		for (int k = 0; k < Math.max(0, len - rows); k++) side[r.nextInt(rows)]++;
+		// sidesteps never go in the last row: it already leads onto the checkpoint bridge, so exactly one tile of it is lit
+		int sideRows = Math.max(1, rows - 1);
+		for (int k = 0; k < Math.max(0, len - rows); k++) side[r.nextInt(sideRows)]++;
 		int col = 2 + r.nextInt(COLS - 4), carry = 0;
 		for (int i = 0; i < rows; i++) {
 			add(r0 + i, col);
+			if (i == rows - 1) break;
 			int want = side[i] + carry, dir = r.nextBoolean() ? 1 : -1;
 			if (col + dir * want < 0 || col + dir * want >= COLS) dir = -dir;
 			int room = dir > 0 ? COLS - 1 - col : col;
@@ -694,6 +697,24 @@ final class TrialEchoes extends Trials.Trial {
 		// alone: the echo plays and lights the path
 		soloAutoAt = now;
 		tick(level, here, now);
+		// the last row of every stage holds exactly one lit tile (many random paths)
+		List<int[]> keepPath = new ArrayList<>(path);
+		Set<Integer> keepSet = new HashSet<>(pathSet);
+		int keepStage = stage;
+		boolean oneEnd = true;
+		for (int st = 0; st < 3; st++) {
+			stage = st;
+			for (int k = 0; k < 60; k++) {
+				rollPath(level.random);
+				if (path.stream().filter(t -> t[0] == STAGES[stage][1]).count() != 1) oneEnd = false;
+			}
+		}
+		stage = keepStage;
+		path.clear();
+		path.addAll(keepPath);
+		pathSet.clear();
+		pathSet.addAll(keepSet);
+		log.accept("echoes: last row has one tile in 180 paths " + oneEnd + " (must be true)");
 		log.accept("echoes: solo echo shows " + soloShown.size() + " blocks (must be " + path.size() * T * T + ")");
 		// a wrong tile: it breaks and strikes
 		int r0 = STAGES[0][0], wrong = -1;

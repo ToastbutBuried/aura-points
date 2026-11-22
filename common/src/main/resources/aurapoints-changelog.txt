@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.49.9
+- Hall of Echoes: the last row of every stage lights exactly one tile - it already leads onto the checkpoint, so no second "right" tile is free there.
+
 == 5.49.8
 - Hall of Echoes: no more mob pile-ups - a trial keeps at most 4 mistake mobs alive (config RIFT_TRIAL_MOB_CAP), they are cleared when the trial resets, stand still during the echo, and being knocked onto a tile by a mob no longer counts as a wrong step. The glowing path is now drawn in the wing's colour (it was white on white in Wind) and re-sent while it shows, so it appears the first time too.
 
