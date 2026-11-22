@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.49.4
+- Choir of Bells: everyone gets a Conductor's Baton. Right-click two bells to pick them, then sneak + right-click to ring both at once - chords are easy alone.
+- Glyph Vault: no more signs with a rule that can never fire; the Seal over the door and each pillar's glyph name are written out clearly.
+
 == 5.49.3
 - Weeping Statues: at least 3 statues now (more with difficulty and players), and no one can stare for ever: dread builds while a statue is in your view, and when your eyes give the stone moves. Look away to calm down. Statue count and dread timings are in the config.
 
