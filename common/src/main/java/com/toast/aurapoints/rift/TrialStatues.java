@@ -639,7 +639,7 @@ final class TrialStatues extends Trials.Trial {
 					continue;
 				}
 				Vec3 at = plinthTop(s);
-				double t = 1 - (s.liftDone - now) / (double) LIFT[tier];
+				double t = Math.max(0, Math.min(1, 1 - (s.liftDone - now) / (double) LIFT[tier]));
 				if (s.crystal != null) Props.move(s.crystal, at.add(0, t * 0.6, 0));
 				if (now % 4 == 0) level.sendParticles(AuraFx.dust(s.rgb, 1f), at.x, at.y, at.z, 3, 0.2, 0.3, 0.2, 0);
 				if (now % 10 == 0) p.displayClientMessage(Component.literal("Lifting the sigil " + GLYPHS[s.n] + " - hold still " + "■".repeat((int) (t * 10)) + "□".repeat(10 - (int) (t * 10))).withStyle(ChatFormatting.AQUA), true);

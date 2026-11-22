@@ -248,6 +248,7 @@ public final class Rifts {
 		// a gate nobody went through: its arena areas needn't stay loaded
 		ServerLevel lvl = level(server);
 		if (tear.run == null && lvl != null) Trials.preload(lvl, tear.runId % 16, false);
+		if (tear.job != null) tear.job.release();
 		if (tear.gate != null) {
 			// say = in view of players: fold shut; otherwise (server stop, a new tear) gone at once
 			if (say) {

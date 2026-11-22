@@ -257,6 +257,27 @@ public final class Monument {
 			this.origin = origin(slot);
 			this.aura = aura;
 			this.settings = new StructurePlaceSettings().setIgnoreEntities(true).addProcessor(new Remap(roles(aura), aura));
+			// the slot's chunks generate off the main thread first (a cold 480x480 clear froze the server ~5 s)
+			this.ticket = new net.minecraft.world.level.ChunkPos(origin.offset(0, 0, 20));
+			level.getChunkSource().addRegionTicket(net.minecraft.server.level.TicketType.FORCED, ticket, TICKET_RADIUS, ticket);
+		}
+
+		private static final int TICKET_RADIUS = 16;
+		private final net.minecraft.world.level.ChunkPos ticket;
+		private boolean ticketed = true;
+		private int waited;
+
+		/** All chunks of the slot's clear box are loaded. */
+		private boolean chunksReady() {
+			for (int cx = (origin.getX() - 240) >> 4; cx <= (origin.getX() + 239) >> 4; cx++)
+				for (int cz = (origin.getZ() - 220) >> 4; cz <= (origin.getZ() + 259) >> 4; cz++) if (!level.getChunkSource().hasChunk(cx, cz)) return false;
+			return true;
+		}
+
+		void release() {
+			if (!ticketed) return;
+			ticketed = false;
+			level.getChunkSource().removeRegionTicket(net.minecraft.server.level.TicketType.FORCED, ticket, TICKET_RADIUS, ticket);
 		}
 
 		/** Clouds still to place (Wind, Light: the realm floats in a sky of them). */
@@ -275,8 +296,13 @@ public final class Monument {
 		private boolean cleared;
 
 		public void step() {
-			if (done()) return;
+			if (done()) {
+				release();
+				return;
+			}
 			if (!cleared) {
+				// wait for the chunks (checked every 10 ticks, at most 30 s, then a blocking load)
+				if (++waited < 600 && (waited % 10 != 0 || !chunksReady())) return;
 				// whatever an earlier run left in the slot (clouds, the pre-5.47 islands) goes first
 				cleared = true;
 				clearColumns(level, origin.getX() - 240, origin.getZ() - 220, 480);
@@ -301,7 +327,9 @@ public final class Monument {
 		/** Everything at once (dev tests). */
 		public void finish() {
 			if (clouds < 0 && next >= anchors().tiles.size()) clouds = aura == AuraType.WIND || aura == AuraType.LIGHT ? CLOUDS : 0;
+			waited = 600;
 			while (!done()) step();
+			release();
 		}
 	}
 
