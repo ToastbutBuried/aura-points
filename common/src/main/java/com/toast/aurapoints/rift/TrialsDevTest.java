@@ -248,6 +248,17 @@ public final class TrialsDevTest {
 					p.teleportTo(g.x, g.y, g.z);
 				}
 				case "ritual" -> Rifts.devFinishRitual(p);
+				case "crypt" -> {
+					// into the crypt, off to one side of the Warden (client playtests)
+					Rifts.Run run = Rifts.runOf(p);
+					if (run == null) return 0;
+					Vec3 cc = Reliquary.cryptCenter(run);
+					p.teleportTo((ServerLevel) p.level(), cc.x + 12, cc.y + 0.5, cc.z + 7, 90f, 10f);
+				}
+				case "hp1", "hp2", "hp3", "hp4" -> {
+					// the Warden's health to the middle of an Aspect (client playtests): 90 / 65 / 40 / 15 %
+					if (Rifts.devGuardian(p) instanceof RelicWarden w) w.devSetHealth(new float[]{0.9f, 0.65f, 0.45f, 0.2f}[what.charAt(2) - '1']);
+				}
 				case "overdrive" -> {
 					if (Rifts.devGuardian(p) instanceof RelicWarden w) w.devPhase(RelicWarden.OVERDRIVE, 0.3f);
 				}
