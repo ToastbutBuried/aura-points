@@ -136,7 +136,8 @@ final class TrialPortal {
 			cooldown.put(p.getUUID(), now + 40);
 			Vec3 e = to.exit();
 			AuraFx.burst(level, p.getX(), p.getY() + 1, p.getZ(), ParticleTypes.REVERSE_PORTAL, 20, 0.4, 0.1);
-			p.teleportTo(level, e.x, e.y, e.z, to.exitYaw(), 0f);
+			if (com.toast.aurapoints.shim.Platform.get().isFakePlayer(p)) p.moveTo(e.x, e.y, e.z, to.exitYaw(), 0f); // dev tests: no connection to teleport through
+			else p.teleportTo(level, e.x, e.y, e.z, to.exitYaw(), 0f);
 			p.fallDistance = 0;
 			level.playSound(null, e.x, e.y, e.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.4f, 0.7f);
 			moved = true;

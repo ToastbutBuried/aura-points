@@ -1063,7 +1063,7 @@ public final class Rifts {
 		Run r = runOf(p);
 		if (r == null) return -1;
 		return level(p.getServer()).getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
-				new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(120, 90, 165), e -> e.getTags().contains(SHARD_TAG)).size();
+				new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(460, 120, 460), e -> e.getTags().contains(SHARD_TAG)).size();
 	}
 
 	/** A block of the run's realm: hub-relative. */
