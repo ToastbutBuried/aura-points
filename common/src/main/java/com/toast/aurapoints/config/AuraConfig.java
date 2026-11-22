@@ -1249,6 +1249,15 @@ public final class AuraConfig {
 	public static float MJOLNIR_THROW_DAMAGE = 7.0f;
 	public static float MJOLNIR_RETURN_DAMAGE = 3.0f;
 	/**
+	 * Steering a thrown hammer (hold the Mjölnir Swing key while it flies): it heads for where you look (the block you aim
+	 * at, at most STEER_REACH away), turning STEER_TURN of the way each tick (0.05 lazy .. 1 instant), for at most
+	 * STEER_MAX_TICKS per throw; it keeps flying through mobs, hitting the same one again after STEER_REHIT_TICKS.
+	 */
+	public static int MJOLNIR_STEER_MAX_TICKS = 20 * 10;
+	public static double MJOLNIR_STEER_TURN = 0.35;
+	public static double MJOLNIR_STEER_REACH = 64.0;
+	public static int MJOLNIR_STEER_REHIT_TICKS = 20;
+	/**
 	 * Flight (spin, then HOLD left-click): FLIGHT_SPEED blocks a tick toward wherever you look, as long as the button is held
 	 * (at most FLIGHT_MAX_TICKS); FLIGHT_STEERING is how fast the heading follows your aim (0.05 lazy .. 1 instant);
 	 * FLIGHT_DAMAGE to whoever is in the way; FLIGHT_COOLDOWN_TICKS after you let go.

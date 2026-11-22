@@ -420,6 +420,8 @@ public final class NetworkHandler {
 			}
 			// Mjölnir (owner only): its own swing key spins it; the attack button's held state keeps the flight going
 			if (packet.key() == AbilityKeyPacket.MJOLNIR_SWING) {
+				// a hammer in the air: the key steers it instead
+				if (com.toast.aurapoints.ability.Mjolnir.steerKey(player, packet.down())) return;
 				if (com.toast.aurapoints.ability.Mjolnir.handlesKey(player, packet.down())) {
 					if (packet.down()) com.toast.aurapoints.ability.Mjolnir.press(player, server.getTickCount());
 					else com.toast.aurapoints.ability.Mjolnir.release(player);

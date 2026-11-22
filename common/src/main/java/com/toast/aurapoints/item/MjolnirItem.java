@@ -76,6 +76,7 @@ public class MjolnirItem extends Item implements software.bernie.geckolib.animat
 		tooltip.add(Component.literal("Only the worthy can wield it.").withStyle(ChatFormatting.GOLD, ChatFormatting.ITALIC));
 		tooltip.add(Component.translatable("item.aurapoints.mjolnir.tip_swing", Component.keybind("key.aurapoints.mjolnirswing")).withStyle(ChatFormatting.GRAY));
 		tooltip.add(Component.literal("Right-click to throw it - it comes back. While spinning: a faster throw.").withStyle(ChatFormatting.GRAY));
+		tooltip.add(Component.translatable("item.aurapoints.mjolnir.tip_steer", Component.keybind("key.aurapoints.mjolnirswing")).withStyle(ChatFormatting.GRAY));
 		tooltip.add(Component.literal("Spinning, then HOLD left-click: fly where you point - let go to land.").withStyle(ChatFormatting.GRAY));
 		tooltip.add(Component.literal("Charged: " + AuraConfig.MJOLNIR_STREAK_HITS + " full hits in a row - the last one calls down thunder.").withStyle(ChatFormatting.GRAY));
 		super.appendHoverText(stack, context, tooltip, type);

@@ -37,6 +37,7 @@ final class DevTest {
 		RiftDevTest.register(dispatcher);
 		ShrineDevTest.register(dispatcher);
 		SummonDevTest.register(dispatcher);
+		MjolnirSteerDevTest.register(dispatcher);
 		CloakDevTest.register(dispatcher);
 		UtilDevTest.register(dispatcher);
 		AltarDevTest.register(dispatcher);

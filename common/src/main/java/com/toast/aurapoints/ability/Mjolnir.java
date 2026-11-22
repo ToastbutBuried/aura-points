@@ -9,6 +9,7 @@ import com.mojang.math.Transformation;
 import com.toast.aurapoints.mixin.DisplayAccessor;
 import com.toast.aurapoints.mixin.ItemDisplayAccessor;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -310,8 +311,11 @@ public final class Mjolnir {
 	// ---------------------------------------------------------------
 	// Throwing: right-click. It flies spinning at the crosshair, hits the first mob or player (a charged
 	// hammer brings the thunder down on them) or a block, then comes back to the hand - straight through
-	// walls, hitting whoever is in its way. The stack is out of the inventory meanwhile and always comes
-	// back: caught, or on logout / server stop given back, or dropped where the hammer is if you died.
+	// walls, hitting whoever is in its way. Hold the Mjölnir Swing key while it's out (or throw it out of a spin,
+	// still holding it) and it follows your aim instead: it heads for what you look at, hits everyone on the way
+	// and flies on, until you let go or STEER_MAX_TICKS run out - then it comes back. The stack is out of the
+	// inventory meanwhile and always comes back: caught, or on logout / server stop given back, or dropped where
+	// the hammer is if you died.
 	// ---------------------------------------------------------------
 
 	private static final String TAG = "aurapoints_mjolnir";
@@ -323,12 +327,20 @@ public final class Mjolnir {
 		final ItemStack stack;
 		final int slot;
 		final Display.ItemDisplay display;
-		final boolean charged;
-		final java.util.Set<LivingEntity> hit = new java.util.HashSet<>();
+		boolean charged;
+		/** who it hit, and its age then (a steered hammer may hit the same one again after STEER_REHIT_TICKS) */
+		final Map<LivingEntity, Integer> hit = new HashMap<>();
+		/** its speed when thrown (steering flies at this) */
+		final double cruise;
 		Vec3 pos, dir;
 		double speed, travelled;
 		boolean back;
 		int age;
+		/** the Mjölnir Swing key is held: it follows the owner's aim */
+		boolean steering;
+		int steerTicks;
+		/** steered against a block (the slam plays once per contact) */
+		boolean pressed;
 
 		Flight(UUID owner, ItemStack stack, int slot, Display.ItemDisplay display, boolean charged, Vec3 pos, Vec3 dir, double speed) {
 			this.owner = owner;
@@ -339,10 +351,19 @@ public final class Mjolnir {
 			this.pos = pos;
 			this.dir = dir;
 			this.speed = speed;
+			this.cruise = speed;
 		}
 	}
 
 	private static final Map<UUID, Flight> FLYING = new HashMap<>();
+
+	/** DEV (MjolnirSteerDevTest): the player's hammer in the air, or null. */
+	public static String debugFlight(ServerPlayer player) {
+		Flight f = FLYING.get(player.getUUID());
+		if (f == null) return null;
+		return String.format("pos %.1f %.1f %.1f steering=%s back=%s steerTicks=%d hit=%d charged=%s pressed=%s",
+				f.pos.x, f.pos.y, f.pos.z, f.steering, f.back, f.steerTicks, f.hit.size(), f.charged, f.pressed);
+	}
 
 	public static boolean isLeftover(Entity e) {
 		return e.getTags().contains(TAG) && !LIVE.contains(e.getUUID());
@@ -380,6 +401,8 @@ public final class Mjolnir {
 
 		double speed = spun ? AuraConfig.MJOLNIR_THROW_SPEED * AuraConfig.MJOLNIR_SPUN_THROW_BOOST : AuraConfig.MJOLNIR_THROW_SPEED;
 		Flight f = new Flight(player.getUUID(), stack, slot, d, charged, from, player.getLookAngle().normalize(), speed);
+		// thrown out of the spin: the Swing key is still held, so it's steered from the start
+		f.steering = spun && AuraConfig.MJOLNIR_STEER_MAX_TICKS > 0;
 		FLYING.put(player.getUUID(), f);
 		turn(f);
 
@@ -413,7 +436,7 @@ public final class Mjolnir {
 			ServerPlayer owner = server.getPlayerList().getPlayer(f.owner);
 			boolean done;
 			try {
-				done = owner == null || !owner.isAlive() || owner.level() != f.display.level() || ++f.age > 400 ? abort(f, owner) : fly(f, owner);
+				done = owner == null || !owner.isAlive() || owner.level() != f.display.level() || ++f.age > 400 + Math.max(0, AuraConfig.MJOLNIR_STEER_MAX_TICKS) ? abort(f, owner) : fly(f, owner);
 			} catch (Exception e) {
 				AuraPoints.LOGGER.error("Mjölnir flight failed", e);
 				done = abort(f, owner);
@@ -426,13 +449,34 @@ public final class Mjolnir {
 	private static boolean fly(Flight f, ServerPlayer owner) {
 		ServerLevel level = (ServerLevel) f.display.level();
 		Vec3 from = f.pos;
+		Vec3 next = f.steering && keepSteering(f, owner) ? steer(level, f, owner, from) : freeStep(level, f, owner, from);
+		if (next == null) return true; // caught
+
+		f.pos = next;
+		f.display.setPos(next.x, next.y, next.z);
+		turn(f);
+		// the trail: crackling, and a deep hum
+		Thunderbolt.send(level, ParticleTypes.ELECTRIC_SPARK, next.x, next.y, next.z, f.charged ? 4 : 2, 0.1, 0.1, 0.1, 0.05);
+		Thunderbolt.send(level, AuraFx.dust(f.charged ? Thunderbolt.CORE : Thunderbolt.GLOW, 1.0f), from.x, from.y, from.z, 1, 0.05, 0.05, 0.05, 0);
+		if (f.charged && f.age % 2 == 0) Thunderbolt.bolt(level, from, next, 0.45f, 0, 1);
+		if (f.age % 4 == 0) level.playSound(null, next.x, next.y, next.z, AuraSounds.PLAYER_ATTACK_SWEEP.value(), SoundSource.PLAYERS, 0.5f, 0.5f);
+		// steered: a thin arc from the hand to the hammer now and then, the link you hold it by
+		if (f.steering && f.age % 5 == 0) {
+			Vec3 hand = Thunderbolt.hand(owner, false);
+			if (hand.distanceToSqr(next) < 20 * 20) Thunderbolt.bolt(level, hand, next, 0.2f, 0, 1);
+		}
+		return false;
+	}
+
+	/** Not steered: straight out to the first hit or the range, then back to the hand. Null once caught. */
+	private static Vec3 freeStep(ServerLevel level, Flight f, ServerPlayer owner, Vec3 from) {
 		if (f.back) {
 			Vec3 hand = Thunderbolt.hand(owner, false);
 			Vec3 to = hand.subtract(from);
 			f.speed = Math.min(AuraConfig.MJOLNIR_THROW_SPEED * 1.6, f.speed + 0.12);
 			if (to.length() <= f.speed + 0.6) {
 				catchIt(f, owner);
-				return true;
+				return null;
 			}
 			f.dir = to.normalize();
 		}
@@ -462,30 +506,98 @@ public final class Mjolnir {
 			// back: through anything, knocking into whoever is in the way
 			LivingEntity e = firstAlong(level, owner, from, next, f);
 			if (e != null) {
-				f.hit.add(e);
+				f.hit.put(e, f.age);
 				Thunderbolt.zap(owner, e, AuraConfig.MJOLNIR_RETURN_DAMAGE);
 				e.setDeltaMovement(e.getDeltaMovement().add(f.dir.x * 0.6, 0.25, f.dir.z * 0.6));
 				e.hurtMarked = true;
 				level.playSound(null, e.getX(), e.getY(), e.getZ(), AuraSounds.MACE_SMASH_AIR.value(), SoundSource.PLAYERS, 0.9f, 1.1f);
 			}
 		}
+		return next;
+	}
 
-		f.pos = next;
-		f.display.setPos(next.x, next.y, next.z);
-		turn(f);
-		// the trail: crackling, and a deep hum
-		Thunderbolt.send(level, ParticleTypes.ELECTRIC_SPARK, next.x, next.y, next.z, f.charged ? 4 : 2, 0.1, 0.1, 0.1, 0.05);
-		Thunderbolt.send(level, AuraFx.dust(f.charged ? Thunderbolt.CORE : Thunderbolt.GLOW, 1.0f), from.x, from.y, from.z, 1, 0.05, 0.05, 0.05, 0);
-		if (f.charged && f.age % 2 == 0) Thunderbolt.bolt(level, from, next, 0.45f, 0, 1);
-		if (f.age % 4 == 0) level.playSound(null, next.x, next.y, next.z, AuraSounds.PLAYER_ATTACK_SWEEP.value(), SoundSource.PLAYERS, 0.5f, 0.5f);
+	/** The Mjölnir Swing key went down or up while the owner's hammer is in the air. False = no hammer out (the key spins as usual). */
+	public static boolean steerKey(ServerPlayer player, boolean down) {
+		Flight f = FLYING.get(player.getUUID());
+		if (f == null) return false;
+		if (down) {
+			if (!f.steering && f.steerTicks < AuraConfig.MJOLNIR_STEER_MAX_TICKS) {
+				// grabbed again, even on its way back
+				f.steering = true;
+				f.back = false;
+				f.pressed = false;
+			}
+		} else if (f.steering) {
+			stopSteering(f);
+		}
+		return true;
+	}
+
+	/** Still in control this tick? Frozen, stunned or out of steering time lets go of it. */
+	private static boolean keepSteering(Flight f, ServerPlayer owner) {
+		if (!IceSpike.isFrozen(owner) && !Stun.isStunned(owner) && f.steerTicks++ < AuraConfig.MJOLNIR_STEER_MAX_TICKS) return true;
+		stopSteering(f);
 		return false;
+	}
+
+	/** Let go: it comes back, the usual way (through walls). */
+	private static void stopSteering(Flight f) {
+		f.steering = false;
+		f.pressed = false;
+		f.back = true;
+		f.speed = 0.3;
+	}
+
+	/**
+	 * One steered tick: toward the point the owner looks at (slowing down there, so it hovers on the crosshair), hitting
+	 * whoever is in the way and flying on; a block stops it against it until it's steered away.
+	 */
+	private static Vec3 steer(ServerLevel level, Flight f, ServerPlayer owner, Vec3 from) {
+		Vec3 eye = owner.getEyePosition();
+		Vec3 look = owner.getLookAngle().normalize();
+		HitResult aimed = level.clip(new ClipContext(eye, eye.add(look.scale(Math.max(4, AuraConfig.MJOLNIR_STEER_REACH))),
+				ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, owner));
+		// aimed at a block: hover just off the face you look at (not grinding along the floor)
+		Vec3 aim = aimed instanceof net.minecraft.world.phys.BlockHitResult bh && bh.getType() != HitResult.Type.MISS
+				? bh.getLocation().add(Vec3.atLowerCornerOf(bh.getDirection().getNormal()).scale(0.6))
+				: aimed.getLocation();
+		Vec3 to = aim.subtract(from);
+		double dist = to.length();
+		if (dist > 0.05) {
+			Vec3 want = to.scale(1 / dist);
+			// far off it curves round at full speed; close by it eases onto the point (no swinging past it)
+			Vec3 d = dist < 2.0 ? want : f.dir.lerp(want, Mth.clamp(AuraConfig.MJOLNIR_STEER_TURN, 0.05, 1.0));
+			f.dir = d.lengthSqr() < 1.0e-4 ? want : d.normalize();
+		}
+		f.speed = f.cruise;
+		Vec3 next = from.add(f.dir.scale(Math.min(f.cruise, dist * 0.4)));
+
+		// grabbed again inside a wall (it comes home through them): no block stops it until it's in the open
+		BlockPos inside = BlockPos.containing(from);
+		boolean inWall = !level.getBlockState(inside).getCollisionShape(level, inside).isEmpty();
+		HitResult block = inWall ? null : level.clip(new ClipContext(from, next, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, f.display));
+		boolean blocked = block != null && block.getType() != HitResult.Type.MISS;
+		Vec3 end = blocked ? block.getLocation() : next;
+		LivingEntity target = firstAlong(level, owner, from, end, f);
+		if (target != null) impact(f, owner, target); // and on it flies
+		if (blocked) {
+			next = end.subtract(f.dir.scale(0.2));
+			if (!f.pressed) {
+				f.pressed = true;
+				Thunderbolt.impact(level, end, 0.6f);
+				level.playSound(null, end.x, end.y, end.z, AuraSounds.MACE_SMASH_GROUND.value(), SoundSource.PLAYERS, 1.0f, 0.9f);
+			}
+		} else {
+			f.pressed = false;
+		}
+		return next;
 	}
 
 	/** The closest mob or player (not hit yet) on the segment, with a little margin. */
 	private static LivingEntity firstAlong(ServerLevel level, ServerPlayer owner, Vec3 a, Vec3 b, Flight f) {
 		LivingEntity best = null;
 		double bestD = Double.MAX_VALUE;
-		for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, new AABB(a, b).inflate(1.0), e -> VineHook.canHook(owner, e) && !f.hit.contains(e))) {
+		for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, new AABB(a, b).inflate(1.0), e -> VineHook.canHook(owner, e) && canHit(f, e))) {
 			var at = e.getBoundingBox().inflate(0.4).clip(a, b);
 			if (at.isEmpty()) continue;
 			double d = at.get().distanceToSqr(a);
@@ -497,13 +609,20 @@ public final class Mjolnir {
 		return best;
 	}
 
-	/** The hammer hits someone on the way out. */
+	/** Not hit yet - or, steered, hit long enough ago. */
+	private static boolean canHit(Flight f, LivingEntity e) {
+		Integer at = f.hit.get(e);
+		return at == null || f.steering && f.age - at >= Math.max(1, AuraConfig.MJOLNIR_STEER_REHIT_TICKS);
+	}
+
+	/** The hammer hits someone (thrown out, or steered into them). */
 	private static void impact(Flight f, ServerPlayer owner, LivingEntity target) {
 		ServerLevel level = (ServerLevel) f.display.level();
-		f.hit.add(target);
+		f.hit.put(target, f.age);
 		Vec3 c = AuraFx.chest(target);
 		level.playSound(null, c.x, c.y, c.z, AuraSounds.MACE_SMASH_GROUND_HEAVY.value(), SoundSource.PLAYERS, 1.2f, 1.0f);
 		if (f.charged) {
+			f.charged = false; // one thunder per charge, even when steered on into more
 			strike(owner, target); // the thunder (its damage, splash and paralysis)
 		} else {
 			Thunderbolt.zap(owner, target, AuraConfig.MJOLNIR_THROW_DAMAGE);

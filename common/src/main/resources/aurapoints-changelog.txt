@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.45.0
+- Mjölnir: hold the Mjölnir Swing key while the thrown hammer flies to steer it where you look. It hits everyone on the way and flies on, for up to 10 s; let go and it comes back. Throw it out of a spin and you steer it from the start.
+
 == 5.44.1
 - The Shadow dragon no longer bumps into thin things (1-block walls, roofs, fences, pillars, trunks), leaves or water. Datapacks can add more pass-through blocks via the block tag aurapoints:dragon_passable.
 
