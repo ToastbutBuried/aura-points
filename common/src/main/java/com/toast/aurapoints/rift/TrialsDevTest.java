@@ -174,6 +174,19 @@ public final class TrialsDevTest {
 				}
 				case "place" -> Rifts.devPlaceAll(p);
 				case "vote" -> Rifts.devVote(p, 2);
+				case "enter", "enterwind" -> {
+					// a Frost (or Wind: "enterwind") gate at the caller, and straight in
+					if (!Rifts.devTearOpen()) Rifts.open(p.getServer(), what.equals("enterwind") ? AuraType.WIND : AuraType.FROST, null, p.position().add(0, 1.6, 0));
+					Rifts.devEnter(p.getServer(), p);
+				}
+				case "gate0", "gate1", "gate2", "gate3" -> {
+					// onto the trial's portal into its arena (client playtests); the camera intro follows
+					Rifts.Run run = Rifts.runOf(p);
+					if (run == null) return 0;
+					Trials.Trial t = run.trials[what.charAt(4) - '0'];
+					Vec3 g = Vec3.atBottomCenterOf(t.gate.base.above());
+					p.teleportTo(g.x, g.y, g.z);
+				}
 				case "ritual" -> Rifts.devFinishRitual(p);
 				case "overdrive" -> {
 					if (Rifts.devGuardian(p) instanceof RelicWarden w) w.devPhase(RelicWarden.OVERDRIVE, 0.3f);

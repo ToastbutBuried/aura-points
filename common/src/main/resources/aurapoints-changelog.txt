@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.49.0
+- Reliquary trials reworked: each wing is an antechamber with a portal into the trial's own big decorated arena, with a camera intro. New puzzles: Resonance Dig, Hall of Echoes, Choir of Bells, Glyph Vault, Prism Chamber and Weeping Statues - three strikes and the hazard mobs come, a third strike on Hardcore is a knockout. Wind, Light and Thunder rifts add the Skyward Rings elytra course. Clients must update.
+
 == 5.48.0
 - Every Reliquary now wears its element: Wind is a white-and-gold palace floating among clouds under a bright sky, Fire a black basalt forge under an ember sky, Frost an ice palace, Water a prismarine temple, Verdant an overgrown ruin, Thunder a copper storm citadel, Earth a sandstone canyon temple, Light a golden sanctum, Blood a nether keep - each with its own sky, fog and daylight. Clients must update.
 
