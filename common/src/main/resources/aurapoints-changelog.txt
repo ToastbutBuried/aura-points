@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.49.2
+- Owners: /aura rift skip counts the trial you stand in as beaten and drops its shard at your feet.
+
 == 5.49.1
 - Choir of Bells: a chord now has two seconds between its two bells (was one), so you can ring it alone.
 

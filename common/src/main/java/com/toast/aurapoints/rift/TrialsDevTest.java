@@ -161,6 +161,14 @@ public final class TrialsDevTest {
 		run.mobs.clear();
 		t.strikes = 0;
 		t.totalStrikes = 0;
+		// /aura rift skip: standing in the wing/arena beats the trial and drops its shard at the feet
+		String msg = Rifts.skipRoom(fake);
+		var items = rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, fake.getBoundingBox().inflate(2), e -> Rifts.isShard(e.getItem(), run, t.index));
+		log("skip: " + msg + " solved " + t.solved + " (must be true), shard at the feet " + !items.isEmpty() + " (must be true)");
+		log("skip again: " + Rifts.skipRoom(fake) + " (must say already beaten)");
+		for (var it : items) it.discard();
+		t.solved = false;
+		t.shardOut = false;
 	}
 
 	/** /auradev riftstep solve|place|ritual - moves the caller's own run on (for client playtests). */

@@ -934,6 +934,13 @@ public final class Rifts {
 		dispatcher.register(net.minecraft.commands.Commands.literal("aura").then(net.minecraft.commands.Commands.literal("rift")
 				.executes(ctx -> where(ctx.getSource()))
 				.then(net.minecraft.commands.Commands.literal("leave").executes(ctx -> leave(ctx.getSource().getPlayerOrException()) ? 1 : 0))
+				.then(net.minecraft.commands.Commands.literal("skip")
+						.requires(src -> src.getPlayer() == null ? src.hasPermission(4) : com.toast.aurapoints.config.CommandRules.isOwner(src.getPlayer()))
+						.executes(ctx -> {
+							String msg = skipRoom(ctx.getSource().getPlayerOrException());
+							ctx.getSource().sendSuccess(() -> Component.literal(msg), false);
+							return 1;
+						}))
 				.then(net.minecraft.commands.Commands.literal("close").executes(ctx -> {
 					closeTear(ctx.getSource().getServer(), true);
 					ctx.getSource().sendSuccess(() -> Component.literal("Rift closed."), true);
@@ -953,6 +960,24 @@ public final class Rifts {
 							}
 							return open(ctx.getSource().getServer(), a, null, at.add(ctx.getSource().getRotation() == null ? Vec3.ZERO : Vec3.directionFromRotation(0, ctx.getSource().getRotation().y).scale(3)).add(0, 1.6, 0)) ? 1 : 0;
 						})))));
+	}
+
+	/** /aura rift skip (owners): the trial the player stands in (wing or arena) counts as beaten and its shard drops at their feet. */
+	static String skipRoom(ServerPlayer p) {
+		Run run = runOf(p);
+		ServerLevel rift = level(p.getServer());
+		if (run == null || rift == null || p.level() != rift) return "You are not in a rift run.";
+		for (Trials.Trial t : run.trials) {
+			if (!t.inArena(p.position()) && !t.inWing(p.position())) continue;
+			if (t.solved) return t.name() + " is already beaten.";
+			if (!t.started) {
+				t.started = true;
+				t.begin(rift, List.of(p));
+			}
+			t.solve(rift, p.position());
+			return t.name() + " skipped - the shard is at your feet.";
+		}
+		return "Stand inside a trial (its wing or arena) to skip it.";
 	}
 
 	private static int where(net.minecraft.commands.CommandSourceStack src) {
