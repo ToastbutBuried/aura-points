@@ -15,6 +15,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Display;
@@ -189,6 +190,7 @@ final class Reliquary {
 		Rifts.buildTrials(rift, run);
 		ghosts(rift, run);
 		openDoor(rift, run);
+		if (AuraConfig.RIFT_CUTSCENE_DRAMA) doorsDrama(rift, run);
 		List<ServerPlayer> here = Rifts.online(rift.getServer(), run);
 		Difficulty d = run.difficulty;
 		for (ServerPlayer p : here) {
@@ -206,6 +208,88 @@ final class Reliquary {
 				.key(140, at(run, 0, 16, 14), altar)
 				.key(175, at(run, 6, 40, 4), altar.add(0, -2, 0))
 				.send(here);
+	}
+
+	/** Particles for everyone in the run, however far the player stands from them (the camera flies where the body does not). */
+	private static void burst(ServerLevel rift, Rifts.Run run, net.minecraft.core.particles.ParticleOptions o, double x, double y, double z, int count, double dx, double dy, double dz, double speed) {
+		for (ServerPlayer p : Rifts.online(rift.getServer(), run)) rift.sendParticles(p, o, true, x, y, z, count, dx, dy, dz, speed);
+	}
+
+	/** A sound at the player's own ears. */
+	private static void heard(ServerLevel rift, Rifts.Run run, net.minecraft.sounds.SoundEvent sound, float vol, float pitch) {
+		for (ServerPlayer p : Rifts.online(rift.getServer(), run)) p.playNotifySound(sound, SoundSource.AMBIENT, vol, pitch);
+	}
+
+	/** One note of the doors' theme, heard by {@code here} at their own ears (the music volume slider governs it). */
+	private static void note(List<ServerPlayer> here, net.minecraft.sounds.SoundEvent sound, int semitone, float vol) {
+		float pitch = (float) Math.pow(2, (semitone - 12) / 12.0);
+		for (ServerPlayer p : here) p.playNotifySound(sound, SoundSource.MUSIC, vol, pitch);
+	}
+
+	/**
+	 * The doors' drama (5.50): a drone and a pedal bass under a rising bell theme that climbs to a chord as the last row
+	 * opens; wind gushing out of the nave over the whole entry hall, sparks in the aura's colour riding it; a flash and a
+	 * ring of light in the doorway at the end. Timed to the camera shot ({@link #finishVote}: 175 ticks).
+	 */
+	private static void doorsDrama(ServerLevel rift, Rifts.Run run) {
+		var server = rift.getServer();
+		int rgb = run.aura.rgb;
+		Monument.Anchors an = A();
+		int x0 = an.doorMin.getX(), x1 = an.doorMax.getX(), y0 = an.doorMin.getY(), y1 = an.doorMax.getY(), dz = an.doorMin.getZ();
+		int openEnd = 20 + (y1 - y0) * 4;
+		Vec3 mid = at(run, (x0 + x1) / 2.0, (y0 + y1) / 2.0, dz);
+		// the theme: a pedal bass on A, a bell arpeggio that climbs (semitones above the instrument's base note)
+		for (int t = 0; t <= 140; t += 20) {
+			int tt = t;
+			AuraFx.later(server, t, () -> {
+				List<ServerPlayer> here = Rifts.online(server, run);
+				note(here, SoundEvents.NOTE_BLOCK_BASS.value(), tt < 100 ? 3 : 6, 1.6f);
+				if (tt == 0) note(here, SoundEvents.NOTE_BLOCK_DIDGERIDOO.value(), 3, 1.4f);
+			});
+		}
+		int[][] bells = {{30, 3}, {36, 6}, {42, 10}, {48, 15}, {64, 1}, {70, 6}, {76, 8}, {82, 13}, {98, 3}, {104, 6}, {110, 10}, {116, 15}, {122, 18}, {128, 22}};
+		for (int[] b : bells) AuraFx.later(server, b[0], () -> note(Rifts.online(server, run), SoundEvents.NOTE_BLOCK_BELL.value(), b[1], 1.1f));
+		AuraFx.later(server, 140, () -> {
+			// the chord: the last door row is gone, the nave answers
+			List<ServerPlayer> here = Rifts.online(server, run);
+			for (int semi : new int[]{3, 6, 10}) note(here, SoundEvents.NOTE_BLOCK_PLING.value(), semi, 1.2f);
+			note(here, SoundEvents.NOTE_BLOCK_CHIME.value(), 15, 1.2f);
+			note(here, SoundEvents.NOTE_BLOCK_BELL.value(), 22, 1.4f);
+		});
+		// the wind: from tick 14 until a while after the last row, streaks out of the doorway towards the entry hall (+z)
+		for (int t = 14; t <= 172; t += 2) {
+			int tt = t;
+			AuraFx.later(server, t, () -> {
+				RandomSource r = rift.random;
+				// full while the rows open, then a lighter wind keeps blowing down the whole nave for the camera's flight, fading at the end
+				double power = Math.min(1.0, (tt - 12) / 30.0) * (tt > openEnd + 10 ? 0.55 : 1.0) * (tt > 150 ? Math.max(0.0, 1 - (tt - 150) / 24.0) : 1.0);
+				boolean nave = tt > openEnd;
+				int streaks = (int) Math.round(10 * power);
+				for (int k = 0; k < streaks; k++) {
+					Vec3 p = nave ? at(run, x0 - 3 + r.nextDouble() * (x1 - x0 + 6), 1 + r.nextDouble() * 13, dz - 1 - r.nextDouble() * 48)
+						: at(run, x0 + r.nextDouble() * (x1 - x0), y0 + 0.5 + r.nextDouble() * (y1 - y0 - 1), dz - 1);
+					burst(rift, run, ParticleTypes.CLOUD, p.x, p.y, p.z, 0, 0, 0.02, 1, 0.5 + r.nextDouble() * 0.5);
+					if (r.nextInt(3) == 0) burst(rift, run, ParticleTypes.SMALL_GUST, p.x, p.y, p.z, 0, 0, 0.02, 1, 0.4);
+					if (r.nextInt(2) == 0) burst(rift, run, AuraFx.dust(rgb, 1.3f), p.x, p.y, p.z + r.nextDouble() * 14, 2, 0.5, 0.5, 0.5, 0);
+				}
+				if (tt % 10 == 0 && power > 0.2) {
+					heard(rift, run, SoundEvents.WIND_CHARGE_BURST.value(), (float) (1.6 * power), 0.55f + (float) (r.nextDouble() * 0.2));
+					heard(rift, run, SoundEvents.ELYTRA_FLYING, (float) (0.7 * power), 0.6f);
+				}
+			});
+		}
+		// the end of the doors: a flash and a ring of light in the doorway
+		AuraFx.later(server, openEnd + 2, () -> {
+			burst(rift, run, ParticleTypes.FLASH, mid.x, mid.y, mid.z, 1, 0, 0, 0, 0);
+			heard(rift, run, SoundEvents.BEACON_ACTIVATE, 2.0f, 0.7f);
+			heard(rift, run, SoundEvents.LIGHTNING_BOLT_THUNDER, 0.5f, 1.4f);
+			double rad = Math.max(x1 - x0, y1 - y0) / 2.0 + 1;
+			for (int k = 0; k < 40; k++) {
+				double a = k * Math.PI * 2 / 40;
+				burst(rift, run, AuraFx.dust(rgb, 1.6f), mid.x + Math.cos(a) * rad, mid.y + Math.sin(a) * rad, mid.z, 1, 0.05, 0.05, 0.05, 0);
+				burst(rift, run, ParticleTypes.END_ROD, mid.x + Math.cos(a) * rad * 0.5, mid.y + Math.sin(a) * rad * 0.5, mid.z, 0, 0, 0.05, 0.6, 1);
+			}
+		});
 	}
 
 	/** The nave doors: a wall of blocks while the vote runs; they grind open row by row. */

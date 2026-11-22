@@ -1776,6 +1776,8 @@ public final class AuraConfig {
 	public static int RIFT_PUZZLE_FAIL_MOBS = 2;
 	/** Seconds a knocked out player waits (as a spectator) before coming back at the altar. */
 	public static int RIFT_KNOCKOUT_SECONDS = 12;
+	/** The Reliquary's doors scene after the vote: a rising bell theme, wind gushing out of the nave, sparks and a flash (false = the quiet old scene). */
+	public static boolean RIFT_CUTSCENE_DRAMA = true;
 	/** Weeping Statues: how many statues a run starts with (min 3), plus one more per this many tiers above Easy (0 = never), plus RIFT_STATUES_PER_PLAYER for every player beyond the first, capped at RIFT_STATUES_MAX (10 at most). */
 	public static int RIFT_STATUES_BASE = 3;
 	public static int RIFT_STATUES_PER_PLAYER = 1;

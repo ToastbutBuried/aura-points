@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.49.6
+- Reliquary: the doors scene after the vote has weight now: a rising bell theme, wind gushing out of the nave and down it, sparks in the aura's colour and a flash in the doorway as the last row opens. Config RIFT_CUTSCENE_DRAMA turns it off.
+
 == 5.49.5
 - Reliquary: no pillars on the vote plates any more, the paths to the north wings bend round the crossing's corner piers instead of running into them, and Wind/Light clouds no longer drift into the wing halls.
 
