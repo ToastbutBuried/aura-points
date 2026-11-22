@@ -636,7 +636,8 @@ final class TrialGlyph extends Trials.Trial {
 		}
 		Vec3 e = Vec3.atBottomCenterOf(arena(-12, fromVault ? LIB - 5 : VAULT + 5, 1));
 		AuraFx.burst(level, p.getX(), p.getY() + 1, p.getZ(), ParticleTypes.REVERSE_PORTAL, 20, 0.4, 0.1);
-		p.teleportTo(level, e.x, e.y, e.z, forwardYaw(), 0f);
+		if (com.toast.aurapoints.shim.Platform.get().isFakePlayer(p)) p.moveTo(e.x, e.y, e.z, forwardYaw(), 0f);
+		else p.teleportTo(level, e.x, e.y, e.z, forwardYaw(), 0f);
 		p.fallDistance = 0;
 		level.playSound(null, e.x, e.y, e.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, 1.3f);
 	}
