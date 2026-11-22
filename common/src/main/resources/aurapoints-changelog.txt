@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.49.5
+- Reliquary: no pillars on the vote plates any more, the paths to the north wings bend round the crossing's corner piers instead of running into them, and Wind/Light clouds no longer drift into the wing halls.
+
 == 5.49.4
 - Choir of Bells: everyone gets a Conductor's Baton. Right-click two bells to pick them, then sneak + right-click to ring both at once - chords are easy alone.
 - Glyph Vault: no more signs with a rule that can never fire; the Seal over the door and each pillar's glyph name are written out clearly.

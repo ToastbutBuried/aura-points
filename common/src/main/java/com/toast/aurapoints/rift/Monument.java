@@ -347,6 +347,8 @@ public final class Monument {
 		int y = band == 0 ? -60 - r.nextInt(30) : band == 1 ? -18 - r.nextInt(20) : band == 2 ? -6 + r.nextInt(8) : 40 + r.nextInt(50);
 		int cx = (int) Math.round(Math.cos(a) * d), cz = 25 + (int) Math.round(Math.sin(a) * d * 1.2);
 		int puffs = 4 + r.nextInt(5);
+		// never inside the monument's own box (its halls, wings and arches are air too): only below it or out in the sky
+		var an = anchors();
 		BlockState wool = Blocks.WHITE_WOOL.defaultBlockState(), snow = Blocks.SNOW_BLOCK.defaultBlockState(),
 				rim = (aura == AuraType.LIGHT ? Blocks.YELLOW_STAINED_GLASS : Blocks.WHITE_STAINED_GLASS).defaultBlockState();
 		for (int k = 0; k < puffs; k++) {
@@ -357,7 +359,9 @@ public final class Monument {
 					for (int dz = -rz; dz <= rz; dz++) {
 						double e = (dx * dx) / (double) (rx * rx) + (dy * dy) / (double) (ry * ry) * (dy < 0 ? 2.2 : 1) + (dz * dz) / (double) (rz * rz);
 						if (e > 1) continue;
-						BlockPos p = origin.offset(px + dx, py + dy, pz + dz);
+						int rx2 = px + dx, ry2 = py + dy, rz2 = pz + dz;
+						if (ry2 > -14 && rx2 >= an.boundsMin.getX() - 2 && rx2 <= an.boundsMax.getX() + 2 && rz2 >= an.boundsMin.getZ() - 2 && rz2 <= an.boundsMax.getZ() + 2) continue;
+						BlockPos p = origin.offset(rx2, ry2, rz2);
 						if (!level.getBlockState(p).isAir()) continue;
 						level.setBlock(p, e > 0.82 ? rim : (r.nextInt(5) == 0 ? snow : wool), 2 | 16);
 					}
