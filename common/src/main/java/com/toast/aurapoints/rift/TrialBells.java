@@ -5,6 +5,12 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -50,6 +56,12 @@ final class TrialBells extends Trials.Trial {
 
 	static final String[] NAMES = {"Blue", "Green", "Gold", "Red"};
 	static final int[] RGB = {0x4A8CFF, 0x5BD35A, 0xF2C43A, 0xE04848};
+	static final String[] BELL_NAME = {"Blue", "Green", "Gold", "Red"};
+	/** The Conductor's Baton (lent while you are in the arena): right-click a bell to pick it (two at most), sneak + right-click rings the picked bells at once. */
+	static final String BATON = "aurapoints_baton";
+	/** Per player: the bells picked with the baton, oldest first. */
+	private final Map<UUID, List<Integer>> picked = new HashMap<>();
+	private int batonChords;
 	private static final Block[] CONCRETE = {Blocks.BLUE_CONCRETE, Blocks.LIME_CONCRETE, Blocks.YELLOW_CONCRETE, Blocks.RED_CONCRETE};
 	private static final Block[] GLASS = {Blocks.BLUE_STAINED_GLASS, Blocks.LIME_STAINED_GLASS, Blocks.YELLOW_STAINED_GLASS, Blocks.RED_STAINED_GLASS};
 	private static final Block[] BANNER = {Blocks.BLUE_WALL_BANNER, Blocks.LIME_WALL_BANNER, Blocks.YELLOW_WALL_BANNER, Blocks.RED_WALL_BANNER};
@@ -100,7 +112,7 @@ final class TrialBells extends Trials.Trial {
 
 	@Override
 	String hint() {
-		return "The choir sings - but each of you hears only some of its bells. Put the song together and ring it back (chords: two bells within two seconds). The Conductor's Stone sings again.";
+		return "The choir sings - but each of you hears only some of its bells. Put the song together and ring it back. A chord is two bells at once: with the Conductor's Baton, right-click two bells, then sneak + right-click to ring them together. The Conductor's Stone sings again.";
 	}
 
 	// ---------------------------------------------------------------
@@ -429,6 +441,7 @@ final class TrialBells extends Trials.Trial {
 	void tick(ServerLevel level, List<ServerPlayer> here, long now) {
 		lastHere = here;
 		if (solved) return;
+		if (now % 20 == 0) tickBaton(level, here, now);
 		// the playback
 		if (playAt >= 0 && now >= playAt) {
 			if (hears.isEmpty()) startPlayback(level, here, now);
@@ -495,7 +508,7 @@ final class TrialBells extends Trials.Trial {
 		List<Note> exp = expected();
 		if (step >= exp.size()) return;
 		Note n = exp.get(step);
-		actionBar(here, "Note " + (step + 1) + " of " + exp.size() + (n.b >= 0 ? " - a chord" : ""), ChatFormatting.AQUA);
+		actionBar(here, "Note " + (step + 1) + " of " + exp.size() + (n.b >= 0 ? " - a chord (baton: pick both bells, sneak + right-click)" : ""), ChatFormatting.AQUA);
 		if (h >= 2 && now - idleSince > 200 && now % 40 == 0) {
 			for (int b : new int[]{n.a, n.b}) {
 				if (b < 0) continue;
@@ -503,6 +516,108 @@ final class TrialBells extends Trials.Trial {
 				level.sendParticles(ParticleTypes.HAPPY_VILLAGER, c.x, c.y - 1, c.z, 12, 0.6, 0.8, 0.6, 0);
 			}
 		}
+	}
+
+	// ---------------------------------------------------------------
+	// The Conductor's Baton
+	// ---------------------------------------------------------------
+
+	static boolean isBaton(ItemStack s) {
+		if (!s.is(Items.BLAZE_ROD)) return false;
+		CustomData d = s.get(DataComponents.CUSTOM_DATA);
+		return d != null && d.copyTag().contains(BATON);
+	}
+
+	private static boolean holdsBaton(ServerPlayer p) {
+		return isBaton(p.getMainHandItem());
+	}
+
+	private static boolean hasBaton(ServerPlayer p) {
+		var inv = p.getInventory();
+		for (int i = 0; i < inv.getContainerSize(); i++) if (isBaton(inv.getItem(i))) return true;
+		return false;
+	}
+
+	static ItemStack makeBaton() {
+		ItemStack s = new ItemStack(Items.BLAZE_ROD);
+		CompoundTag tag = new CompoundTag();
+		tag.putBoolean(BATON, true);
+		s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+		s.set(DataComponents.CUSTOM_NAME, Component.literal("Conductor's Baton").withStyle(st -> st.withColor(0xF2C43A).withItalic(false).withBold(true)));
+		s.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+		s.set(DataComponents.LORE, new ItemLore(List.of(
+				Component.literal("Right-click a bell: pick it (two at most)").withStyle(st -> st.withColor(0xAAAAAA).withItalic(false)),
+				Component.literal("Sneak + right-click: ring the picked bells together (hold something else to ring one bell)").withStyle(st -> st.withColor(0xAAAAAA).withItalic(false)))));
+		return s;
+	}
+
+	/** The baton goes into a spare hotbar slot from the right, never the selected one: a held baton picks bells instead of ringing them. */
+	private static void giveBaton(ServerPlayer p) {
+		var inv = p.getInventory();
+		for (int i = 8; i >= 0; i--) {
+			if (i == inv.selected || !inv.getItem(i).isEmpty()) continue;
+			inv.setItem(i, makeBaton());
+			return;
+		}
+		inv.add(makeBaton());
+	}
+
+	/** Takes every baton back (leaving the arena, the end of the run). */
+	static void purgeBatons(ServerPlayer p) {
+		var inv = p.getInventory();
+		for (int i = 0; i < inv.getContainerSize(); i++) if (isBaton(inv.getItem(i))) inv.setItem(i, ItemStack.EMPTY);
+		if (isBaton(p.containerMenu.getCarried())) p.containerMenu.setCarried(ItemStack.EMPTY);
+	}
+
+	/** Every second: a baton for everyone in the arena, and a glimmer over the bells each player has picked. */
+	private void tickBaton(ServerLevel level, List<ServerPlayer> here, long now) {
+		for (ServerPlayer p : here) {
+			if (p.isSpectator()) continue;
+			if (!hasBaton(p)) giveBaton(p);
+			List<Integer> sel = picked.get(p.getUUID());
+			if (sel == null) continue;
+			for (int b : sel) {
+				Vec3 c = Vec3.atCenterOf(bellPos(b));
+				level.sendParticles(p, AuraFx.dust(RGB[b], 1.6f), false, c.x, c.y + 0.4, c.z, 8, 0.35, 0.5, 0.35, 0);
+				level.sendParticles(p, ParticleTypes.END_ROD, false, c.x, c.y + 1.0, c.z, 1, 0.1, 0.2, 0.1, 0.01);
+			}
+		}
+	}
+
+	private void pickedBar(ServerPlayer p) {
+		List<Integer> sel = picked.getOrDefault(p.getUUID(), List.of());
+		String names = sel.isEmpty() ? "no bell picked" : String.join(" + ", sel.stream().map(b -> BELL_NAME[b]).toList());
+		p.displayClientMessage(Component.literal("Baton: " + names + (sel.isEmpty() ? " - right-click a bell" : " - sneak + right-click rings them together")).withStyle(ChatFormatting.GOLD), true);
+	}
+
+	/** The baton in the main hand: a click on a bell picks (or drops) it; a sneak-click rings the picked bells in the same tick. */
+	private boolean batonUse(ServerLevel level, ServerPlayer p, int bell, long now) {
+		List<Integer> sel = picked.computeIfAbsent(p.getUUID(), k -> new ArrayList<>());
+		if (p.isShiftKeyDown()) {
+			List<Integer> rings = !sel.isEmpty() ? new ArrayList<>(sel) : bell >= 0 ? List.of(bell) : List.<Integer>of();
+			if (rings.isEmpty()) {
+				pickedBar(p);
+				return true;
+			}
+			sel.clear();
+			for (int b : rings) ring(level, p, b, now);
+			return true;
+		}
+		if (bell < 0) return false;
+		if (sel.contains(bell)) sel.remove((Integer) bell);
+		else {
+			if (sel.size() >= 2) sel.remove(0);
+			sel.add(bell);
+		}
+		p.playNotifySound(SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.PLAYERS, 0.8f, 1.5f);
+		pickedBar(p);
+		return true;
+	}
+
+	@Override
+	void release(ServerPlayer p) {
+		purgeBatons(p);
+		picked.remove(p.getUUID());
 	}
 
 	// ---------------------------------------------------------------
@@ -517,7 +632,10 @@ final class TrialBells extends Trials.Trial {
 	@Override
 	boolean use(ServerLevel level, ServerPlayer p, BlockPos pos) {
 		long now = level.getGameTime();
-		if (pos.equals(stone()) || pos.equals(stone().below())) {
+		// a sneak-click anywhere in the arena rings the picked bells (not the Stone: that one replays the song)
+		boolean onStone = pos.equals(stone()) || pos.equals(stone().below());
+		if (holdsBaton(p) && p.isShiftKeyDown() && !onStone && !picked.getOrDefault(p.getUUID(), List.of()).isEmpty()) return batonUse(level, p, bellAt(pos), now);
+		if (onStone) {
 			if (solved) return true;
 			if (!listening) {
 				p.displayClientMessage(Component.literal("The choir is still singing").withStyle(ChatFormatting.GRAY), true);
@@ -539,6 +657,12 @@ final class TrialBells extends Trials.Trial {
 		}
 		int b = bellAt(pos);
 		if (b < 0) return false;
+		if (holdsBaton(p)) return batonUse(level, p, b, now);
+		return ring(level, p, b, now);
+	}
+
+	/** Bell {@code b} is rung by {@code p}: heard by all, and part of the song when the choir listens. */
+	private boolean ring(ServerLevel level, ServerPlayer p, int b, long now) {
 		BlockPos bp = bellPos(b);
 		// a rung bell is heard by everyone
 		level.blockEvent(bp, Blocks.BELL, 1, bellFacing().get3DDataValue());
@@ -721,9 +845,22 @@ final class TrialBells extends Trials.Trial {
 			int r0 = round;
 			heardDev = 0;
 			for (Note n : expected()) {
-				use(level, fake, bellPos(n.a));
-				if (n.b >= 0) use(level, fake, bellPos(n.b));
+				if (n.b >= 0) {
+					// chords go through the baton: pick both bells, sneak-click rings them in one tick
+					fake.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, makeBaton());
+					fake.setShiftKeyDown(false);
+					use(level, fake, bellPos(n.a));
+					use(level, fake, bellPos(n.b));
+					boolean two = picked.getOrDefault(fake.getUUID(), List.of()).size() == 2;
+					fake.setShiftKeyDown(true);
+					use(level, fake, bellPos(n.a));
+					fake.setShiftKeyDown(false);
+					fake.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+					if (!two || !picked.getOrDefault(fake.getUUID(), List.of()).isEmpty()) log.accept("bells: baton chord picked two " + two + " (must be true), cleared after the ring (must be true)");
+					batonChords++;
+				} else use(level, fake, bellPos(n.a));
 			}
+			if (batonChords > 0) log.accept("bells: baton chords rung " + batonChords + " (must be more than 0)");
 			log.accept("bells: rang round " + (r0 + 1) + " -> round " + round + " (must be " + (r0 + 1) + "), strikes " + strikes + " (must be 2)");
 			if (solved || guard > 5) {
 				dev = false;

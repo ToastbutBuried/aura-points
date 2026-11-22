@@ -70,6 +70,7 @@ final class Trials {
 	/** Elytra and anything else a trial lends out, taken back (Rifts.purge on the way out). */
 	static void purgeLent(ServerPlayer p) {
 		TrialRings.purgeLent(p);
+		TrialBells.purgeBatons(p);
 	}
 
 	static final String DISPLAY_TAG = "aurapoints_rift_trial";

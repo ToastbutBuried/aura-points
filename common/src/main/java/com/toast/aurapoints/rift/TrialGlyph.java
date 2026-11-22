@@ -376,16 +376,39 @@ final class TrialGlyph extends Trials.Trial {
 		List<Rule> out = new ArrayList<>();
 		for (int k = 0; k < count; k++) {
 			List<Cond> all = new ArrayList<>();
-			all.add(cond(i, r));
-			if (tier >= 3 && r.nextBoolean()) {
-				Cond c2;
-				do c2 = cond(i, r); while (c2.type == all.get(0).type);
-				all.add(c2);
+			// no rule may be unreachable (an earlier rule always fires first) or impossible: a sign must never read like a mistake
+			for (int attempt = 0; attempt < 40; attempt++) {
+				all = new ArrayList<>();
+				all.add(cond(i, r));
+				if (tier >= 3 && r.nextBoolean()) {
+					Cond c2;
+					do c2 = cond(i, r); while (c2.type == all.get(0).type);
+					all.add(c2);
+				}
+				if (!shadowed(out, all) && !contradicts(all)) break;
 			}
 			out.add(new Rule(all, pool.get(k)));
 		}
 		otherwise[i] = pool.get(count);
 		return out;
+	}
+
+	/** Condition x being true makes y true. */
+	private static boolean implies(Cond x, Cond y) {
+		if (x.equals(y)) return true;
+		return y.type == C.MOONS_MIN && (x.type == C.MOONS_MIN || x.type == C.MOONS_EQ) && x.a >= y.a;
+	}
+
+	/** An earlier rule whose every condition follows from these: it always wins, so this rule could never fire. */
+	private static boolean shadowed(List<Rule> earlier, List<Cond> all) {
+		for (Rule e : earlier) if (e.all.stream().allMatch(ec -> all.stream().anyMatch(c -> implies(c, ec)))) return true;
+		return false;
+	}
+
+	/** Two conditions that cannot both hold (exactly 0 moons and at least 2 moons). */
+	private static boolean contradicts(List<Cond> all) {
+		for (Cond a : all) for (Cond b : all) if (a.type == C.MOONS_EQ && b.type == C.MOONS_MIN && a.a < b.a) return true;
+		return false;
 	}
 
 	private Cond cond(int i, RandomSource r) {
@@ -473,8 +496,16 @@ final class TrialGlyph extends Trials.Trial {
 		MutableComponent c = Component.literal(GLYPH[glyph[i]]).withStyle(s -> s.withColor(flash[i] ? 0xFF4040 : rgb).withBold(true));
 		if (glyphText[i] == null) {
 			glyphText[i] = label(level, Vec3.atBottomCenterOf(arena(pf(i), pl(i), 4)).add(0, 0.15, 0), c, 2.6f);
-			numeralText[i] = label(level, Vec3.atBottomCenterOf(arena(pf(i), pl(i), 5)).add(0, 0.7, 0), Component.literal(ROMAN[i]).withStyle(ChatFormatting.GRAY), 0.9f);
-		} else TrialDecor.text(glyphText[i], c);
+			numeralText[i] = label(level, Vec3.atBottomCenterOf(arena(pf(i), pl(i), 5)).add(0, 0.7, 0), pillarTag(i), 1.1f);
+		} else {
+			TrialDecor.text(glyphText[i], c);
+			if (numeralText[i] != null) TrialDecor.text(numeralText[i], pillarTag(i));
+		}
+	}
+
+	/** "Pillar II - Skull": which pillar, and the name of the glyph it shows now. */
+	private Component pillarTag(int i) {
+		return Component.literal("Pillar " + ROMAN[i] + " - ").withStyle(ChatFormatting.GRAY).append(Component.literal(GNAME[glyph[i]]).withStyle(ChatFormatting.WHITE));
 	}
 
 	private void showSigns(ServerLevel level) {
@@ -487,8 +518,10 @@ final class TrialGlyph extends Trials.Trial {
 		}
 		BlockState fire = flame == 1 ? Blocks.SOUL_CAMPFIRE.defaultBlockState() : Blocks.CAMPFIRE.defaultBlockState().setValue(CampfireBlock.LIT, flame == 0);
 		set(level, 0, VAULT, 1, fire);
-		Component s = Component.literal("Seal\n").withStyle(ChatFormatting.GRAY).append(Component.literal(GLYPH[seal]).withStyle(st -> st.withColor(rgb).withBold(true)));
-		if (sealText == null) sealText = label(level, Vec3.atBottomCenterOf(arena(BACK + 1, VAULT, 5)).add(0, 0.2, 0), s, 1.6f);
+		Component s = Component.literal("THE SEAL\n").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
+				.append(Component.literal(GLYPH[seal] + "\n").withStyle(st -> st.withColor(rgb).withBold(true)))
+				.append(Component.literal(GNAME[seal]).withStyle(ChatFormatting.WHITE));
+		if (sealText == null) sealText = label(level, Vec3.atBottomCenterOf(arena(BACK + 1, VAULT, 5)).add(0, 0.2, 0), s, 2.2f);
 		else TrialDecor.text(sealText, s);
 	}
 
