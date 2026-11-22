@@ -75,6 +75,7 @@ public final class Rifts {
 			BOSS_ID = ResourceLocation.fromNamespaceAndPath(AuraPoints.MOD_ID, "rift_boss"),
 			BOSS_SIZE_ID = ResourceLocation.fromNamespaceAndPath(AuraPoints.MOD_ID, "rift_boss_size");
 
+	private static final int PULL_TICKS = 18;
 	static final int FLOOR = 64, ROOMS = 4, SPACING = 30, ROOM_R = 9, BOSS_R = 13;
 
 	public static ServerLevel level(MinecraftServer server) {
@@ -94,9 +95,11 @@ public final class Rifts {
 		final AuraType aura;
 		final Vec3 pos;
 		final long closes;
-		Display.ItemDisplay core;
+		RiftGate gate;
 		Display.TextDisplay label;
 		Run run;
+		/** Players being pulled through the curtain -> ticks left. */
+		final Map<UUID, Integer> pulling = new java.util.HashMap<>();
 
 		Tear(AuraType aura, Vec3 pos, long closes) {
 			this.aura = aura;
@@ -140,6 +143,8 @@ public final class Rifts {
 	public static final Map<UUID, ServerPlayer> TEST_PLAYERS = new java.util.HashMap<>();
 
 	private static Tear tear;
+	/** Gates still playing their closing animation. */
+	private static final List<RiftGate> CLOSING = new ArrayList<>();
 	private static final List<Run> RUNS = new ArrayList<>();
 	private static int nextId = 1;
 	private static long nextTearAt = 0;
@@ -165,8 +170,12 @@ public final class Rifts {
 			pos = Vec3.atBottomCenterOf(top).add(0, 1.6, 0);
 		}
 		tear = new Tear(aura, pos, ow.getGameTime() + AuraConfig.RIFT_OPEN_SECONDS * 20L);
-		tear.core = coreDisplay(ow, aura, pos);
-		tear.label = (Display.TextDisplay) com.toast.aurapoints.arena.Holograms.makePublic(ow, pos.add(0, 2.1, 0), label(aura, AuraConfig.RIFT_OPEN_SECONDS), 1f, 0x60000000);
+		// the curtain faces whoever is nearest (the player it opened for, or the one who ran the command)
+		Vec3 ground = pos.subtract(0, 1.6, 0);
+		ServerPlayer facing = near != null ? near : ow.getNearestPlayer(pos.x, pos.y, pos.z, 64, false) instanceof ServerPlayer sp ? sp : null;
+		Vec3 face = facing == null ? Vec3.directionFromRotation(0, ow.random.nextFloat() * 360f) : facing.position().subtract(ground);
+		tear.gate = new RiftGate(ow, aura, ground, face);
+		tear.label = (Display.TextDisplay) com.toast.aurapoints.arena.Holograms.makePublic(ow, tear.gate.center.add(0, RiftGate.B + 2.0, 0), label(aura, AuraConfig.RIFT_OPEN_SECONDS), 0.8f, 0x40000000);
 		if (tear.label != null) {
 			tear.label.addTag(TEAR_TAG);
 			ow.addFreshEntity(tear.label);
@@ -176,7 +185,6 @@ public final class Rifts {
 				.append(Component.literal(" around x " + Math.round(p.x / 10) * 10 + ", z " + Math.round(p.z / 10) * 10
 						+ " - walk in within " + AuraConfig.RIFT_OPEN_SECONDS / 60 + " min (up to " + AuraConfig.RIFT_MAX_PLAYERS + ")").withStyle(ChatFormatting.GRAY));
 		for (ServerPlayer pl : server.getPlayerList().getPlayers()) pl.sendSystemMessage(line);
-		ow.playSound(null, pos.x, pos.y, pos.z, SoundEvents.END_PORTAL_SPAWN, net.minecraft.sounds.SoundSource.AMBIENT, 1.5f, 1.3f);
 		return true;
 	}
 
@@ -185,50 +193,26 @@ public final class Rifts {
 				.append(Component.literal("\nwalk in · closes in " + secondsLeft / 60 + ":" + String.format("%02d", secondsLeft % 60)).withStyle(ChatFormatting.GRAY));
 	}
 
-	private static Display.ItemDisplay coreDisplay(ServerLevel level, AuraType aura, Vec3 pos) {
-		Display.ItemDisplay d = EntityType.ITEM_DISPLAY.create(level);
-		if (d == null) return null;
-		CompoundTag t = new CompoundTag();
-		t.put("item", Relics.stack(aura).save(level.registryAccess()));
-		t.putString("billboard", "center");
-		t.putFloat("view_range", 2f);
-		CompoundTag light = new CompoundTag();
-		light.putInt("sky", 15);
-		light.putInt("block", 15);
-		t.put("brightness", light);
-		CompoundTag tr = new CompoundTag();
-		tr.put("left_rotation", floats(0, 0, 0, 1));
-		tr.put("right_rotation", floats(0, 0, 0, 1));
-		tr.put("translation", floats(0, 0, 0));
-		tr.put("scale", floats(2.4f, 2.4f, 2.4f));
-		t.put("transformation", tr);
-		d.load(t);
-		d.moveTo(pos.x, pos.y, pos.z, 0, 0);
-		d.addTag(TEAR_TAG);
-		level.addFreshEntity(d);
-		return d;
-	}
-
-	private static ListTag floats(float... v) {
-		ListTag l = new ListTag();
-		for (float f : v) l.add(FloatTag.valueOf(f));
-		return l;
-	}
-
 	private static void closeTear(MinecraftServer server, boolean say) {
 		if (tear == null) return;
-		if (tear.core != null) tear.core.discard();
 		if (tear.label != null) tear.label.discard();
-		if (say) {
-			ServerLevel ow = server.overworld();
-			ow.playSound(null, tear.pos.x, tear.pos.y, tear.pos.z, SoundEvents.BEACON_DEACTIVATE, net.minecraft.sounds.SoundSource.AMBIENT, 1.2f, 0.7f);
+		if (tear.gate != null) {
+			// say = in view of players: fold shut; otherwise (server stop, a new tear) gone at once
+			if (say) {
+				tear.gate.close();
+				CLOSING.add(tear.gate);
+			} else tear.gate.remove();
 		}
 		tear = null;
 	}
 
 	/** Display entities of an old tear, and rift mobs loaded from disk (the run they were in is gone). */
 	public static boolean isLeftover(Entity e, boolean loadedFromDisk) {
-		if (e.getTags().contains(TEAR_TAG)) return tear == null || (e != tear.core && e != tear.label);
+		if (e.getTags().contains(TEAR_TAG)) {
+			if (tear != null && (e == tear.label || (tear.gate != null && e == tear.gate.core))) return false;
+			for (RiftGate g : CLOSING) if (e == g.core) return false;
+			return true;
+		}
 		return loadedFromDisk && e.getTags().contains(MOB_TAG);
 	}
 
@@ -258,6 +242,7 @@ public final class Rifts {
 			}
 		}
 		if (tear != null) tickTear(server, ow, now);
+		CLOSING.removeIf(g -> !g.tick());
 		ServerLevel rift = level(server);
 		if (rift != null) for (Run r : new ArrayList<>(RUNS)) tickRun(server, rift, r);
 	}
@@ -271,25 +256,39 @@ public final class Rifts {
 			closeTear(server, true);
 			return;
 		}
-		Vec3 p = tear.pos;
-		if (now % 5 == 0) {
-			int rgb = tear.aura.rgb;
-			var dust = new DustParticleOptions(new Vector3f(((rgb >> 16) & 255) / 255f, ((rgb >> 8) & 255) / 255f, (rgb & 255) / 255f), 1.6f);
-			for (int k = 0; k < 10; k++) {
-				double a = ow.random.nextDouble() * Math.PI * 2, r = 0.6 + ow.random.nextDouble() * 0.9;
-				ow.sendParticles(dust, p.x + Math.cos(a) * r, p.y - 0.8 + ow.random.nextDouble() * 2.4, p.z + Math.sin(a) * r, 1, 0, 0, 0, 0);
-			}
-			ow.sendParticles(ParticleTypes.PORTAL, p.x, p.y, p.z, 8, 0.4, 0.8, 0.4, 0.4);
-		}
+		if (tear.gate != null) tear.gate.tick();
 		if (now % 20 == 0 && tear.label != null) {
 			com.toast.aurapoints.arena.Holograms.setTextPublic(tear.label, label(tear.aura, (tear.closes - now) / 20));
 		}
-		if (now % 10 == 0) {
-			// a copy: entering moves the player out of this level's list
-			for (ServerPlayer pl : new ArrayList<>(ow.players())) {
-				if (pl.isSpectator() || pl.position().add(0, 1, 0).distanceToSqr(p) > 2.6 || runOf(pl) != null) continue;
-				enter(server, pl);
+		// stepping into the curtain: pulled into its middle for a moment, then through
+		Tear t = tear;
+		for (ServerPlayer pl : ow.players()) {
+			if (pl.isSpectator() || t.pulling.containsKey(pl.getUUID()) || runOf(pl) != null || t.gate == null || !t.gate.touching(pl)) continue;
+			if (t.run != null && t.run.players.size() >= AuraConfig.RIFT_MAX_PLAYERS) {
+				if (now % 20 == 0) pl.displayClientMessage(Component.literal("This rift is full.").withStyle(ChatFormatting.RED), true);
+				continue;
 			}
+			t.pulling.put(pl.getUUID(), PULL_TICKS);
+			ow.playSound(null, pl.getX(), pl.getY(), pl.getZ(), SoundEvents.PORTAL_TRIGGER, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 1.6f);
+		}
+		if (t.pulling.isEmpty()) return;
+		for (var it = t.pulling.entrySet().iterator(); it.hasNext(); ) {
+			var e = it.next();
+			ServerPlayer pl = server.getPlayerList().getPlayer(e.getKey());
+			int left = e.getValue() - 1;
+			if (pl == null || pl.level() != ow || pl.isSpectator()) {
+				it.remove();
+				continue;
+			}
+			if (left <= 0) {
+				it.remove();
+				ow.playSound(null, pl.getX(), pl.getY(), pl.getZ(), SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.PLAYERS, 1f, 0.6f);
+				enter(server, pl);
+				if (tear != t) return; // the run started and closed this tear
+				continue;
+			}
+			e.setValue(left);
+			t.gate.pull(pl, left);
 		}
 	}
 
@@ -769,6 +768,9 @@ public final class Rifts {
 	}
 
 	public static void clearAll() {
+		if (tear != null && tear.gate != null) tear.gate.remove();
+		for (RiftGate g : CLOSING) g.remove();
+		CLOSING.clear();
 		tear = null;
 		RUNS.clear();
 		TEST_PLAYERS.clear();

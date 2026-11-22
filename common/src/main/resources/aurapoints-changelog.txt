@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.45.2
+- Wind's Dash has its own icon (it showed Shadow's purple one).
+- Rifts now open as a real gate: a ring of floating stones around a swirling portal in the rift's colours, cracks in the ground and a beam into the sky you can see from afar. Step in and it pulls you through.
+
 == 5.45.1
 - The Summon key now only tells datapacks the key is pressed (scoreboard aura_key_summon); the datapack decides who may summon. Other players of the same aura can no longer call someone else's summon.
 

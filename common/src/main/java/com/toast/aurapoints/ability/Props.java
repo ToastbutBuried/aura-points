@@ -26,7 +26,7 @@ import java.util.UUID;
  * or moved with the client smoothing it over, and gone on their own when the life runs out. Nothing is ever placed in
  * the world. Tagged, so any left over from a crash are dropped as they load (AuraPoints' join check).
  */
-final class Props {
+public final class Props {
 
 	private Props() {
 	}
@@ -40,7 +40,7 @@ final class Props {
 	 * A display of {@code block} at {@code at} shaped by {@code t}, removed after {@code life} ticks (-1: only by
 	 * {@link #remove}). {@code smooth}: how many ticks the client takes to follow a move.
 	 */
-	static Display.BlockDisplay spawn(ServerLevel level, Vec3 at, BlockState block, Transformation t, int life, int smooth) {
+	public static Display.BlockDisplay spawn(ServerLevel level, Vec3 at, BlockState block, Transformation t, int life, int smooth) {
 		Display.BlockDisplay d = new Display.BlockDisplay(EntityType.BLOCK_DISPLAY, level);
 		d.setPos(at.x, at.y, at.z);
 		((BlockDisplayAccessor) d).aurapoints$setBlockState(block);
@@ -59,12 +59,12 @@ final class Props {
 	}
 
 	/** Glowing at full light whatever is around (beams, the sun). */
-	static void glow(Display.BlockDisplay d) {
+	public static void glow(Display.BlockDisplay d) {
 		((DisplayAccessor) d).aurapoints$setBrightnessOverride(new Brightness(15, 15));
 	}
 
 	/** Reshapes it, the client easing over {@code ticks}. */
-	static void set(Display.BlockDisplay d, Transformation t, int ticks) {
+	public static void set(Display.BlockDisplay d, Transformation t, int ticks) {
 		DisplayAccessor acc = (DisplayAccessor) d;
 		acc.aurapoints$setTransformation(t);
 		acc.aurapoints$setInterpolationDuration(Math.max(0, ticks));
@@ -84,7 +84,7 @@ final class Props {
 		d.setPos(to.x, to.y, to.z);
 	}
 
-	static void remove(Display.BlockDisplay d) {
+	public static void remove(Display.BlockDisplay d) {
 		LIFE.remove(d);
 		LIVE.remove(d.getUUID());
 		d.discard();

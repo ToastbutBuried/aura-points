@@ -261,6 +261,12 @@
     "custom_model_data": 43
    },
    "model": "aurapoints:item/ability_icon/abyssal_grasp"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 44
+   },
+   "model": "aurapoints:item/ability_icon/wind_dash"
   }
  ]
 }

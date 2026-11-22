@@ -852,9 +852,19 @@ public final class ClientAuraHud {
 			Ability.LISTENING_TREE,
 			Ability.ABYSSAL_GRASP);
 	private static final Map<Ability, ItemStack> ICONS = new EnumMap<>(Ability.class);
+	/** Wind's Dash (5.46.0): Dash is shared with Shadow, whose purple icon it used to show. Model data after ICON_ORDER. */
+	private static final int WIND_DASH_ICON = 44;
+	private static ItemStack windDash;
 
 	/** The panel's icon for an ability (the HUD editor's preview uses them too). */
 	public static ItemStack icon(Ability ability) {
+		if (ability == Ability.DASH && ClientAuraState.aura == AuraType.WIND) {
+			if (windDash == null) {
+				windDash = new ItemStack(com.toast.aurapoints.AuraPoints.ABILITY_ICON.get());
+				windDash.set(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA, new net.minecraft.world.item.component.CustomModelData(WIND_DASH_ICON));
+			}
+			return windDash;
+		}
 		int n = ICON_ORDER.indexOf(ability);
 		if (n < 0) return ItemStack.EMPTY;
 		return ICONS.computeIfAbsent(ability, a -> {
