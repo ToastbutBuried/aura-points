@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.49.3
+- Weeping Statues: at least 3 statues now (more with difficulty and players), and no one can stare for ever: dread builds while a statue is in your view, and when your eyes give the stone moves. Look away to calm down. Statue count and dread timings are in the config.
+
 == 5.49.2
 - Owners: /aura rift skip counts the trial you stand in as beaten and drops its shard at your feet.
 

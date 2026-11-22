@@ -3,6 +3,7 @@ package com.toast.aurapoints.rift;
 import com.mojang.math.Transformation;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.Props;
+import com.toast.aurapoints.config.AuraConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
@@ -96,6 +97,9 @@ final class TrialStatues extends Trials.Trial {
 	private final List<BlockPos> candles = new ArrayList<>();
 	private final Map<UUID, Long> immune = new HashMap<>();
 	private boolean[][] taken;
+	/** Dread (ticks of staring) per player, and until when a player's eyes have given (their gaze holds nothing). */
+	private final Map<UUID, Integer> dread = new HashMap<>();
+	private final Map<UUID, Long> blinkUntil = new HashMap<>();
 	long moveFrom = Long.MAX_VALUE;
 	private long nextFlicker, flickerUntil, nextHint;
 	private int baseStatues, extraStatues;
@@ -113,8 +117,8 @@ final class TrialStatues extends Trials.Trial {
 
 	@Override
 	String hint() {
-		return "The statues only move while no one looks at them - a glance in a wall mirror counts. Lift the four sigils in the mausoleums (stand still) "
-				+ "and set them in the altar. Watchers keep their eyes on the stone; a touch takes your sigil.";
+		return "The statues only move while no one looks at them - a glance in a wall mirror counts. But no one can stare for long: dread builds, and when your eyes give the stone moves. "
+				+ "Lift the four sigils in the mausoleums (stand still) and set them in the altar. A touch takes your sigil.";
 	}
 
 	@Override
@@ -429,8 +433,9 @@ final class TrialStatues extends Trials.Trial {
 
 	private int statueCount() {
 		int players = Math.max(1, run.players.size());
-		if (players == 1) return 2 + tier / 2;
-		return 2 + tier + Math.min(2, players - 2);
+		int step = AuraConfig.RIFT_STATUES_TIER_STEP;
+		int n = Math.max(3, AuraConfig.RIFT_STATUES_BASE) + (step > 0 ? tier / step : 0) + (players - 1) * Math.max(0, AuraConfig.RIFT_STATUES_PER_PLAYER);
+		return Math.min(Math.max(3, Math.min(10, AuraConfig.RIFT_STATUES_MAX)), n);
 	}
 
 	private void newLayout(ServerLevel level, RandomSource r) {
@@ -442,6 +447,8 @@ final class TrialStatues extends Trials.Trial {
 		}
 		sigils.clear();
 		glowing = false;
+		dread.clear();
+		blinkUntil.clear();
 		extraStatues = 0;
 		baseStatues = statueCount();
 		// four of the mausoleums hold the sigils
@@ -558,10 +565,22 @@ final class TrialStatues extends Trials.Trial {
 
 	/** Someone sees statue {@code s}: straight (a view cone and a clear line), or reflected in a wall mirror they look at. */
 	boolean watched(ServerLevel level, Statue s, List<ServerPlayer> here) {
+		return watched(level, s, here, level.getGameTime());
+	}
+
+	boolean watched(ServerLevel level, Statue s, List<ServerPlayer> here, long now) {
+		for (ServerPlayer p : here) {
+			if (p.isSpectator() || now < blinkUntil.getOrDefault(p.getUUID(), 0L)) continue;
+			if (seenBy(level, s, p)) return true;
+		}
+		return false;
+	}
+
+	/** Player {@code p} sees the statue (straight or in a mirror), whatever their eyes are doing. */
+	boolean seenBy(ServerLevel level, Statue s, ServerPlayer p) {
 		Vec3 pos = statuePos(s);
 		Vec3[] pts = {pos.add(0, 1.3, 0), pos.add(0, 1.95, 0)};
-		for (ServerPlayer p : here) {
-			if (p.isSpectator()) continue;
+		{
 			Vec3 eye = p.getEyePosition(), look = p.getLookAngle();
 			for (Vec3 pt : pts) {
 				Vec3 v = pt.subtract(eye);
@@ -612,6 +631,7 @@ final class TrialStatues extends Trials.Trial {
 	void tick(ServerLevel level, List<ServerPlayer> here, long now) {
 		if (solved) return;
 		tickSigils(level, here, now);
+		if (now >= moveFrom && now % 5 == 0) tickDread(level, here, now);
 		if (tier >= 3) tickFlicker(level, here, now);
 		boolean dark = tier >= 3 && now < flickerUntil;
 		if (now >= moveFrom) {
@@ -619,13 +639,54 @@ final class TrialStatues extends Trials.Trial {
 				if (s.decoy || now < s.nextStep) continue;
 				s.nextStep = now + (dark ? 12 : STEP_EVERY[tier]);
 				if (now < s.stunUntil) continue;
-				if (!dark && watched(level, s, here)) continue;
+				if (!dark && watched(level, s, here, now)) continue;
 				if (stepStatue(level, s, here, now)) return;
 			}
 		}
 		if (now >= nextHint) {
 			nextHint = now + 60;
 			hints(level, here);
+		}
+	}
+
+	/** Ticks of staring a player can take: RIFT_STATUES_STARE_SECONDS, 10% less per tier above Easy (0 = dread is off). */
+	int dreadLimit() {
+		double sec = AuraConfig.RIFT_STATUES_STARE_SECONDS;
+		return sec <= 0 ? 0 : Math.max(60, (int) Math.round(sec * 20 * (1 - 0.1 * tier)));
+	}
+
+	/**
+	 * Dread (every 5 ticks): keeping a statue in view builds it, looking away drains it. Past 60% the heart beats and the
+	 * eyes ache; at the limit the eyes give: for RIFT_STATUES_BLINK_SECONDS this player's gaze holds nothing and the stone
+	 * steps. A lone watcher cannot freeze the statues for ever, and neither can a team's designated watcher.
+	 */
+	private void tickDread(ServerLevel level, List<ServerPlayer> here, long now) {
+		int limit = dreadLimit();
+		if (limit <= 0) return;
+		for (ServerPlayer p : here) {
+			UUID id = p.getUUID();
+			if (p.isSpectator() || now < blinkUntil.getOrDefault(id, 0L)) continue;
+			boolean sees = false;
+			for (Statue s : statues) if (!s.decoy && seenBy(level, s, p)) {
+				sees = true;
+				break;
+			}
+			int d = dread.getOrDefault(id, 0);
+			d = sees ? d + 5 : Math.max(0, d - (int) Math.round(5 * Math.max(0, AuraConfig.RIFT_STATUES_DREAD_RECOVERY)));
+			if (d >= limit) {
+				d = 0;
+				int blink = Math.max(10, (int) Math.round(AuraConfig.RIFT_STATUES_BLINK_SECONDS * 20));
+				blinkUntil.put(id, now + blink);
+				p.addEffect(new MobEffectInstance(MobEffects.DARKNESS, blink + 10, 0, false, false));
+				p.playNotifySound(SoundEvents.WARDEN_HEARTBEAT, SoundSource.AMBIENT, 1.4f, 0.6f);
+				p.displayClientMessage(Component.literal("Your eyes give - the stone moves").withStyle(ChatFormatting.RED), true);
+				for (Statue s : statues) s.nextStep = Math.min(s.nextStep, now + 3);
+			} else if (sees && d >= limit * 0.6 && now % 20 == 0) {
+				double f = (double) d / limit;
+				p.playNotifySound(SoundEvents.WARDEN_HEARTBEAT, SoundSource.AMBIENT, 0.8f, (float) (0.7 + f * 0.5));
+				p.displayClientMessage(Component.literal(f < 0.85 ? "Your eyes ache - look away" : "You cannot hold it much longer...").withStyle(f < 0.85 ? ChatFormatting.GRAY : ChatFormatting.DARK_RED), true);
+			}
+			dread.put(id, d);
 		}
 	}
 
@@ -868,7 +929,7 @@ final class TrialStatues extends Trials.Trial {
 			Vec3 at = plinthTop(s);
 			for (int k = 0; k < 12; k++) level.sendParticles(AuraFx.dust(s.rgb, 1.2f), at.x, at.y + k * 0.9, at.z, 1, 0.05, 0.1, 0.05, 0);
 		}
-		actionBar(here, "One watches, one carries: keep your eyes on the stone while the others fetch the sigils", ChatFormatting.AQUA);
+		actionBar(here, "Do not stare too long: take turns watching, and look away to calm your dread", ChatFormatting.AQUA);
 		if (h >= 2 && !glowing) {
 			glowing = true;
 			for (Statue s : statues) if (!s.decoy) for (Display.BlockDisplay d : s.parts) d.setGlowingTag(true);
@@ -1026,6 +1087,32 @@ final class TrialStatues extends Trials.Trial {
 		double f1 = s.f;
 		devTicks(level, fake, STEP_EVERY[tier] * 3);
 		log.accept("statues: watched -> frozen " + (Math.abs(s.f - f1) < 1.0e-6) + " (must be true)");
+		// 2b. dread: staring for the limit makes the eyes give - the statue steps although it is watched
+		if (dreadLimit() > 0) {
+			s.stunUntil = 0;
+			s.nextStep = 0;
+			dread.clear();
+			blinkUntil.clear();
+			double f2 = s.f, l2 = s.l;
+			devTicks(level, fake, dreadLimit() - 10);
+			boolean heldBefore = Math.abs(s.f - f2) < 1.0e-6 && Math.abs(s.l - l2) < 1.0e-6;
+			devTicks(level, fake, dreadLimit() / 2 + 40);
+			boolean moved = Math.hypot(s.f - f2, s.l - l2) > 0.5;
+			log.accept("statues: dread -> held before the limit " + heldBefore + " (must be true), moved after " + moved + " (must be true)");
+			// looking away drains it
+			devStand(fake, -28, 0, 1, Vec3.atCenterOf(arena(-40, 0, 2)));
+			devTicks(level, fake, dreadLimit());
+			log.accept("statues: dread drained looking away " + (dread.getOrDefault(fake.getUUID(), 0) == 0) + " (must be true)");
+			devStand(fake, -28, 0, 1, statuePos(s).add(0, 1.3, 0));
+			s.stunUntil = Long.MAX_VALUE;
+			dread.clear();
+			blinkUntil.clear();
+			// the statue reached the player on its way: not part of the ladder test below
+			strikes = 0;
+			totalStrikes = 0;
+			for (var m : run.mobs) m.discard();
+			run.mobs.clear();
+		}
 		// 3. lift sigil 0, then a touch from behind takes it back and strikes
 		Sigil g = sigils.get(0);
 		Alcove al = alcoves.get(g.alcove);

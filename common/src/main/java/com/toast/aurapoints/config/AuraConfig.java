@@ -1776,6 +1776,16 @@ public final class AuraConfig {
 	public static int RIFT_PUZZLE_FAIL_MOBS = 2;
 	/** Seconds a knocked out player waits (as a spectator) before coming back at the altar. */
 	public static int RIFT_KNOCKOUT_SECONDS = 12;
+	/** Weeping Statues: how many statues a run starts with (min 3), plus one more per this many tiers above Easy (0 = never), plus RIFT_STATUES_PER_PLAYER for every player beyond the first, capped at RIFT_STATUES_MAX (10 at most). */
+	public static int RIFT_STATUES_BASE = 3;
+	public static int RIFT_STATUES_PER_PLAYER = 1;
+	public static int RIFT_STATUES_TIER_STEP = 2;
+	public static int RIFT_STATUES_MAX = 8;
+	/** Weeping Statues, dread: a player who keeps a statue in view builds dread; at the limit their eyes give (they blink) and their gaze does not hold the statues for the blink seconds. Looking away drains it. 0 stare seconds = off. */
+	public static double RIFT_STATUES_STARE_SECONDS = 14;
+	public static double RIFT_STATUES_BLINK_SECONDS = 1.5;
+	/** How fast dread drains while no statue is in view, relative to how fast it builds (1 = equal). */
+	public static double RIFT_STATUES_DREAD_RECOVERY = 2;
 	/** The guardian's summon waves: a mob budget (zombie 1 ... blaze 5) of BASE + PER_ROOM x wave, +50% per extra player. */
 	public static int RIFT_BUDGET_BASE = 8;
 	public static int RIFT_BUDGET_PER_ROOM = 4;
