@@ -133,6 +133,8 @@ public final class Rifts {
 		ServerBossEvent bar;
 		long startedAt = -1, endAt = -1;
 		boolean warnedTime;
+		/** Seeds the trial arenas still waiting to be built (one per 10 ticks after the vote). */
+		net.minecraft.util.RandomSource trialRandom;
 
 		Run(int id, AuraType aura) {
 			this.id = id;
@@ -398,12 +400,12 @@ public final class Rifts {
 	static void buildTrials(ServerLevel rift, Run run) {
 		run.startedAt = rift.getGameTime();
 		var r = net.minecraft.util.RandomSource.create(run.id * 31L + rift.getGameTime());
-		List<Trials.Kind> kinds = new ArrayList<>(List.of(Trials.Kind.values()));
-		java.util.Collections.shuffle(kinds, new java.util.Random(r.nextLong()));
-		if (DEV_KINDS != null) kinds = new ArrayList<>(DEV_KINDS);
+		List<Trials.Kind> kinds = DEV_KINDS != null ? new ArrayList<>(DEV_KINDS) : Trials.pick(run.aura, r);
 		run.trials = new Trials.Trial[4];
 		for (int i = 0; i < 4; i++) run.trials[i] = Trials.make(kinds.get(i), run, i);
-		for (Trials.Trial t : run.trials) t.build(rift, r);
+		// arenas are big: one per 10 ticks (dev tests build them all at once)
+		if (DEV_KINDS != null) for (Trials.Trial t : run.trials) t.buildAll(rift, r);
+		run.trialRandom = r;
 	}
 
 	// ---------------------------------------------------------------
@@ -464,7 +466,7 @@ public final class Rifts {
 				Vec3 to = phase == Reliquary.Phase.BOSS || phase == Reliquary.Phase.COLLAPSE ? Reliquary.cryptSpot(run, rift.random)
 						: phase == Reliquary.Phase.VOTE ? run.spawn() : run.nave();
 				if (phase == Reliquary.Phase.TRIALS)
-					for (Trials.Trial t : run.trials) if (t.contains(new Vec3(p.getX(), FLOOR, p.getZ()))) to = Vec3.atBottomCenterOf(t.at(-t.hall + 2, 0, 1));
+					for (Trials.Trial t : run.trials) if (t.contains(new Vec3(p.getX(), FLOOR, p.getZ()))) to = t.respawn(new Vec3(p.getX(), FLOOR, p.getZ()));
 				p.teleportTo(rift, to.x, to.y, to.z, p.getYRot(), 0f);
 				p.fallDistance = 0;
 			}
@@ -474,18 +476,8 @@ public final class Rifts {
 			return;
 		}
 		for (Trials.Trial t : run.trials) {
-			List<ServerPlayer> on = new ArrayList<>();
-			for (ServerPlayer p : up) if (t.contains(p.position())) on.add(p);
-			if (!t.started && !on.isEmpty()) {
-				t.started = true;
-				for (ServerPlayer p : on) {
-					AuraFx.title(p, Component.literal(t.name()).withStyle(s -> s.withColor(TextColor.fromRgb(Reliquary.WING_RGB[t.index])).withBold(true)), Component.empty());
-					p.sendSystemMessage(Component.literal("✦ " + t.name() + ": ").withStyle(s -> s.withColor(TextColor.fromRgb(Reliquary.WING_RGB[t.index])))
-							.append(Component.literal(t.hint()).withStyle(ChatFormatting.GRAY)));
-				}
-				t.begin(rift, on);
-			}
-			t.tick(rift, on, now);
+			if (!t.built && run.trialRandom != null && now >= run.startedAt + 10L * (t.index + 1)) t.buildAll(rift, run.trialRandom);
+			t.tickAll(rift, up, now);
 		}
 		if (phase == Reliquary.Phase.TRIALS) {
 			if (now % 40 == 0) keepShards(rift, run);
@@ -545,7 +537,7 @@ public final class Rifts {
 		if (run == null || !run.built || run.done || run.down.contains(p.getUUID())) return false;
 		ServerLevel rift = (ServerLevel) p.level();
 		if (run.altar.use(rift, p, pos)) return true;
-		for (Trials.Trial t : run.trials) if (t.contains(Vec3.atCenterOf(pos)) && t.use(rift, p, pos)) return true;
+		for (Trials.Trial t : run.trials) if (t.built && t.inArena(Vec3.atCenterOf(pos)) && t.use(rift, p, pos)) return true;
 		return false;
 	}
 
@@ -597,7 +589,7 @@ public final class Rifts {
 	/** A shard that is out but nowhere any more (fell into the void, burned, left with a player) comes back to its plinth. */
 	private static void keepShards(ServerLevel rift, Run run) {
 		List<ServerPlayer> here = online(rift.getServer(), run);
-		var box = new net.minecraft.world.phys.AABB(Vec3.atCenterOf(run.hub()), Vec3.atCenterOf(run.hub())).inflate(120, 90, 165);
+		var box = new net.minecraft.world.phys.AABB(Vec3.atCenterOf(run.hub()), Vec3.atCenterOf(run.hub())).inflate(460, 120, 460);
 		List<net.minecraft.world.entity.item.ItemEntity> items = rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, box, e -> e.getTags().contains(SHARD_TAG));
 		for (Trials.Trial t : run.trials) {
 			if (!t.shardOut || run.placedTrials.contains(t.index)) continue;
@@ -631,6 +623,7 @@ public final class Rifts {
 			ItemStack s = inv.getItem(i);
 			if (s.is(AuraPoints.RELIC_SHARD.get()) || s.is(AuraPoints.TUNING_FORK.get())) inv.setItem(i, ItemStack.EMPTY);
 		}
+		Trials.purgeLent(p);
 		ItemStack c = p.containerMenu.getCarried();
 		if (c.is(AuraPoints.RELIC_SHARD.get()) || c.is(AuraPoints.TUNING_FORK.get())) p.containerMenu.setCarried(ItemStack.EMPTY);
 	}
@@ -717,7 +710,10 @@ public final class Rifts {
 		for (Mob m : run.mobs) if (m.isAlive()) m.discard();
 		run.mobs.clear();
 		if (run.altar != null) run.altar.remove();
-		for (Trials.Trial t : run.trials) t.remove();
+		for (Trials.Trial t : run.trials) {
+			for (ServerPlayer p : online(server, run)) if (t.inside.contains(p.getUUID())) t.release(p);
+			t.remove();
+		}
 		Reliquary.cleanup(run);
 		RiftCam.stop(online(server, run));
 		for (ServerPlayer p : online(server, run)) {
@@ -776,6 +772,12 @@ public final class Rifts {
 		if (!(victim instanceof ServerPlayer p) || !in(p)) return false;
 		knockout(p);
 		return true;
+	}
+
+	/** A trial's third strike on Hardcore. */
+	static void knockoutFromTrial(ServerPlayer p) {
+		Run run = runOf(p);
+		if (run != null && !run.down.contains(p.getUUID())) knockout(p);
 	}
 
 	private static void knockout(ServerPlayer p) {
@@ -995,7 +997,7 @@ public final class Rifts {
 			t.started = true;
 			t.begin(level(p.getServer()), List.of());
 		}
-		t.solve(level(p.getServer()), t.kind == Trials.Kind.CARRY ? null : t.plinth().add(0, 1, 0));
+		t.solve(level(p.getServer()), t.plinth().add(0, 1, 0));
 	}
 
 	/** Hands the player every shard that is out, and right-clicks each pedestal with one. */
@@ -1005,7 +1007,7 @@ public final class Rifts {
 		ServerLevel rift = level(p.getServer());
 		for (Trials.Trial t : r.trials) {
 			if (!t.shardOut) continue;
-			for (var it : rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(120, 90, 165),
+			for (var it : rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(460, 120, 460),
 					e -> isShard(e.getItem(), r, t.index))) it.discard();
 			takeShard(p, r, t.index);
 			p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, com.toast.aurapoints.item.RelicShardItem.make(r.aura, r.id, t.index));

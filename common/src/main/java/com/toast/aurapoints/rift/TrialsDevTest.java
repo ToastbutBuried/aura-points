@@ -19,10 +19,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * DEV ONLY (registered by DevTest): /auradev trialtest - the Relic Trials' puzzles (5.46) played through their real
- * inputs by a fake player: Rune Sequence (a wrong rune calls mobs, then the right order), Lights (the scramble pressed
- * again), Resonance Hunt (a wrong mound, then the right one), Memory Path (a wrong tile breaks, the far pad solves it),
- * then a second realm for the Carry Trial (a fall sends the shard back, carried across it settles). Logs [trialtest].
+ * DEV ONLY (registered by DevTest): /auradev trialtest [kind] - the Reliquary trials (5.49): the framework on the first
+ * trial (portals both ways, the strike ladder, falling in the arena), then each trial's own {@code devPlay} through its
+ * real inputs by a fake player. Two realms (Frost, then Wind for the Skyward Rings). Logs [trialtest].
  */
 public final class TrialsDevTest {
 
@@ -34,41 +33,98 @@ public final class TrialsDevTest {
 	}
 
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-		dispatcher.register(Commands.literal("auradev").then(Commands.literal("trialtest").executes(ctx -> {
-			MinecraftServer server = ctx.getSource().getServer();
-			ServerLevel rift = Rifts.level(server);
-			ServerPlayer fake = FakePlayerFactory.get(rift, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000c642"), "TrialTest"));
-			Rifts.TEST_PLAYERS.put(fake.getUUID(), fake);
-			AuraState.get(server).getOrCreate(fake.getUUID()).aura = AuraType.WATER;
-			fake.getInventory().clearContent();
-			Rifts.DEV_KINDS = List.of(Trials.Kind.RUNES, Trials.Kind.LIGHTS, Trials.Kind.HUNT, Trials.Kind.MEMORY);
-			Rifts.open(server, AuraType.FROST, null, new Vec3(0.5, 120, 0.5));
-			Rifts.devEnter(server, fake);
-			Rifts.devVote(fake, 1);
-			Rifts.Run run = Rifts.runOf(fake);
-			Rifts.DEV_KINDS = null;
-			if (run == null) {
-				log("no run (must not happen)");
-				return 0;
-			}
-			// --- Rune Sequence: begin, wait for the show, a wrong rune, wait again, the right order
-			Trials.Runes runes = (Trials.Runes) run.trials[0];
-			runes.started = true;
-			runes.begin(rift, List.of(fake));
-			int show = 50 + (runes.seq.length + 1) * 16 + 5;
-			AuraFx.later(server, show, () -> {
-				int wrong = (runes.seq[0] + 1) % 6;
-				int mobs0 = run.mobs.size();
-				use(rift, fake, runes.at(runes.pillar[wrong][0], runes.pillar[wrong][1], 2), runes);
-				log("runes: wrong rune -> mobs " + (run.mobs.size() - mobs0) + " (must be " + com.toast.aurapoints.config.AuraConfig.RIFT_PUZZLE_FAIL_MOBS + "), solved " + runes.solved + " (must be false)");
-				AuraFx.later(server, 70 + (runes.seq.length + 1) * 16 + 5, () -> {
-					for (int k : runes.seq) use(rift, fake, runes.at(runes.pillar[k][0], runes.pillar[k][1], 1), runes);
-					log("runes: right order (" + runes.seq.length + ") -> solved " + runes.solved + " (must be true)");
-					lightsHuntMemory(server, rift, fake, run);
-				});
-			});
-			return 1;
-		})));
+		dispatcher.register(Commands.literal("auradev").then(Commands.literal("trialtest")
+				.executes(ctx -> start(ctx.getSource().getServer(), null))
+				.then(Commands.argument("kind", com.mojang.brigadier.arguments.StringArgumentType.word())
+						.executes(ctx -> start(ctx.getSource().getServer(), Trials.Kind.valueOf(com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "kind").toUpperCase(java.util.Locale.ROOT)))))));
+	}
+
+	/** Runs the framework checks, then every kind's devPlay (or only {@code only}). */
+	private static int start(MinecraftServer server, Trials.Kind only) {
+		ServerLevel rift = Rifts.level(server);
+		ServerPlayer fake = FakePlayerFactory.get(rift, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000c642"), "TrialTest"));
+		Rifts.TEST_PLAYERS.put(fake.getUUID(), fake);
+		AuraState.get(server).getOrCreate(fake.getUUID()).aura = AuraType.WATER;
+		fake.getInventory().clearContent();
+		List<List<Trials.Kind>> runs = only != null
+				? List.of(List.of(only, only == Trials.Kind.DIG ? Trials.Kind.ECHOES : Trials.Kind.DIG, Trials.Kind.GLYPH == only ? Trials.Kind.PRISM : Trials.Kind.GLYPH, Trials.Kind.BELLS == only ? Trials.Kind.STATUES : Trials.Kind.BELLS))
+				: List.of(List.of(Trials.Kind.DIG, Trials.Kind.ECHOES, Trials.Kind.GLYPH, Trials.Kind.PRISM), List.of(Trials.Kind.BELLS, Trials.Kind.STATUES, Trials.Kind.RINGS, Trials.Kind.DIG));
+		runRealm(server, rift, fake, runs, 0, only != null ? 1 : 3, true);
+		return 1;
+	}
+
+	/** Realm {@code n} of {@code runs}: the first {@code count} trials get played; realm 0 also checks the framework. */
+	private static void runRealm(MinecraftServer server, ServerLevel rift, ServerPlayer fake, List<List<Trials.Kind>> runs, int n, int count, boolean framework) {
+		if (n >= runs.size()) {
+			Rifts.clearAll();
+			Rifts.TEST_PLAYERS.clear();
+			log("trialtest done");
+			return;
+		}
+		Rifts.TEST_PLAYERS.put(fake.getUUID(), fake);
+		Rifts.DEV_KINDS = runs.get(n);
+		Rifts.open(server, n == 1 ? AuraType.WIND : AuraType.FROST, null, new Vec3(0.5, 120, 0.5));
+		Rifts.devEnter(server, fake);
+		Rifts.devVote(fake, 1);
+		Rifts.Run run = Rifts.runOf(fake);
+		Rifts.DEV_KINDS = null;
+		if (run == null) {
+			log("no run (must not happen)");
+			return;
+		}
+		log("realm " + n + ": kinds " + Rifts.devKinds(fake) + ", all built " + java.util.Arrays.stream(run.trials).allMatch(t -> t.built) + " (must be true)");
+		if (framework) framework(rift, fake, run);
+		int last = n == runs.size() - 1 && runs.size() > 1 ? 3 : count;
+		play(server, rift, fake, run, 0, last, () -> {
+			Rifts.leave(fake);
+			Rifts.clearAll();
+			runRealm(server, rift, fake, runs, n + 1, count, false);
+		});
+	}
+
+	private static void play(MinecraftServer server, ServerLevel rift, ServerPlayer fake, Rifts.Run run, int i, int count, Runnable after) {
+		if (i >= count) {
+			after.run();
+			return;
+		}
+		Trials.Trial t = run.trials[i];
+		Vec3 in = t.back.exit();
+		fake.moveTo(in.x, in.y, in.z);
+		fake.setOnGround(true);
+		t.tickAll(rift, List.of(fake), rift.getGameTime());
+		log(t.name() + ": started " + t.started + " (must be true)");
+		t.devPlay(server, rift, fake, TrialsDevTest::log, () -> {
+			log(t.name() + ": solved " + t.solved + " (must be true), shard out " + t.shardOut + " (must be true)");
+			play(server, rift, fake, run, i + 1, count, after);
+		});
+	}
+
+	/** The shared machinery on trial 0: portals both ways, the strike ladder, falling in the arena. */
+	private static void framework(ServerLevel rift, ServerPlayer fake, Rifts.Run run) {
+		Trials.Trial t = run.trials[0];
+		long now = rift.getGameTime();
+		Vec3 g = Vec3.atBottomCenterOf(t.gate.base.above());
+		fake.moveTo(g.x, g.y, g.z);
+		t.tickAll(rift, List.of(fake), now);
+		log("portal in: in the arena " + t.inArena(fake.position()) + " (must be true)");
+		Vec3 b = Vec3.atBottomCenterOf(t.back.base.above());
+		fake.moveTo(b.x, b.y, b.z);
+		t.tickAll(rift, List.of(fake), now + 1);
+		log("portal cooldown: still in the arena " + t.inArena(fake.position()) + " (must be true)");
+		t.tickAll(rift, List.of(fake), now + 60);
+		log("portal back: in the wing " + t.inWing(fake.position()) + " (must be true)");
+		Vec3 fell = new Vec3(t.arena(0, 0, -40).getX() + 0.5, Rifts.FLOOR, t.arena(0, 0, 0).getZ() + 0.5);
+		log("fall respawn in the arena -> at the way back " + (t.respawn(fell).distanceTo(t.back.exit()) < 0.1) + " (must be true)");
+		int mobs = run.mobs.size();
+		t.strike(rift, fake, fake.position(), List.of(fake));
+		t.strike(rift, fake, fake.position(), List.of(fake));
+		log("two strikes: count " + t.strikes + " (must be 2), mobs " + (run.mobs.size() > mobs) + " (must be true)");
+		t.strike(rift, fake, fake.position(), List.of(fake));
+		log("third strike: count " + t.strikes + " (must be 0), total " + t.totalStrikes + " (must be 3)");
+		for (var m : run.mobs) m.discard();
+		run.mobs.clear();
+		t.strikes = 0;
+		t.totalStrikes = 0;
 	}
 
 	/** /auradev riftstep solve|place|ritual - moves the caller's own run on (for client playtests). */
@@ -195,83 +251,8 @@ public final class TrialsDevTest {
 		t.use(rift, p, pos);
 	}
 
-	private static void lightsHuntMemory(MinecraftServer server, ServerLevel rift, ServerPlayer fake, Rifts.Run run) {
-		// --- Lights: pressing the scramble again lights everything
-		Trials.Lights lights = (Trials.Lights) run.trials[1];
-		lights.started = true;
-		for (int[] k : lights.scramble) use(rift, fake, lights.at(lights.f(k[0]), lights.f(k[1]), 1), lights);
-		log("lights: " + lights.scramble.size() + " presses -> solved " + lights.solved + " (must be true)");
-		// --- Resonance Hunt: a wrong mound, then the target
-		Trials.Hunt hunt = (Trials.Hunt) run.trials[2];
-		hunt.started = true;
-		hunt.begin(rift, List.of(fake));
-		boolean fork = fake.getInventory().contains(new net.minecraft.world.item.ItemStack(AuraPoints.TUNING_FORK.get()));
-		BlockPos wrong = null;
-		for (BlockPos m : hunt.mounds) if (!m.equals(hunt.target)) wrong = m;
-		int before = hunt.mounds.size();
-		use(rift, fake, wrong, hunt);
-		log("hunt: fork given " + fork + " (must be true), wrong mound -> mounds " + before + " -> " + hunt.mounds.size() + ", solved " + hunt.solved + " (must be false), mound gone " + rift.getBlockState(wrong).isAir());
-		use(rift, fake, hunt.target, hunt);
-		log("hunt: target mound -> solved " + hunt.solved + " (must be true)");
-		// --- Memory Path: a wrong tile breaks under you, the far pad solves it
-		Trials.Memory mem = (Trials.Memory) run.trials[3];
-		mem.started = true;
-		int badF = 0, badL = 99;
-		for (int f = Trials.Memory.L0; f <= Trials.Memory.L1 && badL == 99; f++)
-			for (int l = -Trials.Memory.W; l <= Trials.Memory.W; l++) if (!mem.safe.contains(Trials.Memory.key(f, l))) {
-				badF = f;
-				badL = l;
-				break;
-			}
-		stand(fake, mem.at(badF, badL, 1));
-		mem.tick(rift, List.of(fake), rift.getGameTime());
-		log("memory: stood on a wrong tile -> broken " + rift.getBlockState(mem.at(badF, badL, 0)).isAir() + " (must be true), solved " + mem.solved + " (must be false)");
-		stand(fake, mem.at(Trials.Memory.L1 + 1, 0, 1));
-		mem.tick(rift, List.of(fake), rift.getGameTime());
-		log("memory: on the far pad -> solved " + mem.solved + " (must be true), grid filled " + !rift.getBlockState(mem.at(badF, badL, 0)).isAir() + " (must be true)");
-		log("first realm: " + Rifts.devState(fake) + " (must be trials 4/4), shards in the world " + Rifts.devShardItemsInWorld(fake) + " (must be 4)");
-		Rifts.leave(fake);
-		Rifts.clearAll();
-		Rifts.TEST_PLAYERS.put(fake.getUUID(), fake);
-		carry(server, rift, fake);
-	}
-
 	private static void stand(ServerPlayer p, BlockPos feet) {
 		p.moveTo(feet.getX() + 0.5, feet.getY(), feet.getZ() + 0.5);
 		p.setOnGround(true);
-	}
-
-	private static void carry(MinecraftServer server, ServerLevel rift, ServerPlayer fake) {
-		Rifts.DEV_KINDS = List.of(Trials.Kind.CARRY, Trials.Kind.RUNES, Trials.Kind.LIGHTS, Trials.Kind.HUNT);
-		Rifts.open(server, AuraType.FIRE, null, new Vec3(0.5, 120, 0.5));
-		Rifts.devEnter(server, fake);
-		Rifts.devVote(fake, 1);
-		Rifts.DEV_KINDS = null;
-		Rifts.Run run = Rifts.runOf(fake);
-		Trials.Carry carry = (Trials.Carry) run.trials[0];
-		carry.started = true;
-		carry.begin(rift, List.of(fake));
-		log("carry: shard on its plinth " + Rifts.devShardItemsInWorld(fake) + " (must be 1)");
-		// picked up (the dev way: the item entity goes, the stack goes to the pocket)
-		for (var it : rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(carry.plinth(), carry.plinth()).inflate(3))) it.discard();
-		fake.getInventory().add(com.toast.aurapoints.item.RelicShardItem.make(run.aura, run.id, 0));
-		// unstable: the altar won't take it yet
-		fake.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, fake.getInventory().getItem(fake.getInventory().findSlotMatchingItem(com.toast.aurapoints.item.RelicShardItem.make(run.aura, run.id, 0))));
-		run.altar.use(rift, fake, run.pedestal(0).above(2));
-		log("carry: unstable shard on the altar -> placed " + run.altar.placed + " (must be 0)");
-		// a fall into the gap
-		fake.moveTo(Vec3.atBottomCenterOf(carry.at(0, 0, -6)));
-		carry.tick(rift, List.of(fake), rift.getGameTime());
-		log("carry: fell -> holds the shard " + Rifts.holdsShard(fake, run, 0) + " (must be false), back on its plinth " + Rifts.devShardItemsInWorld(fake) + " (must be 1)");
-		for (var it : rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(carry.plinth(), carry.plinth()).inflate(3))) it.discard();
-		fake.getInventory().add(com.toast.aurapoints.item.RelicShardItem.make(run.aura, run.id, 0));
-		stand(fake, carry.at(Trials.Carry.END, 1, 1));
-		carry.tick(rift, List.of(fake), rift.getGameTime());
-		log("carry: across -> solved " + carry.solved + " (must be true), still holds it " + Rifts.holdsShard(fake, run, 0) + " (must be true)");
-		Rifts.leave(fake);
-		log("carry: after leaving -> holds it " + Rifts.holdsShard(fake, run, 0) + " (must be false)");
-		Rifts.clearAll();
-		Rifts.TEST_PLAYERS.clear();
-		log("trialtest done");
 	}
 }

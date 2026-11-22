@@ -1,46 +1,39 @@
 package com.toast.aurapoints.rift;
 
-import com.toast.aurapoints.AuraPoints;
 import com.toast.aurapoints.ability.AuraFx;
-import com.toast.aurapoints.item.RelicShardItem;
+import com.toast.aurapoints.ability.AuraType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Display;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * The four trial rooms of a rift realm (5.46.0, Relic Trials). Each trial island holds one Relic Shard behind a puzzle;
- * mobs only come as the price of a mistake (or as pressure while it stays unsolved). Five kinds, four picked per run:
- * <ul>
- * <li>{@link Runes}: pillars light up in an order - hit them in that order;</li>
- * <li>{@link Lights}: a 4x4 grid of lamps, each press flips itself and its neighbours - light them all;</li>
- * <li>{@link Hunt}: the shard is buried in one of many rubble mounds; the Tuning Fork rings higher the closer it is;</li>
- * <li>{@link Memory}: a path over the void glows for a moment, then hides - walk it;</li>
- * <li>{@link Carry}: the shard is heavy; carry it over a crumbling path while the aura pushes you around.</li>
- * </ul>
- * Coordinates are in each island's own frame: f = forward (away from the hub), l = to the side.
+ * The Reliquary's four trials (5.49.0). Each wing hall is an antechamber with a portal into the trial's own arena,
+ * built beyond the monument (see {@link #ARENAS}); solving it frees a Relic Shard you carry back through the portal to
+ * the altar. Every trial shares the 3-strike ladder ({@link Trial#strike}): 1 the room reacts, 2 a hazard and a
+ * partial reset, 3 a full reset with a new layout (and on Hardcore the one who caused it is knocked out).
+ * Pool: {@link TrialDig}, {@link TrialEchoes}, {@link TrialGlyph}, {@link TrialPrism}, {@link TrialBells},
+ * {@link TrialStatues}; Wind, Light and Thunder rifts always hold {@link TrialRings} (an elytra course) in one wing.
+ * <p>
+ * Two frames: the wing (antechamber) frame around {@link Trial#c} with {@link Trial#at}, and the arena frame around
+ * {@link Trial#a} with {@link Trial#arena}. Both use f = forward (away from the altar), l = to the side, dy from the floor.
  */
 final class Trials {
 
@@ -48,20 +41,44 @@ final class Trials {
 	}
 
 	enum Kind {
-		RUNES, LIGHTS, HUNT, MEMORY, CARRY
+		DIG, ECHOES, GLYPH, PRISM, BELLS, STATUES, RINGS;
+
+		static final List<Kind> POOL = List.of(DIG, ECHOES, GLYPH, PRISM, BELLS, STATUES);
 	}
 
 	static Trial make(Kind kind, Rifts.Run run, int index) {
 		return switch (kind) {
-			case RUNES -> new Runes(run, index);
-			case LIGHTS -> new Lights(run, index);
-			case HUNT -> new Hunt(run, index);
-			case MEMORY -> new Memory(run, index);
-			case CARRY -> new Carry(run, index);
+			case DIG -> new TrialDig(run, index);
+			case ECHOES -> new TrialEchoes(run, index);
+			case GLYPH -> new TrialGlyph(run, index);
+			case PRISM -> new TrialPrism(run, index);
+			case BELLS -> new TrialBells(run, index);
+			case STATUES -> new TrialStatues(run, index);
+			case RINGS -> new TrialRings(run, index);
 		};
 	}
 
+	/** The four kinds of a new run: Rings forced in for the sky auras, the rest drawn from the pool. */
+	static List<Kind> pick(AuraType aura, RandomSource r) {
+		List<Kind> pool = new ArrayList<>(Kind.POOL);
+		java.util.Collections.shuffle(pool, new java.util.Random(r.nextLong()));
+		List<Kind> out = new ArrayList<>(pool.subList(0, 4));
+		if (aura == AuraType.WIND || aura == AuraType.LIGHT || aura == AuraType.THUNDER) out.set(r.nextInt(4), Kind.RINGS);
+		return out;
+	}
+
+	/** Elytra and anything else a trial lends out, taken back (Rifts.purge on the way out). */
+	static void purgeLent(ServerPlayer p) {
+		TrialRings.purgeLent(p);
+	}
+
 	static final String DISPLAY_TAG = "aurapoints_rift_trial";
+
+	/**
+	 * Arena centres relative to the monument origin, per wing (W, NW, NE, E): 330 blocks out, far past the monument's
+	 * bounds (x/z +-105) and inside the run slot (x +-512). An arena may use up to {@link Trial#arenaHalf} = 110 around it.
+	 */
+	static final int[][] ARENAS = {{-330, 0}, {-150, -330}, {150, -330}, {330, 0}};
 
 	// ---------------------------------------------------------------
 	// The base
@@ -71,15 +88,25 @@ final class Trials {
 		final Rifts.Run run;
 		final int index;
 		final Kind kind;
-		final BlockPos c;
+		/** The wing hall's middle (antechamber), and the arena's middle; both at floor height. */
+		final BlockPos c, a;
 		final int fx, fz, lx, lz;
 		final RealmBuilder.Palette pal;
 		/** Half the wing hall's inner size, and the difficulty tier (0 Easy .. 4 Hardcore). */
 		final int hall, tier;
-		boolean started, solved;
-		/** The shard is out in the realm (dropped, carried or waiting on a plinth) and must be kept from getting lost. */
+		final int rgb;
+		boolean started, solved, built;
+		/** The shard is out in the realm (dropped, carried or waiting) and must be kept from getting lost. */
 		boolean shardOut;
+		/** 0..2: strikes since the last full reset; total strikes this run. */
+		int strikes, totalStrikes;
+		boolean introPlayed;
 		final List<Display> displays = new ArrayList<>();
+		/** Antechamber portal (in the wing) and the arena's way back. */
+		TrialPortal gate, back;
+		/** Players inside this trial (antechamber or arena) last tick. */
+		final Set<UUID> inside = new HashSet<>();
+		RandomSource random;
 
 		Trial(Rifts.Run run, int index, Kind kind) {
 			this.run = run;
@@ -94,70 +121,254 @@ final class Trials {
 			this.lx = -fz;
 			this.lz = fx;
 			this.pal = RealmBuilder.palette(run.aura);
+			this.rgb = Reliquary.WING_RGB[index];
+			BlockPos hub = run.hub();
+			this.a = new BlockPos(hub.getX() + ARENAS[index][0], Rifts.FLOOR, hub.getZ() + ARENAS[index][1]);
 		}
 
-		/** A block in the island's frame; dy is relative to the floor (0 = the floor itself, 1 = standing height). */
+		// --- frames
+
+		/** A block in the wing (antechamber) frame; dy is relative to the floor (0 = the floor itself, 1 = standing height). */
 		BlockPos at(int f, int l, int dy) {
 			return new BlockPos(c.getX() + fx * f + lx * l, Rifts.FLOOR + dy, c.getZ() + fz * f + lz * l);
 		}
 
-		/** The island-frame (f, l) of a world position. */
-		double f(Vec3 p) {
-			return (p.x - c.getX() - 0.5) * fx + (p.z - c.getZ() - 0.5) * fz;
+		/** A block in the arena frame. */
+		BlockPos arena(int f, int l, int dy) {
+			return new BlockPos(a.getX() + fx * f + lx * l, Rifts.FLOOR + dy, a.getZ() + fz * f + lz * l);
 		}
 
-		double l(Vec3 p) {
-			return (p.x - c.getX() - 0.5) * lx + (p.z - c.getZ() - 0.5) * lz;
+		/** The arena-frame (f, l) of a world position. */
+		double af(Vec3 p) {
+			return (p.x - a.getX() - 0.5) * fx + (p.z - a.getZ() - 0.5) * fz;
 		}
 
+		double al(Vec3 p) {
+			return (p.x - a.getX() - 0.5) * lx + (p.z - a.getZ() - 0.5) * lz;
+		}
+
+		/** Sets a block in the arena frame. */
 		void set(ServerLevel level, int f, int l, int dy, Block b) {
-			BlockPos p = at(f, l, dy);
+			BlockPos p = arena(f, l, dy);
 			RealmBuilder.set(level, p.getX(), p.getY(), p.getZ(), b);
 		}
 
-		/** Air in the island's floor and underside (a hole you can fall through). */
-		void hole(ServerLevel level, int f, int l) {
-			for (int dy = -18; dy <= 2; dy++) set(level, f, l, dy, Blocks.AIR);
+		void set(ServerLevel level, int f, int l, int dy, net.minecraft.world.level.block.state.BlockState s) {
+			BlockPos p = arena(f, l, dy);
+			RealmBuilder.set(level, p.getX(), p.getY(), p.getZ(), s);
 		}
 
-		boolean contains(Vec3 p) {
+		/** Yaw that looks along the arena's forward. */
+		float forwardYaw() {
+			return (float) Math.toDegrees(Math.atan2(-fx, fz));
+		}
+
+		/** Arena half-size used for its box (contains, clearing). Override for a bigger or smaller arena (max 110). */
+		int arenaHalf() {
+			return 40;
+		}
+
+		/** How far the arena reaches below and above the floor. */
+		int arenaDown() {
+			return 30;
+		}
+
+		int arenaUp() {
+			return 60;
+		}
+
+		/** Where the way back stands (arena frame f): near the arena's back edge, facing forward. */
+		int backF() {
+			return -arenaHalf() + 4;
+		}
+
+		boolean inArena(Vec3 p) {
+			double f = af(p), l = al(p);
+			return Math.abs(f) <= arenaHalf() + 2 && Math.abs(l) <= arenaHalf() + 2 && p.y > Rifts.FLOOR - arenaDown() - 10 && p.y < Rifts.FLOOR + arenaUp() + 10;
+		}
+
+		boolean inWing(Vec3 p) {
 			double dx = p.x - (c.getX() + 0.5), dz = p.z - (c.getZ() + 0.5);
 			return Math.abs(dx) <= hall + 1.5 && Math.abs(dz) <= hall + 1.5 && p.y > Rifts.FLOOR - 30 && p.y < Rifts.FLOOR + 30;
 		}
 
-		/** Where the shard waits / comes back to if it gets lost. */
-		Vec3 plinth() {
-			return Vec3.atBottomCenterOf(at(0, 0, 1)).add(0, 0.2, 0);
+		boolean contains(Vec3 p) {
+			return inWing(p) || inArena(p);
 		}
+
+		/** Where a player who fell in this trial comes back. */
+		Vec3 respawn(Vec3 p) {
+			return inArena(p) && back != null ? back.exit() : Vec3.atBottomCenterOf(at(-hall + 2, 0, 1));
+		}
+
+		/** Where a lost shard comes back to (default: the arena's middle; trials with a plinth override). */
+		Vec3 plinth() {
+			return Vec3.atBottomCenterOf(arena(0, 0, 1)).add(0, 0.2, 0);
+		}
+
+		// --- what a trial fills in
 
 		abstract String name();
 
+		/** One line for chat on entering the arena. */
 		abstract String hint();
 
+		/** Builds the arena (the box around {@link #a} is already empty) and the puzzle's first layout. */
 		abstract void build(ServerLevel level, RandomSource r);
 
-		/** The first player steps onto the island. */
+		/** The first player steps into the arena. */
 		void begin(ServerLevel level, List<ServerPlayer> here) {
 		}
 
-		/** Every server tick while the run lasts; {@code here} = run players standing on this island. */
+		/** Every server tick while the run lasts; {@code here} = run players inside the arena. */
 		abstract void tick(ServerLevel level, List<ServerPlayer> here, long now);
 
-		/** A right-click on a block of this island (main hand). True = it was this trial's. */
+		/** A right-click on a block of the arena (main hand). True = it was this trial's (cancels the click). */
 		boolean use(ServerLevel level, ServerPlayer p, BlockPos pos) {
 			return false;
 		}
 
-		/** Solved: the shard comes out at {@code at} (or, for a shard already out, it is simply good now). */
+		/** Strike 1: the room reacts (the base already plays a sound and a dark pulse). */
+		void onReact(ServerLevel level, Vec3 at) {
+		}
+
+		/** Strike 2: a hazard plus a partial reset. Default: mobs. */
+		void onHazard(ServerLevel level, Vec3 at) {
+			punish(level, at, 2 + tier / 2);
+		}
+
+		/** Strike 3: a full reset with a new layout. */
+		abstract void onReset(ServerLevel level, RandomSource r);
+
+		/** A player leaves the trial (walks out, the run ends, logs off): give back what was lent, etc. */
+		void release(ServerPlayer p) {
+		}
+
+		/** The camera intro the first time someone enters the arena; null = the default flyover. */
+		RiftCam intro() {
+			return null;
+		}
+
+		// --- shared machinery
+
+		/** The arena: empties its box, builds the trial, puts the way back in. Called once, a little after the vote. */
+		final void buildAll(ServerLevel level, RandomSource r) {
+			this.random = r;
+			int h = arenaHalf() + 4;
+			Monument.clearColumns(level, a.getX() - h, a.getZ() - h, 2 * h + 1);
+			build(level, r);
+			// the antechamber: a portal at the far wall of the wing, facing the altar
+			gate = new TrialPortal(at(hall - 3, 0, 0), -fx, -fz, rgb);
+			back = new TrialPortal(arena(backF() - 1, 0, 0), fx, fz, rgb);
+			gate.to = back;
+			back.to = gate;
+			gate.build(level, pal);
+			back.build(level, pal);
+			// a landing under the way back, in case the arena left it floating
+			for (int f = backF() - 3; f <= backF() + 4; f++)
+				for (int l = -3; l <= 3; l++) if (level.getBlockState(arena(f, l, 0)).isAir()) set(level, f, l, 0, pal.floor());
+			label(level, Vec3.atBottomCenterOf(at(hall - 3, 0, TrialPortal.H + 4)), Component.literal(name()).withStyle(s -> s.withColor(rgb).withBold(true)), 2.2f);
+			built = true;
+			gate.setOpen(level, true, pal.gate());
+			back.setOpen(level, true, pal.gate());
+		}
+
+		/** Base tick: portals, the intro, enter/leave; then the trial's own tick with the arena players. */
+		final void tickAll(ServerLevel level, List<ServerPlayer> up, long now) {
+			if (!built) return;
+			List<ServerPlayer> wing = new ArrayList<>(), arena = new ArrayList<>();
+			Set<UUID> nowIn = new HashSet<>();
+			for (ServerPlayer p : up) {
+				if (inArena(p.position())) arena.add(p);
+				else if (inWing(p.position())) wing.add(p);
+				else continue;
+				nowIn.add(p.getUUID());
+			}
+			for (UUID id : inside) if (!nowIn.contains(id)) {
+				ServerPlayer p = level.getServer().getPlayerList().getPlayer(id);
+				if (p == null) p = Rifts.TEST_PLAYERS.get(id);
+				if (p != null) release(p);
+			}
+			inside.clear();
+			inside.addAll(nowIn);
+			gate.tick(level, wing, now);
+			back.tick(level, arena, now);
+			if (!started && !arena.isEmpty()) {
+				started = true;
+				for (ServerPlayer p : arena) {
+					AuraFx.title(p, Component.literal(name()).withStyle(s -> s.withColor(rgb).withBold(true)), Component.literal(run.difficulty.label).withStyle(run.difficulty.color));
+					p.sendSystemMessage(Component.literal("✦ " + name() + ": ").withStyle(s -> s.withColor(rgb)).append(Component.literal(hint()).withStyle(ChatFormatting.GRAY)));
+				}
+				if (!introPlayed) {
+					introPlayed = true;
+					RiftCam cam = intro();
+					(cam != null ? cam : defaultIntro()).send(arena);
+				}
+				begin(level, arena);
+			}
+			if (started) tick(level, arena, now);
+		}
+
+		/** A slow pass from behind the way back, up over the arena's middle, then home. */
+		RiftCam defaultIntro() {
+			int h = arenaHalf();
+			Vec3 mid = Vec3.atCenterOf(arena(0, 0, 2));
+			Vec3 from = Vec3.atCenterOf(arena(-h, 0, 14)), over = Vec3.atCenterOf(arena(-h / 3, h / 3, h / 2 + 10)), side = Vec3.atCenterOf(arena(h / 3, -h / 2, 18));
+			return RiftCam.shot(rgb).title(name(), run.difficulty.label).skippable(true)
+					.key(0, from, mid).key(60, over, mid).key(120, side, mid);
+		}
+
+		/** Hints allowed: Easy after the first strike, Medium after the second, Hard and up never. */
+		boolean hintsAllowed() {
+			return tier == 0 ? totalStrikes >= 1 : tier == 1 && totalStrikes >= 2;
+		}
+
+		/** A mistake by {@code who} (null = no one in particular) at {@code at}: walks the 3-strike ladder. */
+		void strike(ServerLevel level, ServerPlayer who, Vec3 at, List<ServerPlayer> here) {
+			if (solved) return;
+			strikes++;
+			totalStrikes++;
+			level.playSound(null, at.x, at.y, at.z, SoundEvents.WARDEN_HEARTBEAT, SoundSource.HOSTILE, 2f, 0.6f);
+			level.sendParticles(ParticleTypes.SCULK_SOUL, at.x, at.y + 1, at.z, 20, 1.5, 0.8, 1.5, 0.02);
+			for (ServerPlayer p : here) p.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 50, 0, false, false));
+			actionBar(here, "Strike " + strikes + " / 3", strikes >= 3 ? ChatFormatting.DARK_RED : ChatFormatting.RED);
+			if (strikes == 1) {
+				onReact(level, at);
+			} else if (strikes == 2) {
+				level.playSound(null, at.x, at.y, at.z, SoundEvents.EVOKER_PREPARE_SUMMON, SoundSource.HOSTILE, 1.5f, 0.8f);
+				onHazard(level, at);
+			} else {
+				strikes = 0;
+				level.playSound(null, at.x, at.y, at.z, SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.HOSTILE, 2f, 0.6f);
+				for (ServerPlayer p : here) AuraFx.title(p, Component.literal("The trial resets").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD), Component.literal("a new layout").withStyle(ChatFormatting.GRAY));
+				onReset(level, random != null ? random : level.random);
+				if (run.difficulty.oneLife() && who != null) Rifts.knockoutFromTrial(who);
+			}
+		}
+
+		/** Solved: the shard comes out at {@code at}, with a short shot of it for those in the arena. */
 		void solve(ServerLevel level, Vec3 at) {
 			if (solved) return;
 			solved = true;
+			if (at != null) {
+				List<ServerPlayer> here = new ArrayList<>();
+				for (UUID id : inside) {
+					ServerPlayer p = level.getServer().getPlayerList().getPlayer(id);
+					if (p != null && inArena(p.position())) here.add(p);
+				}
+				Vec3 look = at.add(0, 0.5, 0);
+				Vec3 dir = new Vec3(-fx, 0, -fz);
+				RiftCam.shot(rgb).title("Shard freed", "carry it back through the portal").skippable(true)
+						.key(0, look.add(dir.scale(9)).add(0, 6, 0), look).key(50, look.add(dir.scale(5)).add(lx * 3, 2.5, lz * 3), look).send(here);
+			}
 			Rifts.onTrialSolved(level, run, this, at);
 		}
 
 		void remove() {
 			for (Display d : displays) d.discard();
 			displays.clear();
+			if (gate != null) gate.remove();
+			if (back != null) back.remove();
 		}
 
 		Display.TextDisplay label(ServerLevel level, Vec3 at, Component text, float scale) {
@@ -173,631 +384,24 @@ final class Trials {
 			for (ServerPlayer p : to) p.displayClientMessage(Component.literal(text).withStyle(color), true);
 		}
 
-		/** The price of a mistake: {@code n} of the aura's touched mobs at {@code at}. */
+		/** {@code n} of the aura's touched mobs at {@code at}. */
 		void punish(ServerLevel level, Vec3 at, int n) {
 			for (int k = 0; k < n; k++) Rifts.trialMob(level, run, at);
 			level.playSound(null, at.x, at.y, at.z, SoundEvents.EVOKER_PREPARE_SUMMON, SoundSource.HOSTILE, 1f, 1.2f);
 		}
-	}
 
-	// ---------------------------------------------------------------
-	// Rune Sequence
-	// ---------------------------------------------------------------
-
-	static final class Runes extends Trial {
-		private static final int PILLARS = 6, RADIUS = 6;
-		private static final String[] GLYPHS = {"ᚠ", "ᚢ", "ᚦ", "ᚨ", "ᚱ", "ᚲ"};
-		private static final int[] COLORS = {0xFF6B6B, 0xFFD166, 0x7BE495, 0x5BC0EB, 0xC77DFF, 0xFFFFFF};
-		final int[][] pillar = new int[PILLARS][2];
-		int[] seq;
-		private int step, showAt = -1, showStep, wrongs;
-		/** Pillars lit until a tick (game time), to put their cap back. */
-		private final long[] litUntil = new long[PILLARS];
-
-		Runes(Rifts.Run run, int index) {
-			super(run, index, Kind.RUNES);
+		/**
+		 * DEV ONLY: plays this trial through its real inputs with a fake player standing in the arena, logs lines with
+		 * "(must be X)" through {@code log} and calls {@code done} when finished (now or later via AuraFx.later).
+		 */
+		void devPlay(net.minecraft.server.MinecraftServer server, ServerLevel level, ServerPlayer fake, java.util.function.Consumer<String> log, Runnable done) {
+			log.accept(name() + ": no dev test yet");
+			done.run();
 		}
 
-		@Override
-		String name() {
-			return "Rune Sequence";
-		}
-
-		@Override
-		String hint() {
-			return "Watch the runes light up, then strike their pillars in the same order. The echo stone repeats it.";
-		}
-
-		@Override
-		void build(ServerLevel level, RandomSource r) {
-			for (int i = 0; i < PILLARS; i++) {
-				// a ring that leaves the side toward the hub open
-				double a = Math.PI * 2 * i / PILLARS + Math.PI / PILLARS;
-				int f = (int) Math.round(Math.cos(a) * RADIUS), l = (int) Math.round(Math.sin(a) * RADIUS);
-				pillar[i][0] = f;
-				pillar[i][1] = l;
-				set(level, f, l, 1, pal.edge());
-				set(level, f, l, 2, pal.edge());
-				set(level, f, l, 3, pal.accent());
-				label(level, Vec3.atBottomCenterOf(at(f, l, 4)).add(0, 0.2, 0),
-						Component.literal(GLYPHS[i]).withStyle(s -> s.withColor(TextColor.fromRgb(COLORS[pillarIndex(f, l)])).withBold(true)), 2.6f);
-			}
-			// the echo stone in the middle
-			set(level, 0, 0, 1, Blocks.LODESTONE);
-			label(level, Vec3.atBottomCenterOf(at(0, 0, 2)).add(0, 0.3, 0), Component.literal("Echo Stone").withStyle(ChatFormatting.GRAY), 0.6f);
-			int players = Math.max(1, run.players.size());
-			seq = new int[Math.min(10, 4 + tier + players - 1)];
-			for (int k = 0; k < seq.length; k++) {
-				int n;
-				do n = r.nextInt(PILLARS); while (k > 0 && n == seq[k - 1]);
-				seq[k] = n;
-			}
-		}
-
-		private int pillarIndex(int f, int l) {
-			for (int i = 0; i < PILLARS; i++) if (pillar[i][0] == f && pillar[i][1] == l) return i;
-			return 0;
-		}
-
-		@Override
-		void begin(ServerLevel level, List<ServerPlayer> here) {
-			showAt = (int) (level.getGameTime() + 50);
-		}
-
-		private void flash(ServerLevel level, int i, long now) {
-			set(level, pillar[i][0], pillar[i][1], 3, pal.light());
-			litUntil[i] = now + 10;
-			Vec3 top = Vec3.atCenterOf(at(pillar[i][0], pillar[i][1], 3));
-			level.playSound(null, top.x, top.y, top.z, SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.BLOCKS, 1.4f, 0.6f + i * 0.2f);
-			level.sendParticles(AuraFx.dust(COLORS[i], 1.6f), top.x, top.y + 0.8, top.z, 14, 0.25, 0.5, 0.25, 0);
-		}
-
-		@Override
-		void tick(ServerLevel level, List<ServerPlayer> here, long now) {
-			for (int i = 0; i < PILLARS; i++) {
-				if (litUntil[i] != 0 && now >= litUntil[i]) {
-					litUntil[i] = 0;
-					set(level, pillar[i][0], pillar[i][1], 3, pal.accent());
-				}
-			}
-			if (solved || showAt < 0 || now < showAt) return;
-			// playing the sequence: one rune every 16 ticks
-			if ((now - showAt) % 16 == 0) {
-				if (showStep < seq.length) {
-					flash(level, seq[showStep], now);
-					showStep++;
-				} else {
-					showAt = -1;
-					showStep = 0;
-					step = 0;
-					actionBar(here, "Your turn: " + seq.length + " runes", ChatFormatting.AQUA);
-				}
-			}
-		}
-
-		@Override
-		boolean use(ServerLevel level, ServerPlayer p, BlockPos pos) {
-			if (solved) return false;
-			if (pos.equals(at(0, 0, 1))) {
-				if (showAt < 0) showAt = (int) level.getGameTime() + 10;
-				return true;
-			}
-			int hit = -1;
-			for (int i = 0; i < PILLARS; i++) {
-				BlockPos b = at(pillar[i][0], pillar[i][1], 0);
-				if (pos.getX() == b.getX() && pos.getZ() == b.getZ() && pos.getY() > Rifts.FLOOR && pos.getY() <= Rifts.FLOOR + 3) hit = i;
-			}
-			if (hit < 0) return false;
-			if (showAt >= 0) return true; // still showing: hands off
-			long now = level.getGameTime();
-			flash(level, hit, now);
-			if (hit == seq[step]) {
-				step++;
-				if (step >= seq.length) {
-					level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1f, 1.4f);
-					solve(level, plinth().add(0, 1.2, 0));
-				}
-			} else {
-				wrongs++;
-				step = 0;
-				Vec3 at = Vec3.atBottomCenterOf(at(pillar[hit][0], pillar[hit][1], 1));
-				level.playSound(null, at.x, at.y, at.z, SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.BLOCKS, 1.5f, 0.5f);
-				p.displayClientMessage(Component.literal("Wrong rune - the island stirs").withStyle(ChatFormatting.RED), true);
-				punish(level, plinth(), com.toast.aurapoints.config.AuraConfig.RIFT_PUZZLE_FAIL_MOBS + tier / 2);
-				// Extreme and up: a mistake rewrites the sequence
-				if (tier >= 3) {
-					RandomSource r = level.random;
-					for (int k = 0; k < seq.length; k++) {
-						int n;
-						do n = r.nextInt(PILLARS); while (k > 0 && n == seq[k - 1]);
-						seq[k] = n;
-					}
-				}
-				showAt = (int) now + 70;
-			}
-			return true;
-		}
-	}
-
-	// ---------------------------------------------------------------
-	// Lights Out
-	// ---------------------------------------------------------------
-
-	static final class Lights extends Trial {
-		private static final int N = 4;
-		private final boolean[][] lit = new boolean[N][N];
-		/** The presses that scrambled it (pressing them again solves it: dev test). */
-		final List<int[]> scramble = new ArrayList<>();
-		private long nextWatcher;
-
-		Lights(Rifts.Run run, int index) {
-			super(run, index, Kind.LIGHTS);
-		}
-
-		@Override
-		String name() {
-			return "Lights of the Rift";
-		}
-
-		@Override
-		String hint() {
-			return "Each tile you touch flips itself and its neighbours. Light all sixteen.";
-		}
-
-		int f(int i) {
-			return i * 2 - 3;
-		}
-
-		@Override
-		void build(ServerLevel level, RandomSource r) {
-			for (boolean[] row : lit) java.util.Arrays.fill(row, true);
-			// scrambled from the solved state, so it can always be solved
-			int presses = Math.min(12, 4 + tier * 2 + r.nextInt(2));
-			Set<Integer> done = new HashSet<>();
-			while (done.size() < presses) {
-				int k = r.nextInt(N * N);
-				if (done.add(k)) {
-					toggle(k / N, k % N);
-					scramble.add(new int[]{k / N, k % N});
-				}
-			}
-			// a few press sets change nothing at all (4x4 has quiet patterns): one more then
-			if (allLit()) {
-				toggle(1, 1);
-				scramble.add(new int[]{1, 1});
-			}
-			// a raised platform with a tile every other block (easier to aim at)
-			for (int a = -4; a <= 4; a++) for (int b = -4; b <= 4; b++) set(level, a, b, 0, pal.edge());
-			for (int i = 0; i < N; i++) for (int j = 0; j < N; j++) paint(level, i, j);
-			label(level, Vec3.atBottomCenterOf(at(-6, 0, 2)), Component.literal("Light them all").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb))), 0.9f);
-		}
-
-		private void toggle(int i, int j) {
-			int[][] n = {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-			for (int[] d : n) {
-				int a = i + d[0], b = j + d[1];
-				if (a >= 0 && a < N && b >= 0 && b < N) lit[a][b] = !lit[a][b];
-			}
-		}
-
-		private boolean allLit() {
-			for (boolean[] row : lit) for (boolean v : row) if (!v) return false;
-			return true;
-		}
-
-		private void paint(ServerLevel level, int i, int j) {
-			set(level, f(i), f(j), 1, lit[i][j] ? pal.light() : pal.base());
-		}
-
-		@Override
-		void begin(ServerLevel level, List<ServerPlayer> here) {
-			nextWatcher = level.getGameTime() + 600;
-		}
-
-		@Override
-		boolean use(ServerLevel level, ServerPlayer p, BlockPos pos) {
-			if (solved || pos.getY() != Rifts.FLOOR + 1) return false;
-			Vec3 v = Vec3.atCenterOf(pos);
-			int fi = (int) Math.round(f(v)), li = (int) Math.round(l(v));
-			if ((fi + 3) % 2 != 0 || (li + 3) % 2 != 0) return false;
-			int i = (fi + 3) / 2, j = (li + 3) / 2;
-			if (i < 0 || i >= N || j < 0 || j >= N) return false;
-			toggle(i, j);
-			for (int a = 0; a < N; a++) for (int b = 0; b < N; b++) paint(level, a, b);
-			level.playSound(null, v.x, v.y, v.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 1.2f, lit[i][j] ? 1.4f : 0.8f);
-			if (allLit()) {
-				level.playSound(null, v.x, v.y, v.z, SoundEvents.BEACON_POWER_SELECT, SoundSource.BLOCKS, 1.2f, 1.2f);
-				solve(level, plinth().add(0, 1.2, 0));
-			}
-			return true;
-		}
-
-		@Override
-		void tick(ServerLevel level, List<ServerPlayer> here, long now) {
-			// a watcher now and then while it stays dark: pressure, not the point
-			if (!solved && started && !here.isEmpty() && now >= nextWatcher) {
-				nextWatcher = now + 600 - tier * 100;
-				punish(level, Vec3.atBottomCenterOf(at(-7, 0, 1)), 1);
-			}
-		}
-	}
-
-	// ---------------------------------------------------------------
-	// Resonance Hunt
-	// ---------------------------------------------------------------
-
-	static final class Hunt extends Trial {
-		final List<BlockPos> mounds = new ArrayList<>();
-		BlockPos target;
-		private final Map<UUID, Long> nextRing = new HashMap<>();
-
-		Hunt(Rifts.Run run, int index) {
-			super(run, index, Kind.HUNT);
-		}
-
-		@Override
-		String name() {
-			return "Resonance Hunt";
-		}
-
-		@Override
-		String hint() {
-			return "The shard is buried in one of the mounds. Hold the Tuning Fork: it rings higher the closer you get. Right-click a mound to dig.";
-		}
-
-		@Override
-		void build(ServerLevel level, RandomSource r) {
-			int tries = 0;
-			int want = Math.min(32, 14 + tier * 4);
-			while (mounds.size() < want && tries++ < 800) {
-				int f = r.nextInt(25) - 12, l = r.nextInt(25) - 12;
-				if (f * f + l * l < 5 || f < -11) continue;
-				BlockPos p = at(f, l, 1);
-				boolean close = false;
-				for (BlockPos m : mounds) if (m.distSqr(p) < 5) close = true;
-				if (close) continue;
-				mounds.add(p);
-				RealmBuilder.set(level, p.getX(), p.getY(), p.getZ(), r.nextBoolean() ? pal.base() : Blocks.GRAVEL);
-				if (r.nextInt(3) == 0) RealmBuilder.set(level, p.getX(), p.getY() + 1, p.getZ(), pal.base());
-			}
-			target = mounds.get(r.nextInt(mounds.size()));
-		}
-
-		@Override
-		void begin(ServerLevel level, List<ServerPlayer> here) {
-			for (ServerPlayer p : here) giveFork(p);
-		}
-
-		static void giveFork(ServerPlayer p) {
-			if (p.getInventory().contains(new ItemStack(AuraPoints.TUNING_FORK.get()))) return;
-			p.getInventory().add(new ItemStack(AuraPoints.TUNING_FORK.get()));
-		}
-
-		@Override
-		void tick(ServerLevel level, List<ServerPlayer> here, long now) {
-			if (solved) return;
-			if (now % 40 == 0) for (ServerPlayer p : here) giveFork(p);
-			Vec3 t = Vec3.atCenterOf(target);
-			for (ServerPlayer p : here) {
-				boolean holding = p.getMainHandItem().is(AuraPoints.TUNING_FORK.get()) || p.getOffhandItem().is(AuraPoints.TUNING_FORK.get());
-				if (!holding) continue;
-				double d = Math.sqrt(p.position().distanceToSqr(t.x, p.getY(), t.z));
-				long next = nextRing.getOrDefault(p.getUUID(), 0L);
-				if (now < next) continue;
-				// closer = higher and quicker
-				nextRing.put(p.getUUID(), now + 6 + (long) Math.min(30, d * 1.5));
-				float pitch = (float) Mth.clamp(2.0 - d / 16.0 * 1.5, 0.5, 2.0);
-				p.playNotifySound(SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.PLAYERS, 0.8f, pitch);
-				String word = d < 2.5 ? "BURNING" : d < 5 ? "hot" : d < 9 ? "warm" : d < 14 ? "cool" : "cold";
-				ChatFormatting col = d < 2.5 ? ChatFormatting.RED : d < 5 ? ChatFormatting.GOLD : d < 9 ? ChatFormatting.YELLOW : d < 14 ? ChatFormatting.AQUA : ChatFormatting.BLUE;
-				p.displayClientMessage(Component.literal("♪ The fork hums " + word).withStyle(col), true);
-				level.sendParticles(p, ParticleTypes.NOTE, true, p.getX(), p.getY() + 2.1, p.getZ(), 1, 0, 0, 0, pitch / 2f);
-			}
-		}
-
-		@Override
-		boolean use(ServerLevel level, ServerPlayer p, BlockPos pos) {
-			if (solved) return false;
-			BlockPos m = null;
-			for (BlockPos b : mounds) if (b.getX() == pos.getX() && b.getZ() == pos.getZ() && pos.getY() >= b.getY() && pos.getY() <= b.getY() + 1) m = b;
-			if (m == null) return false;
-			mounds.remove(m);
-			RealmBuilder.set(level, m.getX(), m.getY() + 1, m.getZ(), Blocks.AIR);
-			RealmBuilder.set(level, m.getX(), m.getY(), m.getZ(), Blocks.AIR);
-			Vec3 at = Vec3.atBottomCenterOf(m);
-			level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, pal.base().defaultBlockState()), at.x, at.y + 0.5, at.z, 30, 0.3, 0.3, 0.3, 0.1);
-			level.playSound(null, at.x, at.y, at.z, SoundEvents.GRAVEL_BREAK, SoundSource.BLOCKS, 1f, 0.8f);
-			if (m.equals(target)) {
-				solve(level, at.add(0, 0.5, 0));
-				return true;
-			}
-			// a wrong mound: something was waiting in it - and on Extreme+ the shard burrows away to another mound
-			if (tier >= 3 && mounds.size() > 1) {
-				target = mounds.get(level.random.nextInt(mounds.size()));
-				p.displayClientMessage(Component.literal("You hear the shard burrow away...").withStyle(ChatFormatting.DARK_PURPLE), true);
-			}
-			if (level.random.nextFloat() < 0.6f) {
-				punish(level, at, 1 + tier / 2);
-				p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1));
-			} else {
-				level.sendParticles(AuraFx.dust(run.aura.rgb, 2f), at.x, at.y + 0.5, at.z, 30, 1, 0.5, 1, 0);
-				level.playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 0.6f, 1.6f);
-				for (ServerPlayer near : level.getEntitiesOfClass(ServerPlayer.class, new net.minecraft.world.phys.AABB(at, at).inflate(2.5))) {
-					near.hurt(level.damageSources().magic(), 3f + tier * 2f);
-					near.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 80, 0));
-					Vec3 push = near.position().subtract(at).normalize().scale(0.8);
-					near.setDeltaMovement(push.x, 0.4, push.z);
-					near.hurtMarked = true;
-				}
-			}
-			p.displayClientMessage(Component.literal("Only rubble... " + mounds.size() + " mounds left").withStyle(ChatFormatting.GRAY), true);
-			return true;
-		}
-	}
-
-	// ---------------------------------------------------------------
-	// Memory Path
-	// ---------------------------------------------------------------
-
-	static final class Memory extends Trial {
-		static final int W = 3, L0 = -7, L1 = 7;
-		/** How long the path shows: shorter on harder tiers. */
-		int show() {
-			return 110 - tier * 18;
-		}
-		/** path[f - L0] = l of the safe tile in that row... rows may hold more than one safe tile: a set. */
-		final Set<Long> safe = new HashSet<>();
-		private final Map<Long, Long> broken = new HashMap<>();
-		private long shownUntil, nextShow;
-
-		Memory(Rifts.Run run, int index) {
-			super(run, index, Kind.MEMORY);
-		}
-
-		@Override
-		String name() {
-			return "Memory Path";
-		}
-
-		@Override
-		String hint() {
-			return "Stand on the start pad: a safe path lights up for a moment. Remember it and walk across.";
-		}
-
-		static long key(int f, int l) {
-			return ((long) f << 32) ^ (l & 0xffffffffL);
-		}
-
-		@Override
-		void build(ServerLevel level, RandomSource r) {
-			// the void under the grid and its sides
-			// the void spans the whole hall: the grid is the only way across
-			for (int f = L0; f <= L1; f++) for (int l = -hall; l <= hall; l++) hole(level, f, l);
-			int l = r.nextInt(W * 2 + 1) - W, f = L0;
-			safe.add(key(f, l));
-			while (f < L1) {
-				int move = r.nextInt(5);
-				int nl = move == 0 ? l - 1 : move == 1 ? l + 1 : l;
-				if (nl != l && nl >= -W && nl <= W && !safe.contains(key(f, nl))) l = nl;
-				else f++;
-				safe.add(key(f, l));
-			}
-			for (int a = L0; a <= L1; a++) for (int b = -W; b <= W; b++) tile(level, a, b, false);
-			// the pads
-			for (int b = -W; b <= W; b++) {
-				set(level, L0 - 1, b, 0, pal.light());
-				set(level, L1 + 1, b, 0, pal.light());
-			}
-			label(level, Vec3.atBottomCenterOf(at(L0 - 2, 0, 2)), Component.literal("Start").withStyle(ChatFormatting.GRAY), 0.8f);
-		}
-
-		private void tile(ServerLevel level, int f, int l, boolean show) {
-			set(level, f, l, 0, show && safe.contains(key(f, l)) ? pal.light() : pal.accent());
-		}
-
-		@Override
-		void tick(ServerLevel level, List<ServerPlayer> here, long now) {
-			// broken tiles come back
-			for (var it = broken.entrySet().iterator(); it.hasNext(); ) {
-				var e = it.next();
-				if (now < e.getValue()) continue;
-				it.remove();
-				int f = (int) (e.getKey() >> 32), l = (int) (long) e.getKey();
-				tile(level, f, l, now < shownUntil);
-			}
-			if (shownUntil != 0 && now >= shownUntil) {
-				shownUntil = 0;
-				for (int a = L0; a <= L1; a++) for (int b = -W; b <= W; b++) if (!broken.containsKey(key(a, b))) tile(level, a, b, false);
-			}
-			for (ServerPlayer p : here) {
-				double pf = f(p.position()), pl = l(p.position());
-				int fi = (int) Math.round(pf), li = (int) Math.round(pl);
-				// fell through: back to the start
-				if (p.getY() < Rifts.FLOOR - 3 && Math.abs(pl) <= hall + 1 && pf >= L0 - 1 && pf <= L1 + 1) {
-					Vec3 s = Vec3.atBottomCenterOf(at(L0 - 2, 0, 1));
-					p.teleportTo(level, s.x, s.y, s.z, yawToward(), 0f);
-					p.fallDistance = 0;
-					p.displayClientMessage(Component.literal("The path forgets you. Try again.").withStyle(ChatFormatting.GRAY), true);
-					continue;
-				}
-				if (solved) continue;
-				// on the start pad: show the path (once in a while)
-				if (fi == L0 - 1 && Math.abs(li) <= W && p.onGround() && now >= nextShow) {
-					nextShow = now + show() + 60;
-					shownUntil = now + show();
-					for (int a = L0; a <= L1; a++) for (int b = -W; b <= W; b++) if (!broken.containsKey(key(a, b))) tile(level, a, b, true);
-					level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 1.5f, 1f);
-				}
-				// a wrong tile breaks under you
-				if (p.onGround() && fi >= L0 && fi <= L1 && Math.abs(li) <= W && !safe.contains(key(fi, li)) && !broken.containsKey(key(fi, li))) {
-					broken.put(key(fi, li), now + 60);
-					set(level, fi, li, 0, Blocks.AIR);
-					Vec3 at = Vec3.atCenterOf(at(fi, li, 0));
-					level.playSound(null, at.x, at.y, at.z, SoundEvents.GLASS_BREAK, SoundSource.BLOCKS, 1f, 0.7f);
-					level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, pal.accent().defaultBlockState()), at.x, at.y, at.z, 20, 0.3, 0.1, 0.3, 0.1);
-				}
-				// across
-				if (fi >= L1 + 1 && Math.abs(li) <= W + 1 && p.onGround()) {
-					// the grid stays walkable for the others
-					for (Long k : safe) broken.remove(k);
-					for (int a = L0; a <= L1; a++) for (int b = -W; b <= W; b++) set(level, a, b, 0, pal.floor());
-					solve(level, Vec3.atBottomCenterOf(at(L1 + 3, 0, 1)).add(0, 0.6, 0));
-				}
-			}
-		}
-
-		private float yawToward() {
-			// facing forward along the island's f axis
-			return (float) Math.toDegrees(Math.atan2(-fx, fz));
-		}
-
-		@Override
-		Vec3 plinth() {
-			return Vec3.atBottomCenterOf(at(L1 + 3, 0, 1)).add(0, 0.2, 0);
-		}
-	}
-
-	// ---------------------------------------------------------------
-	// Carry Trial
-	// ---------------------------------------------------------------
-
-	static final class Carry extends Trial {
-		static final int GAP0 = -5, GAP1 = 6, START = -8, END = 9;
-		private final Set<Long> path = new HashSet<>();
-		/** Path tiles stepped on -> the tick they crumble; crumbled ones -> the tick they come back. */
-		private final Map<Long, Long> crumbling = new HashMap<>(), gone = new HashMap<>();
-		private long nextGust, gustAt = -1;
-		private int gustSide = 1;
-
-		Carry(Rifts.Run run, int index) {
-			super(run, index, Kind.CARRY);
-		}
-
-		@Override
-		String name() {
-			return "Weight of the Relic";
-		}
-
-		@Override
-		String hint() {
-			return "The shard is heavy. Carry it over the crumbling path to the far side - fall, and it goes back to its plinth.";
-		}
-
-		private static long key(int f, int l) {
-			return ((long) f << 32) ^ (l & 0xffffffffL);
-		}
-
-		@Override
-		void build(ServerLevel level, RandomSource r) {
-			for (int f = GAP0; f <= GAP1; f++) for (int l = -hall; l <= hall; l++) hole(level, f, l);
-			// a winding two-wide path across the gap
-			double phase = r.nextDouble() * Math.PI * 2;
-			for (int f = GAP0; f <= GAP1; f++) {
-				int mid = (int) Math.round(Math.sin(f * 0.9 + phase) * 3);
-				for (int l = mid - 1; l <= mid; l++) {
-					path.add(key(f, l));
-					set(level, f, l, 0, pal.floor());
-					set(level, f, l, -1, pal.base());
-				}
-			}
-			set(level, START, 0, 1, pal.edge());
-			set(level, END, 0, 1, pal.light());
-			label(level, Vec3.atBottomCenterOf(at(END, 0, 3)), Component.literal("Bring it here").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb))), 0.8f);
-		}
-
-		@Override
-		Vec3 plinth() {
-			return Vec3.atBottomCenterOf(at(START, 0, 2)).add(0, 0.2, 0);
-		}
-
-		@Override
-		void begin(ServerLevel level, List<ServerPlayer> here) {
-			Rifts.dropShard(level, run, this, plinth());
-			nextGust = level.getGameTime() + 80;
-		}
-
-		ServerPlayer carrier(List<ServerPlayer> here) {
-			for (ServerPlayer p : here) if (Rifts.holdsShard(p, run, index)) return p;
-			return null;
-		}
-
-		@Override
-		void tick(ServerLevel level, List<ServerPlayer> here, long now) {
-			for (var it = crumbling.entrySet().iterator(); it.hasNext(); ) {
-				var e = it.next();
-				if (now < e.getValue()) continue;
-				it.remove();
-				int f = (int) (e.getKey() >> 32), l = (int) (long) e.getKey();
-				set(level, f, l, 0, Blocks.AIR);
-				set(level, f, l, -1, Blocks.AIR);
-				Vec3 at = Vec3.atCenterOf(at(f, l, 0));
-				level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, pal.floor().defaultBlockState()), at.x, at.y, at.z, 12, 0.3, 0.2, 0.3, 0.05);
-				level.playSound(null, at.x, at.y, at.z, SoundEvents.STONE_BREAK, SoundSource.BLOCKS, 0.8f, 0.7f);
-				gone.put(e.getKey(), now + 90);
-			}
-			for (var it = gone.entrySet().iterator(); it.hasNext(); ) {
-				var e = it.next();
-				if (now < e.getValue()) continue;
-				it.remove();
-				int f = (int) (e.getKey() >> 32), l = (int) (long) e.getKey();
-				set(level, f, l, 0, pal.floor());
-				set(level, f, l, -1, pal.base());
-			}
-			ServerPlayer carrier = solved ? null : carrier(here);
-			for (ServerPlayer p : here) {
-				double pf = f(p.position()), pl = l(p.position());
-				int fi = (int) Math.round(pf), li = (int) Math.floor(pl + 0.5);
-				// fell: back to the start, the shard back to its plinth
-				if (p.getY() < Rifts.FLOOR - 3 && pf >= GAP0 - 1 && pf <= GAP1 + 1) {
-					if (!solved && Rifts.holdsShard(p, run, index)) {
-						Rifts.takeShard(p, run, index);
-						Rifts.dropShard(level, run, this, plinth());
-						p.displayClientMessage(Component.literal("The shard slips back to its plinth.").withStyle(ChatFormatting.GOLD), true);
-					}
-					Vec3 s = Vec3.atBottomCenterOf(at(START - 2, 0, 1));
-					p.teleportTo(level, s.x, s.y, s.z, p.getYRot(), 0f);
-					p.fallDistance = 0;
-					continue;
-				}
-				// path tiles crumble a moment after you step on them
-				if (p.onGround() && path.contains(key(fi, li)) && !crumbling.containsKey(key(fi, li)) && !gone.containsKey(key(fi, li))) {
-					crumbling.put(key(fi, li), now + 22);
-				}
-			}
-			if (solved) return;
-			if (carrier != null) {
-				// heavy
-				carrier.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 15, 1, false, false, true));
-				carrier.setSprinting(false);
-				if (f(carrier.position()) >= END - 1.5 && carrier.onGround()) {
-					level.playSound(null, carrier.getX(), carrier.getY(), carrier.getZ(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1f, 1.2f);
-					carrier.displayClientMessage(Component.literal("The shard settles: take it to the altar.").withStyle(ChatFormatting.GREEN), true);
-					solve(level, null);
-					return;
-				}
-			}
-			// the aura gusts across the gap: a warning, then a shove
-			if (now >= nextGust && !here.isEmpty()) {
-				nextGust = now + 70 - tier * 8;
-				gustAt = now + 20;
-				gustSide = -gustSide;
-				for (int f = GAP0; f <= GAP1; f += 2) {
-					Vec3 w = Vec3.atCenterOf(at(f, -gustSide * 6, 1));
-					level.sendParticles(AuraFx.dust(run.aura.rgb, 1.6f), w.x, w.y, w.z, 6, 0.2, 0.6, 0.2, 0);
-				}
-				level.playSound(null, c.getX(), Rifts.FLOOR + 2, c.getZ(), SoundEvents.BREEZE_INHALE, SoundSource.HOSTILE, 1.5f, 0.8f);
-			}
-			if (gustAt > 0 && now >= gustAt) {
-				gustAt = -1;
-				level.playSound(null, c.getX(), Rifts.FLOOR + 2, c.getZ(), SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.HOSTILE, 1.5f, 0.7f);
-				for (ServerPlayer p : here) {
-					double pf = f(p.position());
-					if (pf < GAP0 - 0.5 || pf > GAP1 + 0.5) continue;
-					double push = 0.45 + tier * 0.08;
-					p.setDeltaMovement(lx * gustSide * push, 0.25, lz * gustSide * push);
-					p.hurtMarked = true;
-				}
-			}
+		/** Air at an arena column from dy0 to dy1 (holes, pits). */
+		void clearColumn(ServerLevel level, int f, int l, int dy0, int dy1) {
+			for (int dy = dy0; dy <= dy1; dy++) set(level, f, l, dy, Blocks.AIR);
 		}
 	}
 }

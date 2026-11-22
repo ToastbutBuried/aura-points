@@ -282,6 +282,8 @@ final class Reliquary {
 			for (int i = 0; i < 4; i++) {
 				if (!Rifts.holdsShard(p, run, i) || run.placedTrials.contains(i)) continue;
 				Vec3 to = Vec3.atBottomCenterOf(run.pedestal(i)).add(0, 2.5, 0), from = p.position().add(0, 1.0, 0);
+				// inside a trial arena the way to the altar is the portal back
+				for (Trials.Trial t : run.trials) if (t.back != null && t.inArena(p.position())) to = Vec3.atBottomCenterOf(t.back.base).add(0, 2.5, 0);
 				Vec3 dir = to.subtract(from);
 				double len = dir.length();
 				dir = dir.normalize();
