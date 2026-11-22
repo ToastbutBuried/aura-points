@@ -35,8 +35,44 @@ public final class TrialsDevTest {
 	public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(Commands.literal("auradev").then(Commands.literal("trialtest")
 				.executes(ctx -> start(ctx.getSource().getServer(), null))
+				.then(Commands.literal("lag").executes(ctx -> lag(ctx.getSource().getServer())))
 				.then(Commands.argument("kind", com.mojang.brigadier.arguments.StringArgumentType.word())
 						.executes(ctx -> start(ctx.getSource().getServer(), Trials.Kind.valueOf(com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "kind").toUpperCase(java.util.Locale.ROOT)))))));
+	}
+
+	/**
+	 * The real flow's server cost: a Wind gate opens (arena chunks preload), 20 s later a fake walks in and votes,
+	 * the arenas build on their own; logs the slowest tick from the vote until all four stand.
+	 */
+	private static int lag(MinecraftServer server) {
+		ServerLevel rift = Rifts.level(server);
+		ServerPlayer fake = FakePlayerFactory.get(rift, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000c642"), "TrialTest"));
+		Rifts.TEST_PLAYERS.put(fake.getUUID(), fake);
+		AuraState.get(server).getOrCreate(fake.getUUID()).aura = AuraType.WATER;
+		Rifts.open(server, AuraType.WIND, null, new Vec3(0.5, 120, 0.5));
+		AuraFx.later(server, 400, () -> {
+			Rifts.devEnter(server, fake);
+			Rifts.devVote(fake, 1);
+			Rifts.Run run = Rifts.runOf(fake);
+			long[] worst = {0}, last = {System.nanoTime()};
+			int[] ticks = {0};
+			Runnable[] step = new Runnable[1];
+			step[0] = () -> {
+				long t = System.nanoTime();
+				worst[0] = Math.max(worst[0], t - last[0]);
+				last[0] = t;
+				boolean all = run != null && java.util.Arrays.stream(run.trials).allMatch(x -> x.built);
+				if (all || ++ticks[0] > 700) {
+					log("lag: arenas built " + all + " (must be true) after " + ticks[0] + " ticks, slowest tick " + worst[0] / 1_000_000 + " ms (must be < 250), kinds " + Rifts.devKinds(fake));
+					Rifts.leave(fake);
+					Rifts.clearAll();
+					Rifts.TEST_PLAYERS.clear();
+					log("trialtest done");
+				} else AuraFx.later(server, 1, step[0]);
+			};
+			AuraFx.later(server, 1, step[0]);
+		});
+		return 1;
 	}
 
 	/** Runs the framework checks, then every kind's devPlay (or only {@code only}). */

@@ -80,6 +80,29 @@ final class Trials {
 	 */
 	static final int[][] ARENAS = {{-330, 0}, {-150, -330}, {150, -330}, {330, 0}};
 
+	/** Run slots whose arena chunks are held loaded. */
+	private static final Set<Integer> PRELOADED = new HashSet<>();
+
+	/**
+	 * Holds the four arena areas of a run slot loaded (forced region tickets, radius 9 chunks, the arena box reaches 8 chunks out) so their
+	 * chunks generate off the main thread while the gate forms and the party votes; a cold sync load froze the server
+	 * for 2-3 s per big arena.
+	 */
+	static void preload(ServerLevel level, int slot, boolean on) {
+		if (on ? !PRELOADED.add(slot) : !PRELOADED.remove(slot)) return;
+		var origin = Monument.origin(slot);
+		for (int[] o : ARENAS) {
+			var pos = new net.minecraft.world.level.ChunkPos(new BlockPos(origin.getX() + o[0], 0, origin.getZ() + o[1]));
+			if (on) level.getChunkSource().addRegionTicket(net.minecraft.server.level.TicketType.FORCED, pos, 9, pos);
+			else level.getChunkSource().removeRegionTicket(net.minecraft.server.level.TicketType.FORCED, pos, 9, pos);
+		}
+	}
+
+	/** Server stop / dev reset: tickets don't outlive the server, so only the bookkeeping goes. */
+	static void forgetPreloads() {
+		PRELOADED.clear();
+	}
+
 	// ---------------------------------------------------------------
 	// The base
 	// ---------------------------------------------------------------
@@ -251,9 +274,18 @@ final class Trials {
 
 		// --- shared machinery
 
+		/** All chunks of the arena's box are loaded (built without a blocking chunk load). */
+		boolean chunksReady(ServerLevel level) {
+			int h = arenaHalf() + 4;
+			for (int cx = (a.getX() - h) >> 4; cx <= (a.getX() + h) >> 4; cx++)
+				for (int cz = (a.getZ() - h) >> 4; cz <= (a.getZ() + h) >> 4; cz++) if (!level.getChunkSource().hasChunk(cx, cz)) return false;
+			return true;
+		}
+
 		/** The arena: empties its box, builds the trial, puts the way back in. Called once, a little after the vote. */
 		final void buildAll(ServerLevel level, RandomSource r) {
 			this.random = r;
+			long t0 = System.nanoTime();
 			int h = arenaHalf() + 4;
 			Monument.clearColumns(level, a.getX() - h, a.getZ() - h, 2 * h + 1);
 			build(level, r);
@@ -269,6 +301,7 @@ final class Trials {
 				for (int l = -3; l <= 3; l++) if (level.getBlockState(arena(f, l, 0)).isAir()) set(level, f, l, 0, pal.floor());
 			label(level, Vec3.atBottomCenterOf(at(hall - 3, 0, TrialPortal.H + 4)), Component.literal(name()).withStyle(s -> s.withColor(rgb).withBold(true)), 2.2f);
 			built = true;
+			com.toast.aurapoints.AuraPoints.LOGGER.debug("[rift] built the {} arena in {} ms", name(), (System.nanoTime() - t0) / 1_000_000);
 			gate.setOpen(level, true, pal.gate());
 			back.setOpen(level, true, pal.gate());
 		}

@@ -215,7 +215,10 @@ public final class Rifts {
 		// the monument starts forming at once, a tile a tick; the gate opens when it stands
 		ServerLevel rift = level(server);
 		tear.runId = nextId++;
-		if (rift != null) tear.job = Monument.start(rift, tear.runId % 16, aura);
+		if (rift != null) {
+			tear.job = Monument.start(rift, tear.runId % 16, aura);
+			Trials.preload(rift, tear.runId % 16, true);
+		}
 		// the curtain faces whoever is nearest (the player it opened for, or the one who ran the command)
 		Vec3 ground = pos.subtract(0, 1.6, 0);
 		ServerPlayer facing = near != null ? near : ow.getNearestPlayer(pos.x, pos.y, pos.z, 64, false) instanceof ServerPlayer sp ? sp : null;
@@ -242,6 +245,9 @@ public final class Rifts {
 	private static void closeTear(MinecraftServer server, boolean say) {
 		if (tear == null) return;
 		if (tear.label != null) tear.label.discard();
+		// a gate nobody went through: its arena areas needn't stay loaded
+		ServerLevel lvl = level(server);
+		if (tear.run == null && lvl != null) Trials.preload(lvl, tear.runId % 16, false);
 		if (tear.gate != null) {
 			// say = in view of players: fold shut; otherwise (server stop, a new tear) gone at once
 			if (say) {
@@ -351,6 +357,7 @@ public final class Rifts {
 		if (rift == null || tear == null) return;
 		if (com.toast.aurapoints.arena.Arena.in(player) || com.toast.aurapoints.arena.Match.signedUp(player)) return;
 		if (tear.job == null) tear.job = Monument.start(rift, tear.runId % 16, tear.aura);
+		Trials.preload(rift, tear.runId % 16, true);
 		if (!tear.job.done()) tear.job.finish(); // dev tests and commands don't wait for the gate
 		if (tear.run == null) {
 			tear.run = new Run(tear.runId, tear.aura);
@@ -476,7 +483,9 @@ public final class Rifts {
 			return;
 		}
 		for (Trials.Trial t : run.trials) {
-			if (!t.built && run.trialRandom != null && now >= run.startedAt + 10L * (t.index + 1)) t.buildAll(rift, run.trialRandom);
+			// once its chunks are in (preloaded since the gate opened; 30 s at most, then a blocking load)
+			if (!t.built && run.trialRandom != null && now >= run.startedAt + 10L * (t.index + 1) && (t.chunksReady(rift) || now >= run.startedAt + 600))
+				t.buildAll(rift, run.trialRandom);
 			t.tickAll(rift, up, now);
 		}
 		if (phase == Reliquary.Phase.TRIALS) {
@@ -753,6 +762,8 @@ public final class Rifts {
 		}
 		run.players.clear();
 		RUNS.remove(run);
+		ServerLevel rift = level(server);
+		if (rift != null) Trials.preload(rift, run.slot, false);
 		if (tear != null && tear.run == run) closeTear(server, false);
 	}
 
@@ -1078,6 +1089,7 @@ public final class Rifts {
 	}
 
 	public static void clearAll() {
+		Trials.forgetPreloads();
 		if (tear != null && tear.gate != null) tear.gate.remove();
 		for (RiftGate g : CLOSING) g.remove();
 		CLOSING.clear();
