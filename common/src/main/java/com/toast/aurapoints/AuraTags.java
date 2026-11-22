@@ -4,6 +4,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.block.Block;
 
 /** Tags this mod reads. Other mods and datapacks add entries to them. */
 public final class AuraTags {
@@ -34,4 +35,11 @@ public final class AuraTags {
 
 	public static final TagKey<EntityType<?>> STUNT_BOSSES =
 			TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("aurapoints", "stunt_bosses"));
+
+	/**
+	 * Blocks the shadow dragon head (geo/DragonHead) flies through: its collision score ignores them. Default: every
+	 * leaf block. A datapack adds more via data/aurapoints/tags/block/dragon_passable.json.
+	 */
+	public static final TagKey<Block> DRAGON_PASSABLE =
+			TagKey.create(Registries.BLOCK, ResourceLocation.fromNamespaceAndPath("aurapoints", "dragon_passable"));
 }

@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.44.1
+- The Shadow dragon no longer bumps into thin things (1-block walls, roofs, fences, pillars, trunks), leaves or water. Datapacks can add more pass-through blocks via the block tag aurapoints:dragon_passable.
+
 == 5.44.0
 - New key: Summon (in Controls, unbound by default). It calls your aura's summon; Shadow's is the Tyrant of Shadow dragon, once it has accepted you. Clients must update to get the key.
 
