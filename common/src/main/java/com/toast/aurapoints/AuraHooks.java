@@ -33,7 +33,9 @@ import java.util.UUID;
  *    aura, and {@code aura_mastery}: the level of the aura they hold now (always current, written by the mod - change
  *    levels with /aura mastery set);
  *  - function tags run as (and at) the player: {@code #aurapoints:ability/<ability>} when they use an
- *    ability (e.g. #aurapoints:ability/fireball), {@code #aurapoints:aura_changed} when their aura changes.
+ *    ability (e.g. #aurapoints:ability/fireball), {@code #aurapoints:aura_changed} when their aura changes;
+ *  - the Summon key (ability/Summons): a press runs {@code #aurapoints:summon/<aura>} (e.g. #aurapoints:summon/shadow), then
+ *    {@code #aurapoints:summon}, as and at the player; scoreboard {@code aura_key_summon} is 1 while the key is held.
  * The objectives are created on server start if missing.
  */
 public final class AuraHooks {
@@ -66,6 +68,7 @@ public final class AuraHooks {
 		for (String name : ITEM_OBJECTIVES) objective(server, name);
 		objective(server, MASTERY_OBJECTIVE);
 		objective(server, BRANCH_OBJECTIVE);
+		objective(server, com.toast.aurapoints.ability.Summons.KEY_OBJECTIVE);
 		for (AuraType aura : AuraType.values()) objective(server, masteryObjective(aura));
 		for (Ability ability : Ability.values()) if (ability.active) objective(server, cooldownObjective(ability));
 	}
@@ -169,13 +172,25 @@ public final class AuraHooks {
 		runTag(player, "left_click");
 	}
 
-	/** Runs every function in #aurapoints:{@code path} as and at the player (does nothing if the tag is empty). */
-	private static void runTag(ServerPlayer player, String path) {
+	/** Sets the player's score in a dummy objective (created if missing). */
+	public static void setScore(ServerPlayer player, String objectiveName, int value) {
 		MinecraftServer server = player.getServer();
 		if (server == null) return;
+		server.getScoreboard().getOrCreatePlayerScore(player, objective(server, objectiveName)).set(value);
+	}
+
+	/** Runs every function in #aurapoints:{@code path} as and at the player (does nothing if the tag is empty). */
+	private static void runTag(ServerPlayer player, String path) {
+		runTagAny(player, path);
+	}
+
+	/** Like runTag; returns true if the tag had any function to run. */
+	public static boolean runTagAny(ServerPlayer player, String path) {
+		MinecraftServer server = player.getServer();
+		if (server == null) return false;
 		var functions = server.getFunctions();
 		var tag = functions.getTag(ResourceLocation.fromNamespaceAndPath(AuraPoints.MOD_ID, path));
-		if (tag.isEmpty()) return;
+		if (tag.isEmpty()) return false;
 		var source = player.createCommandSourceStack().withSuppressedOutput().withPermission(2);
 		for (var function : tag) {
 			try {
@@ -184,5 +199,6 @@ public final class AuraHooks {
 				AuraPoints.LOGGER.warn("Datapack hook #{}:{} failed", AuraPoints.MOD_ID, path, e);
 			}
 		}
+		return true;
 	}
 }

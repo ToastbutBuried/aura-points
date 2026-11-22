@@ -32,6 +32,10 @@ public final class ClientKeyHandler {
 	public static final KeyMapping[] KEYS = new KeyMapping[com.toast.aurapoints.ability.AuraType.KEY_SLOTS + 5];
 	private static final boolean[] WAS_DOWN = new boolean[KEYS.length];
 	private static final String[] NAMES = {"ability_1", "ability_2", "ability_3", "itemuse", "itemsecondary", "ultimate", "itemtertiary", "mjolnirswing"};
+	/** The Summon key (AbilityKeyPacket.SUMMON): its own field, since index 8 (MJOLNIR_ATTACK_HELD) has no KeyMapping. */
+	public static final KeyMapping SUMMON = com.toast.aurapoints.shim.ClientPlatform.get().inGameKey(
+			"key.aurapoints.summon", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), "key.categories.aurapoints");
+	private static boolean summonWasDown = false;
 	private static boolean jumpWasDown = false;
 	/** Left mouse as last reported to the server (only while Mjölnir is held: it keeps the hammer flight going). */
 	private static boolean attackWasDown = false;
@@ -51,6 +55,7 @@ public final class ClientKeyHandler {
 		for (KeyMapping key : KEYS) {
 			event.register(key);
 		}
+		event.register(SUMMON);
 	}
 
 	@SubscribeEvent
@@ -65,6 +70,12 @@ public final class ClientKeyHandler {
 			if (client.player == null) continue;
 			PacketDistributor.sendToServer(new AbilityKeyPacket(i, down));
 			if (down && i < com.toast.aurapoints.ability.AuraType.KEY_SLOTS) com.toast.aurapoints.client.ClientCooldowns.onKeyPressed(i);
+		}
+
+		boolean summon = inGame && com.toast.aurapoints.shim.ClientPlatform.get().isKeyDown(SUMMON);
+		if (summon != summonWasDown) {
+			summonWasDown = summon;
+			if (client.player != null) PacketDistributor.sendToServer(new AbilityKeyPacket(AbilityKeyPacket.SUMMON, summon));
 		}
 
 		// Mjölnir flight: the server wants to know how long left mouse stays down (and that it was let go)

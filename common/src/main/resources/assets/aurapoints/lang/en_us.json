@@ -62,6 +62,7 @@
   "key.aurapoints.itemtertiary": "Item Tertiary (datapack items)",
   "key.aurapoints.mjolnirswing": "Mjölnir Swing (hold to spin)",
   "key.aurapoints.ultimate": "Ultimate (awakened aura)",
+  "key.aurapoints.summon": "Summon (aura companion)",
   "aurapoints.configuration.animations": "Ability animations",
   "aurapoints.configuration.animations.tooltip": "ALL: everything, your own arms in first person too. NO_FIRST_PERSON: other players and yourself in third person, your normal hand in first person. OFF: no ability animations.",
   "stat.aurapoints.vine_hook_pulls": "Targets Pulled by Vine Hook",

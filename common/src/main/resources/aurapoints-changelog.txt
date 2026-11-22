@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.44.0
+- New key: Summon (in Controls, unbound by default). It calls your aura's summon; Shadow's is the Tyrant of Shadow dragon, once it has accepted you. Clients must update to get the key.
+
 == 5.43.2
 - Storm walls no longer draw over other mods (Distant Horizons, shaders) or look like a glass pane up close; new client option "Storm walls" to turn them off.
 

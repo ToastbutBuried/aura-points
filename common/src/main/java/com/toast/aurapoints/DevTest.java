@@ -36,6 +36,7 @@ final class DevTest {
 		RelicDevTest.register(dispatcher);
 		RiftDevTest.register(dispatcher);
 		ShrineDevTest.register(dispatcher);
+		SummonDevTest.register(dispatcher);
 		CloakDevTest.register(dispatcher);
 		UtilDevTest.register(dispatcher);
 		AltarDevTest.register(dispatcher);

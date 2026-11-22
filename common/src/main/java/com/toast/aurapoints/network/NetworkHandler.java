@@ -426,6 +426,11 @@ public final class NetworkHandler {
 				}
 				return;
 			}
+			// the Summon key: hands off to the aura's datapack summon
+			if (packet.key() == AbilityKeyPacket.SUMMON) {
+				com.toast.aurapoints.ability.Summons.press(player, packet.down());
+				return;
+			}
 			if (packet.key() == AbilityKeyPacket.MJOLNIR_ATTACK_HELD) {
 				com.toast.aurapoints.ability.Mjolnir.attackHeld(player, packet.down());
 				return;
