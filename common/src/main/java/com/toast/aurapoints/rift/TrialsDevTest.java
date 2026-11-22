@@ -118,7 +118,7 @@ public final class TrialsDevTest {
 		int mobs = run.mobs.size();
 		t.strike(rift, fake, fake.position(), List.of(fake));
 		t.strike(rift, fake, fake.position(), List.of(fake));
-		log("two strikes: count " + t.strikes + " (must be 2), mobs " + (run.mobs.size() > mobs) + " (must be true)");
+		log("two strikes: count " + t.strikes + " (must be 2), hazard mobs " + (run.mobs.size() > mobs) + (t.kind == Trials.Kind.RINGS ? " (Rings: gusts, no mobs)" : " (must be true)"));
 		t.strike(rift, fake, fake.position(), List.of(fake));
 		log("third strike: count " + t.strikes + " (must be 0), total " + t.totalStrikes + " (must be 3)");
 		for (var m : run.mobs) m.discard();
