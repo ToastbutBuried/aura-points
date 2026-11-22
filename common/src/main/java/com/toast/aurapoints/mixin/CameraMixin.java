@@ -27,10 +27,13 @@ public abstract class CameraMixin {
 
 	@Inject(method = "setup", at = @At("TAIL"))
 	private void aurapoints$ritualCamera(BlockGetter level, Entity entity, boolean detached, boolean thirdPersonReverse, float partialTick, CallbackInfo ci) {
-		double[] pose = com.toast.aurapoints.client.RitualCutscene.pose(partialTick);
+		double[] pose = com.toast.aurapoints.client.RiftCamera.pose(partialTick);
+		if (pose == null) pose = com.toast.aurapoints.client.RitualCutscene.pose(partialTick);
 		if (pose == null) return;
 		setPosition(pose[0], pose[1], pose[2]);
 		setRotation((float) pose[3], (float) pose[4]);
-		this.detached = true;
+		// your own body is drawn only while the camera is away from your eyes (or it fills the screen on the way home)
+		net.minecraft.world.phys.Vec3 eye = entity.getEyePosition(partialTick);
+		this.detached = eye.distanceToSqr(pose[0], pose[1], pose[2]) > 1.5 * 1.5;
 	}
 }

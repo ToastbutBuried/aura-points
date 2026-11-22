@@ -71,6 +71,13 @@ final class Altar {
 			return true;
 		}
 		int trial = RelicShardItem.trial(hand);
+		if (trial != i) {
+			// the colour language: each shard has its own socket
+			p.displayClientMessage(Component.literal("This is the " + Reliquary.WING_NAMES[i] + " socket - that shard belongs in the ")
+					.withStyle(ChatFormatting.GRAY).append(Component.literal(Reliquary.WING_NAMES[Math.max(0, Math.min(3, trial))] + " socket")
+							.withStyle(Reliquary.WING_FMT[Math.max(0, Math.min(3, trial))], ChatFormatting.BOLD)), true);
+			return true;
+		}
 		if (trial >= 0 && trial < run.trials.length && !run.trials[trial].solved) {
 			p.displayClientMessage(Component.literal("The shard is still unstable - finish its trial first.").withStyle(ChatFormatting.GOLD), true);
 			return true;
@@ -80,7 +87,8 @@ final class Altar {
 			run.trials[trial].shardOut = false;
 			run.placedTrials.add(trial);
 		}
-		shards[i] = display(level, top(i), RelicShardItem.make(run.aura, run.id, trial), 0.9f);
+		Reliquary.removeGhost(run, i);
+		shards[i] = itemDisplay(level, top(i), RelicShardItem.make(run.aura, run.id, trial), 0.9f, 15);
 		placed++;
 		Vec3 t = top(i);
 		level.playSound(null, t.x, t.y, t.z, SoundEvents.END_PORTAL_FRAME_FILL, SoundSource.BLOCKS, 1.4f, 0.8f + placed * 0.15f);
@@ -93,11 +101,11 @@ final class Altar {
 	}
 
 	Vec3 top(int i) {
-		return Vec3.atBottomCenterOf(run.pedestal(i)).add(0, 3.4, 0);
+		return Vec3.atBottomCenterOf(run.pedestal(i)).add(0, 3.0, 0);
 	}
 
 	Vec3 focus() {
-		return Vec3.atBottomCenterOf(run.hub()).add(0, 2.2, 0);
+		return Vec3.atBottomCenterOf(run.hub()).add(0, 4.2, 0);
 	}
 
 	private void start(ServerLevel level) {
@@ -151,7 +159,7 @@ final class Altar {
 				if (shards[i] != null) shards[i].discard();
 				shards[i] = null;
 			}
-			relic = display(level, f.add(0, 4.5, 0), Relics.stack(run.aura), 1.6f);
+			relic = itemDisplay(level, f.add(0, 4.5, 0), Relics.stack(run.aura), 1.6f, 15);
 			level.sendParticles(ParticleTypes.FLASH, f.x, f.y + 4.5, f.z, 1, 0, 0, 0, 0);
 			level.sendParticles(AuraFx.dust(run.aura.rgb, 3f), f.x, f.y + 4.5, f.z, 80, 1.2, 1.2, 1.2, 0);
 			level.playSound(null, f.x, f.y, f.z, SoundEvents.TOTEM_USE, SoundSource.BLOCKS, 1.4f, 0.8f);
@@ -176,13 +184,14 @@ final class Altar {
 		return false;
 	}
 
-	private Display.ItemDisplay display(ServerLevel level, Vec3 at, ItemStack stack, float scale) {
+	/** A floating item (shards, ghosts, the relic): {@code light} 0..15, tagged so a crash leaves nothing behind. */
+	static Display.ItemDisplay itemDisplay(ServerLevel level, Vec3 at, ItemStack stack, float scale, int light) {
 		Display.ItemDisplay d = EntityType.ITEM_DISPLAY.create(level);
 		if (d == null) return null;
 		d.getSlot(0).set(stack);
 		DisplayAccessor acc = (DisplayAccessor) d;
 		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), null, new Vector3f(scale, scale, scale), null));
-		acc.aurapoints$setBrightnessOverride(new Brightness(15, 15));
+		acc.aurapoints$setBrightnessOverride(new Brightness(light, light));
 		acc.aurapoints$setPosRotInterpolationDuration(2);
 		acc.aurapoints$setViewRange(2f);
 		d.moveTo(at.x, at.y, at.z, 0, 0);

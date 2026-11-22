@@ -52,13 +52,17 @@ public final class RiftDevTest {
 			boolean opened = Rifts.open(server, AuraType.FIRE, null, new Vec3(0.5, 120, 0.5));
 			log("gate open " + opened + " " + Rifts.devTearOpen() + " (must be true true)");
 			Rifts.devEnter(server, fake);
-			String kinds = Rifts.devKinds(fake);
-			log("entered: " + Rifts.devState(fake) + " (must be trials 0/4), kinds " + kinds + " (must be 4 different)");
 			var hub = Rifts.devHub(fake);
-			log("realm built: hub floor " + !rift.getBlockState(hub).isAir() + ", focus " + !rift.getBlockState(hub.above()).isAir()
-					+ ", north island " + !rift.getBlockState(hub.offset(0, 0, -48)).isAir() + " (must be true true true)");
-			// an empty-handed pedestal click is taken (and does nothing)
-			log("empty pedestal click taken " + Rifts.onUse(fake, hub.offset(0, 2, -6)) + " (must be true): " + Rifts.devState(fake) + " (must be placed 0)");
+			var anchors = com.toast.aurapoints.rift.Monument.anchors();
+			log("monument built: crossing floor " + !rift.getBlockState(hub).isAir() + ", altar " + !rift.getBlockState(hub.above(3)).isAir()
+					+ ", west wing floor " + !rift.getBlockState(hub.offset(anchors.wings.get(0))).isAir()
+					+ ", crypt floor " + !rift.getBlockState(hub.offset(0, anchors.cryptFloor, 0)).isAir() + " (must be true true true true)");
+			log("voting: " + Rifts.devDifficulty(fake) + " (must be MEDIUM VOTE), door sealed " + Rifts.devDoorSealed(fake) + " (must be true)");
+			Rifts.devVote(fake, 3);
+			String kinds = Rifts.devKinds(fake);
+			log("voted Extreme: " + Rifts.devDifficulty(fake) + " (must be EXTREME TRIALS), kinds " + kinds + " (must be 4 different)");
+			// an empty-handed socket click is taken (and does nothing)
+			log("empty socket click taken " + Rifts.onUse(fake, Rifts.devSocket(fake, 0)) + " (must be true): " + Rifts.devState(fake) + " (must be placed 0)");
 			for (int i = 0; i < 4; i++) Rifts.devSolve(fake, i);
 			log("all solved: " + Rifts.devState(fake) + " (must be trials 4/4), shards in the world " + Rifts.devShardItemsInWorld(fake) + " (must be 4), kinds " + Rifts.devKinds(fake));
 			Rifts.devPlaceAll(fake);
@@ -72,7 +76,7 @@ public final class RiftDevTest {
 			AuraFx.later(server, 25, () -> {
 				log("guardian down: " + Rifts.devState(fake) + " (must be done true won true)");
 				int paid = AuraCurrency.get(fake) - aura0;
-				int want = 4 * AuraConfig.RIFT_ROOM_AURA + AuraConfig.RIFT_BOSS_AURA;
+				int want = (int) Math.round((4 * AuraConfig.RIFT_ROOM_AURA + AuraConfig.RIFT_BOSS_AURA) * com.toast.aurapoints.rift.Difficulty.EXTREME.reward);
 				int relics = 0;
 				for (int k = 0; k < fake.getInventory().getContainerSize(); k++) if (Relics.auraOf(fake.getInventory().getItem(k)) == AuraType.FIRE) relics++;
 				log("won: paid " + paid + " (must be " + want + "), Fire relics " + relics + " (must be 1), first clear saved " + data.riftAuras.contains(AuraType.FIRE) + " (must be true)");

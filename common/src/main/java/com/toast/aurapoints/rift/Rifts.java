@@ -79,7 +79,7 @@ public final class Rifts {
 
 	private static final int PULL_TICKS = 18;
 	public static final String SHARD_TAG = "aurapoints_rift_shard";
-	static final int FLOOR = 64;
+	static final int FLOOR = Monument.ORIGIN_Y;
 
 	public static ServerLevel level(MinecraftServer server) {
 		return server.getLevel(KEY);
@@ -101,6 +101,9 @@ public final class Rifts {
 		RiftGate gate;
 		Display.TextDisplay label;
 		Run run;
+		/** The monument being placed for the run this gate leads to (5.47), and that run's id. */
+		Monument.Job job;
+		int runId;
 		/** Players being pulled through the curtain -> ticks left. */
 		final Map<UUID, Integer> pulling = new java.util.HashMap<>();
 
@@ -137,24 +140,36 @@ public final class Rifts {
 			this.aura = aura;
 		}
 
-		/** The hub island's floor block in the middle (under the altar's focus). */
+		Difficulty difficulty = Difficulty.MEDIUM;
+		final Reliquary.State flow = new Reliquary.State();
+
+		/** The monument's origin: the floor block under the altar at the crossing. */
 		BlockPos hub() {
-			return new BlockPos(slot * 1024, FLOOR, 0);
+			return Monument.origin(slot);
 		}
 
+		/** The middle of trial wing {@code i}'s floor. */
 		BlockPos island(int i) {
-			int[] d = RealmBuilder.DIRS[i];
-			return hub().offset(d[0] * RealmBuilder.DIST, 0, d[1] * RealmBuilder.DIST);
+			return hub().offset(Monument.anchors().wings.get(i));
 		}
 
+		/** The altar socket for wing {@code i} (its pillar's foot). */
 		BlockPos pedestal(int i) {
-			int[] d = RealmBuilder.DIRS[i];
-			return hub().offset(d[0] * RealmBuilder.PEDESTAL, 0, d[1] * RealmBuilder.PEDESTAL);
+			return hub().offset(Monument.anchors().sockets.get(i));
 		}
 
-		/** Where players arrive and come back: the hub, south of the altar. */
+		/** Where players arrive: the landing at the end of the causeway. */
 		Vec3 spawn() {
-			return Vec3.atBottomCenterOf(hub()).add(2.5, 1, 9);
+			return Monument.world(hub(), Monument.anchors().spawn);
+		}
+
+		/** Where knocked out players come back before the boss: the nave, in sight of the altar. */
+		Vec3 nave() {
+			return Vec3.atBottomCenterOf(hub()).add(0, 1, 18);
+		}
+
+		Reliquary.Phase phase() {
+			return flow.phase;
 		}
 
 		int solved() {
@@ -195,6 +210,10 @@ public final class Rifts {
 			pos = Vec3.atBottomCenterOf(top).add(0, 1.6, 0);
 		}
 		tear = new Tear(aura, pos, ow.getGameTime() + AuraConfig.RIFT_OPEN_SECONDS * 20L);
+		// the monument starts forming at once, a tile a tick; the gate opens when it stands
+		ServerLevel rift = level(server);
+		tear.runId = nextId++;
+		if (rift != null) tear.job = Monument.start(rift, tear.runId % 16, aura);
 		// the curtain faces whoever is nearest (the player it opened for, or the one who ran the command)
 		Vec3 ground = pos.subtract(0, 1.6, 0);
 		ServerPlayer facing = near != null ? near : ow.getNearestPlayer(pos.x, pos.y, pos.z, 64, false) instanceof ServerPlayer sp ? sp : null;
@@ -283,9 +302,15 @@ public final class Rifts {
 			return;
 		}
 		if (tear.gate != null) tear.gate.tick();
+		boolean forming = tear.job != null && !tear.job.done();
+		if (forming) tear.job.step();
 		if (now % 20 == 0 && tear.label != null) {
-			com.toast.aurapoints.arena.Holograms.setTextPublic(tear.label, label(tear.aura, (tear.closes - now) / 20));
+			com.toast.aurapoints.arena.Holograms.setTextPublic(tear.label, forming
+					? Component.literal(tear.aura.displayName.toUpperCase(java.util.Locale.ROOT) + " RIFT").withStyle(s -> s.withColor(TextColor.fromRgb(tear.aura.rgb)).withBold(true))
+					.append(Component.literal("\nthe way is forming... " + Math.round(tear.job.progress() * 100) + "%").withStyle(ChatFormatting.GRAY))
+					: label(tear.aura, (tear.closes - now) / 20));
 		}
+		if (forming) return;
 		// stepping into the curtain: pulled into its middle for a moment, then through
 		Tear t = tear;
 		for (ServerPlayer pl : ow.players()) {
@@ -318,13 +343,15 @@ public final class Rifts {
 		}
 	}
 
-	/** A player walks into the tear: into its run (the realm is made for the first). */
+	/** A player walks into the tear: into its run (the first one starts it: the vote in the entry hall). */
 	static void enter(MinecraftServer server, ServerPlayer player) {
 		ServerLevel rift = level(server);
 		if (rift == null || tear == null) return;
 		if (com.toast.aurapoints.arena.Arena.in(player) || com.toast.aurapoints.arena.Match.signedUp(player)) return;
+		if (tear.job == null) tear.job = Monument.start(rift, tear.runId % 16, tear.aura);
+		if (!tear.job.done()) tear.job.finish(); // dev tests and commands don't wait for the gate
 		if (tear.run == null) {
-			tear.run = new Run(nextId++, tear.aura);
+			tear.run = new Run(tear.runId, tear.aura);
 			RUNS.add(tear.run);
 		}
 		Run run = tear.run;
@@ -334,29 +361,39 @@ public final class Rifts {
 		}
 		saveReturn(server, player);
 		run.players.add(player.getUUID());
-		if (!run.built) build(rift, run);
+		if (!run.built) {
+			run.built = true;
+			run.startedAt = rift.getGameTime();
+			run.altar = new Altar(run);
+			Reliquary.startVote(rift, run);
+		}
 		Vec3 start = run.spawn();
 		if (!com.toast.aurapoints.shim.Platform.get().isFakePlayer(player)) {
 			player.teleportTo(rift, start.x, start.y, start.z, 180f, 0f);
 			player.setGameMode(GameType.ADVENTURE);
 		}
 		player.setHealth(player.getMaxHealth());
-		AuraFx.title(player, Component.literal(run.aura.displayName + " Rift").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),
-				Component.literal("find the four shards, forge the relic").withStyle(ChatFormatting.GRAY));
-		player.sendSystemMessage(Component.literal("✦ " + Relics.name(run.aura) + " lies broken in four trials:").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb))));
-		String[] dirs = {"North", "East", "South", "West"};
+		player.sendSystemMessage(Component.literal("✦ " + Relics.name(run.aura) + " lies broken in four trials. ").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)))
+				.append(Component.literal(run.phase() == Reliquary.Phase.VOTE ? "Vote on the difficulty: stand on a plate in the entry hall." : "")
+						.withStyle(ChatFormatting.GRAY)));
+		if (run.phase() != Reliquary.Phase.VOTE) trialList(run, player);
+		Reliquary.arrivalShot(run, player);
+	}
+
+	/** The trials, their wings and colours. */
+	static void trialList(Run run, ServerPlayer player) {
 		for (Trials.Trial t : run.trials) {
-			player.sendSystemMessage(Component.literal("  " + dirs[t.index] + ": " + t.name() + (t.solved ? " ✔" : "")).withStyle(t.solved ? ChatFormatting.GREEN : ChatFormatting.GRAY));
+			player.sendSystemMessage(Component.literal("  " + Reliquary.WING_NAMES[t.index] + " wing").withStyle(Reliquary.WING_FMT[t.index], ChatFormatting.BOLD)
+					.append(Component.literal(": " + t.name() + (t.solved ? " ✔" : "")).withStyle(t.solved ? ChatFormatting.GREEN : ChatFormatting.GRAY)));
 		}
-		player.sendSystemMessage(Component.literal("  Bring the shards to the altar in the middle.").withStyle(ChatFormatting.DARK_GRAY));
+		player.sendSystemMessage(Component.literal("  Each shard goes in the socket of its colour at the altar.").withStyle(ChatFormatting.DARK_GRAY));
 	}
 
 	/** Dev tests: the trial kinds of the next realm (null = random). */
 	static List<Trials.Kind> DEV_KINDS;
 
-	/** The realm for a new run: four trials picked from the five kinds, the islands, the altar. */
-	private static void build(ServerLevel rift, Run run) {
-		run.built = true;
+	/** The vote is over: four trials picked from the five kinds and set up in the wings, at the run's difficulty. */
+	static void buildTrials(ServerLevel rift, Run run) {
 		run.startedAt = rift.getGameTime();
 		var r = net.minecraft.util.RandomSource.create(run.id * 31L + rift.getGameTime());
 		List<Trials.Kind> kinds = new ArrayList<>(List.of(Trials.Kind.values()));
@@ -364,8 +401,6 @@ public final class Rifts {
 		if (DEV_KINDS != null) kinds = new ArrayList<>(DEV_KINDS);
 		run.trials = new Trials.Trial[4];
 		for (int i = 0; i < 4; i++) run.trials[i] = Trials.make(kinds.get(i), run, i);
-		run.altar = new Altar(run);
-		RealmBuilder.build(rift, run);
 		for (Trials.Trial t : run.trials) t.build(rift, r);
 	}
 
@@ -399,12 +434,14 @@ public final class Rifts {
 			end(server, run, false);
 			return;
 		}
-		// the time limit
-		if (AuraConfig.RIFT_TIME_LIMIT_MINUTES > 0) {
-			long left = run.startedAt + AuraConfig.RIFT_TIME_LIMIT_MINUTES * 1200L - now;
+		Reliquary.Phase phase = run.phase();
+		// the time limit (from the end of the vote)
+		if (phase != Reliquary.Phase.VOTE && AuraConfig.RIFT_TIME_LIMIT_MINUTES > 0) {
+			long limit = Math.round(run.difficulty.minutes * 1200L * (AuraConfig.RIFT_TIME_LIMIT_MINUTES / 25.0));
+			long left = run.startedAt + limit - now;
 			if (left <= 1200 && !run.warnedTime) {
 				run.warnedTime = true;
-				for (ServerPlayer p : here) p.sendSystemMessage(Component.literal("The realm begins to unravel - one minute left.").withStyle(ChatFormatting.RED));
+				for (ServerPlayer p : here) p.sendSystemMessage(Component.literal("The Reliquary begins to unravel - one minute left.").withStyle(ChatFormatting.RED));
 			}
 			if (left <= 0) {
 				end(server, run, false);
@@ -419,13 +456,17 @@ public final class Rifts {
 				continue;
 			}
 			up.add(p);
-			// off the edge: back to the island you fell from (trials catch their own holes first)
-			if (p.getY() < FLOOR - 25) {
-				Vec3 to = run.spawn();
-				for (Trials.Trial t : run.trials) if (t.contains(new Vec3(p.getX(), FLOOR, p.getZ()))) to = Vec3.atBottomCenterOf(t.at(-RealmBuilder.ISLAND_R + 2, 0, 1));
+			// fell into the void: back to the wing you fell from, the crypt in the boss fight, else the nave
+			if (p.getY() < FLOOR - 75) {
+				Vec3 to = phase == Reliquary.Phase.BOSS || phase == Reliquary.Phase.COLLAPSE ? Reliquary.cryptSpot(run, rift.random) : run.nave();
+				for (Trials.Trial t : run.trials) if (t.contains(new Vec3(p.getX(), FLOOR, p.getZ()))) to = Vec3.atBottomCenterOf(t.at(-t.hall + 2, 0, 1));
 				p.teleportTo(rift, to.x, to.y, to.z, p.getYRot(), 0f);
 				p.fallDistance = 0;
 			}
+		}
+		if (phase == Reliquary.Phase.VOTE) {
+			Reliquary.tickVote(rift, run, up, now);
+			return;
 		}
 		for (Trials.Trial t : run.trials) {
 			List<ServerPlayer> on = new ArrayList<>();
@@ -433,27 +474,58 @@ public final class Rifts {
 			if (!t.started && !on.isEmpty()) {
 				t.started = true;
 				for (ServerPlayer p : on) {
-					AuraFx.title(p, Component.literal(t.name()).withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)), Component.empty());
-					p.sendSystemMessage(Component.literal("✦ " + t.name() + ": ").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)))
+					AuraFx.title(p, Component.literal(t.name()).withStyle(s -> s.withColor(TextColor.fromRgb(Reliquary.WING_RGB[t.index])).withBold(true)), Component.empty());
+					p.sendSystemMessage(Component.literal("✦ " + t.name() + ": ").withStyle(s -> s.withColor(TextColor.fromRgb(Reliquary.WING_RGB[t.index])))
 							.append(Component.literal(t.hint()).withStyle(ChatFormatting.GRAY)));
 				}
 				t.begin(rift, on);
 			}
 			t.tick(rift, on, now);
 		}
-		if (now % 40 == 0) keepShards(rift, run);
-		if (run.altar.tick(rift)) wakeGuardian(rift, run, Math.max(1, up.size()));
+		if (phase == Reliquary.Phase.TRIALS) {
+			if (now % 40 == 0) keepShards(rift, run);
+			if (now % 10 == 0) Reliquary.tickGuidance(rift, run, up, now);
+			if (run.altar.tick(rift)) Reliquary.startCollapse(rift, run);
+		}
+		if (phase == Reliquary.Phase.COLLAPSE) {
+			if (Reliquary.tickCollapse(rift, run, here, now)) wakeGuardian(rift, run, Math.max(1, up.size()));
+			if (now - run.flow.collapseAt >= Reliquary.ENTRANCE_END) {
+				run.flow.phase = Reliquary.Phase.BOSS;
+				Component name = run.champion != null && run.champion.getCustomName() != null ? run.champion.getCustomName() : Component.literal("Relic Warden");
+				for (ServerPlayer p : here) AuraFx.title(p, Component.literal("RELIC WARDEN").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),
+						Component.literal("it took the " + Relics.name(run.aura) + " - take it back").withStyle(ChatFormatting.GRAY));
+				if (run.champion instanceof RelicWarden w) w.awake = true;
+				if (name == null) return;
+			}
+		}
 		if (run.bar != null && run.champion != null && now % 5 == 0) {
 			run.bar.setProgress(Math.max(0f, run.champion.getHealth() / run.champion.getMaxHealth()));
 		}
 		if (now % 10 != 0) return;
 		run.mobs.removeIf(m -> {
-			if (m.getY() < FLOOR - 30) m.discard();
+			if (m.getY() < FLOOR - 80) m.discard();
 			return !m.isAlive() || m.isRemoved();
 		});
+		if (phase == Reliquary.Phase.BOSS && now % 100 == 0) unstick(rift, run);
 		if (run.boss && (run.champion == null || !run.champion.isAlive() || run.champion.isRemoved())) {
 			if (run.bar != null) run.bar.removeAllPlayers();
 			end(server, run, true);
+		}
+	}
+
+	/** Adds that haven't moved in 5 s (stuck on a ledge, in a corner) are put back on the crypt floor. */
+	private static final Map<UUID, Vec3> LAST_POS = new java.util.HashMap<>();
+
+	private static void unstick(ServerLevel rift, Run run) {
+		for (Mob m : run.mobs) {
+			if (m == run.champion || m.isNoAi()) continue;
+			Vec3 was = LAST_POS.put(m.getUUID(), m.position());
+			if (was != null && was.distanceToSqr(m.position()) < 0.25 && m.getTarget() != null && m.distanceTo(m.getTarget()) > 3) {
+				Vec3 to = Reliquary.cryptSpot(run, rift.random);
+				m.teleportTo(to.x, to.y + 6, to.z);
+				m.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.SLOW_FALLING, 60, 0));
+				LAST_POS.remove(m.getUUID());
+			}
 		}
 	}
 
@@ -520,7 +592,7 @@ public final class Rifts {
 	/** A shard that is out but nowhere any more (fell into the void, burned, left with a player) comes back to its plinth. */
 	private static void keepShards(ServerLevel rift, Run run) {
 		List<ServerPlayer> here = online(rift.getServer(), run);
-		var box = new net.minecraft.world.phys.AABB(Vec3.atCenterOf(run.hub()), Vec3.atCenterOf(run.hub())).inflate(90, 120, 90);
+		var box = new net.minecraft.world.phys.AABB(Vec3.atCenterOf(run.hub()), Vec3.atCenterOf(run.hub())).inflate(120, 90, 165);
 		List<net.minecraft.world.entity.item.ItemEntity> items = rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, box, e -> e.getTags().contains(SHARD_TAG));
 		for (Trials.Trial t : run.trials) {
 			if (!t.shardOut || run.placedTrials.contains(t.index)) continue;
@@ -600,7 +672,7 @@ public final class Rifts {
 	/** The altar's ritual is over: the realm's guardian takes the relic. */
 	private static void wakeGuardian(ServerLevel rift, Run run, int players) {
 		run.boss = true;
-		Vec3 c = Vec3.atBottomCenterOf(run.hub()).add(0, 2, 0);
+		Vec3 c = Reliquary.cryptCenter(run).add(0, 2, 0);
 		Mob boss = Guardian.spawn(rift, run, c, players);
 		if (boss == null) {
 			end(rift.getServer(), run, true);
@@ -620,13 +692,11 @@ public final class Rifts {
 		run.bar = new ServerBossEvent(name, color, BossEvent.BossBarOverlay.NOTCHED_10);
 		for (ServerPlayer p : online(rift.getServer(), run)) {
 			run.bar.addPlayer(p);
-			// the name card: short enough for the title line
-			AuraFx.title(p, Component.literal("RELIC WARDEN").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),
-					Component.literal("it took the " + Relics.name(run.aura) + " - take it back").withStyle(ChatFormatting.GRAY));
+			// the name card comes when the entrance ends (Rifts.tickRun)
 			p.sendSystemMessage(Component.literal("✦ Its attacks flash before they land: ").withStyle(ChatFormatting.GRAY)
-					.append(Component.literal("BLUE").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
-					.append(Component.literal(" - strike it right then to parry. ").withStyle(ChatFormatting.GRAY))
 					.append(Component.literal("YELLOW").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
+					.append(Component.literal(" - one fully charged hit just before it lands parries it (swing early and you're staggered). ").withStyle(ChatFormatting.GRAY))
+					.append(Component.literal("BLUE").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD))
 					.append(Component.literal(" - get out of the way.").withStyle(ChatFormatting.GRAY)));
 		}
 	}
@@ -643,6 +713,8 @@ public final class Rifts {
 		run.mobs.clear();
 		if (run.altar != null) run.altar.remove();
 		for (Trials.Trial t : run.trials) t.remove();
+		Reliquary.cleanup(run);
+		RiftCam.stop(online(server, run));
 		for (ServerPlayer p : online(server, run)) {
 			if (won) {
 				AuraFx.title(p, Component.literal("RELIC RECLAIMED").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),
@@ -657,7 +729,7 @@ public final class Rifts {
 
 	private static void pay(ServerPlayer p, Run run, boolean won) {
 		int trials = run.solved();
-		int aura = trials * AuraConfig.RIFT_ROOM_AURA + (won ? AuraConfig.RIFT_BOSS_AURA : 0);
+		int aura = (int) Math.round((trials * AuraConfig.RIFT_ROOM_AURA + (won ? AuraConfig.RIFT_BOSS_AURA : 0)) * run.difficulty.reward);
 		if (aura > 0) AuraCurrency.add(p, aura);
 		Mastery.addXp(p, trials * AuraConfig.RIFT_ROOM_MASTERY_XP + (won ? AuraConfig.RIFT_BOSS_MASTERY_XP : 0));
 		p.sendSystemMessage(Component.literal((won ? "✔ Relic reclaimed: " : "Rift lost: ") + "+" + aura + " Aura").withStyle(won ? ChatFormatting.GREEN : ChatFormatting.GRAY));
@@ -666,7 +738,8 @@ public final class Rifts {
 		AuraPlayerData data = AuraState.get(p.getServer()).getOrCreate(p.getUUID());
 		boolean first = data.riftAuras.add(run.aura);
 		AuraState.get(p.getServer()).markDirty();
-		if (first || p.getRandom().nextDouble() < AuraConfig.RIFT_RELIC_CHANCE) Relics.give(p, run.aura);
+		double chance = Math.min(1.0, AuraConfig.RIFT_RELIC_CHANCE * run.difficulty.relicChance / 0.5);
+		if (first || p.getRandom().nextDouble() < chance) Relics.give(p, run.aura);
 		else p.sendSystemMessage(Component.literal("The relic crumbles to dust in your hands - it only remembers its first bearer.").withStyle(ChatFormatting.DARK_GRAY));
 		com.toast.aurapoints.cosmetic.Weekly.onRiftCleared(p);
 		com.toast.aurapoints.cosmetic.Cosmetics.checkEarned(p);
@@ -711,12 +784,15 @@ public final class Rifts {
 		}
 		ServerLevel rift = level(p.getServer());
 		run.down.add(p.getUUID());
-		run.backAt.put(p.getUUID(), rift.getGameTime() + AuraConfig.RIFT_KNOCKOUT_SECONDS * 20L);
+		boolean oneLife = run.difficulty.oneLife();
+		int secs = Math.max(3, (int) Math.round(run.difficulty.knockoutSeconds * AuraConfig.RIFT_KNOCKOUT_SECONDS / 12.0));
+		if (!oneLife) run.backAt.put(p.getUUID(), rift.getGameTime() + secs * 20L);
 		p.setGameMode(GameType.SPECTATOR);
-		Vec3 c = Vec3.atBottomCenterOf(run.hub());
-		p.teleportTo(rift, c.x, c.y + 10, c.z + 6, 180f, 40f);
-		AuraFx.title(p, Component.literal("Knocked out").withStyle(ChatFormatting.RED, ChatFormatting.BOLD),
-				Component.literal("back at the altar in " + AuraConfig.RIFT_KNOCKOUT_SECONDS + " s").withStyle(ChatFormatting.GRAY));
+		boolean crypt = run.phase() == Reliquary.Phase.BOSS || run.phase() == Reliquary.Phase.COLLAPSE;
+		Vec3 c = crypt ? Reliquary.cryptCenter(run).add(0, 14, 16) : run.nave().add(0, 9, 0);
+		p.teleportTo(rift, c.x, c.y, c.z, 180f, 40f);
+		AuraFx.title(p, Component.literal(oneLife ? "Fallen" : "Knocked out").withStyle(ChatFormatting.RED, ChatFormatting.BOLD),
+				Component.literal(oneLife ? "Hardcore: you're out of this run - watch the others" : "back in " + secs + " s").withStyle(ChatFormatting.GRAY));
 		boolean anyUp = false;
 		for (UUID id : run.players) if (!run.down.contains(id) && player(p.getServer(), id) != null) anyUp = true;
 		if (!anyUp) end(p.getServer(), run, false);
@@ -727,7 +803,8 @@ public final class Rifts {
 		run.backAt.remove(p.getUUID());
 		p.setGameMode(GameType.ADVENTURE);
 		p.setHealth(p.getMaxHealth());
-		Vec3 s = run.spawn();
+		boolean crypt = run.phase() == Reliquary.Phase.BOSS || run.phase() == Reliquary.Phase.COLLAPSE;
+		Vec3 s = crypt ? Reliquary.cryptSpot(run, rift.random) : run.phase() == Reliquary.Phase.VOTE ? run.spawn() : run.nave();
 		p.teleportTo(rift, s.x, s.y, s.z, 180f, 0f);
 		p.fallDistance = 0;
 		AuraFx.burst(rift, s.x, s.y + 1, s.z, ParticleTypes.REVERSE_PORTAL, 30, 0.5, 0.2);
@@ -923,12 +1000,36 @@ public final class Rifts {
 		ServerLevel rift = level(p.getServer());
 		for (Trials.Trial t : r.trials) {
 			if (!t.shardOut) continue;
-			for (var it : rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(90, 120, 90),
+			for (var it : rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(120, 90, 165),
 					e -> isShard(e.getItem(), r, t.index))) it.discard();
 			takeShard(p, r, t.index);
 			p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, com.toast.aurapoints.item.RelicShardItem.make(r.aura, r.id, t.index));
 			r.altar.use(rift, p, r.pedestal(t.index).above(2));
 		}
+	}
+
+	/** Votes for the player (plate 0 Easy .. 4 Hardcore) and ends the vote at once. */
+	public static void devVote(ServerPlayer p, int plate) {
+		Run r = runOf(p);
+		if (r == null || r.phase() != Reliquary.Phase.VOTE) return;
+		r.flow.votes.put(p.getUUID(), plate);
+		Reliquary.finishVote(level(p.getServer()), r);
+	}
+
+	public static String devDifficulty(ServerPlayer p) {
+		Run r = runOf(p);
+		return r == null ? "no run" : r.difficulty.name() + " " + r.phase();
+	}
+
+	/** The world block of socket i's top (where a shard is set). */
+	public static BlockPos devSocket(ServerPlayer p, int i) {
+		Run r = runOf(p);
+		return r == null ? null : r.pedestal(i).above(1);
+	}
+
+	public static boolean devDoorSealed(ServerPlayer p) {
+		Run r = runOf(p);
+		return r != null && r.flow.doorSealed;
 	}
 
 	/** Runs the ritual to its end at once (the guardian wakes). */
@@ -937,6 +1038,8 @@ public final class Rifts {
 		if (r == null || r.altar.ritual < 0) return;
 		ServerLevel rift = level(p.getServer());
 		while (r.altar.ritual >= 0 && r.altar.ritual < Altar.RITUAL_TICKS) if (r.altar.tick(rift)) wakeGuardian(rift, r, 1);
+		r.flow.phase = Reliquary.Phase.BOSS;
+		if (r.champion instanceof RelicWarden w) w.awake = true;
 	}
 
 	public static Mob devGuardian(ServerPlayer p) {
@@ -953,7 +1056,7 @@ public final class Rifts {
 		Run r = runOf(p);
 		if (r == null) return -1;
 		return level(p.getServer()).getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
-				new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(90, 120, 90), e -> e.getTags().contains(SHARD_TAG)).size();
+				new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(120, 90, 165), e -> e.getTags().contains(SHARD_TAG)).size();
 	}
 
 	/** A block of the run's realm: hub-relative. */

@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.47.0
+- Rifts now lead into the Shattered Reliquary: a huge ruined cathedral-fortress floating in the void, with four trial wings across broken bridges and a crypt arena beneath. Vote on the difficulty (Easy to Hardcore - one life each) on the plates in the entry hall. Bigger, harder trials; each shard goes in the altar socket of its colour (a trail shows the way).
+- Forging the relic breaks the floor: everyone falls into the crypt where the Relic Warden rises. Parrying is now about timing: yellow flash = one fully charged hit just before it lands; blue = dodge. Camera shots for the big moments. Clients must update.
+
 == 5.46.0
 - Relic Trials: Aura Rifts are now a real quest. Step through the gate into a realm of floating islands: four trials (rune sequences, lights puzzles, a buried shard you find with a Tuning Fork, a memory path over the void, carrying a heavy shard over a crumbling bridge) each free a Relic Shard. Mistakes call up the aura's mobs.
 - Set the four shards on the altar to forge the relic - and the Relic Warden tears out to take it: five phases, combos, charges, barrages, a Core Beam to jump over, a shield of shard pylons and a last stand. Attacks that flash blue can be parried. Win and the relic is yours (always on your first clear). Clients must update.

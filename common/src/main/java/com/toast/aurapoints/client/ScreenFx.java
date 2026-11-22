@@ -122,6 +122,7 @@ public final class ScreenFx {
 			case FxPacket.BLIZZARD -> Blizzard.start(p.value());
 			case FxPacket.RITUAL -> RitualCutscene.onPacket(p.value(), p.text());
 			case FxPacket.PORTAL -> StatusOverlays.portal(p.value(), p.text());
+			case FxPacket.RIFT_CAM -> RiftCamera.onPacket(p.value(), p.text());
 			default -> {
 			}
 		}

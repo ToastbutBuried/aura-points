@@ -24,16 +24,17 @@ final class Guardian {
 	static Mob spawn(ServerLevel rift, Rifts.Run run, Vec3 at, int players) {
 		RelicWarden w = RelicWarden.create(rift, run, at);
 		if (w == null) return null;
-		health(w, players);
+		health(w, players, run.difficulty);
+		w.triggerAnim("action", "rise");
 		rift.addFreshEntity(w);
 		rift.sendParticles(net.minecraft.core.particles.ParticleTypes.EXPLOSION_EMITTER, at.x, at.y, at.z, 1, 0, 0, 0, 0);
 		return w;
 	}
 
-	static void health(Mob boss, int players) {
+	static void health(Mob boss, int players, Difficulty d) {
 		var hp = boss.getAttribute(Attributes.MAX_HEALTH);
 		if (hp == null) return;
-		double target = AuraConfig.RIFT_BOSS_HEALTH * (1 + AuraConfig.RIFT_BOSS_HEALTH_PER_PLAYER * (players - 1)), cur = hp.getValue();
+		double target = AuraConfig.RIFT_BOSS_HEALTH * d.bossHealth * (1 + AuraConfig.RIFT_BOSS_HEALTH_PER_PLAYER * (players - 1)), cur = hp.getValue();
 		if (cur > 0) hp.addPermanentModifier(new AttributeModifier(BOSS_ID, target / cur - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
 		boss.setHealth(boss.getMaxHealth());
 	}

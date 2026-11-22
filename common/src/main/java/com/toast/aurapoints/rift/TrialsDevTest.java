@@ -44,6 +44,7 @@ public final class TrialsDevTest {
 			Rifts.DEV_KINDS = List.of(Trials.Kind.RUNES, Trials.Kind.LIGHTS, Trials.Kind.HUNT, Trials.Kind.MEMORY);
 			Rifts.open(server, AuraType.FROST, null, new Vec3(0.5, 120, 0.5));
 			Rifts.devEnter(server, fake);
+			Rifts.devVote(fake, 1);
 			Rifts.Run run = Rifts.runOf(fake);
 			Rifts.DEV_KINDS = null;
 			if (run == null) {
@@ -80,6 +81,7 @@ public final class TrialsDevTest {
 					for (int i = 0; i < 4; i++) Rifts.devSolve(p, i);
 				}
 				case "place" -> Rifts.devPlaceAll(p);
+				case "vote" -> Rifts.devVote(p, 2);
 				case "ritual" -> Rifts.devFinishRitual(p);
 				case "overdrive" -> {
 					if (Rifts.devGuardian(p) instanceof RelicWarden w) w.devPhase(RelicWarden.OVERDRIVE, 0.3f);
@@ -106,6 +108,7 @@ public final class TrialsDevTest {
 			AuraState.get(server).getOrCreate(fake.getUUID()).aura = AuraType.WATER;
 			Rifts.open(server, AuraType.SHADOW, null, new Vec3(0.5, 120, 0.5));
 			Rifts.devEnter(server, fake);
+			Rifts.devVote(fake, 1);
 			for (int i = 0; i < 4; i++) Rifts.devSolve(fake, i);
 			Rifts.devPlaceAll(fake);
 			Rifts.devFinishRitual(fake);
@@ -115,15 +118,35 @@ public final class TrialsDevTest {
 				return 0;
 			}
 			var src = rift.damageSources().playerAttack(fake);
-			fake.moveTo(w.getX() + 2, w.getY(), w.getZ());
+			// in front of it (the parry needs that), a full swing ago
+			Vec3 front = w.position().add(Vec3.directionFromRotation(0, w.getYRot()).scale(2.5));
+			fake.moveTo(front.x, w.getY(), front.z);
 			log("[warden] spawned: skin " + w.skin() + " (must be " + com.toast.aurapoints.ability.Relics.AURAS.indexOf(AuraType.SHADOW) + "), phase " + w.phase() + " (must be 0), hp " + w.getMaxHealth());
 			// the parry
-			boolean on = w.devStartSlam();
-			w.devSetWindup(4);
-			float hp0 = w.getHealth();
+			// spam: a hit during the wind-up (too early) is a mistimed parry - no damage, no parry
+			boolean on = w.devStartParryable();
+			w.devSetWindup(12);
+			float hpS = w.getHealth();
 			w.invulnerableTime = 0;
 			w.hurt(src, 5f);
+			log("[warden] early swing: damage " + (w.getHealth() < hpS) + " (must be false), staggered boss " + w.devStaggered() + " (must be false)");
+			// a fresh player, a clean swing inside the window
+			ServerPlayer fake2 = FakePlayerFactory.get(rift, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000c644"), "WardenTest2"));
+			fake2.moveTo(front.x, w.getY(), front.z);
+			var src2 = rift.damageSources().playerAttack(fake2);
+			w.devStartParryable();
+			w.devSetWindup(2);
+			float hp0 = w.getHealth();
+			w.invulnerableTime = 0;
+			w.hurt(src2, 5f);
 			log("[warden] parry: windup on " + on + " (must be true), staggered " + w.devStaggered() + " (must be true), bonus damage " + ((hp0 - w.getHealth()) > 5f) + " (must be true)");
+			// a second hit in the same window by the same player can't parry again
+			w.devStartParryable();
+			w.devSetWindup(2);
+			w.invulnerableTime = 0;
+			float hp1b = w.getHealth();
+			w.hurt(src2, 5f);
+			log("[warden] instant re-swing: parried again " + (w.getHealth() < hp1b - 5f) + " (must be false)");
 			// guardian -> unbound
 			w.devSetHealth(0.69f);
 			for (int k = 0; k < 40; k++) w.devAiStep();
@@ -222,6 +245,7 @@ public final class TrialsDevTest {
 		Rifts.DEV_KINDS = List.of(Trials.Kind.CARRY, Trials.Kind.RUNES, Trials.Kind.LIGHTS, Trials.Kind.HUNT);
 		Rifts.open(server, AuraType.FIRE, null, new Vec3(0.5, 120, 0.5));
 		Rifts.devEnter(server, fake);
+		Rifts.devVote(fake, 1);
 		Rifts.DEV_KINDS = null;
 		Rifts.Run run = Rifts.runOf(fake);
 		Trials.Carry carry = (Trials.Carry) run.trials[0];

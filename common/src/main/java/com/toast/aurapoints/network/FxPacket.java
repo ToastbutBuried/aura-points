@@ -35,6 +35,8 @@ public record FxPacket(byte kind, int value, String text) implements CustomPacke
 	public static final byte RITUAL = 9;
 	/** Going through an altar portal (5.32): value = ticks of the wind-up, text = the aura colour (hex); the screen fades purple and back. */
 	public static final byte PORTAL = 10;
+	/** A rift camera shot (5.47, client/RiftCamera, rift/RiftCam): value = length in ticks (0 = stop), text = see RiftCamera.onPacket. */
+	public static final byte RIFT_CAM = 11;
 
 	public static final Type<FxPacket> TYPE =
 			new Type<>(ResourceLocation.fromNamespaceAndPath("aurapoints", "fx"));

@@ -1768,7 +1768,9 @@ public final class AuraConfig {
 	/** How long a tear stays open, and how many can go in. */
 	public static int RIFT_OPEN_SECONDS = 600;
 	public static int RIFT_MAX_PLAYERS = 4;
-	/** A run's time limit in minutes: the realm collapses after it (0 = none). */
+	/** Seconds the party has to vote on the difficulty in the entry hall (it ends early once everyone stands on a plate). */
+	public static int RIFT_VOTE_SECONDS = 30;
+	/** A run's time limit in minutes at Medium (other difficulties scale from it); the Reliquary unravels after it (0 = none). */
 	public static int RIFT_TIME_LIMIT_MINUTES = 25;
 	/** Touched mobs a puzzle mistake calls up (Rune Sequence; a wrong Resonance mound calls one). */
 	public static int RIFT_PUZZLE_FAIL_MOBS = 2;

@@ -74,6 +74,8 @@ final class Trials {
 		final BlockPos c;
 		final int fx, fz, lx, lz;
 		final RealmBuilder.Palette pal;
+		/** Half the wing hall's inner size, and the difficulty tier (0 Easy .. 4 Hardcore). */
+		final int hall, tier;
 		boolean started, solved;
 		/** The shard is out in the realm (dropped, carried or waiting on a plinth) and must be kept from getting lost. */
 		boolean shardOut;
@@ -84,8 +86,11 @@ final class Trials {
 			this.index = index;
 			this.kind = kind;
 			this.c = run.island(index);
-			this.fx = RealmBuilder.DIRS[index][0];
-			this.fz = RealmBuilder.DIRS[index][1];
+			int[] dir = Monument.anchors().wingDirs.get(index);
+			this.fx = dir[0];
+			this.fz = dir[1];
+			this.hall = Monument.anchors().hall;
+			this.tier = run.difficulty.tier();
 			this.lx = -fz;
 			this.lz = fx;
 			this.pal = RealmBuilder.palette(run.aura);
@@ -117,7 +122,7 @@ final class Trials {
 
 		boolean contains(Vec3 p) {
 			double dx = p.x - (c.getX() + 0.5), dz = p.z - (c.getZ() + 0.5);
-			return dx * dx + dz * dz <= Mth.square(RealmBuilder.ISLAND_R + 1.5) && p.y > Rifts.FLOOR - 30;
+			return Math.abs(dx) <= hall + 1.5 && Math.abs(dz) <= hall + 1.5 && p.y > Rifts.FLOOR - 30 && p.y < Rifts.FLOOR + 30;
 		}
 
 		/** Where the shard waits / comes back to if it gets lost. */
@@ -221,7 +226,7 @@ final class Trials {
 			set(level, 0, 0, 1, Blocks.LODESTONE);
 			label(level, Vec3.atBottomCenterOf(at(0, 0, 2)).add(0, 0.3, 0), Component.literal("Echo Stone").withStyle(ChatFormatting.GRAY), 0.6f);
 			int players = Math.max(1, run.players.size());
-			seq = new int[Math.min(7, 4 + players - 1)];
+			seq = new int[Math.min(10, 4 + tier + players - 1)];
 			for (int k = 0; k < seq.length; k++) {
 				int n;
 				do n = r.nextInt(PILLARS); while (k > 0 && n == seq[k - 1]);
@@ -298,7 +303,16 @@ final class Trials {
 				Vec3 at = Vec3.atBottomCenterOf(at(pillar[hit][0], pillar[hit][1], 1));
 				level.playSound(null, at.x, at.y, at.z, SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.BLOCKS, 1.5f, 0.5f);
 				p.displayClientMessage(Component.literal("Wrong rune - the island stirs").withStyle(ChatFormatting.RED), true);
-				punish(level, plinth(), com.toast.aurapoints.config.AuraConfig.RIFT_PUZZLE_FAIL_MOBS);
+				punish(level, plinth(), com.toast.aurapoints.config.AuraConfig.RIFT_PUZZLE_FAIL_MOBS + tier / 2);
+				// Extreme and up: a mistake rewrites the sequence
+				if (tier >= 3) {
+					RandomSource r = level.random;
+					for (int k = 0; k < seq.length; k++) {
+						int n;
+						do n = r.nextInt(PILLARS); while (k > 0 && n == seq[k - 1]);
+						seq[k] = n;
+					}
+				}
 				showAt = (int) now + 70;
 			}
 			return true;
@@ -338,7 +352,7 @@ final class Trials {
 		void build(ServerLevel level, RandomSource r) {
 			for (boolean[] row : lit) java.util.Arrays.fill(row, true);
 			// scrambled from the solved state, so it can always be solved
-			int presses = 5 + r.nextInt(3);
+			int presses = Math.min(12, 4 + tier * 2 + r.nextInt(2));
 			Set<Integer> done = new HashSet<>();
 			while (done.size() < presses) {
 				int k = r.nextInt(N * N);
@@ -402,7 +416,7 @@ final class Trials {
 		void tick(ServerLevel level, List<ServerPlayer> here, long now) {
 			// a watcher now and then while it stays dark: pressure, not the point
 			if (!solved && started && !here.isEmpty() && now >= nextWatcher) {
-				nextWatcher = now + 600;
+				nextWatcher = now + 600 - tier * 100;
 				punish(level, Vec3.atBottomCenterOf(at(-7, 0, 1)), 1);
 			}
 		}
@@ -434,9 +448,10 @@ final class Trials {
 		@Override
 		void build(ServerLevel level, RandomSource r) {
 			int tries = 0;
-			while (mounds.size() < 20 && tries++ < 400) {
-				int f = r.nextInt(19) - 9, l = r.nextInt(19) - 9;
-				if (f * f + l * l > 90 || (f * f + l * l < 5) || f < -8) continue;
+			int want = Math.min(32, 14 + tier * 4);
+			while (mounds.size() < want && tries++ < 800) {
+				int f = r.nextInt(25) - 12, l = r.nextInt(25) - 12;
+				if (f * f + l * l < 5 || f < -11) continue;
 				BlockPos p = at(f, l, 1);
 				boolean close = false;
 				for (BlockPos m : mounds) if (m.distSqr(p) < 5) close = true;
@@ -496,14 +511,20 @@ final class Trials {
 				solve(level, at.add(0, 0.5, 0));
 				return true;
 			}
-			// a wrong mound: something was waiting in it
-			if (level.random.nextBoolean()) {
-				punish(level, at, 1);
+			// a wrong mound: something was waiting in it - and on Extreme+ the shard burrows away to another mound
+			if (tier >= 3 && mounds.size() > 1) {
+				target = mounds.get(level.random.nextInt(mounds.size()));
+				p.displayClientMessage(Component.literal("You hear the shard burrow away...").withStyle(ChatFormatting.DARK_PURPLE), true);
+			}
+			if (level.random.nextFloat() < 0.6f) {
+				punish(level, at, 1 + tier / 2);
+				p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 60, 1));
 			} else {
 				level.sendParticles(AuraFx.dust(run.aura.rgb, 2f), at.x, at.y + 0.5, at.z, 30, 1, 0.5, 1, 0);
 				level.playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 0.6f, 1.6f);
 				for (ServerPlayer near : level.getEntitiesOfClass(ServerPlayer.class, new net.minecraft.world.phys.AABB(at, at).inflate(2.5))) {
-					near.hurt(level.damageSources().magic(), 3f);
+					near.hurt(level.damageSources().magic(), 3f + tier * 2f);
+					near.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 80, 0));
 					Vec3 push = near.position().subtract(at).normalize().scale(0.8);
 					near.setDeltaMovement(push.x, 0.4, push.z);
 					near.hurtMarked = true;
@@ -519,7 +540,11 @@ final class Trials {
 	// ---------------------------------------------------------------
 
 	static final class Memory extends Trial {
-		static final int W = 2, L0 = -4, L1 = 4, SHOW = 100;
+		static final int W = 3, L0 = -7, L1 = 7;
+		/** How long the path shows: shorter on harder tiers. */
+		int show() {
+			return 110 - tier * 18;
+		}
 		/** path[f - L0] = l of the safe tile in that row... rows may hold more than one safe tile: a set. */
 		final Set<Long> safe = new HashSet<>();
 		private final Map<Long, Long> broken = new HashMap<>();
@@ -546,7 +571,8 @@ final class Trials {
 		@Override
 		void build(ServerLevel level, RandomSource r) {
 			// the void under the grid and its sides
-			for (int f = L0; f <= L1; f++) for (int l = -W - 1; l <= W + 1; l++) hole(level, f, l);
+			// the void spans the whole hall: the grid is the only way across
+			for (int f = L0; f <= L1; f++) for (int l = -hall; l <= hall; l++) hole(level, f, l);
 			int l = r.nextInt(W * 2 + 1) - W, f = L0;
 			safe.add(key(f, l));
 			while (f < L1) {
@@ -587,7 +613,7 @@ final class Trials {
 				double pf = f(p.position()), pl = l(p.position());
 				int fi = (int) Math.round(pf), li = (int) Math.round(pl);
 				// fell through: back to the start
-				if (p.getY() < Rifts.FLOOR - 3 && Math.abs(pl) <= W + 1.5 && pf >= L0 - 1 && pf <= L1 + 1) {
+				if (p.getY() < Rifts.FLOOR - 3 && Math.abs(pl) <= hall + 1 && pf >= L0 - 1 && pf <= L1 + 1) {
 					Vec3 s = Vec3.atBottomCenterOf(at(L0 - 2, 0, 1));
 					p.teleportTo(level, s.x, s.y, s.z, yawToward(), 0f);
 					p.fallDistance = 0;
@@ -597,8 +623,8 @@ final class Trials {
 				if (solved) continue;
 				// on the start pad: show the path (once in a while)
 				if (fi == L0 - 1 && Math.abs(li) <= W && p.onGround() && now >= nextShow) {
-					nextShow = now + SHOW + 60;
-					shownUntil = now + SHOW;
+					nextShow = now + show() + 60;
+					shownUntil = now + show();
 					for (int a = L0; a <= L1; a++) for (int b = -W; b <= W; b++) if (!broken.containsKey(key(a, b))) tile(level, a, b, true);
 					level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 1.5f, 1f);
 				}
@@ -636,7 +662,7 @@ final class Trials {
 	// ---------------------------------------------------------------
 
 	static final class Carry extends Trial {
-		static final int GAP0 = -3, GAP1 = 4, START = -6, END = 7;
+		static final int GAP0 = -5, GAP1 = 6, START = -8, END = 9;
 		private final Set<Long> path = new HashSet<>();
 		/** Path tiles stepped on -> the tick they crumble; crumbled ones -> the tick they come back. */
 		private final Map<Long, Long> crumbling = new HashMap<>(), gone = new HashMap<>();
@@ -663,7 +689,7 @@ final class Trials {
 
 		@Override
 		void build(ServerLevel level, RandomSource r) {
-			for (int f = GAP0; f <= GAP1; f++) for (int l = -9; l <= 9; l++) hole(level, f, l);
+			for (int f = GAP0; f <= GAP1; f++) for (int l = -hall; l <= hall; l++) hole(level, f, l);
 			// a winding two-wide path across the gap
 			double phase = r.nextDouble() * Math.PI * 2;
 			for (int f = GAP0; f <= GAP1; f++) {
@@ -752,7 +778,7 @@ final class Trials {
 			}
 			// the aura gusts across the gap: a warning, then a shove
 			if (now >= nextGust && !here.isEmpty()) {
-				nextGust = now + 70;
+				nextGust = now + 70 - tier * 8;
 				gustAt = now + 20;
 				gustSide = -gustSide;
 				for (int f = GAP0; f <= GAP1; f += 2) {
@@ -767,7 +793,8 @@ final class Trials {
 				for (ServerPlayer p : here) {
 					double pf = f(p.position());
 					if (pf < GAP0 - 0.5 || pf > GAP1 + 0.5) continue;
-					p.setDeltaMovement(lx * gustSide * 0.55, 0.25, lz * gustSide * 0.55);
+					double push = 0.45 + tier * 0.08;
+					p.setDeltaMovement(lx * gustSide * push, 0.25, lz * gustSide * push);
 					p.hurtMarked = true;
 				}
 			}

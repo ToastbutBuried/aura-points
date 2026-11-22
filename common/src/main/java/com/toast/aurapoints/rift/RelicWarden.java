@@ -63,8 +63,11 @@ import java.util.List;
  * <li>LAST STAND (10%): it drops to one knee, rises with its core torn out in front (takes 50% more damage) and
  * throws everything it has. Kill it within 15 s - or it rallies to 30% once and fights on in Overdrive.</li>
  * </ol>
- * Every attack is telegraphed. A BLUE flash = parryable: hit it in the last PARRY_TICKS before it lands and the
- * attack is cancelled, it staggers and takes extra damage. YELLOW = can't be parried, get out of the way.
+ * Every attack is telegraphed (5.47: colours as ULTRAKILL has them). A YELLOW flash = parryable: it comes PARRY_LEAD
+ * ticks before the hit, and the window is the last PARRY_WINDOW ticks before it lands. A parry needs a full swing
+ * (no hit on the Warden in the PARRY_LOCKOUT ticks before) from in front within 4.5 blocks; the first try decides.
+ * Swinging early at a yellow tell is a mistimed parry: no damage, a clank, you're staggered. A parry cancels the
+ * attack, staggers the Warden and leaves it Exposed (x2.5 damage for 3 s). BLUE = can't be parried, get out of the way.
  * Never saved (runs aren't). Death plays its own 2.5 s animation.
  */
 public class RelicWarden extends PathfinderMob implements GeoEntity {
@@ -72,7 +75,14 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	public static final int GUARDIAN = 0, UNBOUND = 1, SHIELDED = 2, OVERDRIVE = 3, LAST_STAND = 4;
 	/** What the main animation shows besides walking: 0 nothing, 1 charging, 2 beaming, 3 kneeling. */
 	public static final int POSE_NONE = 0, POSE_CHARGE = 1, POSE_BEAM = 2, POSE_KNEEL = 3;
-	private static final int PARRY_TICKS = 8;
+	private static final int PARRY_LEAD = 10, PARRY_WINDOW = 4, PARRY_LOCKOUT = 10;
+	/** Per player: the tick of their last hit on the Warden, and when they may try to parry again. */
+	private final java.util.Map<java.util.UUID, Integer> lastHit = new java.util.HashMap<>(), parryLock = new java.util.HashMap<>();
+	/** Whoever already tried to parry the current tell (the first try decides). */
+	private final java.util.Set<java.util.UUID> tried = new java.util.HashSet<>();
+	private int windupStart, exposedUntil;
+	/** False through its entrance (it rises, nothing else); set by Rifts when the fight begins. */
+	public boolean awake;
 
 	private static final EntityDataAccessor<Integer> AURA = SynchedEntityData.defineId(RelicWarden.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Integer> PHASE = SynchedEntityData.defineId(RelicWarden.class, EntityDataSerializers.INT);
@@ -287,17 +297,33 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			if (source.getEntity() instanceof ServerPlayer p) p.displayClientMessage(Component.literal("The pylons shield it - break them!").withStyle(ChatFormatting.GOLD), true);
 			return false;
 		}
-		// a parry: hit while a blue tell is about to land
-		if (windup >= 0 && windup <= PARRY_TICKS && parryable && source.getEntity() instanceof ServerPlayer p && p.distanceTo(this) < 7) {
-			parried(level, p);
-			return super.hurt(source, amount + getMaxHealth() * 0.04f);
+		if (source.getDirectEntity() instanceof ServerPlayer p && windup >= 0 && parryable) {
+			int since = tickCount - lastHit.getOrDefault(p.getUUID(), -1000);
+			lastHit.put(p.getUUID(), tickCount);
+			if (tickCount < parryLock.getOrDefault(p.getUUID(), 0)) return false;
+			boolean inWindow = windup < PARRY_WINDOW;
+			if (!inWindow || !tried.add(p.getUUID())) {
+				// too early (or a second try): a mistimed parry
+				mistimed(level, p);
+				return false;
+			}
+			Vec3 to = p.position().subtract(position()).multiply(1, 0, 1).normalize();
+			boolean front = Vec3.directionFromRotation(0, getYRot()).dot(to) > 0.3 && p.distanceTo(this) < 4.5 + getBbWidth() / 2;
+			if (since >= PARRY_LOCKOUT && front) {
+				parried(level, p);
+				return super.hurt(source, amount + getMaxHealth() * 0.04f);
+			}
+			mistimed(level, p);
+			return false;
 		}
+		if (source.getDirectEntity() instanceof ServerPlayer p) lastHit.put(p.getUUID(), tickCount);
 		return super.hurt(source, amount);
 	}
 
 	@Override
 	protected void actuallyHurt(DamageSource source, float amount) {
 		if (phase() == LAST_STAND && kneelTicks <= 0 && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) amount *= 1.5f;
+		if (tickCount < exposedUntil) amount *= 2.5f;
 		super.actuallyHurt(source, amount);
 	}
 
@@ -318,9 +344,19 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		level.playSound(null, getX(), getY() + 2, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.5f, 1.8f);
 		level.playSound(null, getX(), getY() + 2, getZ(), SoundEvents.BELL_BLOCK, SoundSource.HOSTILE, 2f, 1.4f);
 		level.sendParticles(ParticleTypes.FLASH, getX(), getY() + 2.2, getZ(), 1, 0, 0, 0, 0);
-		level.sendParticles(AuraFx.dust(0x3FA9FF, 2.5f), getX(), getY() + 2.2, getZ(), 40, 0.8, 0.8, 0.8, 0);
-		AuraFx.title(by, Component.literal("PARRY").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), Component.empty());
+		level.sendParticles(AuraFx.dust(0xFFD23F, 2.5f), getX(), getY() + 2.2, getZ(), 40, 0.8, 0.8, 0.8, 0);
+		AuraFx.title(by, Component.literal("PARRY").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), Component.literal("it's exposed!").withStyle(ChatFormatting.YELLOW));
+		by.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 200, 0));
+		exposedUntil = tickCount + 60;
 		stagger(30, null);
+	}
+
+	/** Swung at a yellow tell at the wrong moment: a dull clank, no damage, and you reel for a moment. */
+	private void mistimed(ServerLevel level, ServerPlayer p) {
+		level.playSound(null, p.getX(), p.getY() + 1, p.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 1.2f, 0.5f);
+		p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 1));
+		parryLock.put(p.getUUID(), tickCount + 30);
+		p.displayClientMessage(Component.literal("Mistimed - wait for the yellow flash").withStyle(ChatFormatting.GRAY), true);
 	}
 
 	private void stagger(int ticks, Runnable then) {
@@ -334,6 +370,10 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	protected void customServerAiStep() {
 		super.customServerAiStep();
 		if (!(level() instanceof ServerLevel level) || isNoAi()) return;
+		if (!awake) {
+			getNavigation().stop();
+			return;
+		}
 		tickBolts(level);
 		float hp = getHealth() / getMaxHealth();
 		if (staggerTicks > 0) {
@@ -366,7 +406,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		if (windup >= 0) {
 			getNavigation().stop();
 			if (getTarget() != null) getLookControl().setLookAt(getTarget(), 30f, 30f);
-			if (windup == PARRY_TICKS) flash(level, parryable);
+			if (windup == Math.min(PARRY_LEAD, windupStart)) flash(level, parryable);
 			if (windup-- == 0) {
 				parryable = false;
 				Runnable r = landing;
@@ -406,12 +446,13 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		}
 	}
 
-	/** The tell before an attack lands: BLUE = parryable, YELLOW = not. */
-	private void flash(ServerLevel level, boolean blue) {
-		int col = blue ? 0x3FA9FF : 0xFFD23F;
+	/** The tell before an attack lands: YELLOW = parryable, BLUE = not. */
+	private void flash(ServerLevel level, boolean yellow) {
+		int col = yellow ? 0xFFD23F : 0x3FA9FF;
 		level.sendParticles(AuraFx.dust(col, 2.8f), getX(), getY() + 2.6, getZ(), 30, 0.6, 0.9, 0.6, 0);
 		level.sendParticles(ParticleTypes.FLASH, getX(), getY() + 2.6, getZ(), 1, 0, 0, 0, 0);
-		level.playSound(null, getX(), getY() + 2, getZ(), blue ? SoundEvents.AMETHYST_BLOCK_CHIME : SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.HOSTILE, 2f, blue ? 1.8f : 0.7f);
+		if (!yellow) level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, getX(), getY() + 2.6, getZ(), 20, 0.6, 0.9, 0.6, 0.02);
+		level.playSound(null, getX(), getY() + 2, getZ(), yellow ? SoundEvents.BELL_RESONATE : SoundEvents.WARDEN_SONIC_CHARGE, SoundSource.HOSTILE, 2f, yellow ? 1.6f : 1.2f);
 	}
 
 	/** A ring of the aura's colour that tightens on a spot while an attack winds up there. */
@@ -426,6 +467,8 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 
 	private void windUp(int ticks, boolean canParry, Runnable then) {
 		windup = ticks;
+		windupStart = ticks;
+		tried.clear();
 		parryable = canParry;
 		landing = then;
 	}
@@ -435,7 +478,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	}
 
 	private void hit(ServerLevel level, ServerPlayer p, float dmg) {
-		p.hurt(level.damageSources().mobAttack(this), dmg);
+		p.hurt(level.damageSources().mobAttack(this), dmg * (run == null ? 1f : (float) run.difficulty.bossDamage));
 	}
 
 	private Vec3 front(double d) {
@@ -492,7 +535,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		Vec3 at = position();
 		warn(level, at, 4.5, 16);
 		playSound(SoundEvents.WARDEN_ATTACK_IMPACT, 2f, 0.6f);
-		windUp(16, true, () -> {
+		windUp(16, random.nextBoolean(), () -> {
 			level.sendParticles(ParticleTypes.EXPLOSION, at.x, at.y + 0.3, at.z, 6, 2, 0.1, 2, 0);
 			level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, RealmBuilder.palette(aura()).floor().defaultBlockState()),
 					at.x, at.y + 0.2, at.z, 60, 2.5, 0.2, 2.5, 0.3);
@@ -520,7 +563,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 				if (!isAlive()) return;
 				for (double d = 1; d < 20; d += 0.8) {
 					Vec3 p = position().add(chargeDir.scale(d));
-					level.sendParticles(AuraFx.dust(0xFFD23F, 1.2f), p.x, p.y + 0.15, p.z, 1, 0.3, 0, 0.3, 0);
+					level.sendParticles(AuraFx.dust(0x3FA9FF, 1.2f), p.x, p.y + 0.15, p.z, 1, 0.3, 0, 0.3, 0);
 				}
 			});
 		}
@@ -536,7 +579,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		chargeTicks--;
 		Vec3 next = position().add(chargeDir.scale(1.4));
 		boolean blocked = !level.getBlockState(net.minecraft.core.BlockPos.containing(next.add(0, 1, 0))).isAir()
-				|| (run != null && next.distanceTo(Vec3.atBottomCenterOf(run.hub())) > RealmBuilder.HUB_R - 2.5);
+				|| (run != null && next.multiply(1, 0, 1).distanceTo(Reliquary.cryptCenter(run).multiply(1, 0, 1)) > Monument.anchors().cryptRadius - 3);
 		if (!blocked) {
 			moveTo(next.x, getY(), next.z, getYRot(), 0);
 			level.sendParticles(AuraFx.dust(aura().rgb, 2f), getX(), getY() + 1, getZ(), 6, 0.6, 0.8, 0.6, 0);
@@ -722,9 +765,16 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 				Rifts.Kind kind = Rifts.KINDS[level.random.nextInt(Rifts.KINDS.length)];
 				if (kind.cost() > budget) kind = Rifts.KINDS[0];
 				budget -= kind.cost();
-				Vec3 at = Vec3.atBottomCenterOf(run.pedestal(k % 4)).add(0, 1, 0);
-				Mob m = Rifts.spawnMob(level, run, kind.type(), at, 2);
-				if (m != null) run.mobs.add(m);
+				// out of cracks in the crypt's ceiling, onto open floor (never into a pillar or a ledge)
+				if (run.mobs.size() >= 3 * players + 1) break;
+				Vec3 at = Reliquary.cryptSpot(run, level.random).add(0, 7, 0);
+				Mob m = Rifts.spawnMob(level, run, kind.type(), at, 0);
+				if (m != null) {
+					m.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 60, 0));
+					level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, net.minecraft.world.level.block.Blocks.DEEPSLATE.defaultBlockState()),
+							at.x, at.y + 1, at.z, 20, 0.6, 0.3, 0.6, 0.1);
+					run.mobs.add(m);
+				}
 				k++;
 			}
 			for (ServerPlayer p : Rifts.online(level.getServer(), run)) {
@@ -746,7 +796,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		getNavigation().stop();
 		triggerAnim("action", "cast");
 		playSound(SoundEvents.BEACON_ACTIVATE, 3f, 0.5f);
-		Vec3 home = run != null ? Vec3.atBottomCenterOf(run.hub()) : position();
+		Vec3 home = run != null ? Reliquary.cryptCenter(run) : position();
 		for (int i = 0; i < 4; i++) {
 			double a = i * Math.PI / 2 + Math.PI / 4;
 			Vec3 at = home.add(Math.cos(a) * 9, 1, Math.sin(a) * 9);
@@ -1050,11 +1100,24 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	}
 
 	public void devAiStep() {
+		awake = true;
 		customServerAiStep();
 	}
 
 	public int devPylons() {
 		return pylons.size();
+	}
+
+	/** Starts a parryable slam (yellow) whatever the dice say; true if the windup is on. */
+	public boolean devStartParryable() {
+		if (!(level() instanceof ServerLevel level)) return false;
+		windup = -1;
+		staggerTicks = 0;
+		awake = true;
+		triggerAnim("action", "slam");
+		windUp(16, true, () -> {
+		});
+		return windup >= 0 && parryable;
 	}
 
 	/** Starts a parryable slam; true if the windup is on. */
