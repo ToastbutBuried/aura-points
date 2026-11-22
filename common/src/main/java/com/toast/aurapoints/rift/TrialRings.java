@@ -782,7 +782,7 @@ final class TrialRings extends Trials.Trial {
 		lend(p);
 		flyers.put(p.getUUID(), new Flyer(now));
 		Vec3 c = Vec3.atBottomCenterOf(arena(CANNON_F, 0, 1));
-		p.teleportTo(level, c.x, c.y, c.z, forwardYaw(), -20f);
+		place(p, c, forwardYaw(), -20f);
 		p.fallDistance = 0;
 		p.setDeltaMovement(fx * 0.35, 3.2, fz * 0.35);
 		p.hurtMarked = true;
@@ -804,10 +804,19 @@ final class TrialRings extends Trials.Trial {
 
 	private void goHome(ServerPlayer p) {
 		Vec3 h = home();
-		p.teleportTo((ServerLevel) p.level(), h.x, h.y, h.z, forwardYaw(), 0f);
+		place(p, h, forwardYaw(), 0f);
 		p.setDeltaMovement(Vec3.ZERO);
 		p.hurtMarked = true;
 		p.fallDistance = 0;
+	}
+
+	/** Moves {@code p} within the rift; fake players (dev tests) have no connection, so teleportTo can't move them. */
+	private static void place(ServerPlayer p, Vec3 to, float yaw, float pitch) {
+		if (com.toast.aurapoints.shim.Platform.get().isFakePlayer(p)) {
+			p.moveTo(to.x, to.y, to.z, yaw, pitch);
+			return;
+		}
+		p.teleportTo((ServerLevel) p.level(), to.x, to.y, to.z, yaw, pitch);
 	}
 
 	/** The attempt is over: score back to 0, rings back to their colour. */
@@ -1192,6 +1201,8 @@ final class TrialRings extends Trials.Trial {
 		use(level, fake, launchStone());
 		fake.setOnGround(false);
 		tick.run();
+		log.accept("rings: relaunch -> on the cannon " + (Math.abs(af(fake.position()) - CANNON_F) < 2) + " (must be true), flying " + flyers.containsKey(fake.getUUID())
+				+ " (must be true), attempt " + attempt + " (must be true), strikes " + strikes + " (must be 1)");
 		expect = 0;
 		for (int k = 0; k < rings.size(); k++) {
 			Ring g = rings.get(k);
