@@ -4,7 +4,9 @@ import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.AuraType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -15,6 +17,11 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.WallBannerBlock;
@@ -69,10 +76,57 @@ final class Trials {
 		return out;
 	}
 
+	// ---------------------------------------------------------------
+	// Portal Keystones (5.50): what the broken portals need
+	// ---------------------------------------------------------------
+
+	static final String KEYSTONE = "aurapoints_keystone";
+	static final String[] WING_NAME = {"West", "North-West", "North-East", "East"};
+
+	/** A Keystone of wing {@code index} in run {@code runId}: a glowing amethyst shard in the wing's colour (a plain vanilla item, no client update). */
+	static ItemStack makeKeystone(int runId, int index) {
+		ItemStack st = new ItemStack(Items.AMETHYST_SHARD);
+		CompoundTag tag = new CompoundTag();
+		tag.putInt(KEYSTONE, index);
+		tag.putInt("run", runId);
+		st.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+		int rgb = Reliquary.WING_RGB[Math.max(0, Math.min(3, index))];
+		st.set(DataComponents.CUSTOM_NAME, Component.literal("Keystone - " + WING_NAME[index] + " wing").withStyle(c -> c.withColor(rgb).withItalic(false).withBold(true)));
+		st.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+		st.set(DataComponents.LORE, new ItemLore(List.of(
+				Component.literal("Right-click the repair pedestal in the " + WING_NAME[index] + " wing").withStyle(c -> c.withColor(0xAAAAAA).withItalic(false)),
+				Component.literal("to rebuild its broken portal.").withStyle(c -> c.withColor(0xAAAAAA).withItalic(false)))));
+		return st;
+	}
+
+	static boolean isKeystone(ItemStack s) {
+		if (!s.is(Items.AMETHYST_SHARD)) return false;
+		CustomData d = s.get(DataComponents.CUSTOM_DATA);
+		return d != null && d.copyTag().contains(KEYSTONE);
+	}
+
+	static int keystoneWing(ItemStack s) {
+		CustomData d = s.get(DataComponents.CUSTOM_DATA);
+		return d == null ? -1 : d.copyTag().getInt(KEYSTONE);
+	}
+
+	static int keystoneRun(ItemStack s) {
+		CustomData d = s.get(DataComponents.CUSTOM_DATA);
+		return d == null ? -1 : d.copyTag().getInt("run");
+	}
+
+	/** Keystones taken back on the way out of the rift. */
+	static void purgeKeystones(ServerPlayer p) {
+		var inv = p.getInventory();
+		for (int i = 0; i < inv.getContainerSize(); i++) if (isKeystone(inv.getItem(i))) inv.setItem(i, ItemStack.EMPTY);
+		if (isKeystone(p.containerMenu.getCarried())) p.containerMenu.setCarried(ItemStack.EMPTY);
+	}
+
 	/** Elytra and anything else a trial lends out, taken back (Rifts.purge on the way out). */
 	static void purgeLent(ServerPlayer p) {
 		TrialRings.purgeLent(p);
 		TrialBells.purgeBatons(p);
+		purgeKeystones(p);
 	}
 
 	static final String DISPLAY_TAG = "aurapoints_rift_trial";
@@ -135,6 +189,13 @@ final class Trials {
 		/** The mobs this trial's mistakes called up (capped by RIFT_TRIAL_MOB_CAP, cleared when the trial resets). */
 		final List<Mob> hazards = new ArrayList<>();
 		RandomSource random;
+		/** The portal's repair: Keystones needed and set, the cache pots still holding one, the pedestal, its sign. */
+		int keystonesNeeded, keystonesSet;
+		boolean repaired = true;
+		final List<BlockPos> caches = new ArrayList<>();
+		BlockPos pedestal;
+		Display.TextDisplay repairLabel;
+		private final Set<UUID> told = new HashSet<>();
 
 		Trial(Rifts.Run run, int index, Kind kind) {
 			this.run = run;
@@ -299,7 +360,7 @@ final class Trials {
 			back = new TrialPortal(arena(backF() - 1, 0, 0), fx, fz, rgb);
 			gate.to = back;
 			back.to = gate;
-			gate.build(level, pal);
+			setupRepair(level, r);
 			back.build(level, pal);
 			// a landing under the way back, in case the arena left it floating
 			for (int f = backF() - 3; f <= backF() + 4; f++)
@@ -308,8 +369,168 @@ final class Trials {
 			dressWing(level);
 			built = true;
 			com.toast.aurapoints.AuraPoints.LOGGER.debug("[rift] built the {} arena in {} ms", name(), (System.nanoTime() - t0) / 1_000_000);
-			gate.setOpen(level, true, pal.gate());
+			if (repaired) gate.setOpen(level, true, pal.gate());
 			back.setOpen(level, true, pal.gate());
+		}
+
+		// --- the portal's repair (5.50)
+
+		/** The portal starts broken (unless RIFT_PORTAL_KEYSTONES is 0): a ruined frame, a pedestal beside it, Keystones hidden in pots. */
+		void setupRepair(ServerLevel level, RandomSource r) {
+			keystonesNeeded = Math.max(0, Math.min(6, com.toast.aurapoints.config.AuraConfig.RIFT_PORTAL_KEYSTONES));
+			keystonesSet = 0;
+			caches.clear();
+			told.clear();
+			if (keystonesNeeded == 0) {
+				repaired = true;
+				gate.build(level, pal);
+				return;
+			}
+			repaired = false;
+			gate.buildPartial(level, pal, 0, keystonesNeeded);
+			// the repair pedestal beside the way to the portal (off the path), with its sign
+			pedestal = at(hall - 6, 3, 1);
+			RealmBuilder.set(level, pedestal.getX(), pedestal.getY(), pedestal.getZ(), pal.edge());
+			RealmBuilder.set(level, pedestal.getX(), pedestal.getY() + 1, pedestal.getZ(), pal.edge());
+			RealmBuilder.set(level, pedestal.getX(), pedestal.getY() + 2, pedestal.getZ(), Blocks.LODESTONE);
+			repairLabel = label(level, Vec3.atBottomCenterOf(pedestal.above(3)), repairText(), 1.4f);
+			for (BlockPos pos : pickCaches(level, r, keystonesNeeded)) {
+				RealmBuilder.set(level, pos.getX(), pos.getY(), pos.getZ(), Blocks.DECORATED_POT);
+				caches.add(pos);
+				run.caches.add(pos);
+			}
+		}
+
+		private Component repairText() {
+			return Component.literal("Broken portal\n").withStyle(ChatFormatting.GRAY)
+					.append(Component.literal(keystonesSet + " / " + keystonesNeeded + " Keystones\n").withStyle(s -> s.withColor(rgb).withBold(true)))
+					.append(Component.literal("find them in the pots").withStyle(ChatFormatting.DARK_GRAY));
+		}
+
+		/** {@code n} pot spots across the monument: nave sides, entry hall flanks, transepts, the apse and the wing halls; apart, on open floor, never on a path. */
+		private List<BlockPos> pickCaches(ServerLevel level, RandomSource r, int n) {
+			var an = Monument.anchors();
+			BlockPos hub = run.hub();
+			List<int[]> zones = new ArrayList<>(List.of(new int[]{4, 11, 16, 66}, new int[]{-11, -4, 16, 66}, new int[]{10, 13, 76, 108}, new int[]{-13, -10, 76, 108},
+					new int[]{13, 27, 3, 8}, new int[]{13, 27, -8, -3}, new int[]{-27, -13, 3, 8}, new int[]{-27, -13, -8, -3}, new int[]{6, 14, -17, -12}, new int[]{-14, -6, -17, -12}));
+			List<BlockPos> out = new ArrayList<>();
+			for (int attempt = 0; attempt < 900 && out.size() < n; attempt++) {
+				int x, z;
+				if (attempt % 3 == 0) {
+					// inside one of the wing halls, off the aisle (pillars stand at 8, braziers at 5, the carpet at +-1)
+					int w = r.nextInt(an.wings.size());
+					BlockPos wc = an.wings.get(w);
+					int[] d = an.wingDirs.get(w);
+					int f = -10 + r.nextInt(17), l = (r.nextBoolean() ? 1 : -1) * (10 + r.nextInt(5));
+					x = wc.getX() + d[0] * f + (-d[1]) * l;
+					z = wc.getZ() + d[1] * f + d[0] * l;
+				} else {
+					int[] zn = zones.get(r.nextInt(zones.size()));
+					x = zn[0] + r.nextInt(zn[1] - zn[0] + 1);
+					z = zn[2] + r.nextInt(zn[3] - zn[2] + 1);
+				}
+				BlockPos floor = new BlockPos(hub.getX() + x, Rifts.FLOOR, hub.getZ() + z);
+				if (!openFloor(level, floor)) continue;
+				boolean clear = true;
+				for (BlockPos o : run.caches) if (o.distSqr(floor.above()) < 49) clear = false;
+				for (BlockPos o : out) if (o.distSqr(floor.above()) < 49) clear = false;
+				for (int[] dd : new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) if (!openFloor(level, floor.offset(dd[0], 0, dd[1]))) clear = false;
+				if (clear) out.add(floor.above());
+			}
+			return out;
+		}
+
+		private static boolean openFloor(ServerLevel level, BlockPos floor) {
+			return !level.getBlockState(floor).isAir() && level.getBlockState(floor.above()).isAir() && level.getBlockState(floor.above(2)).isAir();
+		}
+
+		/** A click on a cache pot (picks its Keystone up) or on this wing's repair pedestal (sets one). */
+		boolean repairUse(ServerLevel level, ServerPlayer p, BlockPos pos) {
+			if (repaired) return false;
+			int hit = caches.indexOf(pos);
+			if (hit >= 0) {
+				caches.remove(hit);
+				run.caches.remove(pos);
+				level.destroyBlock(pos, false);
+				ItemStack ks = makeKeystone(run.id, index);
+				if (!p.getInventory().add(ks)) p.drop(ks, false);
+				level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 1.6f, 1.1f);
+				level.sendParticles(AuraFx.dust(rgb, 1.6f), pos.getX() + 0.5, pos.getY() + 0.6, pos.getZ() + 0.5, 20, 0.3, 0.4, 0.3, 0);
+				p.displayClientMessage(Component.literal("A Keystone of the " + WING_NAME[index] + " wing - set it in the pedestal beside its portal").withStyle(s -> s.withColor(rgb)), true);
+				return true;
+			}
+			if (pedestal == null || !(pos.equals(pedestal) || pos.equals(pedestal.above()) || pos.equals(pedestal.above(2)))) return false;
+			ItemStack held = p.getMainHandItem();
+			if (!isKeystone(held)) {
+				p.displayClientMessage(Component.literal("The portal needs " + (keystonesNeeded - keystonesSet) + " more Keystone" + (keystonesNeeded - keystonesSet == 1 ? "" : "s") + " - look for the " + WING_NAME[index] + " beams").withStyle(ChatFormatting.GRAY), true);
+				return true;
+			}
+			if (keystoneWing(held) != index || keystoneRun(held) != run.id) {
+				p.displayClientMessage(Component.literal("This Keystone belongs to the " + WING_NAME[Math.max(0, Math.min(3, keystoneWing(held)))] + " wing").withStyle(ChatFormatting.RED), true);
+				return true;
+			}
+			held.shrink(1);
+			keystonesSet++;
+			Vec3 c = Vec3.atBottomCenterOf(pedestal.above(3));
+			level.sendParticles(AuraFx.dust(rgb, 1.8f), c.x, c.y, c.z, 30, 0.3, 0.3, 0.3, 0);
+			level.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_CLUSTER_PLACE, SoundSource.BLOCKS, 1.6f, 0.9f);
+			gate.buildPartial(level, pal, keystonesSet, keystonesNeeded);
+			if (repairLabel != null) TrialDecor.text(repairLabel, repairText());
+			if (keystonesSet >= keystonesNeeded) {
+				repaired = true;
+				gate.setOpen(level, true, pal.gate());
+				if (repairLabel != null) TrialDecor.text(repairLabel, Component.literal("Portal restored").withStyle(s -> s.withColor(rgb).withBold(true)));
+				for (ServerPlayer q : Rifts.online(level.getServer(), run)) {
+					AuraFx.title(q, Component.literal(name() + " portal restored").withStyle(s -> s.withColor(rgb).withBold(true)), Component.literal("the way to the trial is open").withStyle(ChatFormatting.GRAY));
+				}
+			} else {
+				p.displayClientMessage(Component.literal(keystonesSet + " / " + keystonesNeeded + " - the arch rises").withStyle(s -> s.withColor(rgb)), true);
+			}
+			return true;
+		}
+
+		/** While the portal is broken: a beam over every cache, the first words for newcomers, and a new pot if a Keystone got lost. */
+		private void repairTick(ServerLevel level, List<ServerPlayer> up, List<ServerPlayer> wing, long now) {
+			for (ServerPlayer p : wing) {
+				if (told.add(p.getUUID())) {
+					p.sendSystemMessage(Component.literal("✦ The " + WING_NAME[index] + " portal is broken: find " + keystonesNeeded + " Keystones (look for the " + WING_NAME[index] + "-coloured beams around the monument, in decorated pots) and set them in the pedestal beside the portal.").withStyle(s -> s.withColor(rgb)));
+				}
+			}
+			if (now % 10 == 0) {
+				for (BlockPos pos : caches) {
+					for (ServerPlayer p : up) {
+						if (p.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()) > 120 * 120) continue;
+						for (int k = 0; k < 9; k++) level.sendParticles(p, AuraFx.dust(rgb, 1.5f), true, pos.getX() + 0.5, pos.getY() + 0.9 + k * 0.9, pos.getZ() + 0.5, 1, 0.04, 0.1, 0.04, 0);
+						level.sendParticles(p, ParticleTypes.END_ROD, true, pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 1, 0.2, 0.3, 0.2, 0.01);
+					}
+				}
+			}
+			if (now % 200 == 100) recoverLost(level, up);
+		}
+
+		/** Keystones carried, lying about or still potted must add up: a lost one (void, despawn) comes back as a fresh pot. */
+		void recoverLost(ServerLevel level, List<ServerPlayer> up) {
+			int have = keystonesSet + caches.size();
+			for (ServerPlayer p : up) {
+				var inv = p.getInventory();
+				for (int i = 0; i < inv.getContainerSize(); i++) {
+					ItemStack st = inv.getItem(i);
+					if (isKeystone(st) && keystoneWing(st) == index && keystoneRun(st) == run.id) have += st.getCount();
+				}
+			}
+			BlockPos hub = run.hub();
+			var box = new net.minecraft.world.phys.AABB(Vec3.atCenterOf(hub), Vec3.atCenterOf(hub)).inflate(500, 220, 500);
+			for (ItemEntity e : level.getEntitiesOfClass(ItemEntity.class, box, e -> isKeystone(e.getItem()) && keystoneWing(e.getItem()) == index && keystoneRun(e.getItem()) == run.id)) {
+				if (e.getY() > Rifts.FLOOR - 15) have += e.getItem().getCount();
+			}
+			int missing = keystonesNeeded - have;
+			if (missing <= 0) return;
+			for (BlockPos pos : pickCaches(level, random != null ? random : level.random, missing)) {
+				RealmBuilder.set(level, pos.getX(), pos.getY(), pos.getZ(), Blocks.DECORATED_POT);
+				caches.add(pos);
+				run.caches.add(pos);
+			}
+			for (ServerPlayer p : up) p.displayClientMessage(Component.literal("A lost " + WING_NAME[index] + " Keystone shimmers back into a pot").withStyle(s -> s.withColor(rgb)), true);
 		}
 
 		private static final Block[] WING_CARPET = {Blocks.BLUE_CARPET, Blocks.LIME_CARPET, Blocks.YELLOW_CARPET, Blocks.RED_CARPET};
@@ -365,6 +586,7 @@ final class Trials {
 			inside.addAll(nowIn);
 			gate.tick(level, wing, now);
 			back.tick(level, arena, now);
+			if (!repaired) repairTick(level, up, wing, now);
 			if (!started && !arena.isEmpty()) {
 				started = true;
 				for (ServerPlayer p : arena) {
@@ -466,6 +688,45 @@ final class Trials {
 				if (m != null) hazards.add(m);
 			}
 			level.playSound(null, at.x, at.y, at.z, SoundEvents.EVOKER_PREPARE_SUMMON, SoundSource.HOSTILE, 1f, 1.2f);
+		}
+
+		/** DEV ONLY: breaks this wing's portal again and walks the whole repair through a fake player. */
+		void devRepairTest(ServerLevel level, ServerPlayer fake, java.util.function.Consumer<String> log) {
+			int keep = com.toast.aurapoints.config.AuraConfig.RIFT_PORTAL_KEYSTONES;
+			com.toast.aurapoints.config.AuraConfig.RIFT_PORTAL_KEYSTONES = 3;
+			RandomSource r = random != null ? random : level.random;
+			gate.setOpen(level, false, pal.gate());
+			setupRepair(level, r);
+			boolean potsStand = !caches.isEmpty();
+			for (BlockPos pos : caches) if (!level.getBlockState(pos).is(Blocks.DECORATED_POT)) potsStand = false;
+			log.accept("repair: broken " + !repaired + " (must be true), portal closed " + !gate.open + " (must be true), pots " + caches.size() + " (must be 3), pots stand " + potsStand + " (must be true), pedestal sign " + (repairLabel != null) + " (must be true)");
+			fake.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			boolean answered = repairUse(level, fake, pedestal);
+			log.accept("repair: pedestal without a Keystone answers " + answered + " (must be true), set " + keystonesSet + " (must be 0)");
+			fake.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, makeKeystone(run.id, (index + 1) % 4));
+			repairUse(level, fake, pedestal);
+			log.accept("repair: another wing's Keystone refused, set " + keystonesSet + " (must be 0), still held " + isKeystone(fake.getMainHandItem()) + " (must be true)");
+			fake.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			for (BlockPos pos : new ArrayList<>(caches)) repairUse(level, fake, pos);
+			int carried = 0;
+			for (int i = 0; i < fake.getInventory().getContainerSize(); i++) if (isKeystone(fake.getInventory().getItem(i))) carried += fake.getInventory().getItem(i).getCount();
+			log.accept("repair: all pots dug out, Keystones carried " + carried + " (must be 3), pots left " + caches.size() + " (must be 0)");
+			// lose them all: they come back as pots
+			purgeKeystones(fake);
+			recoverLost(level, List.of(fake));
+			log.accept("repair: lost Keystones are replaced by pots " + caches.size() + " (must be 3)");
+			for (BlockPos pos : new ArrayList<>(caches)) repairUse(level, fake, pos);
+			purgeKeystones(fake);
+			// set three: the arch rises piece by piece, the last one opens the portal
+			for (int k = 1; k <= 3; k++) {
+				fake.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, makeKeystone(run.id, index));
+				repairUse(level, fake, pedestal);
+				int built = 0;
+				for (TrialPortal.Piece pc : gate.frame(pal)) if (level.getBlockState(pc.pos()).is(pc.block())) built++;
+				log.accept("repair: Keystone " + k + " set -> " + keystonesSet + " (must be " + k + "), arch pieces " + built + "/" + gate.frame(pal).size() + ", repaired " + repaired + " (must be " + (k == 3) + "), portal open " + gate.open + " (must be " + (k == 3) + ")");
+			}
+			fake.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, ItemStack.EMPTY);
+			com.toast.aurapoints.config.AuraConfig.RIFT_PORTAL_KEYSTONES = keep;
 		}
 
 		/** The trial resets: its mistakes' mobs go with the old layout. */

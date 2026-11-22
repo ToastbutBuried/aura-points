@@ -78,6 +78,48 @@ final class TrialPortal {
 		}
 	}
 
+	/** One block of the arch and where it stands. */
+	record Piece(BlockPos pos, Block block) {
+	}
+
+	private Piece piece(int s, int y, Block b) {
+		return new Piece(new BlockPos(base.getX() + sx() * s, base.getY() + y, base.getZ() + sz() * s), b);
+	}
+
+	/** The arch in building order: the two posts rise, then the lintel, the crown and the lit feet. */
+	List<Piece> frame(RealmBuilder.Palette pal) {
+		List<Piece> out = new ArrayList<>();
+		for (int side : new int[]{-1, 1}) for (int y = 1; y <= H; y++) out.add(piece(side * (W + 1), y, pal.edge()));
+		for (int s = -(W + 1); s <= W + 1; s++) out.add(piece(s, H + 1, pal.edge()));
+		for (int s = -W; s <= W; s++) out.add(piece(s, H + 2, s == 0 ? pal.accent() : pal.edge()));
+		out.add(piece(0, H + 3, pal.light()));
+		for (int s : new int[]{-W - 2, W + 2}) {
+			out.add(piece(s, 1, pal.edge()));
+			out.add(piece(s, 2, pal.light()));
+		}
+		return out;
+	}
+
+	/** A broken portal: the floor strip and the first {@code done} of {@code total} parts of the arch; the rest is rubble-free air. */
+	void buildPartial(ServerLevel level, RealmBuilder.Palette pal, int done, int total) {
+		for (int s = -W - 1; s <= W + 1; s++) RealmBuilder.set(level, base.getX() + sx() * s, base.getY(), base.getZ() + sz() * s, pal.accent());
+		for (int s = -W; s <= W; s++) for (int y = 1; y <= H; y++) RealmBuilder.set(level, base.getX() + sx() * s, base.getY() + y, base.getZ() + sz() * s, Blocks.AIR);
+		List<Piece> all = frame(pal);
+		int upTo = total <= 0 ? all.size() : (int) Math.round(all.size() * (double) Math.min(done, total) / total);
+		for (int i = 0; i < all.size(); i++) {
+			Piece p = all.get(i);
+			// the lowest course of each post always stands: a broken arch, not an empty wall
+			boolean stump = p.pos().getY() == base.getY() + 1 && Math.abs((p.pos().getX() - base.getX()) * sx() + (p.pos().getZ() - base.getZ()) * sz()) == W + 1;
+			RealmBuilder.set(level, p.pos().getX(), p.pos().getY(), p.pos().getZ(), i < upTo || stump ? p.block() : Blocks.AIR);
+		}
+		// the part just rebuilt: dust and a clack
+		if (done > 0 && upTo > 0) {
+			Vec3 c = Vec3.atBottomCenterOf(base.above()).add(0, H / 2.0, 0);
+			level.sendParticles(ParticleTypes.CLOUD, c.x, c.y, c.z, 14, 1.2, 1.4, 0.3, 0.02);
+			level.playSound(null, c.x, c.y, c.z, SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1.6f, 0.7f);
+		}
+	}
+
 	void setOpen(ServerLevel level, boolean on, Block glass) {
 		if (on == open) return;
 		open = on;

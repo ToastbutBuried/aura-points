@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.50.0
+- Reliquary: the wing portals are broken ruins now. Hidden in decorated pots around the monument (each with a beam in its wing's colour) lie Keystones; set them in the repair pedestal beside a portal and its arch rises piece by piece, the last one opens the way to the puzzle. A lost Keystone comes back as a pot. Config RIFT_PORTAL_KEYSTONES (default 3, 0 = portals just work).
+- Reliquary: the north-east bridge no longer ends in a railing wall - every bridge's doorway stays open.
+
 == 5.49.9
 - Hall of Echoes: the last row of every stage lights exactly one tile - it already leads onto the checkpoint, so no second "right" tile is free there.
 

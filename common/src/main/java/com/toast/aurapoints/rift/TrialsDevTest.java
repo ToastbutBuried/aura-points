@@ -28,6 +28,8 @@ public final class TrialsDevTest {
 	private TrialsDevTest() {
 	}
 
+	private static int keepKeys = 3;
+
 	private static void log(String s) {
 		AuraPoints.LOGGER.info("[trialtest] {}", s);
 	}
@@ -85,6 +87,8 @@ public final class TrialsDevTest {
 		List<List<Trials.Kind>> runs = only != null
 				? List.of(List.of(only, only == Trials.Kind.DIG ? Trials.Kind.ECHOES : Trials.Kind.DIG, Trials.Kind.GLYPH == only ? Trials.Kind.PRISM : Trials.Kind.GLYPH, Trials.Kind.BELLS == only ? Trials.Kind.STATUES : Trials.Kind.BELLS))
 				: List.of(List.of(Trials.Kind.DIG, Trials.Kind.ECHOES, Trials.Kind.GLYPH, Trials.Kind.PRISM), List.of(Trials.Kind.BELLS, Trials.Kind.STATUES, Trials.Kind.RINGS, Trials.Kind.DIG));
+		keepKeys = com.toast.aurapoints.config.AuraConfig.RIFT_PORTAL_KEYSTONES;
+		com.toast.aurapoints.config.AuraConfig.RIFT_PORTAL_KEYSTONES = 0; // the trials' own tests walk through open portals; the repair has its own test
 		runRealm(server, rift, fake, runs, 0, only != null ? 1 : 3, true);
 		return 1;
 	}
@@ -94,6 +98,7 @@ public final class TrialsDevTest {
 		if (n >= runs.size()) {
 			Rifts.clearAll();
 			Rifts.TEST_PLAYERS.clear();
+			com.toast.aurapoints.config.AuraConfig.RIFT_PORTAL_KEYSTONES = keepKeys;
 			log("trialtest done");
 			return;
 		}
@@ -160,6 +165,7 @@ public final class TrialsDevTest {
 		log("two strikes: count " + t.strikes + " (must be 2), hazard mobs " + (run.mobs.size() > mobs) + (t.kind == Trials.Kind.RINGS ? " (Rings: gusts, no mobs)" : " (must be true)"));
 		t.strike(rift, fake, fake.position(), List.of(fake));
 		log("third strike: count " + t.strikes + " (must be 0), total " + t.totalStrikes + " (must be 3)");
+		if (run.trials.length > 1) run.trials[1].devRepairTest(rift, fake, TrialsDevTest::log);
 		// the mobs a trial's mistakes call up are capped, and gone when the trial resets
 		t.punish(rift, fake.position(), 30);
 		log("hazard cap: " + t.hazards.size() + " (must be " + Math.min(12, Math.max(1, com.toast.aurapoints.config.AuraConfig.RIFT_TRIAL_MOB_CAP)) + ")");
@@ -203,6 +209,35 @@ public final class TrialsDevTest {
 					Vec3 g = Vec3.atBottomCenterOf(t.at(-t.hall + 3, 0, 1));
 					float yaw = (float) Math.toDegrees(Math.atan2(-t.fx, t.fz));
 					p.teleportTo((ServerLevel) p.level(), g.x, g.y, g.z, yaw, 8f);
+				}
+				case "portal0", "portal1", "portal2", "portal3" -> {
+					// in front of the wing's portal and its repair pedestal (client playtests)
+					Rifts.Run run = Rifts.runOf(p);
+					if (run == null) return 0;
+					Trials.Trial t = run.trials[what.charAt(6) - '0'];
+					Vec3 g = Vec3.atBottomCenterOf(t.at(t.hall - 11, 0, 1));
+					p.teleportTo((ServerLevel) p.level(), g.x, g.y, g.z, (float) Math.toDegrees(Math.atan2(-t.fx, t.fz)), 6f);
+				}
+				case "fix0", "fix1", "fix2", "fix3" -> {
+					// sets every Keystone at once (client playtests)
+					Rifts.Run run = Rifts.runOf(p);
+					if (run == null) return 0;
+					Trials.Trial t = run.trials[what.charAt(3) - '0'];
+					for (int k = 0; k < 8 && !t.repaired; k++) {
+						p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, Trials.makeKeystone(run.id, t.index));
+						t.repairUse((ServerLevel) p.level(), p, t.pedestal);
+					}
+					p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.ItemStack.EMPTY);
+				}
+				case "cache0", "cache1", "cache2", "cache3" -> {
+					// next to the wing's first Keystone pot, looking at it (client playtests)
+					Rifts.Run run = Rifts.runOf(p);
+					if (run == null) return 0;
+					Trials.Trial t = run.trials[what.charAt(5) - '0'];
+					if (t.caches.isEmpty()) return 0;
+					net.minecraft.core.BlockPos pot = t.caches.get(0);
+					Vec3 at = Vec3.atBottomCenterOf(pot.offset(0, 0, 4));
+					p.teleportTo((ServerLevel) p.level(), at.x, at.y, at.z, 180f, 12f);
 				}
 				case "gate0", "gate1", "gate2", "gate3" -> {
 					// onto the trial's portal into its arena (client playtests); the camera intro follows

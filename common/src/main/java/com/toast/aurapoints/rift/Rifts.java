@@ -129,6 +129,8 @@ public final class Rifts {
 		/** The guardian is up. */
 		boolean boss;
 		final List<Mob> mobs = new ArrayList<>();
+		/** Every Keystone cache (decorated pot) of the run's wings, so no two share a spot. */
+		final Set<BlockPos> caches = new HashSet<>();
 		Mob champion;
 		ServerBossEvent bar;
 		long startedAt = -1, endAt = -1;
@@ -547,6 +549,8 @@ public final class Rifts {
 		if (run == null || !run.built || run.done || run.down.contains(p.getUUID())) return false;
 		ServerLevel rift = (ServerLevel) p.level();
 		if (run.altar.use(rift, p, pos)) return true;
+		// the portals' repair: a cache pot (any trial's) or a wing's repair pedestal
+		for (Trials.Trial t : run.trials) if (t.built && t.repairUse(rift, p, pos)) return true;
 		for (Trials.Trial t : run.trials) if (t.built && t.inArena(Vec3.atCenterOf(pos)) && t.use(rift, p, pos)) return true;
 		return false;
 	}
