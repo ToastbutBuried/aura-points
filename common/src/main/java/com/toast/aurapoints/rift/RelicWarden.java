@@ -99,6 +99,8 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 	/** The run it guards (not saved; null for a stray one, which then just fights). */
 	Rifts.Run run;
+	/** The four Aspects of the fight (the crypt turns on the players as its health falls). */
+	final WardenAspects aspects = new WardenAspects(this);
 	private int slamCd = 100, signatureCd = 70, summonCd = 40, barrageCd = 60, chargeCd = 120, beamCd = 80, wave;
 	/** A telegraphed attack winding up: ticks until it lands, whether it can be parried, what it does. */
 	private int windup = -1;
@@ -359,6 +361,15 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		p.displayClientMessage(Component.literal("Mistimed - wait for the yellow flash").withStyle(ChatFormatting.GRAY), true);
 	}
 
+	/** DEV ONLY: how many times it hurt a player (fake players are invulnerable, so tests count hits). */
+	int devHits;
+
+	/** Stands still for {@code ticks} (a scene is playing): no animation, no attacks. */
+	void hold(int ticks) {
+		staggerTicks = Math.max(staggerTicks, ticks);
+		getNavigation().stop();
+	}
+
 	private void stagger(int ticks, Runnable then) {
 		triggerAnim("action", "stagger");
 		staggerTicks = ticks;
@@ -375,6 +386,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			return;
 		}
 		tickBolts(level);
+		if (com.toast.aurapoints.config.AuraConfig.RIFT_WARDEN_ASPECTS) aspects.tick(level, phase() == SHIELDED || (phase() == LAST_STAND && kneelTicks > 0));
 		float hp = getHealth() / getMaxHealth();
 		if (staggerTicks > 0) {
 			getNavigation().stop();
@@ -477,7 +489,8 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		return level.getEntitiesOfClass(ServerPlayer.class, new AABB(at, at).inflate(r, 3, r), p -> !p.isSpectator() && p.distanceToSqr(at) <= r * r + 9);
 	}
 
-	private void hit(ServerLevel level, ServerPlayer p, float dmg) {
+	void hit(ServerLevel level, ServerPlayer p, float dmg) {
+		devHits++;
 		p.hurt(level.damageSources().mobAttack(this), dmg * (run == null ? 1f : (float) run.difficulty.bossDamage));
 	}
 

@@ -282,6 +282,7 @@ public final class TrialsDevTest {
 				log("[warden] no warden (must not happen)");
 				return 0;
 			}
+			w.aspects.off = true; // the phase checks below are about the phases; the Aspects have their own block at the end
 			var src = rift.damageSources().playerAttack(fake);
 			// in front of it (the parry needs that), a full swing ago
 			Vec3 front = w.position().add(Vec3.directionFromRotation(0, w.getYRot()).scale(2.5));
@@ -342,6 +343,7 @@ public final class TrialsDevTest {
 			log("[warden] risen: desperation " + w.devDesperation() + " (must be 300)");
 			for (int k = 0; k < 300; k++) w.devAiStep();
 			log("[warden] desperation over: phase " + w.phase() + " (must be 3), hp share " + String.format("%.2f", w.getHealth() / w.getMaxHealth()) + " (must be 0.30)");
+			w.aspects.devCheck(rift, fake, TrialsDevTest::log);
 			w.invulnerableTime = 0;
 			w.hurt(rift.damageSources().magic(), 9999f);
 			log("[warden] final blow: dead " + w.isDeadOrDying() + " (must be true)");

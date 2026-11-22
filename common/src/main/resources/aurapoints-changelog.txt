@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.51.0
+- Relic Warden: four Aspects, one per wing colour, as its health falls (75 / 50 / 25%). The Chime: rings of sound roll across the crypt - jump them. The Garden: roots erupt under you and round it - keep moving. The Prism: the crypt's pillars charge beams at you - break the line behind a pillar. The Wrath: meteors fall. Each Aspect opens with a short scene (the Warden holds still and you take no damage meanwhile). Config RIFT_WARDEN_ASPECTS turns it off.
+
 == 5.50.0
 - Reliquary: the wing portals are broken ruins now. Hidden in decorated pots around the monument (each with a beam in its wing's colour) lie Keystones; set them in the repair pedestal beside a portal and its arch rises piece by piece, the last one opens the way to the puzzle. A lost Keystone comes back as a pot. Config RIFT_PORTAL_KEYSTONES (default 3, 0 = portals just work).
 - Reliquary: the north-east bridge no longer ends in a railing wall - every bridge's doorway stays open.

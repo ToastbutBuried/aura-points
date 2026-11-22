@@ -221,7 +221,7 @@ final class Reliquary {
 	}
 
 	/** One note of the doors' theme, heard by {@code here} at their own ears (the music volume slider governs it). */
-	private static void note(List<ServerPlayer> here, net.minecraft.sounds.SoundEvent sound, int semitone, float vol) {
+	static void note(List<ServerPlayer> here, net.minecraft.sounds.SoundEvent sound, int semitone, float vol) {
 		float pitch = (float) Math.pow(2, (semitone - 12) / 12.0);
 		for (ServerPlayer p : here) p.playNotifySound(sound, SoundSource.MUSIC, vol, pitch);
 	}

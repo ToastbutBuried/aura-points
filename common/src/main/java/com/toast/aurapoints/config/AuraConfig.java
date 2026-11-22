@@ -1782,6 +1782,8 @@ public final class AuraConfig {
 	public static int RIFT_TRIAL_MOB_CAP = 4;
 	/** Reliquary: Keystones each wing's broken portal needs before it works (they lie hidden in pots around the monument; each one set rebuilds part of the arch). 0 = the portals just work. Max 6. */
 	public static int RIFT_PORTAL_KEYSTONES = 3;
+	/** The Relic Warden's Aspects: as its health falls the crypt turns on the players - sound rings, roots, pillar beams, meteors - each with a short scene. false = the plain fight. */
+	public static boolean RIFT_WARDEN_ASPECTS = true;
 	/** Weeping Statues: how many statues a run starts with (min 3), plus one more per this many tiers above Easy (0 = never), plus RIFT_STATUES_PER_PLAYER for every player beyond the first, capped at RIFT_STATUES_MAX (10 at most). */
 	public static int RIFT_STATUES_BASE = 3;
 	public static int RIFT_STATUES_PER_PLAYER = 1;
