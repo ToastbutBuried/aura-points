@@ -34,8 +34,8 @@ import java.util.UUID;
  *    levels with /aura mastery set);
  *  - function tags run as (and at) the player: {@code #aurapoints:ability/<ability>} when they use an
  *    ability (e.g. #aurapoints:ability/fireball), {@code #aurapoints:aura_changed} when their aura changes;
- *  - the Summon key (ability/Summons): a press runs {@code #aurapoints:summon/<aura>} (e.g. #aurapoints:summon/shadow), then
- *    {@code #aurapoints:summon}, as and at the player; scoreboard {@code aura_key_summon} is 1 while the key is held.
+ *  - the Summon key (ability/Summons): scoreboard {@code aura_key_summon} is 1 while the key is held (since 5.45.1 the key
+ *    runs no function tags; the datapack checks who may summon).
  * The objectives are created on server start if missing.
  */
 public final class AuraHooks {

@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.45.1
+- The Summon key now only tells datapacks the key is pressed (scoreboard aura_key_summon); the datapack decides who may summon. Other players of the same aura can no longer call someone else's summon.
+
 == 5.45.0
 - Mjölnir: hold the Mjölnir Swing key while the thrown hammer flies to steer it where you look. It hits everyone on the way and flies on, for up to 10 s; let go and it comes back. Throw it out of a spin and you steer it from the start.
 
