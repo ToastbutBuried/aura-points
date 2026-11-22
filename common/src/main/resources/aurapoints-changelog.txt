@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.49.1
+- Choir of Bells: a chord now has two seconds between its two bells (was one), so you can ring it alone.
+
 == 5.49.0
 - Reliquary trials reworked: each wing is an antechamber with a portal into the trial's own big decorated arena, with a camera intro. New puzzles: Resonance Dig, Hall of Echoes, Choir of Bells, Glyph Vault, Prism Chamber and Weeping Statues - three strikes and the hazard mobs come, a third strike on Hardcore is a knockout. Wind, Light and Thunder rifts add the Skyward Rings elytra course. Clients must update.
 

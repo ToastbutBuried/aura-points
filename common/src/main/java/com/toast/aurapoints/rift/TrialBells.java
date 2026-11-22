@@ -38,7 +38,7 @@ import java.util.UUID;
 /**
  * Choir of Bells (5.49.0, the Rune Sequence's successor). An open rotunda over the void with four bell towers in its
  * quadrants (Blue, Green, Gold, Red) and the Conductor's Stone in the middle. The choir sings a song of 5-11 notes,
- * some of them chords (two bells at once, to be rung within a second of each other), and the players ring it back.
+ * some of them chords (two bells at once, to be rung within two seconds of each other), and the players ring it back.
  * <p>
  * Each player only hears (and sees) the notes of the bells handed to them for that playback, so the group has to put
  * the song together by talking; alone you hear every bell, the song is one note shorter and sung twice. Hard and up
@@ -57,7 +57,7 @@ final class TrialBells extends Trials.Trial {
 	private static final float[] PITCH = {0.63f, 0.79f, 0.94f, 1.26f};
 	/** The bell towers (arena f, l): the four quadrants of the rotunda. */
 	static final int[][] TOWER = {{12, -12}, {12, 12}, {-12, 12}, {-12, -12}};
-	private static final int R = 20, CHORD_TICKS = 22;
+	private static final int R = 20, CHORD_TICKS = 40;
 
 	/** One note: bell a, a second bell b for a chord (-1 = none); false notes must be skipped, the ghost's is its own. */
 	record Note(int a, int b, boolean fake, boolean ghost) {
@@ -100,7 +100,7 @@ final class TrialBells extends Trials.Trial {
 
 	@Override
 	String hint() {
-		return "The choir sings - but each of you hears only some of its bells. Put the song together and ring it back (chords: two bells at once). The Conductor's Stone sings again.";
+		return "The choir sings - but each of you hears only some of its bells. Put the song together and ring it back (chords: two bells within two seconds). The Conductor's Stone sings again.";
 	}
 
 	// ---------------------------------------------------------------
