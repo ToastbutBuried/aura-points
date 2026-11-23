@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.53.0
+- Rift music: the last two minutes of a run play hurry music that speeds up as time runs out, and a won run ends on a short sting (client option riftMusic, Music slider).
+- Sounds: hundreds of mod sounds now follow the Aura Points volume slider, a few got their own new sounds (ready chime, impacts, crystal chime), and stacks that were too loud were turned down. Clients must update.
+
 == 5.52.0
 - Reliquary portals: take a compass off the pedestal's lodestone to find the Keystones, rebuild the arch from the stones in the hall by the model on the table, then rub the Keystones alight (hold right-click, let go in the green). The portal opens with a real scene.
 - Prism Chamber: much easier, and every layout is proven solvable. Signs say which receiver is next, what it needs and why one is overloading. The beam no longer burns, your body just stops it.
