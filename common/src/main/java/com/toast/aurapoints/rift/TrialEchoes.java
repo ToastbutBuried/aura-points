@@ -288,6 +288,7 @@ final class TrialEchoes extends Trials.Trial {
 	private void openFarGate(ServerLevel level) {
 		if (farGate != null) return;
 		farGate = new TrialPortal(arena(51, 0, 0), -fx, -fz, rgb, 5, 12);
+		farGate.veil = run.aura;
 		farGate.to = gate;
 		exits.add(farGate);
 		farGate.setOpen(level, true, pal.gate());

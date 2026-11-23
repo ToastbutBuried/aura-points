@@ -1,7 +1,7 @@
 {
  "textures": {
-  "0": "aurapoints:item/veil/shadow_0",
-  "particle": "aurapoints:item/veil/shadow_0"
+  "0": "aurapoints:item/veil/shadow",
+  "particle": "aurapoints:item/veil/shadow"
  },
  "elements": [
   {
@@ -51,19 +51,61 @@
    "predicate": {
     "custom_model_data": 1
    },
-   "model": "aurapoints:item/trial_veil_shadow_0"
+   "model": "aurapoints:item/trial_veil_fire"
   },
   {
    "predicate": {
     "custom_model_data": 2
    },
-   "model": "aurapoints:item/trial_veil_shadow_1"
+   "model": "aurapoints:item/trial_veil_water"
   },
   {
    "predicate": {
     "custom_model_data": 3
    },
-   "model": "aurapoints:item/trial_veil_shadow_2"
+   "model": "aurapoints:item/trial_veil_wind"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 4
+   },
+   "model": "aurapoints:item/trial_veil_frost"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 5
+   },
+   "model": "aurapoints:item/trial_veil_verdant"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 6
+   },
+   "model": "aurapoints:item/trial_veil_thunder"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 7
+   },
+   "model": "aurapoints:item/trial_veil_earth"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 8
+   },
+   "model": "aurapoints:item/trial_veil_light"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 9
+   },
+   "model": "aurapoints:item/trial_veil_shadow"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 10
+   },
+   "model": "aurapoints:item/trial_veil_blood"
   }
  ]
 }

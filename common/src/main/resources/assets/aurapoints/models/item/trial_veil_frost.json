@@ -1,7 +1,7 @@
 {
  "textures": {
-  "0": "aurapoints:item/veil/shadow_0",
-  "particle": "aurapoints:item/veil/shadow_0"
+  "0": "aurapoints:item/veil/frost",
+  "particle": "aurapoints:item/veil/frost"
  },
  "elements": [
   {

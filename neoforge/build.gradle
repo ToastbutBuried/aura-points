@@ -18,6 +18,8 @@ neoForge {
 		}
 		client {
 			client()
+			// -Pshaderrun: a game folder with Iris, Sodium and shader packs (shader checks)
+			if (project.hasProperty('shaderrun')) gameDirectory = rootProject.file('run-shaders')
 			// gradle runClient -Pmodeltest: opens the showcase world and lays out the model test scene (DevModelTest)
 			if (project.hasProperty('modeltest')) {
 				systemProperty 'aurapoints.modeltest', 'true'

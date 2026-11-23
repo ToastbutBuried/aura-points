@@ -150,8 +150,8 @@ final class TrialPortal {
 		open = on;
 		if (!on) return;
 		Vec3 c = Vec3.atBottomCenterOf(base.above());
-		if (veil == com.toast.aurapoints.ability.AuraType.SHADOW) {
-			for (int l = 0; l < 3; l++) layer(level, c, l);
+		if (veil != null) {
+			layer(level, c);
 		} else {
 		// a bright slit first, torn open sideways over a second
 		sheet(level, c, glass.defaultBlockState(), 2 * w + 1, h, 0.12f, 0f);
@@ -163,27 +163,26 @@ final class TrialPortal {
 		level.playSound(null, c.x, c.y + 2, c.z, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.BLOCKS, 1.6f, 0.6f);
 	}
 
-	/** One layer of the veil: the deep back, the sign in the middle, what reaches out in front; a gap between them gives depth. */
-	private void layer(ServerLevel level, Vec3 c, int l) {
+	/** The veil: one opaque animated plane in the aura's colours (opaque, or shader packs draw it as a flat sheet). */
+	private void layer(ServerLevel level, Vec3 c) {
 		Display.ItemDisplay d = new Display.ItemDisplay(net.minecraft.world.entity.EntityType.ITEM_DISPLAY, level);
-		double out = -0.3 + 0.28 * l;
+		double out = 0;
 		d.moveTo(c.x + nx * out, c.y + h / 2.0, c.z + nz * out, nx != 0 ? 90f : 0f, 0f);
 		net.minecraft.world.item.ItemStack s = new net.minecraft.world.item.ItemStack(com.toast.aurapoints.AuraPoints.TRIAL_VEIL.get());
-		s.set(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA, new net.minecraft.world.item.component.CustomModelData(l + 1));
+		s.set(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA, new net.minecraft.world.item.component.CustomModelData(Math.max(0, com.toast.aurapoints.ability.Relics.AURAS.indexOf(veil)) + 1));
 		((com.toast.aurapoints.mixin.ItemDisplayAccessor) d).aurapoints$setItemStack(s);
 		((com.toast.aurapoints.mixin.ItemDisplayAccessor) d).aurapoints$setItemTransform(net.minecraft.world.item.ItemDisplayContext.FIXED);
 		var acc = (com.toast.aurapoints.mixin.DisplayAccessor) d;
 		acc.aurapoints$setViewRange(3f);
-		// not full-bright: shader packs bloom that into a blob
-		acc.aurapoints$setBrightnessOverride(new net.minecraft.util.Brightness(10, 0));
+		// lit by itself (block light only: sky light would wash it out by day); the texture's own colours stay below what blooms
+		acc.aurapoints$setBrightnessOverride(new net.minecraft.util.Brightness(14, 0));
 		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(0.05f, h, 1f), null));
 		d.addTag(Trials.DISPLAY_TAG);
 		level.addFreshEntity(d);
 		layers.add(d);
-		float k = l == 2 ? 1.14f : 1f;
-		AuraFx.later(level.getServer(), 3 + l * 6, () -> {
+		AuraFx.later(level.getServer(), 3, () -> {
 			if (d.isRemoved()) return;
-			acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f((2 * w + 1) * k, h * k, 1f), null));
+			acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(2 * w + 1, h, 1f), null));
 			acc.aurapoints$setInterpolationDuration(20);
 			d.getEntityData().set(com.toast.aurapoints.mixin.DisplayAccessor.aurapoints$startDelta(), 0, true);
 		});
