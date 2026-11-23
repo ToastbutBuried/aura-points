@@ -165,7 +165,7 @@ public final class TrialsDevTest {
 		log("two strikes: count " + t.strikes + " (must be 2), hazard mobs " + (run.mobs.size() > mobs) + (t.kind == Trials.Kind.RINGS ? " (Rings: gusts, no mobs)" : " (must be true)"));
 		t.strike(rift, fake, fake.position(), List.of(fake));
 		log("third strike: count " + t.strikes + " (must be 0), total " + t.totalStrikes + " (must be 3)");
-		if (run.trials.length > 1) run.trials[1].devRepairTest(rift, fake, TrialsDevTest::log);
+		if (run.trials.length > 1) run.trials[1].repair.devTest(rift, fake, TrialsDevTest::log);
 		// the mobs a trial's mistakes call up are capped, and gone when the trial resets
 		t.punish(rift, fake.position(), 30);
 		log("hazard cap: " + t.hazards.size() + " (must be " + Math.min(12, Math.max(1, com.toast.aurapoints.config.AuraConfig.RIFT_TRIAL_MOB_CAP)) + ")");
@@ -195,6 +195,31 @@ public final class TrialsDevTest {
 					for (int i = 0; i < 4; i++) Rifts.devSolve(p, i);
 				}
 				case "place" -> Rifts.devPlaceAll(p);
+				// the next run's trials, so a playtest knows what stands where
+				case "kinds" -> Rifts.DEV_KINDS = List.of(Trials.Kind.ECHOES, Trials.Kind.PRISM, Trials.Kind.BELLS, Trials.Kind.STATUES);
+				case "kinds2" -> Rifts.DEV_KINDS = List.of(Trials.Kind.RINGS, Trials.Kind.DIG, Trials.Kind.BELLS, Trials.Kind.STATUES);
+				case "solve0" -> Rifts.devSolve(p, 0);
+				case "fly0" -> {
+					// through the Skyward Rings' sky: in front of the next ring, then a bonus ring (client playtests)
+					Rifts.Run run = Rifts.runOf(p);
+					if (run != null && run.trials[0] instanceof TrialRings t) t.devLook(p);
+				}
+				case "end0" -> {
+					// the far plaza of the first arena, looking on (client playtests)
+					Rifts.Run run = Rifts.runOf(p);
+					if (run == null) return 0;
+					Trials.Trial t = run.trials[0];
+					Vec3 g = Vec3.atBottomCenterOf(t.arena(40, 3, 1));
+					p.teleportTo((ServerLevel) p.level(), g.x, g.y, g.z, t.forwardYaw(), -14f);
+				}
+				case "view0", "view1", "view2", "view3" -> {
+					// high at the arena's back, looking over it (client playtests)
+					Rifts.Run run = Rifts.runOf(p);
+					if (run == null) return 0;
+					Trials.Trial t = run.trials[what.charAt(4) - '0'];
+					Vec3 g = Vec3.atBottomCenterOf(t.arena(-t.arenaHalf() / 3, 0, 10));
+					p.teleportTo((ServerLevel) p.level(), g.x, g.y, g.z, t.forwardYaw(), 16f);
+				}
 				case "vote" -> Rifts.devVote(p, 2);
 				case "enter", "enterwind" -> {
 					// a Frost (or Wind: "enterwind") gate at the caller, and straight in
@@ -223,19 +248,32 @@ public final class TrialsDevTest {
 					Rifts.Run run = Rifts.runOf(p);
 					if (run == null) return 0;
 					Trials.Trial t = run.trials[what.charAt(3) - '0'];
-					for (int k = 0; k < 8 && !t.repaired; k++) {
-						p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, Trials.makeKeystone(run.id, t.index));
-						t.repairUse((ServerLevel) p.level(), p, t.pedestal);
-					}
-					p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, net.minecraft.world.item.ItemStack.EMPTY);
+					t.repair.devLight((ServerLevel) p.level(), p);
+				}
+				case "stones0", "stones1", "stones2", "stones3" -> {
+					// every arch stone set, one Keystone in the hand, at the pedestal (client playtests)
+					Rifts.Run run = Rifts.runOf(p);
+					if (run == null) return 0;
+					Trials.Trial t = run.trials[what.charAt(6) - '0'];
+					t.repair.devStones((ServerLevel) p.level());
+					p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, Trials.makeKeystone(run.id, t.index));
+					Vec3 g = Vec3.atBottomCenterOf(t.repair.pedestal).add(t.gate.nx * 2.2, 0, t.gate.nz * 2.2);
+					p.teleportTo((ServerLevel) p.level(), g.x, g.y, g.z, (float) Math.toDegrees(Math.atan2(-t.fx, t.fz)), -4f);
+				}
+				case "rub0", "rub1", "rub2", "rub3" -> {
+					// the pedestal clicked with a Keystone (client playtests: the bar shows)
+					Rifts.Run run = Rifts.runOf(p);
+					if (run == null) return 0;
+					Trials.Trial t = run.trials[what.charAt(3) - '0'];
+					t.repairUse((ServerLevel) p.level(), p, t.repair.pedestal);
 				}
 				case "cache0", "cache1", "cache2", "cache3" -> {
 					// next to the wing's first Keystone pot, looking at it (client playtests)
 					Rifts.Run run = Rifts.runOf(p);
 					if (run == null) return 0;
 					Trials.Trial t = run.trials[what.charAt(5) - '0'];
-					if (t.caches.isEmpty()) return 0;
-					net.minecraft.core.BlockPos pot = t.caches.get(0);
+					if (t.repair.caches.isEmpty()) return 0;
+					net.minecraft.core.BlockPos pot = t.repair.caches.get(0);
 					Vec3 at = Vec3.atBottomCenterOf(pot.offset(0, 0, 4));
 					p.teleportTo((ServerLevel) p.level(), at.x, at.y, at.z, 180f, 12f);
 				}

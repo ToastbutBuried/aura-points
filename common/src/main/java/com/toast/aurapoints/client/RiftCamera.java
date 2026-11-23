@@ -72,7 +72,7 @@ public final class RiftCamera {
 			return;
 		}
 		if (keys.isEmpty()) return;
-		if (active) stop(mc);
+		if (active) close(mc); // replaced by this shot: not a "closed" report
 		KEYS.clear();
 		KEYS.addAll(keys);
 		skippable = "1".equals(part[1]);
@@ -86,6 +86,14 @@ public final class RiftCamera {
 	}
 
 	private static void stop(Minecraft mc) {
+		if (!active) return;
+		close(mc);
+		// the server must know a skipped shot is over (Hall of Echoes waits for it)
+		if (mc.player != null && mc.getConnection() != null)
+			com.toast.aurapoints.shim.neoforge.network.PacketDistributor.sendToServer(new com.toast.aurapoints.network.RiftInputPacket(com.toast.aurapoints.network.RiftInputPacket.CAM_CLOSED, 0, 0));
+	}
+
+	private static void close(Minecraft mc) {
 		if (!active) return;
 		active = false;
 		mc.options.hideGui = hadHideGui;

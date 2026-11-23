@@ -27,7 +27,9 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.Display;
 import net.minecraft.world.level.block.BellBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LightBlock;
@@ -46,6 +48,8 @@ import java.util.UUID;
  * quadrants (Blue, Green, Gold, Red) and the Conductor's Stone in the middle. The choir sings a song of 5-11 notes,
  * some of them chords (two bells at once, to be rung within two seconds of each other), and the players ring it back.
  * <p>
+ * A sung (or rung) bell lights its whole tower for the length of the note, throws a pillar of its colour into the sky
+ * and is named on the action bar (5.52), all only for those who hear it.
  * Each player only hears (and sees) the notes of the bells handed to them for that playback, so the group has to put
  * the song together by talking; alone you hear every bell, the song is one note shorter and sung twice. Hard and up
  * sing it backwards (ring it forwards), Extreme and up slip in false notes marked with soul fire that must be skipped.
@@ -199,6 +203,7 @@ final class TrialBells extends Trials.Trial {
 			for (int l = -3; l <= 3; l++) if (f * f + l * l <= 8) set(level, f, l, 1, f * f + l * l <= 2 ? pal.edge() : pal.accent());
 		set(level, 0, 0, 2, Blocks.LODESTONE);
 		label(level, Vec3.atBottomCenterOf(arena(0, 0, 4)).add(0, 0.6, 0), Component.literal("Conductor's Stone").withStyle(ChatFormatting.GRAY), 0.7f);
+		tally = label(level, Vec3.atBottomCenterOf(arena(0, 0, 4)).add(0, 1.3, 0), Component.empty(), 1.6f);
 		// four low braziers around the dais
 		for (int[] q : new int[][]{{5, 0}, {-5, 0}, {0, 5}, {0, -5}}) {
 			set(level, q[0], q[1], 1, pal.edge());
@@ -339,7 +344,7 @@ final class TrialBells extends Trials.Trial {
 	}
 
 	private int gap() {
-		return dev ? 2 : tier >= 4 ? 13 : 16;
+		return dev ? 2 : tier >= 3 ? 18 : 24;
 	}
 
 	/** Hands the bells out for a playback: alone you hear all four, else they are split (and rotate every round). */
@@ -387,14 +392,111 @@ final class TrialBells extends Trials.Trial {
 		told = true;
 	}
 
-	/** Sings one note to everyone who hears its bells. */
+	/** Sings one note to everyone who hears its bells; its number in the song is how far along the playback is. */
 	private void sing(ServerLevel level, List<ServerPlayer> here, Note n) {
+		long now = level.getGameTime();
 		for (ServerPlayer p : here) {
 			int mask = hears.getOrDefault(p.getUUID(), 0);
+			MutableComponent said = null;
 			for (int b : new int[]{n.a, n.b}) {
 				if (b < 0 || (mask & (1 << b)) == 0) continue;
 				ring(level, p, b, n.fake, n.ghost);
+				lightTower(level, p, b, now + Math.max(1, gap() - 5));
+				said = said == null ? Component.literal("♪ " + (played + 1) + "   ").withStyle(ChatFormatting.GRAY) : said.append(Component.literal(" + ").withStyle(ChatFormatting.GRAY));
+				said.append(Component.literal("■ " + NAMES[b]).withStyle(s -> s.withColor(RGB[b]).withBold(true)));
 			}
+			if (said == null) continue;
+			if (n.fake) said.append(Component.literal("  (false - skip it)").withStyle(ChatFormatting.DARK_AQUA));
+			if (n.ghost) said.append(Component.literal("  (the ghost)").withStyle(ChatFormatting.DARK_AQUA));
+			p.displayClientMessage(said, true);
+		}
+	}
+
+	// --- a lit tower, for one player's eyes
+
+	/** What each player is shown lit: bell -> until when. */
+	private final Map<UUID, Map<Integer, Long>> litFor = new HashMap<>();
+	private static final Block[] GLOW = {Blocks.SEA_LANTERN, Blocks.VERDANT_FROGLIGHT, Blocks.OCHRE_FROGLIGHT, Blocks.SHROOMLIGHT};
+	/** Dev test: block updates that lit towers, and that put them back. */
+	int litDev, unlitDev;
+
+	/** The tower's blocks that light up: floor inlay, the band under the roof, the glass roof and spire tip, and light in the air inside. */
+	private Map<BlockPos, BlockState> towerGlow(int b) {
+		Map<BlockPos, BlockState> out = new HashMap<>();
+		int tf = TOWER[b][0], tl = TOWER[b][1];
+		BlockState glow = GLOW[b].defaultBlockState();
+		for (int df = -2; df <= 2; df++) for (int dl = -2; dl <= 2; dl++) {
+			if (Math.abs(df) <= 1 && Math.abs(dl) <= 1) {
+				out.put(arena(tf + df, tl + dl, 0), glow);
+				out.put(arena(tf + df, tl + dl, 8), glow);
+			} else out.put(arena(tf + df, tl + dl, 0), CONCRETE[b].defaultBlockState());
+			if (Math.abs(df) == 2 || Math.abs(dl) == 2) out.put(arena(tf + df, tl + dl, 7), glow);
+		}
+		for (int s = -3; s <= 3; s++) for (int side : new int[]{-3, 3}) {
+			out.put(arena(tf + side, tl + s, 6), glow);
+			out.put(arena(tf + s, tl + side, 6), glow);
+		}
+		// the columns turn the bell's colour and a beam of it stands on the spire: it stands out on every palette and sky
+		BlockState col = CONCRETE[b].defaultBlockState();
+		for (int sf : new int[]{-3, 3}) for (int sl : new int[]{-3, 3}) for (int y = 1; y <= 7; y++) out.put(arena(tf + sf, tl + sl, y), col);
+		for (int s = -2; s <= 2; s++) for (int side : new int[]{-3, 3}) {
+			out.put(arena(tf + side, tl + s, 7), col);
+			out.put(arena(tf + s, tl + side, 7), col);
+		}
+		for (int df = -1; df <= 1; df++) for (int dl = -1; dl <= 1; dl++) out.put(arena(tf + df, tl + dl, 9), col);
+		for (int y = 11; y <= 34; y++) out.put(arena(tf, tl, y), y % 4 == 3 ? glow : col);
+		BlockState light = Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, 15);
+		out.put(arena(tf, tl, 2), light);
+		return out;
+	}
+
+	private static void send(ServerPlayer p, BlockPos pos, BlockState s) {
+		if (TrialDecor.fake(p) || p.connection == null) return;
+		p.connection.send(new net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket(pos, s));
+	}
+
+	private void lightTower(ServerLevel level, ServerPlayer p, int b, long until) {
+		litFor.computeIfAbsent(p.getUUID(), k -> new HashMap<>()).put(b, until);
+		for (var e : towerGlow(b).entrySet()) {
+			send(p, e.getKey(), e.getValue());
+			litDev++;
+		}
+		// the pillar of colour, a ring over the floor, an arc to the Stone
+		Vec3 c = Vec3.atCenterOf(bellPos(b)), foot = Vec3.atBottomCenterOf(arena(TOWER[b][0], TOWER[b][1], 1));
+		var dust = AuraFx.dust(RGB[b], 2.6f);
+		for (int k = 0; k < 22; k++) level.sendParticles(p, dust, true, c.x, foot.y + 15 + k, c.z, 2, 0.25, 0.3, 0.25, 0);
+		for (int k = 0; k < 28; k++) {
+			double a = Math.PI * 2 * k / 28;
+			level.sendParticles(p, dust, true, c.x + Math.cos(a) * 4.2, foot.y + 0.25, c.z + Math.sin(a) * 4.2, 1, 0.05, 0.05, 0.05, 0);
+		}
+		Vec3 st = Vec3.atCenterOf(stone()).add(0, 1, 0);
+		for (int k = 0; k <= 16; k++) {
+			Vec3 q = c.lerp(st, k / 16.0).add(0, Math.sin(Math.PI * k / 16.0) * 2.2, 0);
+			level.sendParticles(p, AuraFx.dust(RGB[b], 1.5f), true, q.x, q.y, q.z, 1, 0.03, 0.03, 0.03, 0);
+		}
+	}
+
+	private void unlight(ServerLevel level, ServerPlayer p, int b) {
+		for (BlockPos pos : towerGlow(b).keySet()) {
+			send(p, pos, level.getBlockState(pos));
+			unlitDev++;
+		}
+	}
+
+	/** Towers whose note is over go dark again (all of them with {@code all}). */
+	private void tickLit(ServerLevel level, long now, boolean all) {
+		if (litFor.isEmpty()) return;
+		for (var it = litFor.entrySet().iterator(); it.hasNext(); ) {
+			var e = it.next();
+			ServerPlayer p = level.getServer().getPlayerList().getPlayer(e.getKey());
+			if (p == null) p = Rifts.TEST_PLAYERS.get(e.getKey());
+			ServerPlayer q = p;
+			e.getValue().entrySet().removeIf(x -> {
+				if (!all && now < x.getValue()) return false;
+				if (q != null && q.level() == level) unlight(level, q, x.getKey());
+				return true;
+			});
+			if (e.getValue().isEmpty()) it.remove();
 		}
 	}
 
@@ -440,6 +542,7 @@ final class TrialBells extends Trials.Trial {
 	@Override
 	void tick(ServerLevel level, List<ServerPlayer> here, long now) {
 		lastHere = here;
+		tickLit(level, now, false);
 		if (solved) return;
 		if (now % 20 == 0) tickBaton(level, here, now);
 		// the playback
@@ -604,6 +707,7 @@ final class TrialBells extends Trials.Trial {
 			return true;
 		}
 		if (bell < 0) return false;
+		RiftSfx.play(level, Vec3.atCenterOf(bellPos(bell)), SoundEvents.AMETHYST_BLOCK_HIT, 0.9f, sel.contains(bell) ? 0.8f : 1.3f);
 		if (sel.contains(bell)) sel.remove((Integer) bell);
 		else {
 			if (sel.size() >= 2) sel.remove(0);
@@ -618,6 +722,8 @@ final class TrialBells extends Trials.Trial {
 	void release(ServerPlayer p) {
 		purgeBatons(p);
 		picked.remove(p.getUUID());
+		Map<Integer, Long> lit = litFor.remove(p.getUUID());
+		if (lit != null && p.level() instanceof ServerLevel level) for (int b : lit.keySet()) unlight(level, p, b);
 	}
 
 	// ---------------------------------------------------------------
@@ -651,6 +757,7 @@ final class TrialBells extends Trials.Trial {
 				pass = 0;
 				hears.clear();
 				level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.LODESTONE_COMPASS_LOCK, SoundSource.BLOCKS, 1f, 0.7f);
+				dots(Component.empty());
 				actionBar(lastHere, replays > 0 ? "The choir sings again (" + replays + " left)" : "The choir sings again", ChatFormatting.GRAY);
 			}
 			return true;
@@ -670,6 +777,7 @@ final class TrialBells extends Trials.Trial {
 		level.playSound(null, bp, SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.BLOCKS, 1.5f, PITCH[b] * 1.5f);
 		Vec3 c = Vec3.atCenterOf(bp);
 		level.sendParticles(AuraFx.dust(RGB[b], 1.8f), c.x, c.y - 0.6, c.z, 10, 0.6, 0.5, 0.6, 0);
+		for (ServerPlayer q : lastHere) lightTower(level, q, b, now + 12);
 		if (solved) return true;
 		if (playAt >= 0) {
 			p.displayClientMessage(Component.literal("Listen first").withStyle(ChatFormatting.GRAY), true);
@@ -691,17 +799,42 @@ final class TrialBells extends Trials.Trial {
 		if (pending == n.mask()) {
 			pending = 0;
 			step++;
-			level.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 1.2f, 1.2f + step * 0.05f);
+			RiftSfx.rightBell(level, c, step);
+			level.sendParticles(ParticleTypes.HAPPY_VILLAGER, c.x, c.y - 0.5, c.z, 8, 0.6, 0.6, 0.6, 0);
+			progress(exp);
 			if (step >= exp.size()) roundDone(level, lastHere, now);
 		}
 		return true;
 	}
 
+	// --- the Stone's tally: a coloured dot for every note rung
+
+	private Display.TextDisplay tally;
+
+	private void dots(Component c) {
+		if (tally != null) TrialDecor.text(tally, c);
+	}
+
+	private void progress(List<Note> exp) {
+		MutableComponent m = Component.empty();
+		for (int k = 0; k < exp.size(); k++) {
+			Note n = exp.get(k);
+			if (k >= step) m.append(Component.literal("○ ").withStyle(ChatFormatting.DARK_GRAY));
+			else {
+				m.append(Component.literal("●").withStyle(s -> s.withColor(RGB[n.a])));
+				if (n.b >= 0) m.append(Component.literal("●").withStyle(s -> s.withColor(RGB[n.b])));
+				m.append(Component.literal(" "));
+			}
+		}
+		dots(m);
+	}
+
 	private void roundDone(ServerLevel level, List<ServerPlayer> here, long now) {
+		dots(Component.empty());
 		listening = false;
 		round++;
 		Vec3 s = plinth();
-		level.playSound(null, s.x, s.y, s.z, SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.2f, 1.2f + round * 0.1f);
+		RiftSfx.roundDone(level, s, round);
 		for (int b = 0; b < 4; b++) {
 			Vec3 c = Vec3.atCenterOf(bellPos(b));
 			level.blockEvent(bellPos(b), Blocks.BELL, 1, bellFacing().get3DDataValue());
@@ -726,7 +859,9 @@ final class TrialBells extends Trials.Trial {
 		step = 0;
 		listening = false;
 		Vec3 at = b >= 0 ? Vec3.atBottomCenterOf(arena(TOWER[b][0], TOWER[b][1], 1)) : plinth();
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.NOTE_BLOCK_DIDGERIDOO.value(), SoundSource.BLOCKS, 2f, 0.5f);
+		RiftSfx.wrongBell(level, at);
+		level.sendParticles(AuraFx.dust(0xFF2020, 2.4f), at.x, at.y + 2.5, at.z, 40, 1.2, 1.5, 1.2, 0);
+		dots(Component.empty());
 		actionBar(lastHere, why + " - the choir starts over", ChatFormatting.RED);
 		strike(level, p, at, lastHere);
 		if (!solved && playAt < 0) {
@@ -816,6 +951,11 @@ final class TrialBells extends Trials.Trial {
 		log.accept("bells: solo hears all bells " + (hears.getOrDefault(fake.getUUID(), 0) == 15) + " (must be true), song " + expected().size() + " notes, rounds " + rounds);
 		waitListening(server, level, fake, 0, () -> {
 			log.accept("bells: playback heard by the soloist " + (heardDev > 0) + " (must be true), listening " + listening + " (must be true)");
+			tickLit(level, level.getGameTime() + 100, false);
+			log.accept("bells: towers lit " + (litDev > 0) + " (must be true), every block put back " + (litDev > 0 && unlitDev > 0 && litFor.isEmpty()) + " (must be true)");
+			lightTower(level, fake, 2, Long.MAX_VALUE);
+			release(fake);
+			log.accept("bells: leaving puts a lit tower back " + litFor.isEmpty() + " (must be true)");
 			// a wrong bell
 			Note n = expected().get(0);
 			int wrongBell = 0;

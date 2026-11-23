@@ -219,7 +219,7 @@ public final class Rifts {
 		tear.runId = nextId++;
 		if (rift != null) {
 			tear.job = Monument.start(rift, tear.runId % 16, aura);
-			Trials.preload(rift, tear.runId % 16, true);
+			Trials.preload(rift, tear.runId % 16, aura, true);
 		}
 		// the curtain faces whoever is nearest (the player it opened for, or the one who ran the command)
 		Vec3 ground = pos.subtract(0, 1.6, 0);
@@ -249,7 +249,7 @@ public final class Rifts {
 		if (tear.label != null) tear.label.discard();
 		// a gate nobody went through: its arena areas needn't stay loaded
 		ServerLevel lvl = level(server);
-		if (tear.run == null && lvl != null) Trials.preload(lvl, tear.runId % 16, false);
+		if (tear.run == null && lvl != null) Trials.preload(lvl, tear.runId % 16, tear.aura, false);
 		if (tear.job != null) tear.job.release();
 		if (tear.gate != null) {
 			// say = in view of players: fold shut; otherwise (server stop, a new tear) gone at once
@@ -283,6 +283,7 @@ public final class Rifts {
 	public static void tickAll(MinecraftServer server) {
 		ServerLevel ow = server.overworld();
 		long now = ow.getGameTime();
+		SkillChecks.tick();
 		if (!AuraConfig.RIFT_ENABLED) {
 			if (tear != null) closeTear(server, false);
 			return;
@@ -360,7 +361,7 @@ public final class Rifts {
 		if (rift == null || tear == null) return;
 		if (com.toast.aurapoints.arena.Arena.in(player) || com.toast.aurapoints.arena.Match.signedUp(player)) return;
 		if (tear.job == null) tear.job = Monument.start(rift, tear.runId % 16, tear.aura);
-		Trials.preload(rift, tear.runId % 16, true);
+		Trials.preload(rift, tear.runId % 16, tear.aura, true);
 		if (!tear.job.done()) tear.job.finish(); // dev tests and commands don't wait for the gate
 		if (tear.run == null) {
 			tear.run = new Run(tear.runId, tear.aura);
@@ -551,8 +552,24 @@ public final class Rifts {
 		if (run.altar.use(rift, p, pos)) return true;
 		// the portals' repair: a cache pot (any trial's) or a wing's repair pedestal
 		for (Trials.Trial t : run.trials) if (t.built && t.repairUse(rift, p, pos)) return true;
+		for (Trials.Trial t : run.trials) if (t.built && t.stoneUse(rift, p)) return true;
+		if (PortalRepair.isStone(p.getMainHandItem())) return true; // never placed as a plain block
 		for (Trials.Trial t : run.trials) if (t.built && t.inArena(Vec3.atCenterOf(pos)) && t.use(rift, p, pos)) return true;
 		return false;
+	}
+
+	/** The client reports its camera shot over (RiftInputPacket.CAM_CLOSED). */
+	public static void camClosed(ServerPlayer p) {
+		RiftCam.closed(p);
+	}
+
+	/** A right-click in the air inside a rift (main hand): an arch stone aimed at its slot. True = taken (cancel). */
+	public static boolean onUseAir(ServerPlayer p) {
+		if (!in(p)) return false;
+		Run run = runOf(p);
+		if (run == null || !run.built || run.done || run.down.contains(p.getUUID())) return false;
+		for (Trials.Trial t : run.trials) if (t.built && t.stoneUse((ServerLevel) p.level(), p)) return true;
+		return PortalRepair.isStone(p.getMainHandItem());
 	}
 
 	static void onTrialSolved(ServerLevel level, Run run, Trials.Trial t, Vec3 shardAt) {
@@ -561,7 +578,7 @@ public final class Rifts {
 		if (shardAt != null) {
 			dropShard(level, run, t, shardAt);
 			level.sendParticles(ParticleTypes.FLASH, shardAt.x, shardAt.y, shardAt.z, 1, 0, 0, 0, 0);
-			level.playSound(null, shardAt.x, shardAt.y, shardAt.z, SoundEvents.AMETHYST_CLUSTER_BREAK, net.minecraft.sounds.SoundSource.BLOCKS, 1.5f, 0.6f);
+			RiftSfx.shardFree(level, shardAt);
 		}
 		// the trial's pedestal lights up
 		BlockPos ped = run.pedestal(t.index);
@@ -603,7 +620,7 @@ public final class Rifts {
 	/** A shard that is out but nowhere any more (fell into the void, burned, left with a player) comes back to its plinth. */
 	private static void keepShards(ServerLevel rift, Run run) {
 		List<ServerPlayer> here = online(rift.getServer(), run);
-		var box = new net.minecraft.world.phys.AABB(Vec3.atCenterOf(run.hub()), Vec3.atCenterOf(run.hub())).inflate(460, 120, 460);
+		var box = new net.minecraft.world.phys.AABB(Vec3.atCenterOf(run.hub()), Vec3.atCenterOf(run.hub())).inflate(510, 120, 510);
 		List<net.minecraft.world.entity.item.ItemEntity> items = rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, box, e -> e.getTags().contains(SHARD_TAG));
 		for (Trials.Trial t : run.trials) {
 			if (!t.shardOut || run.placedTrials.contains(t.index)) continue;
@@ -768,7 +785,23 @@ public final class Rifts {
 		run.players.clear();
 		RUNS.remove(run);
 		ServerLevel rift = level(server);
-		if (rift != null) Trials.preload(rift, run.slot, false);
+		if (rift != null) {
+			// the big sky is cleared piece by piece while its chunks are still held, or its islands would hang about in the slot's next run
+			int at = 1;
+			for (Trials.Trial t : run.trials) {
+				if (t.kind != Trials.Kind.RINGS || !t.built) continue;
+				int h = t.arenaHalf() + 4, piece = (2 * h + 1 + 7) / 8;
+				for (int x = 0; x < 8; x++) for (int z = 0; z < 8; z++) {
+					int px = t.a.getX() - h + x * piece, pz = t.a.getZ() - h + z * piece;
+					com.toast.aurapoints.ability.AuraFx.later(server, at++, () -> Monument.clearColumns(rift, px, pz, piece));
+				}
+			}
+			com.toast.aurapoints.ability.AuraFx.later(server, at + 1, () -> {
+				// unless the slot is in use again by now
+				for (Run o : RUNS) if (o.slot == run.slot) return;
+				Trials.preload(rift, run.slot, run.aura, false);
+			});
+		}
 		if (tear != null && tear.run == run) closeTear(server, false);
 	}
 
@@ -1048,7 +1081,7 @@ public final class Rifts {
 		ServerLevel rift = level(p.getServer());
 		for (Trials.Trial t : r.trials) {
 			if (!t.shardOut) continue;
-			for (var it : rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(460, 120, 460),
+			for (var it : rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(510, 120, 510),
 					e -> isShard(e.getItem(), r, t.index))) it.discard();
 			takeShard(p, r, t.index);
 			p.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, com.toast.aurapoints.item.RelicShardItem.make(r.aura, r.id, t.index));
@@ -1104,7 +1137,7 @@ public final class Rifts {
 		Run r = runOf(p);
 		if (r == null) return -1;
 		return level(p.getServer()).getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,
-				new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(460, 120, 460), e -> e.getTags().contains(SHARD_TAG)).size();
+				new net.minecraft.world.phys.AABB(Vec3.atCenterOf(r.hub()), Vec3.atCenterOf(r.hub())).inflate(510, 120, 510), e -> e.getTags().contains(SHARD_TAG)).size();
 	}
 
 	/** A block of the run's realm: hub-relative. */
@@ -1120,6 +1153,8 @@ public final class Rifts {
 
 	public static void clearAll() {
 		Trials.forgetPreloads();
+		SkillChecks.clear();
+		RiftCam.forget();
 		if (tear != null && tear.gate != null) tear.gate.remove();
 		for (RiftGate g : CLOSING) g.remove();
 		CLOSING.clear();

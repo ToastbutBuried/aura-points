@@ -35,7 +35,7 @@ import java.util.UUID;
 /**
  * Weeping Statues (5.49.0): a ruined crypt garden. Stone statues step toward the players, but only while no one looks at
  * them (a player's view cone plus a clear line of sight; a glance into one of the wall mirrors that shows the statue
- * counts too). Four sigils wait on plinths in the mausoleums around the wall: lift one (stand still while it rises),
+ * counts too). Four sigils wait on plinths in the mausoleums around the wall: lift one (a hold-and-release check while it rises),
  * carry it to the altar in the middle and set it in. Watchers hold their gaze while carriers walk. A statue that reaches
  * you takes the sigil you carry back to its plinth = a strike (on Hardcore the touch is lethal). Extreme+: the lights
  * gutter now and then, and in the dark the statues move whoever looks.
@@ -81,6 +81,8 @@ final class TrialStatues extends Trials.Trial {
 		UUID carrier;
 		Vec3 liftFrom;
 		long liftDone;
+		/** Lifted by a skill check (else by standing still until {@link #liftDone}). */
+		boolean check;
 		Display.BlockDisplay crystal;
 		Display.TextDisplay tag;
 
@@ -118,7 +120,7 @@ final class TrialStatues extends Trials.Trial {
 	@Override
 	String hint() {
 		return "The statues only move while no one looks at them - a glance in a wall mirror counts. But no one can stare for long: dread builds, and when your eyes give the stone moves. "
-				+ "Lift the four sigils in the mausoleums (stand still) and set them in the altar. A touch takes your sigil.";
+				+ "Lift the four sigils in the mausoleums (hold right-click, let go in the green) and set them in the altar. A touch takes your sigil.";
 	}
 
 	@Override
@@ -690,6 +692,39 @@ final class TrialStatues extends Trials.Trial {
 		}
 	}
 
+	private void lifted(ServerLevel level, Sigil s, ServerPlayer p) {
+		s.state = 2;
+		Vec3 at = plinthTop(s);
+		level.playSound(null, at.x, at.y, at.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 1.4f, 1.2f);
+		level.playSound(null, at.x, at.y, at.z, SoundEvents.ARMOR_EQUIP_GOLD.value(), SoundSource.BLOCKS, 1f, 0.8f);
+		level.sendParticles(AuraFx.dust(s.rgb, 1.5f), at.x, at.y + 0.5, at.z, 20, 0.3, 0.4, 0.3, 0);
+		p.displayClientMessage(Component.literal("You carry the sigil " + GLYPHS[s.n] + " - bring it to the altar").withStyle(ChatFormatting.GREEN), true);
+	}
+
+	/** The lift's release: good = carried, bad = it sinks back with a scrape and the nearest statue takes a step (never into a touch). */
+	private void liftResult(ServerLevel level, Sigil s, ServerPlayer p, int res) {
+		if (s.state != 1 || !p.getUUID().equals(s.carrier)) return;
+		if (res == SkillChecks.GOOD) {
+			lifted(level, s, p);
+			return;
+		}
+		Vec3 at = plinthTop(s);
+		showOnPlinth(level, s);
+		if (res == SkillChecks.CANCEL) return;
+		RiftSfx.scrape(level, at);
+		p.displayClientMessage(Component.literal("The sigil grinds back - something heard that").withStyle(ChatFormatting.GOLD), true);
+		Statue near = null;
+		double best = Double.MAX_VALUE;
+		for (Statue st : statues) {
+			double d = statuePos(st).distanceTo(p.position());
+			if (d < best && d > 5) {
+				best = d;
+				near = st;
+			}
+		}
+		if (near != null) stepStatue(level, near, RuinKit.arenaPlayers(this, level), level.getGameTime());
+	}
+
 	private void tickSigils(ServerLevel level, List<ServerPlayer> here, long now) {
 		for (Sigil s : sigils) {
 			if (s.state == 1) {
@@ -703,12 +738,8 @@ final class TrialStatues extends Trials.Trial {
 				double t = Math.max(0, Math.min(1, 1 - (s.liftDone - now) / (double) LIFT[tier]));
 				if (s.crystal != null) Props.move(s.crystal, at.add(0, t * 0.6, 0));
 				if (now % 4 == 0) level.sendParticles(AuraFx.dust(s.rgb, 1f), at.x, at.y, at.z, 3, 0.2, 0.3, 0.2, 0);
-				if (now % 10 == 0) p.displayClientMessage(Component.literal("Lifting the sigil " + GLYPHS[s.n] + " - hold still " + "■".repeat((int) (t * 10)) + "□".repeat(10 - (int) (t * 10))).withStyle(ChatFormatting.AQUA), true);
-				if (now >= s.liftDone) {
-					s.state = 2;
-					level.playSound(null, at.x, at.y, at.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 1.4f, 1.2f);
-					p.displayClientMessage(Component.literal("You carry the sigil " + GLYPHS[s.n] + " - bring it to the altar").withStyle(ChatFormatting.GREEN), true);
-				}
+				if (!s.check && now % 10 == 0) p.displayClientMessage(Component.literal("Lifting the sigil " + GLYPHS[s.n] + " - hold still " + "■".repeat((int) (t * 10)) + "□".repeat(10 - (int) (t * 10))).withStyle(ChatFormatting.AQUA), true);
+				if (!s.check && now >= s.liftDone) lifted(level, s, p);
 			} else if (s.state == 2) {
 				ServerPlayer p = carrierOf(s, here);
 				if (p == null) {
@@ -823,10 +854,13 @@ final class TrialStatues extends Trials.Trial {
 				p.displayClientMessage(Component.literal("You can carry only one sigil").withStyle(ChatFormatting.GRAY), true);
 				return true;
 			}
+			if (SkillChecks.busy(p)) return true;
+			s.check = SkillChecks.enabled();
+			if (s.check && !SkillChecks.start(p, "Lift the sigil " + GLYPHS[s.n], s.rgb, tier, plinthTop(s), false, () -> s.state == 1 && !solved, res -> liftResult(level, s, p, res))) return true;
 			s.state = 1;
 			s.carrier = p.getUUID();
 			s.liftFrom = p.position();
-			s.liftDone = now + LIFT[tier];
+			s.liftDone = now + (s.check ? 54 : LIFT[tier]);
 			level.playSound(null, pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, SoundEvents.BEACON_AMBIENT, SoundSource.BLOCKS, 1.5f, 1.4f);
 			return true;
 		}
@@ -1120,7 +1154,12 @@ final class TrialStatues extends Trials.Trial {
 		s.stunUntil = Long.MAX_VALUE;
 		devStand(fake, al.pf() + al.nf(), al.pl() + al.nl(), 1, pl);
 		use(level, fake, plinthPos(al));
-		devTicks(level, fake, LIFT[tier] + 2);
+		int stBefore = strikes;
+		boolean bad = SkillChecks.devAnswer(fake, SkillChecks.EARLY);
+		log.accept("statues: bad release -> check was open " + bad + " (must be true), sigil back " + (g.state == 0) + " (must be true), strikes unchanged " + (strikes == stBefore) + " (must be true)");
+		use(level, fake, plinthPos(al));
+		SkillChecks.devAnswer(fake, SkillChecks.GOOD);
+		devTicks(level, fake, 2);
 		s.stunUntil = 0;
 		log.accept("statues: lift -> carried " + (g.state == 2) + " (must be true)");
 		s.f = al.f() + al.nf();
@@ -1135,8 +1174,13 @@ final class TrialStatues extends Trials.Trial {
 		for (Sigil sg : sigils) {
 			Alcove a2 = alcoves.get(sg.alcove);
 			devStand(fake, a2.pf() + a2.nf(), a2.pl() + a2.nl(), 1, Vec3.atCenterOf(plinthPos(a2)));
+			// the last one the old way, with the checks switched off
+			boolean off = sg == sigils.get(sigils.size() - 1);
+			com.toast.aurapoints.config.AuraConfig.RIFT_SKILL_CHECKS = !off;
 			use(level, fake, plinthPos(a2));
-			devTicks(level, fake, LIFT[tier] + 2);
+			if (!off) SkillChecks.devAnswer(fake, SkillChecks.GOOD);
+			devTicks(level, fake, off ? LIFT[tier] + 2 : 2);
+			com.toast.aurapoints.config.AuraConfig.RIFT_SKILL_CHECKS = true;
 			devStand(fake, -4.5, 0, 2, Vec3.atCenterOf(arena(0, 0, 3)));
 			devTicks(level, fake, 2);
 			use(level, fake, socketPos(sg.n));

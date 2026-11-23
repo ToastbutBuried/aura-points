@@ -37,10 +37,11 @@ import java.util.UUID;
  * Prism Chamber (5.49.0): a ruined light temple. A beam leaves its source and runs along the floor's inlaid lanes; mirrors
  * on the lane crossings turn 45 degrees per right-click on their base (sneak turns back), so they pass, block or bend
  * the beam. Coloured prisms tint it; the numbered receivers on the rim must be fed light of their colour, in order, for
- * two seconds each. A wrong receiver overloads (evoker fangs, two mirrors snap back) = a strike; it crackles first, so
- * pull the beam away or block it with your body (it burns). Sealed mirrors can only be turned from their rune stone on
- * the galleries above, linked by a rune line. Hard+: a second beam, and the two must never cross. Extreme+: mirrors drift
- * back toward their start every half minute unless someone stands near them.
+ * a moment each. Feeding a wrong one (out of order, or the wrong colour) for five seconds overloads it = a strike; its
+ * sign says why and counts down, so pull the beam away or stand in it: a body just stops the light. Sealed mirrors turn
+ * from their rune stone on the galleries above, linked by a rune line. Extreme+: a second beam, and the two must never
+ * cross. Hardcore: mirrors drift back toward their start every half minute unless someone stands near them.
+ * Every layout is proven by {@link #solve}: a search of its own that knows nothing of how the layout was made (5.52).
  */
 final class TrialPrism extends Trials.Trial {
 
@@ -50,12 +51,14 @@ final class TrialPrism extends Trials.Trial {
 	private static final int[] DI = {1, 0, -1, 0}, DJ = {0, 1, 0, -1};
 	private static final int NONE = 0, MIRROR = 1, FILTER = 2, SOURCE = 3, RECEIVER = 4;
 	private static final int END_WALL = 0, END_RECV = 1, END_PLAYER = 2, END_CROSS = 3, END_BLOCK = 4;
-	/** Charge time on a receiver before it lights (or overloads), and on a crossing before it overloads. */
-	static final int CHARGE = 40, CROSS_CHARGE = 60;
+	/** Ticks of light before the right receiver lights, before a wrong one overloads, before a crossing does. */
+	static final int CHARGE = 30, OVERLOAD = 100, CROSS_CHARGE = 120;
 
-	private static final int[] RECV = {2, 3, 3, 4, 4}, FILT = {0, 1, 2, 2, 3}, DECOY = {2, 3, 4, 5, 6};
-	private static final int[] MIN_T = {1, 2, 2, 3, 3}, MAX_T = {3, 3, 4, 5, 5};
-	private static final int[] LOCK = {1, 2, 3, 3, 4}, LOCK_SOLO = {0, 1, 1, 2, 2};
+	private static final int[] RECV = {2, 2, 3, 3, 4}, FILT = {0, 1, 1, 2, 2}, DECOY = {0, 1, 2, 3, 4};
+	private static final int[] MIN_T = {1, 1, 2, 2, 3}, MAX_T = {2, 3, 3, 4, 4};
+	/** Most clicks a layout may need in all, from its start to the last receiver. */
+	private static final int[] MAX_CLICKS = {6, 9, 14, 20, 26};
+	private static final int[] LOCK = {0, 1, 2, 2, 3}, LOCK_SOLO = {0, 0, 1, 1, 1};
 	private static final int[] FILTER_RGB = {0x3BD8D8, 0xD83BD8, 0xF28A2E, 0x8A3BD8};
 	private static final String[] FILTER_NAME = {"cyan", "magenta", "amber", "violet"};
 	private static final int BEAM_B = 0xF0F0F0;
@@ -88,6 +91,9 @@ final class TrialPrism extends Trials.Trial {
 		boolean lit;
 		int charge;
 		Display.TextDisplay tag;
+		String shown = "";
+		/** Why it is overloading right now (null = it isn't). */
+		String why;
 
 		Receiver(int i, int j, int rgb) {
 			this.i = i;
@@ -120,15 +126,26 @@ final class TrialPrism extends Trials.Trial {
 	private boolean dirty = true;
 	private long lastTrace;
 	private int crossCharge;
-	private final Map<UUID, Long> burnAt = new HashMap<>();
+	/** Fewest clicks to light each receiver after the one before (from the solver), and the last tick something went right. */
+	int[] clicks = new int[0];
+	private long progressAt;
+	private final Set<UUID> hummed = new HashSet<>();
 	private final List<List<Display.BlockDisplay>> segs = new ArrayList<>();
 	private final List<String> segSig = new ArrayList<>();
 	private final List<Display> pieceDisplays = new ArrayList<>();
 	private final List<BlockPos> runeBlocks = new ArrayList<>();
 	private boolean solo;
 
+	/** The tier this layout is for (the run's; the dev test rolls every tier). */
+	private final int tier;
+
 	TrialPrism(Rifts.Run run, int index) {
+		this(run, index, run.difficulty.tier());
+	}
+
+	private TrialPrism(Rifts.Run run, int index, int tier) {
 		super(run, index, Trials.Kind.PRISM);
+		this.tier = tier;
 	}
 
 	@Override
@@ -139,7 +156,12 @@ final class TrialPrism extends Trials.Trial {
 	@Override
 	String hint() {
 		return "Turn the mirrors (right-click their base, sneak to turn back) to bring the light to the numbered receivers in order, "
-				+ "through the prism of their colour. A crackling receiver is the wrong one - pull the beam away or stand in it. Sealed mirrors turn from their rune stone on the galleries.";
+				+ "through the prism of their colour. " + overloadRules() + (tier >= 2 || run.players.size() > 1 ? " Sealed mirrors turn from their rune stone on the galleries." : "");
+	}
+
+	private String overloadRules() {
+		return "A receiver OVERLOADS (a strike) if it gets light for 5 seconds (1) before its turn" + (FILT[tier] > 0 ? ", (2) of the wrong colour" : "")
+				+ (tier >= 3 ? ", (3) or if the two beams cross for 6 seconds" : "") + ". Its sign says why and counts down: turn a mirror, or stand in the beam - you just block it, it does not hurt.";
 	}
 
 	@Override
@@ -377,7 +399,7 @@ final class TrialPrism extends Trials.Trial {
 	boolean generate(RandomSource r, int nRecv) {
 		clearModel();
 		List<int[]> per = rim();
-		int nSrc = tier >= 2 ? 2 : 1;
+		int nSrc = tier >= 3 ? 2 : 1;
 		int[] a = per.get(r.nextInt(per.size()));
 		addPiece(a[0], a[1], SOURCE, sources.size());
 		sources.add(new Source(a[0], a[1], a[2], baseColour(0)));
@@ -446,7 +468,7 @@ final class TrialPrism extends Trials.Trial {
 			}
 			if (diff >= Math.min(3, h.length) && calm(h)) home = h;
 		}
-		if (home == null) return false;
+		if (home == null || !prove(home, nRecv)) return false;
 		for (int m = 0; m < mirrors.size(); m++) {
 			mirrors.get(m).state = home[m];
 			mirrors.get(m).home = home[m];
@@ -567,12 +589,118 @@ final class TrialPrism extends Trials.Trial {
 
 	private void newLayout(RandomSource r) {
 		solo = run.players.size() <= 1;
+		roll(r);
+	}
+
+	private void roll(RandomSource r) {
 		int nRecv = RECV[tier];
-		for (int t = 0; t < 400; t++) {
-			if (t > 0 && t % 100 == 0 && nRecv > 1) nRecv--;
+		for (int t = 0; t < 600; t++) {
+			if (t > 0 && t % 200 == 0 && nRecv > 2) nRecv--;
 			if (generate(r, nRecv)) return;
 		}
-		com.toast.aurapoints.AuraPoints.LOGGER.warn("[rift] Prism Chamber: no layout found");
+		com.toast.aurapoints.AuraPoints.LOGGER.warn("[rift] Prism Chamber: no layout found at tier {}, the plain one it is", tier);
+		fallback();
+	}
+
+	/** The plain layout: one beam up the middle, two mirrors, a receiver left and a receiver right. Used only if 600 rolls fail. */
+	void fallback() {
+		clearModel();
+		int j = NJ / 2 - 1;
+		addPiece(NI, j, SOURCE, 0);
+		sources.add(new Source(NI, j, 2, baseColour(0)));
+		for (int i : new int[]{6, 2}) {
+			addPiece(i, j, MIRROR, mirrors.size());
+			mirrors.add(new Mirror(i, j));
+		}
+		for (int[] rc : new int[][]{{6, NJ}, {2, NJ}}) {
+			addPiece(rc[0], rc[1], RECEIVER, receivers.size());
+			receivers.add(new Receiver(rc[0], rc[1], baseColour(0)));
+		}
+		// both across the beam: it is stopped at the first mirror
+		int[] home = {2, 2};
+		if (!prove(home, 2)) throw new IllegalStateException("the Prism Chamber's plain layout is not solvable");
+		for (int m = 0; m < 2; m++) mirrors.get(m).state = mirrors.get(m).home = home[m];
+	}
+
+	// ---------------------------------------------------------------
+	// Is it possible? (5.52)
+	// ---------------------------------------------------------------
+
+	/** Every receiver in turn can be lit from the state the one before leaves behind; keeps the cheapest way as the solution. */
+	private boolean prove(int[] home, int nRecv) {
+		int[][] sol = new int[nRecv][];
+		int[] cl = new int[nRecv];
+		int[] from = home;
+		int total = 0;
+		for (int k = 0; k < nRecv; k++) {
+			int[] st = solve(k, from);
+			if (st == null) return false;
+			cl[k] = cost(from, st);
+			total += cl[k];
+			sol[k] = st;
+			from = st;
+		}
+		if (total > MAX_CLICKS[tier]) return false;
+		solution = sol;
+		clicks = cl;
+		return true;
+	}
+
+	/** Clicks from one set of mirror states to another (sneak turns back, so never more than two a mirror). */
+	static int cost(int[] a, int[] b) {
+		int n = 0;
+		for (int m = 0; m < a.length; m++) {
+			int d = Math.floorMod(b[m] - a[m], 4);
+			n += Math.min(d, 4 - d);
+		}
+		return n;
+	}
+
+	private int[] bestSt;
+	private int bestCost, searched;
+
+	/**
+	 * The cheapest mirror states that light receiver {@code k} starting from {@code from}, or null if there are none.
+	 * Follows the beams and branches over the four ways every mirror they meet can stand; whatever no beam touches stays
+	 * as it is. Judged by {@link #validFor} on the real tracing, so what it finds is what the room does.
+	 */
+	int[] solve(int k, int[] from) {
+		bestSt = null;
+		bestCost = MAX_CLICKS[tier] + 1;
+		searched = 0;
+		search(k, from, from.clone(), new boolean[from.length], 0);
+		return bestSt;
+	}
+
+	private void search(int k, int[] from, int[] st, boolean[] fixed, int spent) {
+		if (spent >= bestCost || ++searched > 5000) return;
+		// the first mirror a beam meets that is still undecided
+		int next = -1;
+		Beam[] bs = new Beam[sources.size()];
+		for (int b = 0; b < bs.length && next < 0; b++) {
+			bs[b] = trace(b, st, null);
+			for (int n = 1; n < bs[b].nodes.size(); n++) {
+				int key = bs[b].nodes.get(n);
+				if (kind[key] == MIRROR && !fixed[idx[key]]) {
+					next = idx[key];
+					break;
+				}
+			}
+		}
+		if (next < 0) {
+			if (validFor(k, st)) {
+				bestCost = spent;
+				bestSt = st.clone();
+			}
+			return;
+		}
+		fixed[next] = true;
+		for (int d : new int[]{0, 1, 3, 2}) {
+			st[next] = Math.floorMod(from[next] + d, 4);
+			search(k, from, st, fixed, spent + Math.min(d, 4 - d));
+		}
+		st[next] = from[next];
+		fixed[next] = false;
 	}
 
 	// ---------------------------------------------------------------
@@ -798,12 +926,49 @@ final class TrialPrism extends Trials.Trial {
 			set(level, nf(rc.i), nl(rc.j), 2, RuinKit.glassFor(rc.rgb));
 			set(level, nf(rc.i), nl(rc.j), 3, pal.accent());
 			int col = rc.rgb;
-			rc.tag = label(level, Vec3.atBottomCenterOf(arena(nf(rc.i), nl(rc.j), 4)).add(0, 0.3, 0), Component.literal(ROMAN[k]).withStyle(s -> s.withColor(col).withBold(true)), 2.0f);
+			rc.tag = label(level, Vec3.atBottomCenterOf(arena(nf(rc.i), nl(rc.j), 4)).add(0, 0.3, 0), Component.literal(ROMAN[k]).withStyle(s -> s.withColor(col).withBold(true)), 1.5f);
+			rc.shown = "";
 			pieceDisplays.add(rc.tag);
 		}
 		step = 0;
 		crossCharge = 0;
 		dirty = true;
+		signs();
+	}
+
+	/** "blue light": what a receiver wants, in words. */
+	private String wants(Receiver rc) {
+		boolean prism = rc.rgb != baseColour(0) && rc.rgb != baseColour(1);
+		return "needs " + colourName(rc.rgb) + (prism ? " (through the " + colourName(rc.rgb) + " prism)" : " light");
+	}
+
+	/** Every receiver's sign: which one is next and what it needs, why one is overloading and how long is left. */
+	private void signs() {
+		for (int k = 0; k < receivers.size(); k++) {
+			Receiver rc = receivers.get(k);
+			if (rc.tag == null) continue;
+			String top = (rc.lit ? "✔ " : "") + ROMAN[k], sub;
+			ChatFormatting subCol;
+			if (rc.lit) {
+				sub = "lit";
+				subCol = ChatFormatting.GREEN;
+			} else if (rc.why != null) {
+				sub = "⚠ OVERLOAD in " + Math.max(1, (OVERLOAD - rc.charge + 19) / 20) + "\n" + rc.why;
+				subCol = ChatFormatting.RED;
+			} else if (k == step) {
+				sub = "NEXT\n" + wants(rc);
+				subCol = ChatFormatting.WHITE;
+			} else {
+				sub = "wait for its turn\n" + wants(rc);
+				subCol = ChatFormatting.DARK_GRAY;
+			}
+			if ((top + sub).equals(rc.shown)) continue;
+			rc.shown = top + sub;
+			boolean dim = !rc.lit && k != step && rc.why == null;
+			int col = rc.lit ? 0x55FF55 : dim ? 0x707078 : rc.rgb;
+			com.toast.aurapoints.arena.Holograms.setTextPublic(rc.tag, Component.literal(top).withStyle(s -> s.withColor(col).withBold(true))
+					.append(Component.literal("\n" + sub).withStyle(s -> s.withColor(net.minecraft.network.chat.TextColor.fromLegacyFormat(subCol)).withBold(false))));
+		}
 	}
 
 	private void clearPieces(ServerLevel level) {
@@ -830,6 +995,7 @@ final class TrialPrism extends Trials.Trial {
 	void begin(ServerLevel level, List<ServerPlayer> here) {
 		long now = level.getGameTime();
 		for (Mirror m : mirrors) m.driftAt = now + driftEvery() + 200;
+		progressAt = now;
 		dirty = true;
 	}
 
@@ -846,8 +1012,10 @@ final class TrialPrism extends Trials.Trial {
 		}
 		if (now % 5 == 0) drawBeams(level, here);
 		if (now % 20 == 0) cables(level, here, false, null);
-		if (tier >= 3 && now % 20 == 0) drift(level, here, now);
-		if (now % 40 == 0) hints(level, here);
+		if (tier >= 4 && now % 20 == 0) drift(level, here, now);
+		if (now % 5 == 0) signs();
+		if (now % 5 == 0) for (ServerPlayer p : here) lookAt(level, p, now);
+		if (now % 20 == 0) hints(level, here, now);
 	}
 
 	/** Traces the beams; burns blockers, charges receivers and crossings. True = the layout changed under us (overload). */
@@ -857,26 +1025,26 @@ final class TrialPrism extends Trials.Trial {
 		long dt = lastTrace == 0 ? 3 : Math.max(1, Math.min(10, now - lastTrace));
 		lastTrace = now;
 		Vec3 cross = null;
+		Set<UUID> inBeam = new HashSet<>();
 		for (Beam b : beams) {
 			Vec3 end = b.pts.get(b.pts.size() - 1);
 			if (b.end == END_PLAYER && b.who != null) {
-				Long t = burnAt.get(b.who.getUUID());
-				if (t == null || now >= t) {
-					burnAt.put(b.who.getUUID(), now + 10);
-					b.who.hurt(level.damageSources().inFire(), 1f + tier * 0.5f);
-					b.who.igniteForSeconds(1f);
-				}
-				level.sendParticles(ParticleTypes.FLAME, end.x, end.y, end.z, 3, 0.1, 0.1, 0.1, 0.01);
+				// a body just stops the light
+				level.sendParticles(ParticleTypes.END_ROD, end.x, end.y, end.z, 1, 0.08, 0.08, 0.08, 0.02);
+				if (hummed.add(b.who.getUUID())) RiftSfx.play(level, end, SoundEvents.AMETHYST_BLOCK_RESONATE, 0.8f, 1.6f);
+				inBeam.add(b.who.getUUID());
 			}
 			if (b.end == END_CROSS) cross = end;
 		}
+		hummed.retainAll(inBeam);
 		if (cross != null) {
 			crossCharge += (int) dt;
 			level.sendParticles(ParticleTypes.ELECTRIC_SPARK, cross.x, cross.y, cross.z, 6, 0.2, 0.2, 0.2, 0.15);
 			if (now % 9 < 3) level.playSound(null, cross.x, cross.y, cross.z, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 0.6f, 1.8f);
+			if (now % 9 < 3) actionBar(here, "⚠ The two beams cross - overload in " + Math.max(1, (CROSS_CHARGE - crossCharge + 19) / 20) + " s. Keep them apart!", ChatFormatting.RED);
 			if (crossCharge >= CROSS_CHARGE) {
 				crossCharge = 0;
-				actionBar(here, "The beams crossed - overload!", ChatFormatting.RED);
+				told(here, "The two beams crossed");
 				overload(level, cross, here);
 				return true;
 			}
@@ -896,32 +1064,90 @@ final class TrialPrism extends Trials.Trial {
 			} else {
 				level.sendParticles(ParticleTypes.ELECTRIC_SPARK, at.x, at.y + 0.5, at.z, 3 + rc.charge / 8, 0.3, 0.4, 0.3, 0.1);
 				if (now % 9 < 3) level.playSound(null, at.x, at.y, at.z, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 0.7f, 1.6f);
-				if (now % 18 < 3) actionBar(here, "⚠ Receiver " + ROMAN[b.recv] + " is overloading - pull the light away!", ChatFormatting.GOLD);
+				rc.why = b.recv != step ? "wrong order - light " + ROMAN[step] + " first" : "wrong colour - it needs " + colourName(rc.rgb) + ", this is " + colourName(b.col);
+				if (now % 18 < 3) actionBar(here, "⚠ Receiver " + ROMAN[b.recv] + ": " + rc.why, ChatFormatting.GOLD);
 			}
-			if (rc.charge >= CHARGE) {
+			if (good) rc.why = null;
+			if (rc.charge >= (good ? CHARGE : OVERLOAD)) {
 				rc.charge = 0;
 				if (good) {
 					light(level, rc, here);
 					if (solved) return true;
 				} else {
+					told(here, "Receiver " + ROMAN[b.recv] + " overloaded: " + rc.why);
+					rc.why = null;
 					overload(level, at, here);
 					return true;
 				}
 			}
 		}
-		for (int k = 0; k < touched.length; k++) if (!touched[k]) receivers.get(k).charge = 0;
+		for (int k = 0; k < touched.length; k++) if (!touched[k]) {
+			receivers.get(k).charge = 0;
+			receivers.get(k).why = null;
+		}
 		return false;
+	}
+
+	/** Why the strike came, in chat: it stays readable when the room reacts. */
+	private void told(List<ServerPlayer> here, String why) {
+		for (ServerPlayer p : here) p.sendSystemMessage(Component.literal("✦ " + why + " - a strike.").withStyle(ChatFormatting.RED));
+	}
+
+	/** Looking at a mirror: its base glows and the action bar says what it does to the light now. */
+	private void lookAt(ServerLevel level, ServerPlayer p, long now) {
+		if (com.toast.aurapoints.shim.Platform.get().isFakePlayer(p)) return;
+		Vec3 eye = p.getEyePosition(), dir = p.getLookAngle();
+		Mirror best = null;
+		double bestDot = 0.97;
+		for (Mirror m : mirrors) {
+			Vec3 to = node(m.i, m.j).subtract(eye);
+			if (to.lengthSqr() > 49) continue;
+			double dot = to.normalize().dot(dir);
+			if (dot > bestDot) {
+				bestDot = dot;
+				best = m;
+			}
+		}
+		if (best == null) return;
+		Vec3 c = node(best.i, best.j);
+		level.sendParticles(p, AuraFx.dust(rgb, 1.0f), false, c.x, c.y - 0.9, c.z, 4, 0.45, 0.05, 0.45, 0);
+		if (now % 10 != 0) return;
+		String does = "no light reaches it";
+		int key = key(best.i, best.j);
+		for (Beam b : beams) {
+			int n = b.nodes.indexOf(key);
+			if (n <= 0) continue;
+			if (n + 1 >= b.nodes.size()) does = "it stops the light";
+			else {
+				int in = dirOf(b.nodes.get(n - 1), key), out = dirOf(key, b.nodes.get(n + 1));
+				// seen from where you stand: the beam's way out as left / right / away / toward you
+				Vec3 way = node(ki(b.nodes.get(n + 1)), kj(b.nodes.get(n + 1))).subtract(c).normalize();
+				Vec3 flat = new Vec3(dir.x, 0, dir.z).normalize(), right = new Vec3(-flat.z, 0, flat.x);
+				double rd = way.dot(right), fd = way.dot(flat);
+				String to = Math.abs(rd) > Math.abs(fd) ? rd > 0 ? "to your right" : "to your left" : fd > 0 ? "away from you" : "toward you";
+				does = (in == out ? "the light passes, " : "it sends the light ") + to;
+			}
+			break;
+		}
+		p.displayClientMessage(Component.literal((best.locked ? "Sealed mirror " + GLYPHS[best.glyph] + ": " : "Mirror: ") + does).withStyle(ChatFormatting.AQUA), true);
+	}
+
+	private static int dirOf(int a, int b) {
+		for (int d = 0; d < 4; d++) if (ki(a) + DI[d] == ki(b) && kj(a) + DJ[d] == kj(b)) return d;
+		return -1;
 	}
 
 	private void light(ServerLevel level, Receiver rc, List<ServerPlayer> here) {
 		rc.lit = true;
+		rc.why = null;
+		progressAt = level.getGameTime();
 		set(level, nf(rc.i), nl(rc.j), 2, pal.light());
 		Vec3 at = node(rc.i, rc.j);
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.BEACON_POWER_SELECT, SoundSource.BLOCKS, 1.5f, 1.2f);
+		RiftSfx.lit(level, at, receivers.indexOf(rc) * 2);
 		level.sendParticles(AuraFx.dust(rc.rgb, 1.6f), at.x, at.y + 2, at.z, 30, 0.3, 2.5, 0.3, 0);
 		int k = receivers.indexOf(rc);
-		if (rc.tag != null) com.toast.aurapoints.arena.Holograms.setTextPublic(rc.tag, Component.literal("✔ " + ROMAN[k]).withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
 		step++;
+		signs();
 		if (step >= receivers.size()) {
 			finish(level, here);
 			return;
@@ -940,9 +1166,9 @@ final class TrialPrism extends Trials.Trial {
 		solve(level, shard.add(0, 0.6, 0));
 	}
 
-	/** A wrong receiver (or crossed beams) overloads: fangs burst up around it, two mirrors snap back, a strike. */
+	/** A wrong receiver (or crossed beams) overloads: a burst (fangs and two mirrors snapping back from Hard), a strike. */
 	private void overload(ServerLevel level, Vec3 at, List<ServerPlayer> here) {
-		int fangs = 5 + tier;
+		int fangs = tier >= 2 ? 4 + tier : 0;
 		for (int k = 0; k < fangs; k++) {
 			double a = Math.PI * 2 * k / fangs;
 			level.addFreshEntity(new EvokerFangs(level, at.x + Math.cos(a) * 1.8, Rifts.FLOOR + 1, at.z + Math.sin(a) * 1.8, (float) Math.toDegrees(a), k * 2, null));
@@ -952,7 +1178,7 @@ final class TrialPrism extends Trials.Trial {
 		List<Mirror> moved = new ArrayList<>();
 		for (Mirror m : mirrors) if (m.state != m.home) moved.add(m);
 		RandomSource r = level.random;
-		for (int n = 0; n < 2 && !moved.isEmpty(); n++) snapHome(level, moved.remove(r.nextInt(moved.size())));
+		for (int n = 0; n < 2 && tier >= 2 && !moved.isEmpty(); n++) snapHome(level, moved.remove(r.nextInt(moved.size())));
 		for (Receiver rc : receivers) rc.charge = 0;
 		ServerPlayer who = null;
 		double best = Double.MAX_VALUE;
@@ -983,8 +1209,8 @@ final class TrialPrism extends Trials.Trial {
 		turnDisplays(m);
 		m.driftAt = level.getGameTime() + driftEvery();
 		Vec3 c = node(m.i, m.j);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.STONE_BUTTON_CLICK_ON, SoundSource.BLOCKS, 0.8f, 0.8f);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 1f, 0.8f + m.state * 0.15f);
+		RiftSfx.mirror(level, c, m.state);
+		level.sendParticles(ParticleTypes.CRIT, c.x, c.y, c.z, 5, 0.4, 0.3, 0.4, 0.05);
 	}
 
 	@Override
@@ -1011,12 +1237,22 @@ final class TrialPrism extends Trials.Trial {
 				return true;
 			}
 		}
+		for (int k = 0; k < receivers.size(); k++) {
+			Receiver rc = receivers.get(k);
+			for (int dy = 1; dy <= 3; dy++) {
+				if (!pos.equals(arena(nf(rc.i), nl(rc.j), dy))) continue;
+				String say = rc.lit ? "lit" : rc.why != null ? "overloading: " + rc.why : k == step ? "next - " + wants(rc) : "waits - light " + ROMAN[step] + " first; it " + wants(rc);
+				p.displayClientMessage(Component.literal("Receiver " + ROMAN[k] + ": " + say).withStyle(rc.why != null ? ChatFormatting.RED : ChatFormatting.AQUA), true);
+				p.playNotifySound(SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.BLOCKS, 0.8f, 1.2f);
+				return true;
+			}
+		}
 		return false;
 	}
 
 	@Override
 	void release(ServerPlayer p) {
-		burnAt.remove(p.getUUID());
+		hummed.remove(p.getUUID());
 	}
 
 	// --- drawing
@@ -1111,7 +1347,7 @@ final class TrialPrism extends Trials.Trial {
 		}
 	}
 
-	/** Extreme+: mirrors nobody stands by creep one step back toward their start every half minute. */
+	/** Hardcore: mirrors nobody stands by creep one step back toward their start every half minute. */
 	private void drift(ServerLevel level, List<ServerPlayer> here, long now) {
 		if (devNoDrift) return;
 		for (Mirror m : mirrors) {
@@ -1135,21 +1371,18 @@ final class TrialPrism extends Trials.Trial {
 		}
 	}
 
-	/** 0 none, 1 the next receiver and its colour shown, 2 also the first wrong mirror on the way sparkles. */
-	private int hintLevel() {
-		if (!hintsAllowed()) return 0;
-		return totalStrikes - (tier == 0 ? 1 : 2) >= 1 ? 2 : 1;
+	/** 0 none (Extreme+), 1 the next receiver stands in a pillar of its colour, 2 also the first wrong mirror on the way sparkles. */
+	private int hintLevel(long now) {
+		if (tier >= 3) return 0;
+		return totalStrikes >= 1 || (tier == 0 && now - progressAt > 600) ? 2 : 1;
 	}
 
-	private void hints(ServerLevel level, List<ServerPlayer> here) {
-		int h = hintLevel();
+	private void hints(ServerLevel level, List<ServerPlayer> here, long now) {
+		int h = hintLevel(now);
 		if (h == 0 || step >= receivers.size()) return;
 		Receiver next = receivers.get(step);
 		Vec3 at = node(next.i, next.j);
 		for (int k = 0; k < 10; k++) level.sendParticles(AuraFx.dust(next.rgb, 1.3f), at.x, at.y + 1 + k * 0.8, at.z, 1, 0.05, 0.1, 0.05, 0);
-		String colour = colourName(next.rgb);
-		boolean prism = next.rgb != baseColour(0) && next.rgb != baseColour(1);
-		actionBar(here, "Next: receiver " + ROMAN[step] + (prism ? " - its light must pass the " + colour + " prism" : " - " + colour + " light"), ChatFormatting.AQUA);
 		if (h < 2 || step >= solution.length) return;
 		int[] want = solution[step];
 		for (Beam b : traceAll(want, null)) {
@@ -1190,18 +1423,7 @@ final class TrialPrism extends Trials.Trial {
 	@Override
 	void onHazard(ServerLevel level, Vec3 at) {
 		punish(level, at, 2 + tier / 2);
-		for (Mirror m : mirrors) if (m.state != m.home) snapHome(level, m);
-		// Hard and up: the last lit receiver goes dark again
-		if (tier >= 2 && step > 0) {
-			Receiver rc = receivers.get(step - 1);
-			rc.lit = false;
-			step--;
-			set(level, nf(rc.i), nl(rc.j), 2, RuinKit.glassFor(rc.rgb));
-			if (rc.tag != null) {
-				int col = rc.rgb;
-				com.toast.aurapoints.arena.Holograms.setTextPublic(rc.tag, Component.literal(ROMAN[step]).withStyle(s -> s.withColor(col).withBold(true)));
-			}
-		}
+		if (tier >= 2) for (Mirror m : mirrors) if (m.state != m.home) snapHome(level, m);
 	}
 
 	@Override
@@ -1249,6 +1471,38 @@ final class TrialPrism extends Trials.Trial {
 		for (int k = 0; k < n && !solved; k++) tick(level, List.of(fake), ++devNow);
 	}
 
+	/** 200 layouts per tier, alone and in a group: how many are the plain fallback, and the clicks they need. */
+	private void devLayouts(java.util.function.Consumer<String> log) {
+		for (int tr = 0; tr < 5; tr++) {
+			int bad = 0, max = 0, sum = 0, plain = 0, slow = 0;
+			long t0 = System.nanoTime();
+			for (int s = 0; s < 200; s++) {
+				TrialPrism t = new TrialPrism(run, index, tr);
+				t.solo = s % 2 == 0;
+				long t1 = System.nanoTime();
+				t.roll(RandomSource.create(7919L * s + tr));
+				slow = Math.max(slow, (int) ((System.nanoTime() - t1) / 1_000_000));
+				int[] from = new int[t.mirrors.size()];
+				for (int m = 0; m < from.length; m++) from[m] = t.mirrors.get(m).state;
+				int total = 0;
+				boolean ok = !t.receivers.isEmpty() && t.calm(from);
+				for (int k = 0; k < t.receivers.size() && ok; k++) {
+					int[] st = t.solve(k, from);
+					if (st == null || !t.validFor(k, st)) ok = false;
+					else {
+						total += cost(from, st);
+						from = st;
+					}
+				}
+				if (!ok) bad++;
+				if (t.mirrors.size() == 2 && t.receivers.size() == 2 && t.filters.isEmpty() && t.sources.size() == 1 && t.mirrors.get(0).i == 6 && t.mirrors.get(1).i == 2) plain++;
+				sum += total;
+				max = Math.max(max, total);
+			}
+			log.accept("prism layouts tier " + tr + ": of 200 unsolvable " + bad + " (must be 0), plain ones " + plain + ", clicks average " + sum / 200 + " most " + max + " (must be at most " + MAX_CLICKS[tr] + "), slowest " + slow + " ms, all " + (System.nanoTime() - t0) / 1_000_000 + " ms");
+		}
+	}
+
 	/** Clicks the mirrors (base, or rune stone when sealed) until they match {@code want}. */
 	private void devApply(ServerLevel level, ServerPlayer fake, int[] want) {
 		for (int m = 0; m < mirrors.size() && m < want.length; m++) {
@@ -1261,6 +1515,7 @@ final class TrialPrism extends Trials.Trial {
 	void devPlay(net.minecraft.server.MinecraftServer server, ServerLevel level, ServerPlayer fake, java.util.function.Consumer<String> log, Runnable done) {
 		devNow = level.getGameTime();
 		devNoDrift = true;
+		devLayouts(log);
 		long locked = mirrors.stream().filter(m -> m.locked).count();
 		log.accept("prism: tier " + tier + ", receivers " + receivers.size() + ", mirrors " + mirrors.size() + ", sealed " + locked + ", prisms " + filters.size()
 				+ ", beams " + sources.size() + ", solutions " + solution.length + " (must be " + receivers.size() + ")");
@@ -1284,7 +1539,9 @@ final class TrialPrism extends Trials.Trial {
 		// a mistake: feed receiver II first
 		if (receivers.size() >= 2) {
 			devApply(level, fake, solution[1]);
-			devTicks(level, fake, CHARGE + 10);
+			devTicks(level, fake, 12);
+			log.accept("prism: wrong receiver says why: " + receivers.get(1).why + " (must be wrong order), strikes " + strikes + " (must be 0)");
+			devTicks(level, fake, OVERLOAD + 10);
 			log.accept("prism: wrong receiver -> strikes " + strikes + " (must be 1), receiver II lit " + receivers.get(1).lit + " (must be false)");
 		}
 		// receiver I, with a body in the beam first
@@ -1296,7 +1553,9 @@ final class TrialPrism extends Trials.Trial {
 			Vec3 a = toFirst.pts.get(toFirst.pts.size() - 2), b = toFirst.pts.get(toFirst.pts.size() - 1);
 			Vec3 mid = a.lerp(b, 0.5);
 			fake.moveTo(mid.x, Rifts.FLOOR + 1, mid.z, 0f, 0f);
-			devTicks(level, fake, 6);
+			float hp = fake.getHealth();
+			devTicks(level, fake, 12);
+			log.accept("prism: in the beam -> hurt " + (fake.getHealth() < hp) + " (must be false), on fire " + fake.isOnFire() + " (must be false)");
 			boolean blocked = false;
 			for (Beam bb : beams) if (bb.end == END_PLAYER) blocked = true;
 			log.accept("prism: body in the beam -> blocked " + blocked + " (must be true), receiver I charge " + receivers.get(0).charge + " (must be 0)");

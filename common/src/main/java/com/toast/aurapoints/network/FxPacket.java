@@ -40,6 +40,9 @@ public record FxPacket(byte kind, int value, String text) implements CustomPacke
 	/** The rift realm's sky (5.48, client/RiftSky): text = the realm's aura id ("" = none). */
 	public static final byte RIFT_SKY = 12;
 
+	/** A hold-and-release skill check (5.52, client/SkillCheckHud, rift/SkillChecks): value = ticks the bar takes (0 = stop), text = see SkillCheckHud.onPacket. */
+	public static final byte SKILL_CHECK = 13;
+
 	public static final Type<FxPacket> TYPE =
 			new Type<>(ResourceLocation.fromNamespaceAndPath("aurapoints", "fx"));
 
