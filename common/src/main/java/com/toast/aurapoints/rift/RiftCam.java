@@ -35,6 +35,10 @@ final class RiftCam {
 		if (u != null && p.level().getGameTime() - u[0] >= 8) UNTIL.remove(p.getUUID());
 	}
 
+	static void forget(java.util.UUID id) {
+		UNTIL.remove(id);
+	}
+
 	static void forget() {
 		UNTIL.clear();
 	}

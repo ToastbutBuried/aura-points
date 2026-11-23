@@ -444,7 +444,7 @@ final class TrialBells extends Trials.Trial {
 			out.put(arena(tf + s, tl + side, 7), col);
 		}
 		for (int df = -1; df <= 1; df++) for (int dl = -1; dl <= 1; dl++) out.put(arena(tf + df, tl + dl, 9), col);
-		for (int y = 11; y <= 34; y++) out.put(arena(tf, tl, y), y % 4 == 3 ? glow : col);
+		for (int y = 11; y <= 34; y++) if (y < 15 || y > 16) out.put(arena(tf, tl, y), y % 4 == 3 ? glow : col);
 		BlockState light = Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, 15);
 		out.put(arena(tf, tl, 2), light);
 		return out;

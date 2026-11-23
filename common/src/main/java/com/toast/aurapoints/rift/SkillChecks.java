@@ -34,7 +34,8 @@ public final class SkillChecks {
 
 	private static final class Open {
 		int id, ticks;
-		long start;
+		/** Game tick (looks) and wall clock ms (the client counts real time, a lagging server does not). */
+		long start, ms;
 		float lo;
 		Vec3 at;
 		boolean rub;
@@ -70,6 +71,7 @@ public final class SkillChecks {
 		o.id = nextId++;
 		o.ticks = TICKS[k];
 		o.start = now;
+		o.ms = System.currentTimeMillis();
 		o.lo = 0.52f + p.getRandom().nextFloat() * (0.94f - w - 0.52f);
 		o.at = at;
 		o.rub = rub;
@@ -91,10 +93,10 @@ public final class SkillChecks {
 	public static void answer(ServerPlayer p, int id, int value) {
 		Open o = OPEN.get(p.getUUID());
 		if (o == null || o.id != id) return;
-		long dt = p.level().getGameTime() - o.start;
+		double dt = (System.currentTimeMillis() - o.ms) / 50.0;
 		int r = value == EARLY || value == GOOD || value == LATE ? value : CANCEL;
 		// a good release can't come before the bar is at the zone (4 ticks of slack)
-		if (r == GOOD && fill((dt + 4) / (double) o.ticks) < o.lo && !com.toast.aurapoints.shim.Platform.get().isFakePlayer(p)) r = EARLY;
+		if (r == GOOD && fill((dt + 4) / o.ticks) < o.lo && !com.toast.aurapoints.shim.Platform.get().isFakePlayer(p)) r = EARLY;
 		close(p, o, r);
 	}
 
@@ -147,6 +149,13 @@ public final class SkillChecks {
 	static int devId(ServerPlayer p) {
 		Open o = OPEN.get(p.getUUID());
 		return o == null ? -1 : o.id;
+	}
+
+	/** Logout, leaving the rift. */
+	static void forget(UUID id) {
+		OPEN.remove(id);
+		REST.remove(id);
+		MISSES.remove(id);
 	}
 
 	static void clear() {

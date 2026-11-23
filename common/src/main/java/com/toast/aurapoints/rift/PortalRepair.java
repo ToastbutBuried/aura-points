@@ -249,6 +249,8 @@ public final class PortalRepair {
 				boolean near = false;
 				if (tries < 250) for (BlockPos o : loose.keySet()) if (o.distSqr(floor.above()) < 9) near = true;
 				for (BlockPos o : t.run.caches) if (o.distSqr(floor.above()) < 4) near = true;
+				// never onto someone's feet
+				if (level.hasNearbyAlivePlayer(floor.getX() + 0.5, floor.getY() + 1, floor.getZ() + 0.5, 2)) near = true;
 				if (near) continue;
 				put(level, floor.above(), st[kind]);
 				loose.put(floor.above(), kind);
@@ -704,19 +706,25 @@ public final class PortalRepair {
 		int count(ItemStack s);
 	}
 
-	/** How many of something everyone here carries, has on the cursor or has dropped. */
-	private int afield(ServerLevel level, List<ServerPlayer> up, Match m) {
-		int have = 0;
+	/** This wing's Keystones and stones that people here carry, have on the cursor or have dropped (one scan for all counts). */
+	private List<ItemStack> afield(ServerLevel level, List<ServerPlayer> up) {
+		List<ItemStack> out = new ArrayList<>();
 		for (ServerPlayer p : up) {
 			var inv = p.getInventory();
-			for (int i = 0; i < inv.getContainerSize(); i++) have += m.count(inv.getItem(i));
-			have += m.count(p.containerMenu.getCarried());
+			for (int i = 0; i < inv.getContainerSize(); i++) if (myKeystone(inv.getItem(i)) || mine(inv.getItem(i), STONE)) out.add(inv.getItem(i));
+			ItemStack c = p.containerMenu.getCarried();
+			if (myKeystone(c) || mine(c, STONE)) out.add(c);
 		}
 		Vec3 hub = Vec3.atCenterOf(t.run.hub());
-		for (ItemEntity e : level.getEntitiesOfClass(ItemEntity.class, new AABB(hub, hub).inflate(500, 220, 500), e -> m.count(e.getItem()) > 0)) {
-			if (e.getY() > Rifts.FLOOR - 15) have += m.count(e.getItem());
-		}
-		return have;
+		for (ItemEntity e : level.getEntitiesOfClass(ItemEntity.class, new AABB(hub, hub).inflate(500, 220, 500), e -> myKeystone(e.getItem()) || mine(e.getItem(), STONE)))
+			if (e.getY() > Rifts.FLOOR - 15) out.add(e.getItem());
+		return out;
+	}
+
+	private static int count(List<ItemStack> all, Match m) {
+		int n = 0;
+		for (ItemStack s : all) n += m.count(s);
+		return n;
 	}
 
 	/** Keystones and stones carried, lying about or still in place must add up: a lost one (void, despawn, broken) comes back. */
@@ -726,7 +734,8 @@ public final class PortalRepair {
 			t.run.caches.remove(c);
 			return true;
 		});
-		int lost = needed - set - caches.size() - afield(level, up, s -> myKeystone(s) ? s.getCount() : 0);
+		List<ItemStack> field = afield(level, up);
+		int lost = needed - set - caches.size() - count(field, s -> myKeystone(s) ? s.getCount() : 0);
 		RandomSource r = t.random != null ? t.random : level.random;
 		if (lost > 0) {
 			addCaches(level, r, lost);
@@ -740,7 +749,7 @@ public final class PortalRepair {
 			int kind = k, want = 0, have = 0;
 			for (TrialPortal.Piece pc : missing.values()) if (pc.kind() == kind) want++;
 			for (int v : loose.values()) if (v == kind) have++;
-			have += afield(level, up, s -> mine(s, STONE) && tag(s).getInt("kind") == kind ? s.getCount() : 0);
+			have += count(field, s -> mine(s, STONE) && tag(s).getInt("kind") == kind ? s.getCount() : 0);
 			for (int n = have; n < want; n++) back.add(kind);
 		}
 		scatter(level, r, back);
@@ -822,14 +831,14 @@ public final class PortalRepair {
 		// Keystones out of the pots; refused before the arch is whole; another wing's refused
 		fake.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
 		for (BlockPos pos : new ArrayList<>(caches)) use(level, fake, pos);
-		log.accept("repair: pots emptied, Keystones " + afield(level, List.of(fake), s -> myKeystone(s) ? s.getCount() : 0) + " (must be 3)");
+		log.accept("repair: pots emptied, Keystones " + count(afield(level, List.of(fake)), s -> myKeystone(s) ? s.getCount() : 0) + " (must be 3)");
 		fake.setItemInHand(InteractionHand.MAIN_HAND, Trials.makeKeystone(t.run.id, t.index));
 		use(level, fake, pedestal);
 		log.accept("repair: Keystone on a broken arch -> check open " + SkillChecks.busy(fake) + " (must be false), set " + set + " (must be 0)");
 		// the stones: lost ones come back, wrong kind and no support refused
 		fake.getInventory().clearContent();
 		for (BlockPos pos : new ArrayList<>(loose.keySet())) use(level, fake, pos);
-		log.accept("repair: stones picked up " + afield(level, List.of(fake), s -> mine(s, STONE) ? s.getCount() : 0) + " (must be " + want + "), left " + loose.size() + " (must be 0)");
+		log.accept("repair: stones picked up " + count(afield(level, List.of(fake)), s -> mine(s, STONE) ? s.getCount() : 0) + " (must be " + want + "), left " + loose.size() + " (must be 0)");
 		purge(fake);
 		recoverLost(level, List.of(fake));
 		log.accept("repair: lost stones come back " + loose.size() + " (must be " + want + "), lost Keystones too " + caches.size() + " (must be 3)");

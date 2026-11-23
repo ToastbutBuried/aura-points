@@ -270,6 +270,7 @@ final class TrialEchoes extends Trials.Trial {
 	private void unseal(ServerLevel level) {
 		if (open) return;
 		open = true;
+		freezeHazards(false);
 		Vec3 c = DigDecor.v(this, veilF(), 0, 2);
 		dropVeil(level, true);
 		RiftSfx.veilFall(level, c);

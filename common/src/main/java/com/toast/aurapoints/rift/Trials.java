@@ -157,8 +157,9 @@ final class Trials {
 		areas.add(new int[]{0, 0});
 		for (int[] o : areas) {
 			var pos = new net.minecraft.world.level.ChunkPos(new BlockPos(origin.getX() + o[0], 0, origin.getZ() + o[1]));
-			if (on) level.getChunkSource().addRegionTicket(net.minecraft.server.level.TicketType.FORCED, pos, radius, pos);
-			else level.getChunkSource().removeRegionTicket(net.minecraft.server.level.TicketType.FORCED, pos, radius, pos);
+			int r = o[0] == 0 && o[1] == 0 ? 9 : radius;
+			if (on) level.getChunkSource().addRegionTicket(net.minecraft.server.level.TicketType.FORCED, pos, r, pos);
+			else level.getChunkSource().removeRegionTicket(net.minecraft.server.level.TicketType.FORCED, pos, r, pos);
 		}
 	}
 
