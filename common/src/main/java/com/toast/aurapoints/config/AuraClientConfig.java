@@ -23,7 +23,7 @@ public final class AuraClientConfig {
 	// HUD
 	public static final ModConfigSpec.EnumValue<Anchor> HUD_ANCHOR;
 	public static final ModConfigSpec.IntValue HUD_OFFSET_X, HUD_OFFSET_Y;
-	public static final ModConfigSpec.DoubleValue HUD_SCALE, HUD_OPACITY;
+	public static final ModConfigSpec.DoubleValue HUD_SCALE, HUD_OPACITY, TITLE_SIZE;
 	public static final ModConfigSpec.BooleanValue HUD_LABEL, HUD_KEYBINDS, HUD_EFFECTS;
 	public static final ModConfigSpec.EnumValue<CooldownText> COOLDOWN_TEXT;
 	public static final ModConfigSpec.ConfigValue<String> HUD_COLOR;
@@ -283,6 +283,9 @@ public final class AuraClientConfig {
 						"The clean way to a clear view with a shader pack that cannot show transparency. Third person is unchanged.")
 				.translation("aurapoints.configuration.dragonHideFirstPerson")
 				.define("dragonHideFirstPerson", false);
+		TITLE_SIZE = b.comment("Size of the mod's titles (1.0 = the same share of the screen on every GUI scale). They never get wider than the screen.")
+				.translation("aurapoints.configuration.titleSize")
+				.defineInRange("titleSize", 1.0, 0.25, 4.0);
 		ARENA_MESSAGES = b.comment("How arena announcements (countdowns, round won, wave cleared, knocked out...) appear:",
 						"TITLE (short, in the middle of the screen) or CHAT (a chat line; countdowns go to the action bar).")
 				.translation("aurapoints.configuration.arenaMessages")

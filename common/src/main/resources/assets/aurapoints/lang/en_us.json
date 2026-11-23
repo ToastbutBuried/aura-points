@@ -167,6 +167,8 @@
   "aurapoints.configuration.effectLevel.tooltip": "For weaker computers. FULL, REDUCED (about half of the server's particles, half the shimmer) or MINIMAL (a sixth of them, no shimmer, no sprint trails).",
   "aurapoints.configuration.shimmerDensity": "Shimmer amount",
   "aurapoints.configuration.shimmerDensity.tooltip": "How many shimmer particles (1.0 = normal).",
+  "aurapoints.configuration.titleSize": "Title size",
+  "aurapoints.configuration.titleSize.tooltip": "Size of the mod's titles. 1.0 = the same share of the screen on every GUI scale; smaller or bigger as you like. They never get wider than the screen.",
   "aurapoints.configuration.arenaMessages": "Arena messages",
   "aurapoints.configuration.arenaMessages.tooltip": "How arena announcements (countdowns, round won, wave cleared, knocked out...) appear: TITLE (short, in the middle of the screen) or CHAT (a chat line; countdowns go to the action bar).",
   "aurapoints.configuration.dragonTransparency": "Dragon transparency (rider)",

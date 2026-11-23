@@ -3,9 +3,6 @@ package com.toast.aurapoints.ability;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -273,8 +270,6 @@ public final class AuraFx {
 
 	/** Big title in the middle of the player's screen (null subtitle = none). */
 	public static void title(ServerPlayer player, Component title, Component subtitle) {
-		player.connection.send(new ClientboundSetTitlesAnimationPacket(5, 50, 15));
-		if (subtitle != null) player.connection.send(new ClientboundSetSubtitleTextPacket(subtitle));
-		player.connection.send(new ClientboundSetTitleTextPacket(title));
+		com.toast.aurapoints.network.NetworkHandler.sendTitle(player, title, subtitle, 5, 50, 15);
 	}
 }

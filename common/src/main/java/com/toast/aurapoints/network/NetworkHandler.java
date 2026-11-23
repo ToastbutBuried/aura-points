@@ -28,7 +28,7 @@ public final class NetworkHandler {
 
 	@SubscribeEvent
 	public static void register(RegisterPayloadHandlersEvent event) {
-		PayloadRegistrar registrar = event.registrar("48");
+		PayloadRegistrar registrar = event.registrar("49");
 		registrar.playToServer(
 				AbilityKeyPacket.TYPE,
 				AbilityKeyPacket.STREAM_CODEC,
@@ -191,6 +191,11 @@ public final class NetworkHandler {
 				(packet, context) -> context.enqueueWork(() -> ClientAuraState.arenaTitle.accept(packet))
 		);
 		registrar.playToClient(
+				TitlePacket.TYPE,
+				TitlePacket.STREAM_CODEC,
+				(packet, context) -> context.enqueueWork(() -> ClientAuraState.title.accept(packet))
+		);
+		registrar.playToClient(
 				FxPacket.TYPE,
 				FxPacket.STREAM_CODEC,
 				(packet, context) -> context.enqueueWork(() -> ClientAuraState.pushFx(packet))
@@ -286,6 +291,11 @@ public final class NetworkHandler {
 	}
 
 	/** A visual moment on the player's own screen (FxPacket kinds). */
+	/** One of the mod's titles (sized to the player's screen); null subtitle = none. */
+	public static void sendTitle(ServerPlayer player, net.minecraft.network.chat.Component title, net.minecraft.network.chat.Component subtitle, int fadeIn, int stay, int fadeOut) {
+		PacketDistributor.sendToPlayer(player, new TitlePacket(title, subtitle == null ? net.minecraft.network.chat.Component.empty() : subtitle, fadeIn, stay, fadeOut));
+	}
+
 	public static void sendFx(ServerPlayer player, byte kind, int value, String text) {
 		PacketDistributor.sendToPlayer(player, new FxPacket(kind, value, text == null ? "" : text));
 	}

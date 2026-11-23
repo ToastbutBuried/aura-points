@@ -173,10 +173,7 @@ public final class Ultimates {
 		com.toast.aurapoints.AuraPoints.LOGGER.info("[ultimate] {} used {}", player.getGameProfile().getName(), ult.displayName);
 		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_ULTIMATE, variant(ult));
 		// its name low on the screen, briefly, so it doesn't cover the move itself
-		player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket(3, 26, 8));
-		player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(
-				Component.literal("✦ " + ult.displayName + " ✦").withStyle(s -> s.withColor(aura.rgb).withBold(true))));
-		player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(Component.empty()));
+		NetworkHandler.sendTitle(player, Component.empty(), Component.literal("✦ " + ult.displayName + " ✦").withStyle(s -> s.withColor(aura.rgb).withBold(true)), 3, 26, 8);
 		sound(level, player.position(), AuraSounds.BEACON_POWER_SELECT.value(), 1.2f, 0.6f);
 		switch (ult) {
 			case ECLIPSE -> startEclipse(player, run);

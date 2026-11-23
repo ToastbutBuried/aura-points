@@ -38,9 +38,7 @@ public final class ArenaTitles {
 			return;
 		}
 		// a countdown tick fits in its one second; everything else stays about 1.75 s (vanilla titles: 3.5 s)
-		if (p.countdown()) mc.gui.setTimes(2, 14, 4);
-		else mc.gui.setTimes(3, 25, 7);
-		mc.gui.setSubtitle(p.subtitle());
-		mc.gui.setTitle(p.title());
+		if (p.countdown()) AuraTitles.show(p.title(), p.subtitle(), 2, 14, 4);
+		else AuraTitles.show(p.title(), p.subtitle(), 3, 25, 7);
 	}
 }

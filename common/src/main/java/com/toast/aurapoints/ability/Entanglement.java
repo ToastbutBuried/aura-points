@@ -9,9 +9,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -454,9 +452,7 @@ public final class Entanglement {
 	}
 
 	private static void title(ServerPlayer p, String title, String subtitle, ChatFormatting color) {
-		p.connection.send(new ClientboundSetTitlesAnimationPacket(2, 40, 8));
-		p.connection.send(new ClientboundSetSubtitleTextPacket(Component.literal(subtitle).withStyle(ChatFormatting.GRAY)));
-		p.connection.send(new ClientboundSetTitleTextPacket(Component.literal(title).withStyle(color, ChatFormatting.BOLD)));
+		NetworkHandler.sendTitle(p, Component.literal(title).withStyle(color, ChatFormatting.BOLD), Component.literal(subtitle).withStyle(ChatFormatting.GRAY), 2, 40, 8);
 	}
 
 	/** Key presses it takes to break the roots: Grove Warden's are tougher. */
