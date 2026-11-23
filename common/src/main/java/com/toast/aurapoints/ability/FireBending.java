@@ -231,7 +231,7 @@ public final class FireBending {
 		AuraFx.burst(level, start.x, start.y, start.z, ParticleTypes.FLAME, 30, 0.2, 0.15);
 		AuraFx.burst(level, start.x, start.y, start.z, ParticleTypes.LAVA, 4, 0.2, 0.0);
 		AuraFx.sound(level, player, AuraSounds.BLAZE_SHOOT.value(), 1.0f, 0.7f);
-		AuraFx.sound(level, player, AuraSounds.FIRECHARGE_USE.value(), 1.0f, 0.6f);
+		AuraFx.sound(level, player, AuraSounds.FIRECHARGE_USE.value(), 0.6f, 0.6f);
 		NetworkHandler.sendBendAnim(player, BendingAnimPacket.THROW);
 		AuraStats.add(player, AuraStats.FIRE_BENDING_SHOTS, 1);
 		AuraAbilities.markUsed(player, Ability.FIRE_BENDING, now);

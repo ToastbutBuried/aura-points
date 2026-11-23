@@ -318,9 +318,10 @@ public final class Chidori {
 		Thunderbolt.bolt(level, c, c.add(l.dir.scale(full ? 4.5 : 2.5)), full ? 1.3f : 0.9f, full ? 4 : 2, 3);
 		Thunderbolt.impact(level, c, full ? 1.4f : 1.0f);
 		Thunderbolt.send(level, AuraFx.dust(Thunderbolt.CORE, 2.0f), c.x, c.y, c.z, 12, 0.25, 0.4, 0.25, 0);
-		level.playSound(null, c.x, c.y, c.z, AuraSounds.PLAYER_ATTACK_CRIT.value(), SoundSource.PLAYERS, 1.2f, 0.8f);
-		level.playSound(null, c.x, c.y, c.z, AuraSounds.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.2f, full ? 1.0f : 1.4f);
-		level.playSound(null, c.x, c.y, c.z, AuraSounds.LIGHTNING_BOLT_IMPACT.value(), SoundSource.PLAYERS, 1.5f, 1.0f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.PLAYER_ATTACK_CRIT.value(), SoundSource.PLAYERS, 0.8f, 0.8f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.SWEET_IMPACT.value(), SoundSource.PLAYERS, 1.5f, full ? 0.9f : 1.1f);
+		// the thunder answers two ticks later, so it does not bury the hit
+		AuraFx.later(level.getServer(), 2, () -> level.playSound(null, c.x, c.y, c.z, AuraSounds.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.8f, full ? 1.0f : 1.4f));
 	}
 
 	// ---------------------------------------------------------------

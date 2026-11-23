@@ -1,5 +1,6 @@
 package com.toast.aurapoints.editor;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.AuraPoints;
 import com.toast.aurapoints.ability.AuraType;
 import com.toast.aurapoints.config.AuraBalance;
@@ -13,7 +14,6 @@ import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.protocol.game.ClientboundContainerSetDataPacket;
 import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleContainer;
@@ -1071,7 +1071,7 @@ public final class BalanceEditor {
 			if (slot >= shown.size()) return;
 			Entry e = shown.get(slot);
 			Object value = shown(s, e);
-			player.playNotifySound(SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.MASTER, 0.4f, 1.2f);
+			player.playNotifySound(AuraSounds.UI_BUTTON_CLICK.value(), SoundSource.MASTER, 0.4f, 1.2f);
 			if (type == ClickType.CLONE) {
 				set(player, s, e, e.defaultValue());
 				return;
@@ -1225,7 +1225,7 @@ public final class BalanceEditor {
 			if (slot == 53) {
 				if (keys.isEmpty()) return;
 				applyPending(player, s);
-				player.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.MASTER, 0.5f, 1.4f);
+				player.playNotifySound(AuraSounds.PLAYER_LEVELUP.value(), SoundSource.MASTER, 0.5f, 1.4f);
 				finish(player, s);
 				return;
 			}

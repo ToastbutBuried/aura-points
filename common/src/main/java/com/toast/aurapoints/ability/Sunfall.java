@@ -118,7 +118,7 @@ final class Sunfall {
 			if (age == fallStart) {
 				s.meteor = s.canvas.piece(Blocks.MAGMA_BLOCK.defaultBlockState(), s.from);
 				s.core = s.canvas.piece(Blocks.SHROOMLIGHT.defaultBlockState(), s.from);
-				level.playSound(null, t.x, t.y + 10, t.z, AuraSounds.GHAST_SHOOT.value(), SoundSource.PLAYERS, 3.0f, 0.4f);
+				level.playSound(null, t.x, t.y + 10, t.z, AuraSounds.GHAST_SHOOT.value(), SoundSource.PLAYERS, 3.0f, 0.53f);
 			}
 			if (age >= fallStart) {
 				double f = Math.min(1.0, (age - fallStart + 1) / (double) FALL_TICKS);
@@ -189,7 +189,7 @@ final class Sunfall {
 		AuraFx.particles(level, dirt, t.x, t.y + 0.4, t.z, 120, r * 0.4, 0.3, r * 0.4, 0.3);
 		AuraFx.ring(level, t.x, t.y + 0.2, t.z, r, ParticleTypes.FLAME, 60);
 		level.playSound(null, t.x, t.y, t.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 3.0f, 0.6f);
-		level.playSound(null, t.x, t.y, t.z, AuraSounds.DRAGON_FIREBALL_EXPLODE.value(), SoundSource.PLAYERS, 2.0f, 0.7f);
+		level.playSound(null, t.x, t.y, t.z, AuraSounds.DRAGON_FIREBALL_EXPLODE.value(), SoundSource.PLAYERS, 0.5f, 0.7f);
 
 		// the crater: glowing magma plates sunk into the ground, a molten middle
 		var rnd = level.random;

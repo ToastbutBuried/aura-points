@@ -15,7 +15,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -243,8 +242,8 @@ public final class Blood {
 			lunge.bleedFactor = AuraConfig.BLOOD_HEMO_CHARGED_BLEED_FACTOR;
 		}
 		LUNGES.put(p.getUUID(), lunge);
-		sound(p.serverLevel(), p.position(), SoundEvents.PLAYER_ATTACK_SWEEP, 0.8f, mode == CastMode.CHARGED ? 0.5f : 0.6f);
-		sound(p.serverLevel(), p.position(), SoundEvents.PHANTOM_FLAP, 0.8f, 1.4f);
+		sound(p.serverLevel(), p.position(), AuraSounds.PLAYER_ATTACK_SWEEP.value(), 0.8f, mode == CastMode.CHARGED ? 0.5f : 0.6f);
+		sound(p.serverLevel(), p.position(), AuraSounds.PHANTOM_FLAP.value(), 0.8f, 1.4f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_BLOOD, 0);
 		Casts.used(p, Ability.HEMORRHAGE, now, mode);
 		return true;
@@ -276,8 +275,8 @@ public final class Blood {
 		AuraFx.particles(level, ParticleTypes.SWEEP_ATTACK, hc.x, hc.y, hc.z, 1, 0, 0, 0, 0);
 		AuraFx.burst(level, hc.x, hc.y, hc.z, AuraFx.dust(BRIGHT, 1.3f), 20, 0.4, 0);
 		AuraFx.particles(level, DROPS, hc.x, hc.y, hc.z, 12, 0.3, 0.3, 0.3, 0);
-		sound(level, hc, SoundEvents.PLAYER_ATTACK_CRIT, 1.0f, 0.7f);
-		sound(level, hc, SoundEvents.SWEET_BERRY_BUSH_BREAK, 1.2f, 0.6f);
+		sound(level, hc, AuraSounds.PLAYER_ATTACK_CRIT.value(), 1.0f, 0.7f);
+		sound(level, hc, AuraSounds.SWEET_BERRY_BUSH_BREAK.value(), 1.2f, 0.6f);
 		// the cut stops you short
 		p.setDeltaMovement(p.getDeltaMovement().scale(0.2));
 		p.hurtMarked = true;
@@ -325,8 +324,8 @@ public final class Blood {
 		TETHERS.put(p.getUUID(), tether);
 		ServerLevel level = p.serverLevel();
 		AuraFx.line(level, AuraFx.chest(p), AuraFx.chest(target), AuraFx.dust(BRIGHT, 1.4f), 24);
-		sound(level, target.position(), SoundEvents.WARDEN_HEARTBEAT, 1.5f, 1.2f);
-		sound(level, p.position(), SoundEvents.CHAIN_PLACE, 1.0f, 0.6f);
+		sound(level, target.position(), AuraSounds.WARDEN_HEARTBEAT.value(), 1.5f, 1.2f);
+		sound(level, p.position(), AuraSounds.CHAIN_PLACE.value(), 1.0f, 0.6f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_BLOOD, 1);
 		Casts.used(p, Ability.BLOOD_TETHER, now, mode);
 		return true;
@@ -379,7 +378,7 @@ public final class Blood {
 				p.heal(drain * (float) (Math.max(0, AuraConfig.BLOOD_TETHER_HEAL_FRACTION) * th.healFactor));
 			}
 			AuraFx.particles(level, DROPS, from.x, from.y, from.z, 6, 0.25, 0.25, 0.25, 0);
-			sound(level, to, SoundEvents.WARDEN_HEARTBEAT, 0.9f, 1.3f);
+			sound(level, to, AuraSounds.WARDEN_HEARTBEAT.value(), 0.9f, 1.3f);
 		}
 		return true;
 	}
@@ -388,7 +387,7 @@ public final class Blood {
 		Vec3 a = AuraFx.chest(p), b = AuraFx.chest(th.target);
 		Vec3 mid = a.lerp(b, 0.5);
 		AuraFx.particles(p.serverLevel(), DROPS, mid.x, mid.y, mid.z, 10, 0.6, 0.2, 0.6, 0);
-		sound(p.serverLevel(), mid, SoundEvents.CHAIN_BREAK, 0.9f, 0.7f);
+		sound(p.serverLevel(), mid, AuraSounds.CHAIN_BREAK.value(), 0.9f, 0.7f);
 	}
 
 	// ---------------------------------------------------------------
@@ -432,9 +431,9 @@ public final class Blood {
 		AuraFx.burst(level, c.x, c.y, c.z, AuraFx.dust(BRIGHT, 1.5f), 30, 0.6, 0);
 		AuraFx.particles(level, DROPS, c.x, c.y, c.z, 20, 0.4, 0.4, 0.4, 0);
 		AuraFx.helix(p, AuraFx.dust(CRIMSON, 1.2f), 24, 0.7, 2.2);
-		sound(level, c, SoundEvents.PLAYER_HURT_SWEET_BERRY_BUSH, 1.0f, 0.7f);
-		sound(level, c, SoundEvents.WARDEN_HEARTBEAT, 1.5f, 0.9f);
-		sound(level, c, SoundEvents.EVOKER_PREPARE_ATTACK, 0.7f, 1.4f);
+		sound(level, c, AuraSounds.PLAYER_HURT_SWEET_BERRY_BUSH.value(), 1.0f, 0.7f);
+		sound(level, c, AuraSounds.WARDEN_HEARTBEAT.value(), 1.5f, 0.9f);
+		sound(level, c, AuraSounds.EVOKER_PREPARE_ATTACK.value(), 0.7f, 1.4f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_BLOOD, 2);
 		Casts.used(p, Ability.CRIMSON_SACRIFICE, now, pinprick ? AuraConfig.BLOOD_PINPRICK_COOLDOWN_FACTOR : 1.0);
 		return true;
@@ -465,7 +464,7 @@ public final class Blood {
 			ServerLevel level = attacker.serverLevel();
 			AuraFx.burst(level, c.x, c.y, c.z, AuraFx.dust(BRIGHT, 1.4f), 18, 0.4, 0);
 			AuraFx.particles(level, ParticleTypes.CRIT, c.x, c.y, c.z, 10, 0.3, 0.3, 0.3, 0.2);
-			sound(level, c, SoundEvents.PLAYER_ATTACK_CRIT, 1.0f, 0.6f);
+			sound(level, c, AuraSounds.PLAYER_ATTACK_CRIT.value(), 1.0f, 0.6f);
 		}
 		if (attacker.getServer() != null && moonUntil(attacker) > attacker.getServer().getTickCount()) {
 			attacker.heal(amount * (float) Math.max(0, AuraConfig.BLOOD_MOON_LIFESTEAL));
@@ -495,7 +494,7 @@ public final class Blood {
 		Vec3 a = AuraFx.chest(dead), b = AuraFx.chest(killer);
 		AuraFx.line(level, a, b, AuraFx.dust(BRIGHT, 1.2f), 16);
 		AuraFx.particles(level, DROPS, a.x, a.y, a.z, 14, 0.3, 0.3, 0.3, 0);
-		sound(level, b, SoundEvents.WARDEN_HEARTBEAT, 0.8f, 1.5f);
+		sound(level, b, AuraSounds.WARDEN_HEARTBEAT.value(), 0.8f, 1.5f);
 	}
 
 	// ---------------------------------------------------------------

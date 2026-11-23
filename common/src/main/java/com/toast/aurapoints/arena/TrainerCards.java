@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.AuraCurrency;
 import com.toast.aurapoints.ability.AuraAbilities.Ability;
 import com.toast.aurapoints.ability.AuraStats;
@@ -15,7 +16,6 @@ import com.toast.aurapoints.data.AuraState;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 
 import java.time.LocalDate;
 import java.util.ArrayDeque;
@@ -199,7 +199,7 @@ public final class TrainerCards {
 		player.sendSystemMessage(Component.literal("✔ Card done: ").withStyle(ChatFormatting.GREEN)
 				.append(Component.literal(cards.get(i).text).withStyle(ChatFormatting.WHITE))
 				.append(Component.literal("  +" + AuraConfig.TRAINING_CARD_AURA + " Aura").withStyle(ChatFormatting.LIGHT_PURPLE)));
-		com.toast.aurapoints.ability.AuraFx.sound(player.serverLevel(), player, SoundEvents.PLAYER_LEVELUP, 0.6f, 1.5f);
+		com.toast.aurapoints.ability.AuraFx.sound(player.serverLevel(), player, AuraSounds.PLAYER_LEVELUP.value(), 0.6f, 1.5f);
 		if (Integer.bitCount(data.trainerDone & 7) >= Math.min(3, cards.size()) && AuraConfig.TRAINING_CARDS_BONUS > 0) {
 			AuraCurrency.add(player, AuraConfig.TRAINING_CARDS_BONUS);
 			ArenaFx.title(player, Component.literal("All cards done!").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),

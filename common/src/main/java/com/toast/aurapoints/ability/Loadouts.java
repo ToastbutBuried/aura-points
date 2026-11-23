@@ -167,7 +167,7 @@ public final class Loadouts {
 		if (!set.isEmpty()) Relics.applySet(player, set);
 		changed(player, data);
 		player.displayClientMessage(Component.literal("Loadout: " + list.get(n - 1).name + "  " + describeKeys(data)).withStyle(ChatFormatting.AQUA), true);
-		AuraFx.sound(player.serverLevel(), player, net.minecraft.sounds.SoundEvents.ARMOR_EQUIP_CHAIN.value(), 0.7f, 1.3f);
+		AuraFx.sound(player.serverLevel(), player, AuraSounds.ARMOR_EQUIP_CHAIN.value(), 0.7f, 1.3f);
 		return true;
 	}
 

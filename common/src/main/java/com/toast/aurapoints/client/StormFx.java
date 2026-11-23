@@ -1,5 +1,6 @@
 package com.toast.aurapoints.client;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.AuraPoints;
 import com.toast.aurapoints.config.AuraClientConfig;
 import com.toast.aurapoints.network.ClientStorms;
@@ -32,7 +33,6 @@ import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -173,16 +173,16 @@ public final class StormFx {
 	private static void enter(Minecraft mc, StormType type) {
 		sting = 1f;
 		SoundEvent s = switch (type) {
-			case THUNDERHEAD -> SoundEvents.LIGHTNING_BOLT_THUNDER;
-			case DOWNPOUR -> SoundEvents.WEATHER_RAIN_ABOVE;
-			case BLIZZARD -> SoundEvents.POWDER_SNOW_BREAK;
-			case HEAT_HAZE -> SoundEvents.FIRECHARGE_USE;
-			case GALE -> SoundEvents.ENDER_DRAGON_FLAP;
-			case SPORE_BLOOM -> SoundEvents.CHERRY_LEAVES_BREAK;
-			case TREMOR -> SoundEvents.GENERIC_EXPLODE.value();
-			case AURORA -> SoundEvents.AMETHYST_BLOCK_RESONATE;
-			case UMBRA -> SoundEvents.AMBIENT_CAVE.value();
-			case CRIMSON_MOON -> SoundEvents.WARDEN_HEARTBEAT;
+			case THUNDERHEAD -> AuraSounds.LIGHTNING_BOLT_THUNDER.value();
+			case DOWNPOUR -> AuraSounds.WEATHER_RAIN_ABOVE.value();
+			case BLIZZARD -> AuraSounds.POWDER_SNOW_BREAK.value();
+			case HEAT_HAZE -> AuraSounds.FIRECHARGE_USE.value();
+			case GALE -> AuraSounds.ENDER_DRAGON_FLAP.value();
+			case SPORE_BLOOM -> AuraSounds.CHERRY_LEAVES_BREAK.value();
+			case TREMOR -> AuraSounds.GENERIC_EXPLODE.value();
+			case AURORA -> AuraSounds.AMETHYST_BLOCK_RESONATE.value();
+			case UMBRA -> AuraSounds.AMBIENT_CAVE.value();
+			case CRIMSON_MOON -> AuraSounds.WARDEN_HEARTBEAT.value();
 		};
 		float pitch = type == StormType.TREMOR || type == StormType.BLIZZARD ? 0.5f : type == StormType.GALE ? 0.6f : 0.9f;
 		sound(mc, s, 0.7f, pitch);
@@ -320,8 +320,8 @@ public final class StormFx {
 					level.addParticle(AuraPoints.SNOW_GUST.get(), x, y, z, w.x * 0.5, 0, w.z * 0.5);
 				}
 				if (time % 2 == 0) level.addParticle(AuraPoints.FROST_SHARD.get(), p.getX() + (r.nextDouble() - 0.5) * 8, p.getY() + 1 + r.nextDouble() * 3, p.getZ() + (r.nextDouble() - 0.5) * 8, w.x * 0.3, -0.05, w.z * 0.3);
-				if (time % 50 == 0) sound(mc, SoundEvents.ELYTRA_FLYING, 0.35f * s, 0.55f);
-				if (time % 9 == 0) sound(mc, SoundEvents.POWDER_SNOW_STEP, 0.5f * s, 0.5f);
+				if (time % 50 == 0) sound(mc, AuraSounds.ELYTRA_FLYING.value(), 0.35f * s, 0.55f);
+				if (time % 9 == 0) sound(mc, AuraSounds.POWDER_SNOW_STEP.value(), 0.5f * s, 0.5f);
 			}
 			case THUNDERHEAD -> {
 				for (int i = 0; i < n / 3; i++) {
@@ -352,7 +352,7 @@ public final class StormFx {
 					else level.addParticle(ParticleTypes.LAVA, x, y, z, 0, 0, 0);
 				}
 				if (time % 5 == 0) level.addParticle(ParticleTypes.LARGE_SMOKE, p.getX() + (r.nextDouble() - 0.5) * 16, p.getY() + r.nextDouble() * 2, p.getZ() + (r.nextDouble() - 0.5) * 16, 0, 0.08, 0);
-				if (time % 30 == 0) sound(mc, r.nextBoolean() ? SoundEvents.FIRE_AMBIENT : SoundEvents.LAVA_AMBIENT, 0.8f * s, 0.7f + r.nextFloat() * 0.3f);
+				if (time % 30 == 0) sound(mc, r.nextBoolean() ? AuraSounds.FIRE_AMBIENT.value() : AuraSounds.LAVA_AMBIENT.value(), 0.8f * s, 0.7f + r.nextFloat() * 0.3f);
 			}
 			case GALE -> {
 				for (int i = 0; i < n; i++) {
@@ -361,7 +361,7 @@ public final class StormFx {
 					if (i % 5 == 0) level.addParticle(new ItemParticleOption(ParticleTypes.ITEM, new ItemStack(r.nextBoolean() ? Items.OAK_LEAVES : Items.SHORT_GRASS)), x, y, z, w.x * sp * 0.8, 0.05, w.z * sp * 0.8);
 					else level.addParticle(i % 2 == 0 ? ParticleTypes.CLOUD : ParticleTypes.WHITE_ASH, x, y, z, w.x * sp, 0, w.z * sp);
 				}
-				if (time % 60 == 0) sound(mc, SoundEvents.ELYTRA_FLYING, 0.5f * s, 0.8f);
+				if (time % 60 == 0) sound(mc, AuraSounds.ELYTRA_FLYING.value(), 0.5f * s, 0.8f);
 			}
 			case SPORE_BLOOM -> {
 				for (int i = 0; i < n; i++) {
@@ -373,7 +373,7 @@ public final class StormFx {
 					else level.addParticle(ParticleTypes.FALLING_SPORE_BLOSSOM, x, y + 4, z, 0, 0, 0);
 				}
 				if (time % 4 == 0) level.addParticle(ParticleTypes.HAPPY_VILLAGER, p.getX() + (r.nextDouble() - 0.5) * 10, p.getY() + r.nextDouble() * 2, p.getZ() + (r.nextDouble() - 0.5) * 10, 0, 0, 0);
-				if (time % 70 == 0) sound(mc, SoundEvents.AZALEA_LEAVES_BREAK, 0.6f * s, 0.7f);
+				if (time % 70 == 0) sound(mc, AuraSounds.AZALEA_LEAVES_BREAK.value(), 0.6f * s, 0.7f);
 			}
 			case TREMOR -> {
 				var dust = new BlockParticleOption(ParticleTypes.FALLING_DUST, Blocks.GRAVEL.defaultBlockState());
@@ -402,7 +402,7 @@ public final class StormFx {
 					level.addAlwaysVisibleParticle(i % 4 == 0 ? ParticleTypes.END_ROD : ParticleTypes.GLOW, x, y, z, 0, i % 4 == 0 ? -0.02 : 0.01, 0);
 				}
 				if (time % 3 == 0) level.addParticle(ParticleTypes.END_ROD, p.getX() + (r.nextDouble() - 0.5) * 16, p.getY() + 5 + r.nextDouble() * 4, p.getZ() + (r.nextDouble() - 0.5) * 16, 0, -0.02, 0);
-				if (time % 40 == 0) sound(mc, SoundEvents.AMETHYST_BLOCK_CHIME, 0.9f * s, 0.6f + r.nextFloat() * 0.6f);
+				if (time % 40 == 0) sound(mc, AuraSounds.AMETHYST_BLOCK_CHIME.value(), 0.9f * s, 0.6f + r.nextFloat() * 0.6f);
 			}
 			case UMBRA -> {
 				for (int i = 0; i < n; i++) {
@@ -413,7 +413,7 @@ public final class StormFx {
 					else if (k < 5) level.addParticle(ParticleTypes.SMOKE, x, y, z, 0, 0.04, 0);
 					else level.addParticle(ParticleTypes.SOUL, x, y, z, 0, 0.02, 0);
 				}
-				if (time % 90 == 0) sound(mc, SoundEvents.AMBIENT_SOUL_SAND_VALLEY_ADDITIONS.value(), 1f * s, 0.6f);
+				if (time % 90 == 0) sound(mc, AuraSounds.AMBIENT_SOUL_SAND_VALLEY_ADDITIONS.value(), 1f * s, 0.6f);
 			}
 			case CRIMSON_MOON -> {
 				for (int i = 0; i < n; i++) {
@@ -423,7 +423,7 @@ public final class StormFx {
 				}
 				if (++beat >= 22) { // the heartbeat
 					beat = 0;
-					sound(mc, SoundEvents.WARDEN_HEARTBEAT, 0.9f * s, 0.9f);
+					sound(mc, AuraSounds.WARDEN_HEARTBEAT.value(), 0.9f * s, 0.9f);
 				}
 			}
 		}
@@ -451,8 +451,8 @@ public final class StormFx {
 		ClientLevel level = mc.level;
 		var p = mc.player;
 		CameraFx.add(0, 0.55f * s + 0.2f, 0.015f);
-		sound(mc, SoundEvents.GENERIC_EXPLODE.value(), 0.5f * s, 0.4f);
-		sound(mc, SoundEvents.DEEPSLATE_BREAK, 1f, 0.5f);
+		sound(mc, AuraSounds.GENERIC_EXPLODE.value(), 0.5f * s, 0.4f);
+		sound(mc, AuraSounds.DEEPSLATE_BREAK.value(), 1f, 0.5f);
 		for (int i = 0; i < Math.round(60 * level() * s); i++) {
 			double x = p.getX() + (r.nextDouble() - 0.5) * 18, z = p.getZ() + (r.nextDouble() - 0.5) * 18;
 			int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mth.floor(x), Mth.floor(z));

@@ -13,7 +13,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -91,9 +90,9 @@ public final class VoidAura {
 		Vec3 hand = Light.pointingHand(p);
 		AuraFx.burst(level, hand.x, hand.y, hand.z, ParticleTypes.REVERSE_PORTAL, 30, 0.5, 0.15);
 		AuraFx.particles(level, AuraFx.dust(VIOLET, 1.3f), hand.x, hand.y, hand.z, 12, 0.3, 0.3, 0.3, 0);
-		sound(level, hand, SoundEvents.ENDERMAN_TELEPORT, 1.0f, 0.5f);
-		sound(level, hand, SoundEvents.WARDEN_SONIC_CHARGE, 0.6f, 1.6f);
-		if (pulled > 0) sound(level, c, SoundEvents.CHORUS_FRUIT_TELEPORT, 1.0f, 0.6f);
+		sound(level, hand, AuraSounds.ENDERMAN_TELEPORT.value(), 1.0f, 0.5f);
+		sound(level, hand, AuraSounds.WARDEN_SONIC_CHARGE.value(), 0.6f, 1.6f);
+		if (pulled > 0) sound(level, c, AuraSounds.CHORUS_FRUIT_TELEPORT.value(), 1.0f, 0.6f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_VOID, 0);
 		AuraAbilities.markUsed(p, Ability.VOID_PULL, now);
 		return true;
@@ -152,8 +151,8 @@ public final class VoidAura {
 		Vec3 out = AuraFx.chest(p);
 		AuraFx.burst(level, out.x, out.y, out.z, ParticleTypes.REVERSE_PORTAL, 40, 0.6, 0.2);
 		AuraFx.particles(level, AuraFx.dust(DEEP, 1.5f), out.x, out.y, out.z, 16, 0.4, 0.6, 0.4, 0);
-		sound(level, from, SoundEvents.ENDERMAN_TELEPORT, 1.0f, 0.7f);
-		sound(level, out, SoundEvents.ENDERMAN_TELEPORT, 1.0f, 1.1f);
+		sound(level, from, AuraSounds.ENDERMAN_TELEPORT.value(), 1.0f, 0.7f);
+		sound(level, out, AuraSounds.ENDERMAN_TELEPORT.value(), 1.0f, 1.1f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_VOID, 1);
 		AuraAbilities.markUsed(p, Ability.RIFT_STEP, now);
 		return true;
@@ -180,7 +179,7 @@ public final class VoidAura {
 			Vec3 c = AuraFx.chest(p);
 			AuraFx.ring(level, p.getX(), p.getY() + 0.1, p.getZ(), 0.9, ParticleTypes.REVERSE_PORTAL, 24);
 			AuraFx.particles(level, AuraFx.dust(DEEP, 1.5f), c.x, c.y, c.z, 12, 0.3, 0.5, 0.3, 0);
-			sound(level, c, SoundEvents.RESPAWN_ANCHOR_SET_SPAWN, 0.8f, 0.6f);
+			sound(level, c, AuraSounds.RESPAWN_ANCHOR_SET_SPAWN.value(), 0.8f, 0.6f);
 			p.displayClientMessage(Component.literal("✦ Rift Anchor set - sneak + key again to return ✦").withStyle(ChatFormatting.DARK_PURPLE), true);
 			return true;
 		}
@@ -200,8 +199,8 @@ public final class VoidAura {
 		Vec3 out = AuraFx.chest(p);
 		AuraFx.burst(level, out.x, out.y, out.z, ParticleTypes.REVERSE_PORTAL, 40, 0.6, 0.2);
 		AuraFx.particles(level, AuraFx.dust(DEEP, 1.5f), out.x, out.y, out.z, 16, 0.4, 0.6, 0.4, 0);
-		sound(level, from, SoundEvents.ENDERMAN_TELEPORT, 1.0f, 0.6f);
-		sound(level, out, SoundEvents.ENDERMAN_TELEPORT, 1.0f, 1.0f);
+		sound(level, from, AuraSounds.ENDERMAN_TELEPORT.value(), 1.0f, 0.6f);
+		sound(level, out, AuraSounds.ENDERMAN_TELEPORT.value(), 1.0f, 1.0f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_VOID, 1);
 		Casts.used(p, Ability.RIFT_STEP, now, AuraConfig.VOID_ANCHOR_COOLDOWN_FACTOR);
 		return true;
@@ -256,7 +255,7 @@ public final class VoidAura {
 		var random = level.getRandom();
 		AuraFx.particles(level, ParticleTypes.PORTAL, r.at.x, r.at.y, r.at.z, 3, 0.15, 0.8, 0.15, 0.4);
 		if (r.t % 3 == 0) AuraFx.particles(level, AuraFx.dust(VIOLET, 0.8f), r.at.x + (random.nextDouble() - 0.5) * 0.4, r.at.y + (random.nextDouble() - 0.5) * 2, r.at.z + (random.nextDouble() - 0.5) * 0.4, 1, 0, 0, 0, 0);
-		if (r.t % 20 == 0) sound(level, r.at, SoundEvents.PORTAL_AMBIENT, 0.25f, 1.6f);
+		if (r.t % 20 == 0) sound(level, r.at, AuraSounds.PORTAL_AMBIENT.value(), 0.25f, 1.6f);
 		ServerPlayer owner = server.getPlayerList().getPlayer(r.owner);
 		if (owner == null || r.t % Math.max(2, AuraConfig.VOID_RIFT_HIT_TICKS) != 0) return true;
 		for (LivingEntity e : Handhelds.enemies(owner, level, r.at, 1.4)) {
@@ -314,8 +313,8 @@ public final class VoidAura {
 		Props.glow(core);
 		ORBS.add(new Orb(p.getUUID(), level, core, shell, start, p.getLookAngle().scale(Math.max(0.1, AuraConfig.VOID_ORB_SPEED))));
 		AuraFx.burst(level, start.x, start.y, start.z, ParticleTypes.REVERSE_PORTAL, 20, 0.3, 0.1);
-		sound(level, start, SoundEvents.ILLUSIONER_CAST_SPELL, 1.0f, 0.7f);
-		sound(level, start, SoundEvents.BEACON_DEACTIVATE, 0.8f, 0.6f);
+		sound(level, start, AuraSounds.ILLUSIONER_CAST_SPELL.value(), 1.0f, 0.7f);
+		sound(level, start, AuraSounds.BEACON_DEACTIVATE.value(), 0.8f, 0.6f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_VOID, 2);
 		AuraAbilities.markUsed(p, Ability.NULL_ORB, now);
 		return true;
@@ -347,7 +346,7 @@ public final class VoidAura {
 		}
 		AuraFx.particles(level, ParticleTypes.REVERSE_PORTAL, next.x, next.y, next.z, 3, 0.2, 0.2, 0.2, 0.02);
 		if (o.t % 2 == 0) AuraFx.particles(level, AuraFx.dust(DEEP, 1.1f), next.x, next.y, next.z, 2, 0.25, 0.25, 0.25, 0);
-		if (o.t % 10 == 0) sound(level, next, SoundEvents.BEACON_AMBIENT, 0.6f, 0.5f);
+		if (o.t % 10 == 0) sound(level, next, AuraSounds.BEACON_AMBIENT.value(), 0.6f, 0.5f);
 		return true;
 	}
 
@@ -370,8 +369,8 @@ public final class VoidAura {
 		AuraFx.burst(level, at.x, at.y, at.z, ParticleTypes.REVERSE_PORTAL, 50, 0.8, 0.25);
 		AuraFx.burst(level, at.x, at.y, at.z, AuraFx.dust(VIOLET, 1.5f), 30, 0.8, 0);
 		AuraFx.particles(level, ParticleTypes.SQUID_INK, at.x, at.y, at.z, 6, 0.3, 0.3, 0.3, 0.05);
-		sound(level, at, SoundEvents.ENDER_EYE_DEATH, 1.2f, 0.6f);
-		sound(level, at, SoundEvents.GLASS_BREAK, 0.8f, 0.5f);
+		sound(level, at, AuraSounds.ENDER_EYE_DEATH.value(), 1.2f, 0.6f);
+		sound(level, at, AuraSounds.GLASS_BREAK.value(), 0.8f, 0.5f);
 	}
 
 	// ---------------------------------------------------------------
@@ -407,7 +406,7 @@ public final class VoidAura {
 		if (fresh) {
 			Vec3 c = AuraFx.chest(victim);
 			AuraFx.particles(attacker.serverLevel(), AuraFx.dust(VIOLET, 0.9f), c.x, c.y, c.z, 8, 0.3, 0.4, 0.3, 0);
-			sound(attacker.serverLevel(), c, SoundEvents.ARMOR_EQUIP_CHAIN.value(), 0.6f, 0.5f);
+			sound(attacker.serverLevel(), c, AuraSounds.ARMOR_EQUIP_CHAIN.value(), 0.6f, 0.5f);
 		}
 	}
 

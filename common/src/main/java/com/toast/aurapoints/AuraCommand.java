@@ -1,5 +1,6 @@
 package com.toast.aurapoints;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -24,7 +25,6 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 
 import java.util.ArrayList;
@@ -677,7 +677,7 @@ public final class AuraCommand {
 		state.markDirty();
 		AuraAbilities.refreshBerserkerModifier(player, AuraAbilities.hasAbility(data, AuraAbilities.Ability.BERSERKER));
 		ServerLevel level = player.serverLevel();
-		AuraFx.sound(level, player, SoundEvents.BEACON_ACTIVATE, 0.8f, 1.6f);
+		AuraFx.sound(level, player, AuraSounds.BEACON_ACTIVATE.value(), 0.8f, 1.6f);
 		AuraFx.burst(level, player.getX(), player.getY() + 1.0, player.getZ(), ParticleTypes.POOF, 20, 0.4, 0.03);
 		revealRoll(player, target, true);
 		return 1;
@@ -721,8 +721,8 @@ public final class AuraCommand {
 		// The roll plays out: every aura's color spins around the player, then the result is revealed.
 		// The aura is already saved above, so a disconnect mid-animation loses nothing.
 		ServerLevel level = player.serverLevel();
-		AuraFx.sound(level, player, SoundEvents.BEACON_ACTIVATE, 0.8f, 1.6f);
-		AuraFx.sound(level, player, SoundEvents.AMETHYST_BLOCK_CHIME, 1.0f, 0.8f);
+		AuraFx.sound(level, player, AuraSounds.BEACON_ACTIVATE.value(), 0.8f, 1.6f);
+		AuraFx.sound(level, player, AuraSounds.AMETHYST_BLOCK_CHIME.value(), 1.0f, 0.8f);
 		AuraType[] all = AuraType.values();
 		// the reel on the player's screen (client/RollReel), landing on the result when the reveal below comes
 		StringBuilder reel = new StringBuilder(rolled.id());
@@ -741,7 +741,7 @@ public final class AuraCommand {
 							player.getX() + Math.cos(ka) * 1.0, y, player.getZ() + Math.sin(ka) * 1.0, 2, 0.03, 0.03, 0.03, 0.0);
 				}
 				if (frame % 3 == 0) {
-					AuraFx.sound(player.serverLevel(), player, SoundEvents.AMETHYST_BLOCK_CHIME, 0.6f, 0.8f + frame * 0.06f);
+					AuraFx.sound(player.serverLevel(), player, AuraSounds.AMETHYST_BLOCK_CHIME.value(), 0.6f, 0.8f + frame * 0.06f);
 				}
 			});
 		}
@@ -773,8 +773,8 @@ public final class AuraCommand {
 		AuraFx.burst(level, player.getX(), player.getY() + 1.0, player.getZ(), ParticleTypes.TOTEM_OF_UNDYING, 30, 0.4, 0.4);
 		AuraFx.ring(level, player.getX(), player.getY() + 0.1, player.getZ(), 1.6, AuraFx.dust(rolled.rgb, 1.6f), 32);
 		AuraFx.helix(player, AuraFx.dust(rolled.rgb, 1.3f), 24, 0.7, 2.4);
-		AuraFx.sound(level, player, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.0f);
-		AuraFx.sound(level, player, SoundEvents.PLAYER_LEVELUP, 0.8f, 1.2f);
+		AuraFx.sound(level, player, AuraSounds.UI_TOAST_CHALLENGE_COMPLETE.value(), 0.8f, 1.0f);
+		AuraFx.sound(level, player, AuraSounds.PLAYER_LEVELUP.value(), 0.8f, 1.2f);
 
 		StringBuilder names = new StringBuilder();
 		for (AuraAbilities.Ability ability : rolled.abilities) {
@@ -840,9 +840,9 @@ public final class AuraCommand {
 		data.skillPointsBought += amount;
 		state.markDirty();
 
-		player.level().playSound(null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 0.75f, 1.4f);
+		player.level().playSound(null, player.blockPosition(), AuraSounds.PLAYER_LEVELUP.value(), SoundSource.PLAYERS, 0.75f, 1.4f);
 		ServerLevel level = player.serverLevel();
-		AuraFx.sound(level, player, SoundEvents.ENCHANTMENT_TABLE_USE, 1.0f, 1.0f);
+		AuraFx.sound(level, player, AuraSounds.ENCHANTMENT_TABLE_USE.value(), 1.0f, 1.0f);
 		AuraFx.burst(level, player.getX(), player.getY() + 1.2, player.getZ(), ParticleTypes.ENCHANT, 60, 0.6, 0.5);
 		AuraFx.burst(level, player.getX(), player.getY() + 1.0, player.getZ(), AuraFx.dust(pvp ? 0xB0121B : 0xC77DFF, 1.3f), 25, 0.5, 0.0);
 		AuraFx.ring(level, player.getX(), player.getY() + 0.1, player.getZ(), 1.0, ParticleTypes.END_ROD, 16);
@@ -950,8 +950,8 @@ public final class AuraCommand {
 		AuraFx.burst(level, player.getX(), player.getY() + 1.0, player.getZ(), AuraFx.dust(data.aura.rgb, 1.6f), 40, 0.6, 0.0);
 		AuraFx.burst(level, player.getX(), player.getY() + 1.2, player.getZ(), ParticleTypes.ENCHANT, 40, 0.6, 0.5);
 		AuraFx.ring(level, player.getX(), player.getY() + 0.1, player.getZ(), 1.2, ParticleTypes.END_ROD, 20);
-		AuraFx.sound(level, player, SoundEvents.PLAYER_LEVELUP, 0.8f, 1.3f);
-		AuraFx.sound(level, player, SoundEvents.AMETHYST_BLOCK_CHIME, 1.0f, 1.0f);
+		AuraFx.sound(level, player, AuraSounds.PLAYER_LEVELUP.value(), 0.8f, 1.3f);
+		AuraFx.sound(level, player, AuraSounds.AMETHYST_BLOCK_CHIME.value(), 1.0f, 1.0f);
 		AuraFx.title(player, Component.literal(ability.displayName).withStyle(data.aura.color, ChatFormatting.BOLD),
 				Component.literal("unlocked").withStyle(ChatFormatting.GRAY));
 		player.sendSystemMessage(Component.literal("Unlocked " + ability.displayName + " for " + price + " Aura! ").withStyle(ChatFormatting.GOLD)
@@ -1258,7 +1258,7 @@ public final class AuraCommand {
 		for (ServerPlayer p : targets) {
 			net.minecraft.world.item.ItemStack hammer = new net.minecraft.world.item.ItemStack(com.toast.aurapoints.AuraPoints.MJOLNIR_ITEM.get());
 			if (!p.getInventory().add(hammer)) p.drop(hammer, false);
-			p.serverLevel().playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0f, 1.2f);
+			p.serverLevel().playSound(null, p.getX(), p.getY(), p.getZ(), AuraSounds.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0f, 1.2f);
 			if (!isWorthy(p)) ctx.getSource().sendSuccess(() -> Component.literal(p.getGameProfile().getName() + " isn't worthy yet: /aura worthy add " + p.getGameProfile().getName()).withStyle(ChatFormatting.GRAY), false);
 		}
 		ctx.getSource().sendSuccess(() -> Component.literal("Mjölnir sent to " + targets.size() + " player(s).").withStyle(ChatFormatting.AQUA), true);
@@ -1324,7 +1324,7 @@ public final class AuraCommand {
 		if (player == null) return 0;
 		net.minecraft.world.item.ItemStack hammer = new net.minecraft.world.item.ItemStack(com.toast.aurapoints.AuraPoints.MJOLNIR_ITEM.get());
 		if (!player.getInventory().add(hammer)) player.drop(hammer, false);
-		player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0f, 1.2f);
+		player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(), AuraSounds.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.0f, 1.2f);
 		ctx.getSource().sendSuccess(() -> Component.literal("Mjölnir answers your call.").withStyle(ChatFormatting.AQUA), false);
 		return 1;
 	}
@@ -1352,7 +1352,7 @@ public final class AuraCommand {
 			}
 			net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(item.get());
 			if (!p.getInventory().add(stack)) p.drop(stack, false);
-			p.serverLevel().playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.PLAYERS, 1.0f, 0.8f);
+			p.serverLevel().playSound(null, p.getX(), p.getY(), p.getZ(), AuraSounds.ENCHANTMENT_TABLE_USE.value(), SoundSource.PLAYERS, 1.0f, 0.8f);
 			given++;
 		}
 		int n = given;

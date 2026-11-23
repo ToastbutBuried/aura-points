@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.AuraCurrency;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.AuraType;
@@ -13,7 +14,6 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.GameType;
@@ -385,7 +385,7 @@ public final class Match {
 					ArenaFx.padColumn(arena, at, ArenaFx.rgbOf(AuraState.get(server).getOrCreate(id).aura));
 					if (g.ticks > 0 && g.ticks % 20 == 0) {
 						ArenaFx.countdown(p, Component.literal(String.valueOf(g.ticks / 20)).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
-						AuraFx.sound(arena, p, SoundEvents.NOTE_BLOCK_HAT.value(), 1f, 1f);
+						AuraFx.sound(arena, p, AuraSounds.NOTE_BLOCK_HAT.value(), 1f, 1f);
 					}
 				}
 				if (g.ticks <= 0) {
@@ -397,7 +397,7 @@ public final class Match {
 						if (p == null) continue;
 						if (g.mode == Mode.WAVES) continue;
 						ArenaFx.countdown(p, Component.literal("FIGHT!").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
-						AuraFx.sound(arena, p, SoundEvents.NOTE_BLOCK_BELL.value(), 1f, 1.4f);
+						AuraFx.sound(arena, p, AuraSounds.NOTE_BLOCK_BELL.value(), 1f, 1.4f);
 					}
 					ArenaFx.shockwave(arena, 0xFFFFFF);
 					ArenaFx.flashRing(net.minecraft.world.level.block.Blocks.WHITE_STAINED_GLASS, 12, arena.getGameTime());
@@ -549,7 +549,7 @@ public final class Match {
 		toPlayers(server, g, msg);
 		for (ServerPlayer p : online(server, g, false)) {
 			ArenaFx.title(p, Component.literal(on ? "PAUSED" : "GO!").withStyle(on ? ChatFormatting.YELLOW : ChatFormatting.GREEN, ChatFormatting.BOLD), Component.empty());
-			AuraFx.sound(p.serverLevel(), p, on ? SoundEvents.NOTE_BLOCK_BASS.value() : SoundEvents.NOTE_BLOCK_BELL.value(), 1f, on ? 0.7f : 1.4f);
+			AuraFx.sound(p.serverLevel(), p, on ? AuraSounds.NOTE_BLOCK_BASS.value() : AuraSounds.NOTE_BLOCK_BELL.value(), 1f, on ? 0.7f : 1.4f);
 		}
 	}
 
@@ -757,7 +757,7 @@ public final class Match {
 		loser.clearFire();
 		loser.removeAllEffects();
 		loser.setGameMode(GameType.SPECTATOR);
-		AuraFx.sound(arena, loser, SoundEvents.PLAYER_DEATH, 1f, 1f);
+		AuraFx.sound(arena, loser, AuraSounds.PLAYER_DEATH.value(), 1f, 1f);
 		if (killer != null) com.toast.aurapoints.ability.Mastery.addXp(killer, AuraConfig.MASTERY_DUEL_ROUND_XP);
 		String line = killer != null ? killer.getGameProfile().getName() + " knocked out " + loser.getGameProfile().getName()
 				: by != null && g.mode == Mode.WAVES ? loser.getGameProfile().getName() + " fell to " + by.getDisplayName().getString()
@@ -835,7 +835,7 @@ public final class Match {
 				ArenaFx.title(p, Component.literal("VICTORY").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
 						Component.literal(g.mode.displayName + (prize > 0 ? "  ·  +" + prize + " Aura" : "")).withStyle(ChatFormatting.YELLOW));
 				AuraFx.helix(p, AuraFx.dust(0xFFC83D, 1.3f), 30, 0.9, 2.4);
-				AuraFx.sound(p.serverLevel(), p, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1f);
+				AuraFx.sound(p.serverLevel(), p, AuraSounds.UI_TOAST_CHALLENGE_COMPLETE.value(), 0.8f, 1f);
 				AuraFx.later(server, 15, () -> {
 					if (AuraFx.alive(p)) com.toast.aurapoints.cosmetic.Cosmetics.victory(p);
 				});

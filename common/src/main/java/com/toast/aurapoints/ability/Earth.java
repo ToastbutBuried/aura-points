@@ -16,7 +16,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -192,11 +191,11 @@ public final class Earth {
 		dust(level, at, top, 24, 0.45);
 		AuraFx.ring(level, at.x, at.y + 0.1, at.z, 1.1, new BlockParticleOption(ParticleTypes.DUST_PILLAR, top), 14);
 		sound(level, at, AuraSounds.MACE_SMASH_GROUND_HEAVY.value(), 1.1f, 0.8f);
-		sound(level, at, SoundEvents.STONE_BREAK, 1.2f, 0.6f);
-		sound(level, at, SoundEvents.ROOTED_DIRT_BREAK, 1.0f, 0.5f);
+		sound(level, at, AuraSounds.STONE_BREAK.value(), 1.2f, 0.6f);
+		sound(level, at, AuraSounds.ROOTED_DIRT_BREAK.value(), 1.0f, 0.5f);
 		var server = level.getServer();
 		AuraFx.later(server, 3 + hold, () -> {
-			sound(level, at, SoundEvents.GRAVEL_BREAK, 0.9f, 0.5f);
+			sound(level, at, AuraSounds.GRAVEL_BREAK.value(), 0.9f, 0.5f);
 			AuraFx.particles(level, new BlockParticleOption(ParticleTypes.BLOCK, top), at.x, at.y + height * 0.5, at.z, 12, 0.4, height * 0.3, 0.4, 0.05);
 		});
 	}
@@ -292,8 +291,8 @@ public final class Earth {
 		}
 		BOULDERS.put(p.getUUID(), b);
 		dust(level, start.add(0, 0.6, 0), top, great ? 50 : 30, 0.5 * b.scale);
-		sound(level, start, SoundEvents.ROOTED_DIRT_BREAK, 1.3f, 0.5f);
-		sound(level, start, SoundEvents.STONE_BREAK, 1.2f, 0.5f);
+		sound(level, start, AuraSounds.ROOTED_DIRT_BREAK.value(), 1.3f, 0.5f);
+		sound(level, start, AuraSounds.STONE_BREAK.value(), 1.2f, 0.5f);
 		sound(level, start, AuraSounds.MACE_SMASH_GROUND.value(), 0.8f, 0.6f);
 		AttributeInstance speed = p.getAttribute(Attributes.MOVEMENT_SPEED);
 		if (speed != null) {
@@ -331,7 +330,7 @@ public final class Earth {
 			RUBBLE.add(b);
 		}
 		dust(level, start, rock, 16, 0.4);
-		sound(level, start, SoundEvents.STONE_BREAK, 1.2f, 0.9f);
+		sound(level, start, AuraSounds.STONE_BREAK.value(), 1.2f, 0.9f);
 		sound(level, start, AuraSounds.PLAYER_ATTACK_SWEEP.value(), 0.9f, 0.8f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_EARTH, 1);
 		Casts.used(p, Ability.BOULDER_TOSS, now, AuraConfig.EARTH_RUBBLE_COOLDOWN_FACTOR);
@@ -356,7 +355,7 @@ public final class Earth {
 		NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_EARTH, 1);
 		sound(b.level, b.pos, AuraSounds.PLAYER_ATTACK_SWEEP.value(), 1.0f, 0.5f);
-		sound(b.level, b.pos, SoundEvents.RAVAGER_ATTACK, 0.6f, 0.7f);
+		sound(b.level, b.pos, AuraSounds.RAVAGER_ATTACK.value(), 0.6f, 0.7f);
 		Casts.used(p, Ability.BOULDER_TOSS, now, b.scale > 1f ? AuraConfig.CAST_CHARGED_COOLDOWN_FACTOR : 1.0);
 	}
 
@@ -432,7 +431,7 @@ public final class Earth {
 		b.turn.rotateAxis(0.35f, b.axis);
 		place(b);
 		if (b.t % 2 == 0) AuraFx.particles(level, new BlockParticleOption(ParticleTypes.BLOCK, b.block), b.pos.x, b.pos.y, b.pos.z, 2, 0.3, 0.3, 0.3, 0);
-		if (b.t % 5 == 0) sound(level, b.pos, SoundEvents.ROOTED_DIRT_STEP, 0.5f, 0.5f);
+		if (b.t % 5 == 0) sound(level, b.pos, AuraSounds.ROOTED_DIRT_STEP.value(), 0.5f, 0.5f);
 		if (b.flown > Math.max(4, b.rubble ? AuraConfig.EARTH_RUBBLE_RANGE : AuraConfig.EARTH_BOULDER_RANGE) || b.t > 200) {
 			crumble(b, b.pos);
 			return false;
@@ -463,12 +462,12 @@ public final class Earth {
 		}
 		crumble(b, at);
 		if (b.rubble) {
-			sound(level, at, SoundEvents.STONE_HIT, 1.0f, 0.8f);
+			sound(level, at, AuraSounds.STONE_HIT.value(), 1.0f, 0.8f);
 			return;
 		}
 		AuraFx.particles(level, ParticleTypes.EXPLOSION, at.x, at.y, at.z, 1, 0, 0, 0, 0);
 		sound(level, at, AuraSounds.MACE_SMASH_GROUND_HEAVY.value(), 1.5f, 0.7f);
-		sound(level, at, SoundEvents.GENERIC_EXPLODE.value(), 0.6f, 1.3f);
+		sound(level, at, AuraSounds.GENERIC_EXPLODE.value(), 0.6f, 1.3f);
 	}
 
 	/** Bursts into crumbs and is gone. */
@@ -477,7 +476,7 @@ public final class Earth {
 		AuraFx.particles(b.level, new BlockParticleOption(ParticleTypes.BLOCK, b.block), at.x, at.y, at.z, 50, 0.6, 0.5, 0.6, 0.2);
 		AuraFx.particles(b.level, new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COBBLESTONE.defaultBlockState()), at.x, at.y, at.z, 25, 0.5, 0.4, 0.5, 0.2);
 		AuraFx.particles(b.level, new BlockParticleOption(ParticleTypes.DUST_PILLAR, b.block), at.x, at.y, at.z, 20, 0.6, 0.3, 0.6, 0.1);
-		sound(b.level, at, SoundEvents.STONE_BREAK, 1.4f, 0.6f);
+		sound(b.level, at, AuraSounds.STONE_BREAK.value(), 1.4f, 0.6f);
 	}
 
 	// ---------------------------------------------------------------
@@ -528,8 +527,8 @@ public final class Earth {
 		dust(level, c, block, (int) (40 * radiusFactor), 0.8);
 		AuraFx.particles(level, ParticleTypes.EXPLOSION, c.x, c.y + 0.2, c.z, 1, 0, 0, 0, 0);
 		sound(level, c, AuraSounds.MACE_SMASH_GROUND_HEAVY.value(), 1.6f, 0.6f);
-		sound(level, c, SoundEvents.GENERIC_EXPLODE.value(), 0.7f, 0.5f);
-		sound(level, c, SoundEvents.WARDEN_DIG, 1.2f, 0.8f);
+		sound(level, c, AuraSounds.GENERIC_EXPLODE.value(), 0.7f, 0.5f);
+		sound(level, c, AuraSounds.WARDEN_DIG.value(), 1.2f, 0.8f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_EARTH, 2);
 		Casts.used(p, Ability.QUAKE, now, radiusFactor != 1.0 || damageFactor != 1f ? AuraConfig.CAST_CHARGED_COOLDOWN_FACTOR : 1.0);
 		return true;
@@ -556,7 +555,7 @@ public final class Earth {
 		}
 		if (r.t % 2 == 0) {
 			double a = level.getRandom().nextDouble() * Math.PI * 2;
-			sound(level, r.c.add(Math.cos(a) * at, 0, Math.sin(a) * at), SoundEvents.GRAVEL_BREAK, 1.0f, 0.5f + level.getRandom().nextFloat() * 0.2f);
+			sound(level, r.c.add(Math.cos(a) * at, 0, Math.sin(a) * at), AuraSounds.GRAVEL_BREAK.value(), 1.0f, 0.5f + level.getRandom().nextFloat() * 0.2f);
 		}
 		ServerPlayer p = server.getPlayerList().getPlayer(r.owner);
 		if (p == null) return true;
@@ -617,7 +616,7 @@ public final class Earth {
 			// the skin hardening: a little grit off the arms, a dull scrape
 			BlockState under = rock(p.level().getBlockState(p.getOnPos()));
 			AuraFx.particles(p.serverLevel(), new BlockParticleOption(ParticleTypes.BLOCK, under), p.getX(), p.getY() + 1.0, p.getZ(), 10, 0.3, 0.5, 0.3, 0);
-			sound(p.serverLevel(), p.position(), SoundEvents.STONE_PLACE, 0.35f, 0.6f);
+			sound(p.serverLevel(), p.position(), AuraSounds.STONE_PLACE.value(), 0.35f, 0.6f);
 		}
 		if (!skinAbility) ON_STONE.remove(p.getUUID());
 		boolean grounded = AuraAbilities.hasAbility(data, Ability.GROUNDED);

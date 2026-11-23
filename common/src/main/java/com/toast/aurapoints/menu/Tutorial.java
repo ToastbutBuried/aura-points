@@ -1,5 +1,6 @@
 package com.toast.aurapoints.menu;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.data.AuraPlayerData;
 import com.toast.aurapoints.data.AuraState;
 import net.minecraft.ChatFormatting;
@@ -8,7 +9,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -109,7 +109,7 @@ public final class Tutorial {
 			player.sendSystemMessage(Component.literal("✔ " + done.title + ". ").withStyle(ChatFormatting.GREEN)
 					.append(Component.literal(done.tip).withStyle(ChatFormatting.GRAY)));
 		}
-		player.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.6f, 1.2f);
+		player.playNotifySound(AuraSounds.EXPERIENCE_ORB_PICKUP.value(), SoundSource.PLAYERS, 0.6f, 1.2f);
 		if (step(data) == null) finish(player, data);
 		else announce(player, data);
 	}
@@ -119,7 +119,7 @@ public final class Tutorial {
 		data.tutorialStep = 0;
 		RUNNING.remove(player.getUUID());
 		save(player);
-		player.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 0.6f, 1.0f);
+		player.playNotifySound(AuraSounds.UI_TOAST_CHALLENGE_COMPLETE.value(), SoundSource.PLAYERS, 0.6f, 1.0f);
 		player.sendSystemMessage(Component.literal("Tutorial done! ").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
 				.append(Component.literal("Replay it any time from the Aura Book.").withStyle(ChatFormatting.GRAY)));
 	}

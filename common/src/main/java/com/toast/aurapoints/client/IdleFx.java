@@ -1,5 +1,6 @@
 package com.toast.aurapoints.client;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.config.AuraClientConfig;
 import com.toast.aurapoints.network.BendingAnimPacket.Idle;
 import net.minecraft.client.Minecraft;
@@ -8,7 +9,6 @@ import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.phys.Vec3;
@@ -107,7 +107,7 @@ public final class IdleFx {
 		Vec3 fwd = ArmPose.forward(p, 1f), right = ArmPose.right(p, 1f), feet = ArmPose.feet(p, 1f);
 		switch (idle) {
 			case FIRE_DOODLE -> {
-				if (t == 8) sound(mc, p, SoundEvents.FIRECHARGE_USE, 0.15f, 1.8f);
+				if (t == 8) sound(mc, p, AuraSounds.FIRECHARGE_USE.value(), 0.15f, 1.8f);
 				// the fingertip's path, three points a tick so the line is unbroken
 				if (t >= 8 && t <= 39) for (float f = 0f; f < 1f; f += 1 / 3f) st.points.add(ArmPose.fingertip(p, true, f));
 				if (t >= 8 && t < 62) {
@@ -121,7 +121,7 @@ public final class IdleFx {
 				if (t == 62) {
 					for (Vec3 q : st.points) add(mc, ParticleTypes.SMOKE, q, fwd.x * 0.02, 0.01, fwd.z * 0.02);
 					st.points.clear();
-					sound(mc, p, SoundEvents.FIRE_EXTINGUISH, 0.3f, 1.5f);
+					sound(mc, p, AuraSounds.FIRE_EXTINGUISH.value(), 0.3f, 1.5f);
 				}
 			}
 			case FIRE_HOT_HANDS -> {
@@ -134,9 +134,9 @@ public final class IdleFx {
 				if (t == 40) {
 					for (int i = 0; i < 14; i++) add(mc, ParticleTypes.FLAME, jitter(hand, r, 0.15), r.nextGaussian() * 0.03, 0.02 + r.nextDouble() * 0.03, r.nextGaussian() * 0.03);
 					for (int i = 0; i < 3; i++) add(mc, ParticleTypes.LAVA, hand, 0, 0, 0);
-					sound(mc, p, SoundEvents.FIRECHARGE_USE, 0.35f, 1.0f);
+					sound(mc, p, AuraSounds.FIRECHARGE_USE.value(), 0.35f, 1.0f);
 				}
-				if (t == 41) sound(mc, p, SoundEvents.PLAYER_HURT_ON_FIRE, 0.35f, 1.35f);
+				if (t == 41) sound(mc, p, AuraSounds.PLAYER_HURT_ON_FIRE.value(), 0.35f, 1.35f);
 				if (t > 40 && t < 82) {
 					for (int i = 0; i < 2; i++) add(mc, ParticleTypes.FLAME, jitter(hand, r, 0.08), 0, 0.01, 0);
 					if (t % 4 == 0) add(mc, ParticleTypes.SMOKE, jitter(hand, r, 0.08), 0, 0.02, 0);
@@ -148,7 +148,7 @@ public final class IdleFx {
 				}
 				if (t == 90) {
 					for (int i = 0; i < 6; i++) add(mc, ParticleTypes.SMOKE, jitter(hand, r, 0.06), 0, 0.03, 0);
-					sound(mc, p, SoundEvents.FIRE_EXTINGUISH, 0.35f, 1.3f);
+					sound(mc, p, AuraSounds.FIRE_EXTINGUISH.value(), 0.35f, 1.3f);
 				}
 				if (t > 90 && t < 106 && t % 2 == 0) add(mc, ParticleTypes.SMOKE, jitter(hand, r, 0.05), 0, 0.03, 0);
 				if (t == 99) breath(mc, ArmPose.mouth(p, 1f), fwd.add(0, -0.4, 0).normalize(), 4, r);
@@ -157,16 +157,16 @@ public final class IdleFx {
 				Vec3 ball = juggleBall(p, t, 1f);
 				// a thin trail of embers behind it while it flies
 				if (ball != null && juggleFlying(t) && t % 2 == 0) add(mc, TRACE, ball, 0, 0, 0);
-				if (t == 13 || t == 31 || t == 49) sound(mc, p, SoundEvents.FIRECHARGE_USE, 0.12f, 1.9f);
+				if (t == 13 || t == 31 || t == 49) sound(mc, p, AuraSounds.FIRECHARGE_USE.value(), 0.12f, 1.9f);
 				if (t == 70) {
 					Vec3 fist = ArmPose.hand(p, false, 1f);
 					for (int i = 0; i < 8; i++) add(mc, ParticleTypes.SMOKE, jitter(fist, r, 0.08), 0, 0.03, 0);
-					sound(mc, p, SoundEvents.FIRE_EXTINGUISH, 0.25f, 1.7f);
+					sound(mc, p, AuraSounds.FIRE_EXTINGUISH.value(), 0.25f, 1.7f);
 				}
 			}
 			case WATER_BUBBLES -> {
 				Vec3 cup = ArmPose.fingertip(p, true, 1f).add(ArmPose.fingertip(p, false, 1f)).scale(0.5);
-				if (t == 14) sound(mc, p, SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT, 0.25f, 1.5f);
+				if (t == 14) sound(mc, p, AuraSounds.BUBBLE_COLUMN_UPWARDS_AMBIENT.value(), 0.25f, 1.5f);
 				if (t >= 14 && t <= 34 && t % 2 == 0) {
 					Vec3 b = jitter(cup, r, 0.05);
 					add(mc, BUBBLE, b, fwd.x * 0.4 + r.nextGaussian() * 0.05, 0.3, fwd.z * 0.4 + r.nextGaussian() * 0.05);
@@ -183,11 +183,11 @@ public final class IdleFx {
 					Vec3 tip = ArmPose.fingertip(p, true, 1f);
 					for (int i = 0; i < 12; i++) add(mc, ParticleTypes.SPLASH, jitter(tip, r, 0.15), 0, 0.1, 0);
 					for (int i = 0; i < 6; i++) add(mc, ParticleTypes.BUBBLE_POP, jitter(tip, r, 0.12), 0, 0, 0);
-					sound(mc, p, SoundEvents.BUBBLE_COLUMN_BUBBLE_POP, 0.6f, 1.2f);
+					sound(mc, p, AuraSounds.BUBBLE_COLUMN_BUBBLE_POP.value(), 0.6f, 1.2f);
 				}
 			}
 			case WATER_FLOW -> {
-				if (t == 10 || t == 50) sound(mc, p, SoundEvents.WATER_AMBIENT, 0.12f, 1.4f);
+				if (t == 10 || t == 50) sound(mc, p, AuraSounds.WATER_AMBIENT.value(), 0.12f, 1.4f);
 				if (t >= 8 && t <= 86) {
 					for (boolean side : new boolean[]{true, false}) {
 						Vec3 tip = ArmPose.fingertip(p, side, 1f);
@@ -197,7 +197,7 @@ public final class IdleFx {
 				}
 			}
 			case WATER_WET_DOG -> {
-				if (t == 10) sound(mc, p, SoundEvents.WOLF_SHAKE, 0.5f, 1.1f);
+				if (t == 10) sound(mc, p, AuraSounds.WOLF_SHAKE.value(), 0.5f, 1.1f);
 				if (t >= 10 && t <= 40) {
 					Vec3 chest = feet.add(0, 1.15 * p.getScale(), 0);
 					for (int i = 0; i < 4; i++) {
@@ -212,14 +212,14 @@ public final class IdleFx {
 				}
 			}
 			case WIND_WHIRL -> {
-				if (t == 14) sound(mc, p, SoundEvents.BREEZE_IDLE_AIR, 0.3f, 1.6f);
+				if (t == 14) sound(mc, p, AuraSounds.BREEZE_IDLE_AIR.value(), 0.3f, 1.6f);
 				if (t >= 12 && t < 56) {
 					Vec3 c = ArmPose.fingertip(p, true, 1f).add(0, 0.12, 0);
 					double rad = 0.06 + 0.25 * Math.min(1, (t - 12) / 40.0);
 					whirl(mc, c, rad, t, 3, r);
 					st.anchor = c;
 				}
-				if (t == 56) sound(mc, p, SoundEvents.BREEZE_SHOOT, 0.3f, 1.5f);
+				if (t == 56) sound(mc, p, AuraSounds.BREEZE_SHOOT.value(), 0.3f, 1.5f);
 				if (t >= 56 && t <= 76 && st.anchor != null) {
 					// flicked away to the right, growing as it goes
 					Vec3 dir = right.add(fwd).normalize();
@@ -238,7 +238,7 @@ public final class IdleFx {
 				}
 			}
 			case WIND_HAT -> {
-				if (t == 9) sound(mc, p, SoundEvents.WIND_CHARGE_BURST.value(), 0.25f, 0.8f);
+				if (t == 9) sound(mc, p, AuraSounds.WIND_CHARGE_BURST.value(), 0.25f, 0.8f);
 				if (t >= 8 && t <= 32) {
 					// streaks of wind rushing past, right to left
 					for (int i = 0; i < 2; i++) {
@@ -259,11 +259,11 @@ public final class IdleFx {
 				}
 				if (t >= 57 && t <= 86 && t % 3 == 0) {
 					add(mc, ParticleTypes.SNOWFLAKE, jitter(cup, r, 0.12), 0, -0.02, 0);
-					sound(mc, p, SoundEvents.WOOL_HIT, 0.12f, 1.6f);
+					sound(mc, p, AuraSounds.WOOL_HIT.value(), 0.12f, 1.6f);
 				}
 			}
 			case FROST_SHIVER -> {
-				if (t >= 12 && t <= 60 && t % 2 == 0) sound(mc, p, SoundEvents.NOTE_BLOCK_HAT.value(), 0.08f, 2.0f);
+				if (t >= 12 && t <= 60 && t % 2 == 0) sound(mc, p, AuraSounds.NOTE_BLOCK_HAT.value(), 0.08f, 2.0f);
 				if (t >= 10 && t <= 63) {
 					Vec3 head = p.getEyePosition(1f);
 					double a = r.nextDouble() * Math.PI * 2;
@@ -295,13 +295,13 @@ public final class IdleFx {
 					Vec3 fist = ArmPose.hand(p, true, 1f);
 					for (int i = 0; i < 14; i++) add(mc, ParticleTypes.ITEM_SNOWBALL, fist, r.nextGaussian() * 0.12, r.nextDouble() * 0.15, r.nextGaussian() * 0.12);
 					for (int i = 0; i < 10; i++) add(mc, ParticleTypes.SNOWFLAKE, fist, r.nextGaussian() * 0.05, r.nextDouble() * 0.05, r.nextGaussian() * 0.05);
-					sound(mc, p, SoundEvents.GLASS_BREAK, 0.3f, 1.7f);
+					sound(mc, p, AuraSounds.GLASS_BREAK.value(), 0.3f, 1.7f);
 				}
 			}
 			case SHADOW_PUPPET -> {
 				Vec3 hands = ArmPose.fingertip(p, true, 1f).add(ArmPose.fingertip(p, false, 1f)).scale(0.5);
 				if (t >= 20 && t <= 44 && t % 2 == 0) add(mc, ParticleTypes.SMOKE, jitter(hands, r, 0.05), 0, 0.01, 0);
-				if (t == 48) sound(mc, p, SoundEvents.WOLF_HOWL, 0.12f, 1.6f);
+				if (t == 48) sound(mc, p, AuraSounds.WOLF_HOWL.value(), 0.12f, 1.6f);
 				if (t == 60) {
 					// the shadow runs off, leaving a wisp
 					Vec3 at = wolfCentre(p, 1f, t);
@@ -316,7 +316,7 @@ public final class IdleFx {
 				if (t == 70) breath(mc, ArmPose.mouth(p, 1f), fwd.add(0, -0.3, 0).normalize(), 4, r);
 			}
 			case SHADOW_FLICKER -> {
-				if (t == 12) sound(mc, p, SoundEvents.SOUL_ESCAPE.value(), 0.4f, 0.8f);
+				if (t == 12) sound(mc, p, AuraSounds.SOUL_ESCAPE.value(), 0.4f, 0.8f);
 				if (t >= 12 && t <= 52) {
 					for (int k = 0; k < 2; k++) {
 						double a = t * 0.5 + k * Math.PI, h = ((t - 12) * 0.06) % 2.0;
@@ -325,7 +325,7 @@ public final class IdleFx {
 						if (t % 3 == k) add(mc, ParticleTypes.SMOKE, q, 0, 0.01, 0);
 					}
 				}
-				if (FLICKER.contains(t)) sound(mc, p, SoundEvents.PHANTOM_FLAP, 0.1f, 1.8f);
+				if (FLICKER.contains(t)) sound(mc, p, AuraSounds.PHANTOM_FLAP.value(), 0.1f, 1.8f);
 				if (t == 52) {
 					for (int i = 0; i < 10; i++) add(mc, ParticleTypes.SMOKE, feet.add(0, r.nextDouble() * 1.8, 0), r.nextGaussian() * 0.06, 0.02, r.nextGaussian() * 0.06);
 					for (int i = 0; i < 12; i++) add(mc, SHADOW_DUST, feet.add(r.nextGaussian() * 0.3, r.nextDouble() * 1.8, r.nextGaussian() * 0.3), 0, 0, 0);
@@ -345,7 +345,7 @@ public final class IdleFx {
 				if (t == 28) {
 					for (int i = 0; i < 12; i++) add(mc, ParticleTypes.CHERRY_LEAVES, jitter(spot.add(0, 0.4, 0), r, 0.35), 0, 0, 0);
 					for (int i = 0; i < 6; i++) add(mc, ParticleTypes.SPORE_BLOSSOM_AIR, jitter(spot.add(0, 0.3, 0), r, 0.3), 0, 0, 0);
-					sound(mc, p, SoundEvents.FLOWERING_AZALEA_PLACE, 0.6f, 1.2f);
+					sound(mc, p, AuraSounds.FLOWERING_AZALEA_PLACE.value(), 0.6f, 1.2f);
 				}
 				if (t >= 28 && t <= 84 && t % 2 == 0) {
 					// five little flowers stay up a while
@@ -356,7 +356,7 @@ public final class IdleFx {
 						add(mc, VINE, f.add(0, 0.05, 0), 0, 0, 0);
 					}
 				}
-				if (t == 55) sound(mc, p, SoundEvents.SNIFFER_SNIFFING, 0.25f, 1.6f);
+				if (t == 55) sound(mc, p, AuraSounds.SNIFFER_SNIFFING.value(), 0.25f, 1.6f);
 				if (t == 60) {
 					add(mc, ParticleTypes.HEART, p.getEyePosition(1f).add(0, 0.5, 0), 0, 0, 0);
 					add(mc, ParticleTypes.HEART, p.getEyePosition(1f).add(fwd.scale(0.3)).add(0, 0.35, 0), 0, 0, 0);
@@ -387,7 +387,7 @@ public final class IdleFx {
 					Vec3 pat = ArmPose.point(p, false, 1f, ArmPose.middle(p, false), 6f, -2.5f);
 					add(mc, ParticleTypes.HAPPY_VILLAGER, jitter(pat, r, 0.08), 0, 0, 0);
 					add(mc, ParticleTypes.HAPPY_VILLAGER, jitter(pat, r, 0.08), 0, 0, 0);
-					sound(mc, p, SoundEvents.MOSS_HIT, 0.3f, 1.4f);
+					sound(mc, p, AuraSounds.MOSS_HIT.value(), 0.3f, 1.4f);
 				}
 			}
 			case THUNDER_ZAP -> {
@@ -400,21 +400,21 @@ public final class IdleFx {
 					add(mc, ParticleTypes.FLASH, hands, 0, 0, 0);
 					for (int i = 0; i < 20; i++) add(mc, ParticleTypes.ELECTRIC_SPARK, hands, r.nextGaussian() * 0.3, r.nextGaussian() * 0.3, r.nextGaussian() * 0.3);
 					for (int i = 0; i < 4; i++) add(mc, ParticleTypes.END_ROD, hands, r.nextGaussian() * 0.1, r.nextGaussian() * 0.1, r.nextGaussian() * 0.1);
-					sound(mc, p, SoundEvents.LIGHTNING_BOLT_IMPACT, 0.12f, 1.9f);
+					sound(mc, p, AuraSounds.LIGHTNING_BOLT_IMPACT.value(), 0.12f, 1.9f);
 				}
-				if (t == 39) sound(mc, p, SoundEvents.PLAYER_HURT, 0.3f, 1.4f);
+				if (t == 39) sound(mc, p, AuraSounds.PLAYER_HURT.value(), 0.3f, 1.4f);
 				if (t >= 42 && t <= 61) add(mc, ParticleTypes.ELECTRIC_SPARK, jitter(ArmPose.hand(p, true, 1f), r, 0.06), 0, 0, 0);
 			}
 			case THUNDER_KNUCKLES -> {
 				if (t == 18 || t == 24 || t == 30) {
 					Vec3 hands = ArmPose.hand(p, true, 1f).add(ArmPose.hand(p, false, 1f)).scale(0.5);
 					for (int i = 0; i < 6; i++) add(mc, ParticleTypes.ELECTRIC_SPARK, jitter(hands, r, 0.1), 0, 0, 0);
-					sound(mc, p, SoundEvents.BONE_BLOCK_BREAK, 0.35f, 1.9f);
+					sound(mc, p, AuraSounds.BONE_BLOCK_BREAK.value(), 0.35f, 1.9f);
 				}
 				if (t == 58 || t == 62) {
 					Vec3 neck = feet.add(0, 1.45 * p.getScale(), 0);
 					for (int i = 0; i < 5; i++) add(mc, ParticleTypes.ELECTRIC_SPARK, jitter(neck, r, 0.12), 0, 0, 0);
-					sound(mc, p, SoundEvents.BONE_BLOCK_BREAK, 0.3f, 1.5f);
+					sound(mc, p, AuraSounds.BONE_BLOCK_BREAK.value(), 0.3f, 1.5f);
 				}
 			}
 			case THUNDER_OVERCHARGE -> {
@@ -431,11 +431,11 @@ public final class IdleFx {
 					Vec3 chest = feet.add(0, 1.2 * p.getScale(), 0).add(fwd.scale(0.2));
 					add(mc, ParticleTypes.FLASH, chest, 0, 0, 0);
 					for (int i = 0; i < 30; i++) add(mc, ParticleTypes.ELECTRIC_SPARK, chest, r.nextGaussian() * 0.35, r.nextGaussian() * 0.35, r.nextGaussian() * 0.35);
-					sound(mc, p, SoundEvents.LIGHTNING_BOLT_IMPACT, 0.12f, 1.5f);
+					sound(mc, p, AuraSounds.LIGHTNING_BOLT_IMPACT.value(), 0.12f, 1.5f);
 				}
 			}
 			case WAITING -> {
-				if (t == 12 || t == 16) sound(mc, p, SoundEvents.UI_BUTTON_CLICK.value(), 0.1f, t == 12 ? 2.0f : 1.7f);
+				if (t == 12 || t == 16) sound(mc, p, AuraSounds.UI_BUTTON_CLICK.value(), 0.1f, t == 12 ? 2.0f : 1.7f);
 				if (t >= 42 && t <= 82 && (t - 42) % 8 == 0) {
 					var below = p.level().getBlockState(p.blockPosition().below());
 					sound(mc, p, below.getSoundType().getStepSound(), 0.15f, 1.1f);

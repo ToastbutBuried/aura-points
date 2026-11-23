@@ -1,5 +1,6 @@
 package com.toast.aurapoints.geo;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.AuraPoints;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.config.AuraConfig;
@@ -13,7 +14,6 @@ import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.BossEvent;
@@ -306,7 +306,7 @@ public class FrostBear extends PathfinderMob implements GeoEntity {
 			dir = at.subtract(bear.position()).multiply(1, 0, 1).normalize();
 			bear.getNavigation().stop();
 			bear.triggerAnim("attack", "spikes");
-			bear.playSound(SoundEvents.POLAR_BEAR_WARNING, 2.0f, 0.8f);
+			bear.playSound(AuraSounds.POLAR_BEAR_WARNING.value(), 2.0f, 0.8f);
 		}
 
 		@Override
@@ -336,7 +336,7 @@ public class FrostBear extends PathfinderMob implements GeoEntity {
 				AuraFx.burst(level, p.x, p.y + 0.5, p.z, AuraPoints.FROST_SHARD.get(), 30, 0.5, 0.4);
 				AuraFx.burst(level, p.x, p.y + 0.3, p.z, AuraPoints.FROST_BURST.get(), 2, 0.2, 0.0);
 				AuraFx.burst(level, p.x, p.y + 0.5, p.z, ParticleTypes.SNOWFLAKE, 14, 0.5, 0.1);
-				level.playSound(null, p.x, p.y, p.z, SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.2f, 0.8f);
+				level.playSound(null, p.x, p.y, p.z, AuraSounds.GLASS_BREAK.value(), SoundSource.HOSTILE, 1.2f, 0.8f);
 				for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, new net.minecraft.world.phys.AABB(p, p).inflate(r, 2.5, r), e -> bear.isEnemy(e))) {
 					e.hurt(bear.damageSources().mobAttack(bear), dmg);
 					bear.chill(e);
@@ -476,7 +476,7 @@ public class FrostBear extends PathfinderMob implements GeoEntity {
 	private void beginEject() {
 		setPhase(EJECT);
 		setTarget(null);
-		playSound(SoundEvents.POLAR_BEAR_WARNING, 3.0f, 0.6f);
+		playSound(AuraSounds.POLAR_BEAR_WARNING.value(), 3.0f, 0.6f);
 	}
 
 	/** The spike man leaves the bear: a blast that hurts, throws and chills everybody near. */
@@ -487,8 +487,8 @@ public class FrostBear extends PathfinderMob implements GeoEntity {
 		AuraFx.burst(level, c.x, c.y, c.z, AuraPoints.FROST_SHARD.get(), 90, 0.8 * scale(), 0.7);
 		AuraFx.burst(level, c.x, c.y, c.z, AuraPoints.SNOW_GUST.get(), 24, 1.5 * scale(), 0.12);
 		AuraFx.burst(level, c.x, c.y, c.z, ParticleTypes.EXPLOSION_EMITTER, 1, 0, 0);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 3.0f, 0.5f);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2.5f, 0.7f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.GLASS_BREAK.value(), SoundSource.HOSTILE, 3.0f, 0.5f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2.5f, 0.7f);
 		for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, getBoundingBox().inflate(r, 4, r), this::isEnemy)) {
 			e.hurt(damageSources().mobAttack(this), AuraConfig.FROST_BEAR_BOOM_DAMAGE);
 			Vec3 away = e.position().subtract(position()).multiply(1, 0, 1);
@@ -503,13 +503,13 @@ public class FrostBear extends PathfinderMob implements GeoEntity {
 		setPhase(MAD);
 		modifier(Attributes.MOVEMENT_SPEED, MAD_SPEED, AuraConfig.FROST_BEAR_MAD_SPEED_MULT - 1.0);
 		modifier(Attributes.ATTACK_DAMAGE, MAD_DAMAGE, AuraConfig.FROST_BEAR_MAD_DAMAGE_MULT - 1.0);
-		playSound(SoundEvents.POLAR_BEAR_WARNING, 3.0f, 0.5f);
+		playSound(AuraSounds.POLAR_BEAR_WARNING.value(), 3.0f, 0.5f);
 	}
 
 	private void beginTired() {
 		setPhase(TIRED);
 		setTarget(null);
-		playSound(SoundEvents.POLAR_BEAR_AMBIENT, 3.0f, 0.4f);
+		playSound(AuraSounds.POLAR_BEAR_AMBIENT.value(), 3.0f, 0.4f);
 	}
 
 	private void beginFlee() {
@@ -529,7 +529,7 @@ public class FrostBear extends PathfinderMob implements GeoEntity {
 		AuraFx.burst(level, getX(), getY() + 1.2 * scale(), getZ(), AuraPoints.FROST_BURST.get(), 4, 0.4, 0.0);
 		AuraFx.burst(level, getX(), getY() + 1.2 * scale(), getZ(), AuraPoints.SNOW_GUST.get(), 40, 1.2 * scale(), 0.1);
 		AuraFx.burst(level, getX(), getY() + 1.2 * scale(), getZ(), AuraPoints.FROST_SHARD.get(), 40, 1.0 * scale(), 0.3);
-		level.playSound(null, getX(), getY(), getZ(), SoundEvents.POWDER_SNOW_BREAK, SoundSource.HOSTILE, 2.0f, 0.6f);
+		level.playSound(null, getX(), getY(), getZ(), AuraSounds.POWDER_SNOW_BREAK.value(), SoundSource.HOSTILE, 2.0f, 0.6f);
 		for (UUID id : damagers.keySet()) {
 			ServerPlayer p = level.getServer().getPlayerList().getPlayer(id);
 			if (p == null) continue;
@@ -579,17 +579,17 @@ public class FrostBear extends PathfinderMob implements GeoEntity {
 
 	@Override
 	protected SoundEvent getAmbientSound() {
-		return SoundEvents.POLAR_BEAR_AMBIENT;
+		return AuraSounds.POLAR_BEAR_AMBIENT.value();
 	}
 
 	@Override
 	protected SoundEvent getHurtSound(DamageSource source) {
-		return SoundEvents.POLAR_BEAR_HURT;
+		return AuraSounds.POLAR_BEAR_HURT.value();
 	}
 
 	@Override
 	protected SoundEvent getDeathSound() {
-		return SoundEvents.POLAR_BEAR_DEATH;
+		return AuraSounds.POLAR_BEAR_DEATH.value();
 	}
 
 	// ------------------------------------------------------------ animation

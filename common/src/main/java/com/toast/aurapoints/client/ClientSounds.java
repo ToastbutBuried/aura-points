@@ -54,9 +54,9 @@ public final class ClientSounds {
 			case VERDANT -> AuraSounds.UI_READY_VERDANT.value();
 			case THUNDER -> AuraSounds.UI_READY_THUNDER.value();
 			case RESONANCE -> AuraSounds.UI_READY_RESONANCE.value();
-			case EARTH -> net.minecraft.sounds.SoundEvents.BASALT_PLACE;
-			case LIGHT -> net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME;
-			case BLOOD -> net.minecraft.sounds.SoundEvents.WARDEN_HEARTBEAT;
+			case EARTH -> AuraSounds.BASALT_PLACE.value();
+			case LIGHT -> AuraSounds.AMETHYST_BLOCK_CHIME.value();
+			case BLOOD -> AuraSounds.WARDEN_HEARTBEAT.value();
 		};
 		if (voice != null) ui(voice, 1.0f, 1.0f);
 	}

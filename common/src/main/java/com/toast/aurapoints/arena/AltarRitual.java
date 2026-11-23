@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.AuraCurrency;
 import com.toast.aurapoints.ability.AuraLabel;
 import com.toast.aurapoints.ability.AuraAbilities.Ability;
@@ -24,7 +25,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LightningBolt;
@@ -133,7 +133,7 @@ public final class AltarRitual {
 			player.sendSystemMessage(Component.literal("✦ The Awakening Altar answers to your ").withStyle(ChatFormatting.GOLD).append(AuraLabel.of(aura))
 					.append(Component.literal(" aura. Go to the altar in the Aura Arena (east of the lobby) for the ritual: "
 							+ AuraConfig.ULT_ALTAR_COST + " Aura and Mastery " + Mastery.roman(AuraConfig.ULT_ALTAR_MASTERY) + ".").withStyle(ChatFormatting.GOLD)));
-			player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.0f, 1.2f);
+			player.serverLevel().playSound(null, player.getX(), player.getY(), player.getZ(), AuraSounds.BEACON_POWER_SELECT.value(), SoundSource.PLAYERS, 1.0f, 1.2f);
 		}
 		return true;
 	}
@@ -246,8 +246,8 @@ public final class AltarRitual {
 		Ability ult = Ultimates.of(aura, Branch.current(player));
 		NetworkHandler.sendFx(player, FxPacket.RITUAL, END, String.format(Locale.ROOT, "%s;%s;%d;%.2f;%.2f;%.2f",
 				aura.id(), ult == null ? "" : ult.displayName, replay ? 1 : 0, Arena.ALTAR.x, Arena.ALTAR.y, Arena.ALTAR.z));
-		sound(level, Arena.ALTAR, SoundEvents.BEACON_ACTIVATE, 1.6f, 0.5f);
-		sound(level, Arena.ALTAR, SoundEvents.WARDEN_HEARTBEAT, 2.0f, 0.6f);
+		sound(level, Arena.ALTAR, AuraSounds.BEACON_ACTIVATE.value(), 1.6f, 0.5f);
+		sound(level, Arena.ALTAR, AuraSounds.WARDEN_HEARTBEAT.value(), 2.0f, 0.6f);
 		spawnProps(level, run);
 		if (player.getServer().getPlayerList().getPlayer(player.getUUID()) != null) invite(player, aura);
 	}
@@ -344,16 +344,16 @@ public final class AltarRitual {
 		// APPROACH: the dais wakes
 		if (t < GATHER) {
 			if (t % 4 == 0) AuraFx.ring(level, c.x, c.y + 0.1, c.z, 1.6 + t * 0.03, gold, 28);
-			if (t % 20 == 0) sound(level, c, SoundEvents.WARDEN_HEARTBEAT, 2.0f, 0.6f + t * 0.004f);
-			if (t == 30) sound(level, c, SoundEvents.RESPAWN_ANCHOR_CHARGE, 1.4f, 0.6f);
+			if (t % 20 == 0) sound(level, c, AuraSounds.WARDEN_HEARTBEAT.value(), 2.0f, 0.6f + t * 0.004f);
+			if (t == 30) sound(level, c, AuraSounds.RESPAWN_ANCHOR_CHARGE.value(), 1.4f, 0.6f);
 		}
 
 		// GATHER: the aura's pillar ignites, then every pillar pours its light into the player; rune rings rise
 		if (t >= GATHER && t < ASCEND) {
 			Vec3 mine = pillar(own, n).add(0, PILLAR_TOP, 0);
 			if (t == GATHER) {
-				sound(level, mine, SoundEvents.BEACON_POWER_SELECT, 2.0f, 0.8f);
-				sound(level, mine, SoundEvents.FIRECHARGE_USE, 1.5f, 0.7f);
+				sound(level, mine, AuraSounds.BEACON_POWER_SELECT.value(), 2.0f, 0.8f);
+				sound(level, mine, AuraSounds.FIRECHARGE_USE.value(), 1.5f, 0.7f);
 				AuraFx.burst(level, mine.x, mine.y, mine.z, dust, 60, 0.5, 0.2);
 			}
 			if (t % 2 == 0) for (int y = 0; y < 14; y++) AuraFx.particles(level, dust, mine.x, mine.y + y * 0.9, mine.z, 1, 0.1, 0.3, 0.1, 0);
@@ -364,7 +364,7 @@ public final class AltarRitual {
 					AuraType a = auras.get((own + i) % n);
 					Vec3 from = pillar((own + i) % n, n).add(0, PILLAR_TOP, 0);
 					if ((t + i * 3) % 4 == 0) stream(level, from, chest, AuraFx.dust(a.rgb, 1.1f), (t * 0.06 + i) % 1.0);
-					if (t == GATHER + 20 + i * 6) sound(level, from, SoundEvents.AMETHYST_BLOCK_CHIME, 2.0f, 0.6f + i * 0.09f);
+					if (t == GATHER + 20 + i * 6) sound(level, from, AuraSounds.AMETHYST_BLOCK_CHIME.value(), 2.0f, 0.6f + i * 0.09f);
 				}
 			}
 			// two rune rings, turning against each other, rising with the phase
@@ -373,7 +373,7 @@ public final class AltarRitual {
 				runeRing(level, c.add(0, 0.3 + rise * 1.4, 0), 2.2, t * 0.07, dust, 14);
 				runeRing(level, c.add(0, 0.3 + rise * 2.6, 0), 1.5, -t * 0.09, gold, 10);
 			}
-			if (t % 25 == 0) sound(level, c, SoundEvents.BEACON_AMBIENT, 2.0f, (float) (0.7 + rise * 0.6));
+			if (t % 25 == 0) sound(level, c, AuraSounds.BEACON_AMBIENT.value(), 2.0f, (float) (0.7 + rise * 0.6));
 		}
 
 		// VISION: the aura shows itself round the altar
@@ -397,13 +397,13 @@ public final class AltarRitual {
 		if (t >= ASCEND && t < REVEAL) {
 			Ultimates.move(p, t < ASCEND + 40 ? new Vec3(0, 0.1, 0) : Vec3.ZERO);
 			if (t == ASCEND) {
-				sound(level, c, SoundEvents.BEACON_ACTIVATE, 2.0f, 0.9f);
-				sound(level, c, SoundEvents.ELYTRA_FLYING, 1.2f, 0.6f);
+				sound(level, c, AuraSounds.BEACON_ACTIVATE.value(), 2.0f, 0.9f);
+				sound(level, c, AuraSounds.ELYTRA_FLYING.value(), 1.2f, 0.6f);
 			}
 			if (t % 2 == 0) for (int y = 0; y < 30; y += 2) AuraFx.particles(level, ParticleTypes.END_ROD, c.x, c.y - 1 + y, c.z, 1, 0.2, 0.6, 0.2, 0);
 			if (t % 3 == 0) runeRing(level, p.position().add(0, 0.2, 0), 1.2 + (t - ASCEND) * 0.01, t * 0.2, dust, 12);
 			for (int i = 0; i < n; i++) if ((t + i * 2) % 3 == 0) stream(level, pillar(i, n).add(0, PILLAR_TOP, 0), chest, AuraFx.dust(auras.get(i).rgb, 1.0f), (t * 0.1 + i * 0.1) % 1.0);
-			if (t % 8 == 0) sound(level, c, SoundEvents.NOTE_BLOCK_CHIME.value(), 2.0f, 0.5f + (t - ASCEND) * 0.018f);
+			if (t % 8 == 0) sound(level, c, AuraSounds.NOTE_BLOCK_CHIME.value(), 2.0f, 0.5f + (t - ASCEND) * 0.018f);
 		}
 
 		// REVEAL
@@ -418,9 +418,9 @@ public final class AltarRitual {
 				AuraFx.burst(level, top.x, top.y, top.z, AuraFx.dust(auras.get(i).rgb, 1.6f), 30, 0.4, 0.3);
 			}
 			strike(level, c.add(0, -1, 0));
-			sound(level, c, SoundEvents.TOTEM_USE, 1.4f, 1.0f);
-			sound(level, c, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.6f, 1.0f);
-			sound(level, c, SoundEvents.END_PORTAL_SPAWN, 0.7f, 1.3f);
+			sound(level, c, AuraSounds.TOTEM_USE.value(), 1.4f, 1.0f);
+			sound(level, c, AuraSounds.UI_TOAST_CHALLENGE_COMPLETE.value(), 0.4f, 1.0f);
+			sound(level, c, AuraSounds.END_PORTAL_SPAWN.value(), 0.5f, 1.3f);
 			// clients with the cutscene draw their own title; the vanilla one is for everyone else looking on
 			Component sub = Component.empty().append(AuraLabel.of(aura)).append(Component.literal("  " + name).withStyle(ChatFormatting.YELLOW));
 			for (ServerPlayer near : level.players()) {
@@ -493,17 +493,17 @@ public final class AltarRitual {
 
 	private static SoundEvent voice(AuraType aura) {
 		return switch (aura) {
-			case FIRE -> SoundEvents.BLAZE_SHOOT;
-			case WATER -> SoundEvents.PLAYER_SPLASH_HIGH_SPEED;
-			case WIND -> SoundEvents.BREEZE_WIND_CHARGE_BURST.value();
-			case FROST -> SoundEvents.GLASS_BREAK;
-			case VERDANT -> SoundEvents.AZALEA_LEAVES_BREAK;
-			case THUNDER -> SoundEvents.TRIDENT_THUNDER.value();
-			case EARTH -> SoundEvents.DEEPSLATE_BREAK;
-			case LIGHT -> SoundEvents.AMETHYST_BLOCK_RESONATE;
-			case BLOOD -> SoundEvents.WARDEN_HEARTBEAT;
-			case SHADOW -> SoundEvents.ENDERMAN_STARE;
-			default -> SoundEvents.BEACON_AMBIENT;
+			case FIRE -> AuraSounds.BLAZE_SHOOT.value();
+			case WATER -> AuraSounds.PLAYER_SPLASH_HIGH_SPEED.value();
+			case WIND -> AuraSounds.BREEZE_WIND_CHARGE_BURST.value();
+			case FROST -> AuraSounds.GLASS_BREAK.value();
+			case VERDANT -> AuraSounds.AZALEA_LEAVES_BREAK.value();
+			case THUNDER -> AuraSounds.TRIDENT_THUNDER.value();
+			case EARTH -> AuraSounds.DEEPSLATE_BREAK.value();
+			case LIGHT -> AuraSounds.AMETHYST_BLOCK_RESONATE.value();
+			case BLOOD -> AuraSounds.WARDEN_HEARTBEAT.value();
+			case SHADOW -> AuraSounds.ENDERMAN_STARE.value();
+			default -> AuraSounds.BEACON_AMBIENT.value();
 		};
 	}
 
@@ -747,7 +747,7 @@ public final class AltarRitual {
 							if (run == null) light(d, false, 8);
 						});
 					}
-					sound(arena, at.add(0, 2, 0), SoundEvents.AMETHYST_BLOCK_RESONATE, 0.7f, 0.8f);
+					sound(arena, at.add(0, 2, 0), AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 0.7f, 0.8f);
 				}
 				if (d2 <= 6 * 6) heard.add(i);
 			}
@@ -769,17 +769,17 @@ public final class AltarRitual {
 	/** Each pillar's quiet sound. */
 	private static SoundEvent murmur(AuraType aura) {
 		return switch (aura) {
-			case FIRE -> SoundEvents.CAMPFIRE_CRACKLE;
-			case WATER -> SoundEvents.POINTED_DRIPSTONE_DRIP_WATER;
-			case WIND -> SoundEvents.BREEZE_IDLE_AIR;
-			case FROST -> SoundEvents.POWDER_SNOW_STEP;
-			case VERDANT -> SoundEvents.AZALEA_LEAVES_STEP;
-			case THUNDER -> SoundEvents.COPPER_BULB_TURN_ON;
-			case EARTH -> SoundEvents.DEEPSLATE_STEP;
-			case LIGHT -> SoundEvents.AMETHYST_BLOCK_CHIME;
-			case BLOOD -> SoundEvents.WARDEN_HEARTBEAT;
-			case SHADOW -> SoundEvents.SCULK_CLICKING;
-			default -> SoundEvents.AMETHYST_BLOCK_CHIME;
+			case FIRE -> AuraSounds.CAMPFIRE_CRACKLE.value();
+			case WATER -> AuraSounds.POINTED_DRIPSTONE_DRIP_WATER.value();
+			case WIND -> AuraSounds.BREEZE_IDLE_AIR.value();
+			case FROST -> AuraSounds.POWDER_SNOW_STEP.value();
+			case VERDANT -> AuraSounds.AZALEA_LEAVES_STEP.value();
+			case THUNDER -> AuraSounds.COPPER_BULB_TURN_ON.value();
+			case EARTH -> AuraSounds.DEEPSLATE_STEP.value();
+			case LIGHT -> AuraSounds.AMETHYST_BLOCK_CHIME.value();
+			case BLOOD -> AuraSounds.WARDEN_HEARTBEAT.value();
+			case SHADOW -> AuraSounds.SCULK_CLICKING.value();
+			default -> AuraSounds.AMETHYST_BLOCK_CHIME.value();
 		};
 	}
 
@@ -959,8 +959,8 @@ public final class AltarRitual {
 		AuraType aura = AuraState.get(p.getServer()).getOrCreate(p.getUUID()).aura;
 		NetworkHandler.sendFx(p, FxPacket.PORTAL, ENTER_TICKS, Integer.toHexString(aura == null ? 0x9A3CFF : aura.rgb));
 		ServerLevel level = p.serverLevel();
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.PORTAL_TRIGGER, SoundSource.PLAYERS, 0.5f, 1.6f);
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 0.8f, 1.4f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.PORTAL_TRIGGER.value(), SoundSource.PLAYERS, 0.5f, 1.6f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.BEACON_POWER_SELECT.value(), SoundSource.PLAYERS, 0.8f, 1.4f);
 	}
 
 	private static void tickEntering(MinecraftServer server) {
@@ -990,7 +990,7 @@ public final class AltarRitual {
 			}
 			p.teleportTo(level, en.at.x, en.at.y, en.at.z, p.getYRot(), p.getXRot());
 			Ultimates.move(p, Vec3.ZERO);
-			if (t == ENTER_TICKS / 2) level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.0f, 0.7f);
+			if (t == ENTER_TICKS / 2) level.playSound(null, p.getX(), p.getY(), p.getZ(), AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.PLAYERS, 1.0f, 0.7f);
 			if (t >= ENTER_TICKS) {
 				it.remove();
 				Ultimates.release(p);
@@ -1007,7 +1007,7 @@ public final class AltarRitual {
 		AuraFx.burst(level, p.getX(), p.getY() + 1, p.getZ(), ParticleTypes.REVERSE_PORTAL, 40, 0.5, 0.1);
 		p.teleportTo(level, to.x, to.y, to.z, in ? -90f : 90f, 0f);
 		p.fallDistance = 0;
-		level.playSound(null, to.x, to.y, to.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, 0.6f);
+		level.playSound(null, to.x, to.y, to.z, AuraSounds.ENDERMAN_TELEPORT.value(), SoundSource.PLAYERS, 0.8f, 0.6f);
 		AuraFx.burst(level, to.x, to.y + 1, to.z, ParticleTypes.REVERSE_PORTAL, 40, 0.5, 0.1);
 		if (in) {
 			AuraFx.title(p, Component.literal("The Altar Hall").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
@@ -1106,7 +1106,7 @@ public final class AltarRitual {
 				ServerLevel level = (ServerLevel) r.core.level();
 				Vec3 at = r.core.position();
 				AuraFx.burst(level, at.x, at.y, at.z, ParticleTypes.END_ROD, 80, 0.4, 0.4);
-				sound(level, at, SoundEvents.AMETHYST_CLUSTER_BREAK, 2.0f, 0.6f);
+				sound(level, at, AuraSounds.AMETHYST_CLUSTER_BREAK.value(), 2.0f, 0.6f);
 				LIVE.remove(r.core.getUUID());
 				r.core.discard();
 				r.core = null;

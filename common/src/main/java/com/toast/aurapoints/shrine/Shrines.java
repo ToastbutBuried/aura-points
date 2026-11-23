@@ -1,5 +1,6 @@
 package com.toast.aurapoints.shrine;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.AuraCurrency;
 import com.toast.aurapoints.AuraPoints;
 import com.toast.aurapoints.ability.Allies;
@@ -25,7 +26,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -364,7 +364,7 @@ public final class Shrines {
 				s.power = Math.min(100, s.power + AuraConfig.SHRINE_TOPUP_POWER);
 				dirty(player.getServer());
 				player.displayClientMessage(Component.literal("Shrine power " + Math.round(s.power) + "%").withStyle(ChatFormatting.AQUA), true);
-				AuraFx.sound(level, player, SoundEvents.BEACON_POWER_SELECT, 0.8f, 1.2f);
+				AuraFx.sound(level, player, AuraSounds.BEACON_POWER_SELECT.value(), 0.8f, 1.2f);
 			} else {
 				player.sendSystemMessage(Component.literal("Topping up costs " + AuraConfig.SHRINE_TOPUP_COST + " Aura.").withStyle(ChatFormatting.RED));
 			}
@@ -426,7 +426,7 @@ public final class Shrines {
 		build(level, s);
 		dirty(level.getServer());
 		level.sendParticles(ParticleTypes.END_ROD, s.core.getX() + 0.5, s.core.getY() + 1.5, s.core.getZ() + 0.5, 60, 2.5, 1.5, 2.5, 0.05);
-		level.playSound(null, s.core, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 1.2f, 1f);
+		level.playSound(null, s.core, AuraSounds.BEACON_ACTIVATE.value(), SoundSource.BLOCKS, 1.2f, 1f);
 		p.sendSystemMessage(Component.literal("✔ The shrine stands again. Right-click its core to attune it to your team (" + AuraConfig.SHRINE_POWER_COST + " Aura).").withStyle(ChatFormatting.GREEN));
 	}
 
@@ -463,7 +463,7 @@ public final class Shrines {
 		s.power = 100;
 		dirty(server);
 		ServerLevel level = server.overworld();
-		level.playSound(null, s.core, SoundEvents.BEACON_POWER_SELECT, SoundSource.BLOCKS, 1.2f, 0.9f);
+		level.playSound(null, s.core, AuraSounds.BEACON_POWER_SELECT.value(), SoundSource.BLOCKS, 1.2f, 0.9f);
 		Component line = Component.literal("⛩ " + team.name() + " attuned a shrine to " + s.aura.displayName).withStyle(st -> st.withColor(TextColor.fromRgb(s.aura.rgb)))
 				.append(Component.literal(" near x " + Math.round(s.core.getX() / 10.0) * 10 + ", z " + Math.round(s.core.getZ() / 10.0) * 10).withStyle(ChatFormatting.GRAY));
 		for (ServerPlayer pl : server.getPlayerList().getPlayers()) pl.sendSystemMessage(line);

@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.AuraStats;
 import com.toast.aurapoints.data.AuraState;
@@ -7,7 +8,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -79,7 +79,7 @@ public final class Drill {
 		Step done = Step.values()[i];
 		player.sendSystemMessage(Component.literal("✔ " + done.title + ". ").withStyle(ChatFormatting.GREEN)
 				.append(Component.literal(done.tip).withStyle(ChatFormatting.GRAY)));
-		AuraFx.sound(player.serverLevel(), player, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.6f, 1.2f);
+		AuraFx.sound(player.serverLevel(), player, AuraSounds.EXPERIENCE_ORB_PICKUP.value(), 0.6f, 1.2f);
 		if (i + 1 >= Step.values().length) {
 			RUNNING.remove(player.getUUID());
 			finish(player);

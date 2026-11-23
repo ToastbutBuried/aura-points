@@ -129,7 +129,6 @@ public final class AbyssalBubble {
 			for (int i = 0; i < 80; i++) shellPoint(level, player, c, i, 80, now, ParticleTypes.BUBBLE_POP);
 			AuraFx.burst(level, c.x, c.y, c.z, AuraFx.dust(STRAINED, 1.6f), 40, 2.0, 0.0);
 			level.playSound(null, c.x, c.y, c.z, AuraSounds.GLASS_BREAK.value(), SoundSource.PLAYERS, 1.0f, 1.5f);
-			level.playSound(null, c.x, c.y, c.z, AuraSounds.BUBBLE_COLUMN_BUBBLE_POP.value(), SoundSource.PLAYERS, 1.0f, 0.6f);
 			level.playSound(null, c.x, c.y, c.z, AuraSounds.PLAYER_SPLASH_HIGH_SPEED.value(), SoundSource.PLAYERS, 0.7f, 1.2f);
 			player.displayClientMessage(Component.literal("The bubble broke!").withStyle(ChatFormatting.RED), true);
 		} else {

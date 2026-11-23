@@ -12,7 +12,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionHand;
@@ -230,7 +229,7 @@ public final class Relics {
 		if (!player.getInventory().add(stack)) player.drop(stack, false);
 		player.sendSystemMessage(Component.literal("✦ You got a " + name(aura) + ": ").withStyle(aura.color)
 				.append(Component.literal(describe(aura)).withStyle(ChatFormatting.GRAY)));
-		AuraFx.sound(player.serverLevel(), player, SoundEvents.AMETHYST_BLOCK_RESONATE, 0.8f, 1.2f);
+		AuraFx.sound(player.serverLevel(), player, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 0.8f, 1.2f);
 	}
 
 	public static boolean buy(ServerPlayer player) {

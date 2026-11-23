@@ -421,10 +421,10 @@ public final class Thunderbolt {
 		skyBolt(level, p);
 		impact(level, p.add(0, 0.5, 0), 1.6f);
 		send(level, ParticleTypes.EXPLOSION, p.x, p.y + 0.5, p.z, 3, 0.8, 0.3, 0.8, 0);
-		level.playSound(null, p.x, p.y, p.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.4f, 1.3f);
+		level.playSound(null, p.x, p.y, p.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.5f, 1.3f);
 		level.playSound(null, p.x, p.y, p.z, AuraSounds.LIGHTNING_BOLT_IMPACT.value(), SoundSource.PLAYERS, 2.0f, 0.7f);
-		level.playSound(null, p.x, p.y, p.z, AuraSounds.SWEET_IMPACT.value(), SoundSource.PLAYERS, 1.3f, 0.85f);
-		level.playSound(null, hand.x, hand.y, hand.z, AuraSounds.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 1.6f, 0.8f);
+		level.playSound(null, p.x, p.y, p.z, AuraSounds.SWEET_IMPACT.value(), SoundSource.PLAYERS, 0.9f, 0.85f);
+		level.playSound(null, hand.x, hand.y, hand.z, AuraSounds.TRIDENT_THUNDER.value(), SoundSource.PLAYERS, 0.6f, 0.8f);
 		// the shockwave rolling out along the ground
 		for (int f = 1; f <= 6; f++) {
 			final double rr = r * f / 6.0;

@@ -19,7 +19,6 @@ import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -244,7 +243,7 @@ public final class Chains {
 				.append(Component.literal(link.perk().isEmpty() ? "" : "  " + link.perk()).withStyle(ChatFormatting.GRAY));
 		player.displayClientMessage(line, true);
 		ServerLevel level = player.serverLevel();
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 0.9f, 1.2f + 0.15f * Math.min(4, streak - 2));
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), AuraSounds.AMETHYST_BLOCK_CHIME.value(), SoundSource.PLAYERS, 0.9f, 1.2f + 0.15f * Math.min(4, streak - 2));
 		AuraFx.particles(level, ParticleTypes.ENCHANTED_HIT, player.getX(), player.getY() + 1.0, player.getZ(), 10, 0.4, 0.5, 0.4, 0.15);
 	}
 

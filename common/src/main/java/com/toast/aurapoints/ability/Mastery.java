@@ -11,7 +11,6 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.stats.Stats;
 
 /**
@@ -128,8 +127,8 @@ public final class Mastery {
 				.withStyle(level >= MAX ? ChatFormatting.GOLD : ChatFormatting.GRAY));
 		AuraFx.helix(player, AuraFx.dust(aura.rgb, 1.4f), 40, 1.0, 2.6);
 		if (level >= MAX) AuraFx.helix(player, AuraFx.dust(0xFFC83D, 1.2f), 40, 1.3, 2.8);
-		AuraFx.sound(player.serverLevel(), player, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1f);
-		AuraFx.sound(player.serverLevel(), player, SoundEvents.PLAYER_LEVELUP, 0.6f, 0.8f + level * 0.1f);
+		AuraFx.sound(player.serverLevel(), player, AuraSounds.UI_TOAST_CHALLENGE_COMPLETE.value(), 0.9f, 1f);
+		AuraFx.sound(player.serverLevel(), player, AuraSounds.PLAYER_LEVELUP.value(), 0.6f, 0.8f + level * 0.1f);
 		if (level >= MAX && player.getServer() != null) {
 			player.getServer().getPlayerList().broadcastSystemMessage(Component.literal("✦ " + player.getGameProfile().getName() + " has mastered ")
 					.withStyle(ChatFormatting.GOLD).append(AuraLabel.of(aura)).append(Component.literal("!").withStyle(ChatFormatting.GOLD)), false);

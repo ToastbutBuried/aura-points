@@ -369,7 +369,7 @@ public final class Casts {
 			}
 			AuraFx.burst(level, item.getX(), item.getY() + 0.2, item.getZ(), ParticleTypes.FLAME, 8, 0.15, 0.02);
 			AuraFx.particles(level, ParticleTypes.SMOKE, item.getX(), item.getY() + 0.3, item.getZ(), 4, 0.1, 0.1, 0.1, 0.01);
-			level.playSound(null, item.getX(), item.getY(), item.getZ(), net.minecraft.sounds.SoundEvents.FURNACE_FIRE_CRACKLE, net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.2f);
+			level.playSound(null, item.getX(), item.getY(), item.getZ(), AuraSounds.FURNACE_FIRE_CRACKLE.value(), net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.2f);
 		}
 		SMELT_LEFT.put(p.getUUID(), left);
 	}
@@ -856,7 +856,7 @@ public final class Casts {
 		Vec3 mouth = Vec3.atCenterOf(feet.relative(facing, 1).above());
 		AuraFx.particles(level, ParticleTypes.CLOUD, mouth.x, mouth.y, mouth.z, 20, 0.6, 0.8, 0.6, 0.05);
 		AuraFx.sound(level, player, AuraSounds.MACE_SMASH_GROUND_HEAVY.value(), 1.2f, 0.6f);
-		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.WARDEN_DIG, 1.0f, 0.9f);
+		AuraFx.sound(level, player, AuraSounds.WARDEN_DIG.value(), 1.0f, 0.9f);
 		player.displayClientMessage(Component.literal(broken == 0 ? "Nothing to dig through there." : "✦ Tunnel: " + broken + " blocks ✦").withStyle(ChatFormatting.GOLD), true);
 		used(player, Ability.QUAKE, now, AuraConfig.EARTH_TUNNEL_COOLDOWN_FACTOR);
 		return true;
@@ -884,7 +884,7 @@ public final class Casts {
 			lit++;
 		}
 		AuraFx.ring(level, c.x, player.getY() + 0.3, c.z, r, ParticleTypes.END_ROD, (int) (r * 4) + 6);
-		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.BEACON_ACTIVATE, 1.0f, 1.8f);
+		AuraFx.sound(level, player, AuraSounds.BEACON_ACTIVATE.value(), 1.0f, 1.8f);
 		player.displayClientMessage(Component.literal("✦ Guiding Light: " + lit + " ✦").withStyle(ChatFormatting.YELLOW), true);
 		used(player, Ability.RADIANT_PULSE, now, AuraConfig.LIGHT_GUIDING_COOLDOWN_FACTOR);
 		return true;
@@ -966,8 +966,8 @@ public final class Casts {
 		AuraFx.burst(level, to.x, to.y + 0.4, to.z, ParticleTypes.HEART, 3, 0.4, 0.0);
 		if (ally instanceof ServerPlayer allyPlayer) AuraFx.helix(allyPlayer, AuraFx.dust(0xFFF1A8, 1.0f), 20, 0.6, 2.0);
 		else AuraFx.burst(level, to.x, to.y, to.z, AuraFx.dust(0xFFF1A8, 1.0f), 20, 0.5, 0.0);
-		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.AMETHYST_BLOCK_CHIME, 1.2f, 1.5f);
-		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.BEACON_POWER_SELECT, 0.8f, 1.6f);
+		AuraFx.sound(level, player, AuraSounds.AMETHYST_BLOCK_CHIME.value(), 1.2f, 1.5f);
+		AuraFx.sound(level, player, AuraSounds.BEACON_POWER_SELECT.value(), 0.8f, 1.6f);
 		player.displayClientMessage(Component.literal("✦ Mending Beam: " + ally.getName().getString() + " ✦").withStyle(ChatFormatting.YELLOW), true);
 		used(player, Ability.PRISM_BEAM, now, AuraConfig.LIGHT_MEND_COOLDOWN_FACTOR);
 		return true;
@@ -999,8 +999,8 @@ public final class Casts {
 			AuraStunts.ACTIVE_ABILITY = null;
 		}
 		AuraFx.burst(level, to.x, to.y, to.z, AuraFx.dust(0xFF3B4A, 1.4f), 20, 0.5, 0.0);
-		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.WARDEN_HEARTBEAT, 1.4f, 1.1f);
-		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.BOTTLE_FILL, 1.0f, 0.7f);
+		AuraFx.sound(level, player, AuraSounds.WARDEN_HEARTBEAT.value(), 1.4f, 1.1f);
+		AuraFx.sound(level, player, AuraSounds.BOTTLE_FILL.value(), 1.0f, 0.7f);
 		player.displayClientMessage(Component.literal("✦ Transfusion: " + bleeding.size() + " ✦").withStyle(ChatFormatting.RED), true);
 		used(player, Ability.HEMORRHAGE, now, AuraConfig.BLOOD_TRANSFUSION_COOLDOWN_FACTOR);
 		return true;
@@ -1024,8 +1024,8 @@ public final class Casts {
 		Vec3 from = AuraFx.chest(player), to = AuraFx.chest(ally);
 		AuraFx.line(level, from, to, AuraFx.dust(0xFF3B4A, 1.4f), (int) Math.max(8, from.distanceTo(to) * 3));
 		AuraFx.burst(level, to.x, to.y + 0.4, to.z, ParticleTypes.HEART, 3, 0.4, 0.0);
-		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.WARDEN_HEARTBEAT, 1.3f, 1.4f);
-		AuraFx.sound(level, player, net.minecraft.sounds.SoundEvents.CHAIN_PLACE, 0.8f, 0.8f);
+		AuraFx.sound(level, player, AuraSounds.WARDEN_HEARTBEAT.value(), 1.3f, 1.4f);
+		AuraFx.sound(level, player, AuraSounds.CHAIN_PLACE.value(), 0.8f, 0.8f);
 		player.displayClientMessage(Component.literal("✦ Lifeline: " + ally.getName().getString() + " ✦").withStyle(ChatFormatting.RED), true);
 		used(player, Ability.BLOOD_TETHER, now, AuraConfig.BLOOD_LIFELINE_COOLDOWN_FACTOR);
 		return true;

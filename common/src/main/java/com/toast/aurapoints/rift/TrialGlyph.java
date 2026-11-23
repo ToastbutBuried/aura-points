@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraFx;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -10,7 +11,6 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.Filterable;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Display;
@@ -622,8 +622,8 @@ final class TrialGlyph extends Trials.Trial {
 		glyph[i] = Math.floorMod(glyph[i] + by, glyphs);
 		showPillar(level, i);
 		Vec3 c = Vec3.atCenterOf(pillarPos(i));
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.GRINDSTONE_USE, SoundSource.BLOCKS, 0.5f, 1.5f);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 0.8f, 0.6f + glyph[i] * 0.12f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.GRINDSTONE_USE.value(), SoundSource.BLOCKS, 0.5f, 1.5f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.AMETHYST_BLOCK_CHIME.value(), SoundSource.BLOCKS, 0.8f, 0.6f + glyph[i] * 0.12f);
 		level.sendParticles(AuraFx.dust(rgb, 1.2f), c.x, c.y + 1.8, c.z, 8, 0.3, 0.3, 0.3, 0);
 	}
 
@@ -634,11 +634,11 @@ final class TrialGlyph extends Trials.Trial {
 		level.setBlock(leverPos(), lever(true), 2 | 16);
 		leverUntil = now + 20;
 		Vec3 at = Vec3.atBottomCenterOf(leverPos());
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.LEVER_CLICK, SoundSource.BLOCKS, 1f, 0.6f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.LEVER_CLICK.value(), SoundSource.BLOCKS, 1f, 0.6f);
 		List<Integer> wrong = new ArrayList<>();
 		for (int i = 0; i < n; i++) if (glyph[i] != target[i]) wrong.add(i);
 		if (wrong.isEmpty()) {
-			level.playSound(null, at.x, at.y, at.z, SoundEvents.BEACON_POWER_SELECT, SoundSource.BLOCKS, 1.5f, 1.2f);
+			level.playSound(null, at.x, at.y, at.z, AuraSounds.BEACON_POWER_SELECT.value(), SoundSource.BLOCKS, 1.5f, 1.2f);
 			for (int i = 0; i < n; i++) AuraFx.line(level, Vec3.atCenterOf(pillarPos(i)).add(0, 2, 0), plinth().add(0, 1, 0), AuraFx.dust(rgb, 1.3f), 20);
 			solve(level, plinth().add(0, 0.8, 0));
 			return;
@@ -672,7 +672,7 @@ final class TrialGlyph extends Trials.Trial {
 		if (com.toast.aurapoints.shim.Platform.get().isFakePlayer(p)) p.moveTo(e.x, e.y, e.z, forwardYaw(), 0f);
 		else p.teleportTo(level, e.x, e.y, e.z, forwardYaw(), 0f);
 		p.fallDistance = 0;
-		level.playSound(null, e.x, e.y, e.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, 1.3f);
+		level.playSound(null, e.x, e.y, e.z, AuraSounds.ENDERMAN_TELEPORT.value(), SoundSource.PLAYERS, 0.8f, 1.3f);
 	}
 
 	// ---------------------------------------------------------------

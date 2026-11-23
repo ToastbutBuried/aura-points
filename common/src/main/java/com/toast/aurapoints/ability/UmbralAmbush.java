@@ -119,7 +119,6 @@ public final class UmbralAmbush {
 		NetworkHandler.sendGesture(player, BendingAnimPacket.GESTURE_VANISH, 1);
 		level.playSound(null, from.x, from.y, from.z, AuraSounds.ENDERMAN_TELEPORT.value(), SoundSource.PLAYERS, 0.8f, 0.6f);
 		level.playSound(null, spot.x, spot.y, spot.z, AuraSounds.ILLUSIONER_MIRROR_MOVE.value(), SoundSource.PLAYERS, 1.0f, 0.7f);
-		level.playSound(null, spot.x, spot.y, spot.z, AuraSounds.SOUL_ESCAPE.value(), SoundSource.PLAYERS, 1.5f, 0.8f);
 		return true;
 	}
 

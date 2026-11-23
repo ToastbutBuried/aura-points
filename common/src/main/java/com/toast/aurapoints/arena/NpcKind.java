@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.data.AuraState;
 import net.minecraft.ChatFormatting;
@@ -10,7 +11,6 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
@@ -90,7 +90,7 @@ public enum NpcKind {
 		LAST_CLICK.put(player.getUUID(), now);
 		ServerLevel level = player.serverLevel();
 		AuraFx.particles(level, ParticleTypes.HAPPY_VILLAGER, npc.getX(), npc.getY() + 1.2, npc.getZ(), 10, 0.4, 0.6, 0.4, 0);
-		ArenaFx.sound(level, npc.position(), SoundEvents.NOTE_BLOCK_PLING.value(), 0.8f, 1.6f);
+		ArenaFx.sound(level, npc.position(), AuraSounds.NOTE_BLOCK_PLING.value(), 0.8f, 1.6f);
 		switch (this) {
 			case DUELS -> duelMenu(player);
 			case TRAINING -> Arena.toHall(player);
@@ -101,7 +101,7 @@ public enum NpcKind {
 			case ALTAR -> AltarRitual.menu(player);
 		}
 		if (this == TRAINING || this == RING_LOBBY || this == HALL_LOBBY) {
-			ArenaFx.sound(level, player.position(), SoundEvents.ENDERMAN_TELEPORT, 0.6f, 1.2f);
+			ArenaFx.sound(level, player.position(), AuraSounds.ENDERMAN_TELEPORT.value(), 0.6f, 1.2f);
 			AuraFx.particles(level, ParticleTypes.PORTAL, player.getX(), player.getY() + 1, player.getZ(), 40, 0.5, 1, 0.5, 0.3);
 		}
 	}

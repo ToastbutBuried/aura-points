@@ -1,10 +1,10 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraFx;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -105,7 +105,7 @@ final class RingPillars {
 			target[rising] = HEIGHT;
 			standing = rising;
 			nextShift = now + SHIFT_TICKS;
-			ArenaFx.sound(level, new Vec3(0.5, RING_FLOOR + 2, RING_Z + 0.5), SoundEvents.PISTON_EXTEND, 1.5f, 0.5f);
+			ArenaFx.sound(level, new Vec3(0.5, RING_FLOOR + 2, RING_Z + 0.5), AuraSounds.PISTON_EXTEND.value(), 1.5f, 0.5f);
 		}
 		if (now % STEP_TICKS != 0) return;
 		for (int set = 0; set < 2; set++) {
@@ -135,7 +135,7 @@ final class RingPillars {
 			}
 			if (height[set] % 2 == 0) {
 				int[] c = columns.get(0);
-				ArenaFx.sound(level, new Vec3(c[0], RING_FLOOR + 1, RING_Z + c[1]), SoundEvents.GRINDSTONE_USE, 0.8f, 0.6f);
+				ArenaFx.sound(level, new Vec3(c[0], RING_FLOOR + 1, RING_Z + c[1]), AuraSounds.GRINDSTONE_USE.value(), 0.8f, 0.6f);
 			}
 		}
 	}

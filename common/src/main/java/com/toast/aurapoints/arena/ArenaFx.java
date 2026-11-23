@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.AuraLabel;
 import com.toast.aurapoints.ability.AuraType;
@@ -10,7 +11,6 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
@@ -311,8 +311,8 @@ public final class ArenaFx {
 	static void click(ServerLevel level, Vec3 at) {
 		AuraFx.particles(level, ParticleTypes.ENCHANT, at.x, at.y + 0.3, at.z, 30, 0.4, 0.5, 0.4, 0.6);
 		AuraFx.particles(level, ParticleTypes.HAPPY_VILLAGER, at.x, at.y, at.z, 6, 0.4, 0.4, 0.4, 0);
-		sound(level, at, SoundEvents.AMETHYST_BLOCK_CHIME, 1.2f, 1.3f);
-		sound(level, at, SoundEvents.NOTE_BLOCK_CHIME.value(), 0.6f, 1.6f);
+		sound(level, at, AuraSounds.AMETHYST_BLOCK_CHIME.value(), 1.2f, 1.3f);
+		sound(level, at, AuraSounds.NOTE_BLOCK_CHIME.value(), 0.6f, 1.6f);
 	}
 
 	/** Players in the arena (for effects that only they should see). */

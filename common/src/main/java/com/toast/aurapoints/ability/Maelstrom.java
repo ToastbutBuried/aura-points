@@ -218,8 +218,8 @@ final class Maelstrom {
 			e.hurtMarked = true;
 		}
 		level.playSound(null, c.x, c.y, c.z, AuraSounds.MACE_SMASH_GROUND_HEAVY.value(), SoundSource.PLAYERS, 2.0f, 0.5f);
-		level.playSound(null, c.x, c.y, c.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 1.0f, 0.8f);
-		level.playSound(null, c.x, c.y, c.z, AuraSounds.PLAYER_SPLASH_HIGH_SPEED.value(), SoundSource.PLAYERS, 2.0f, 0.6f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.5f, 0.8f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.PLAYER_SPLASH_HIGH_SPEED.value(), SoundSource.PLAYERS, 0.8f, 0.6f);
 		AuraFx.particles(level, ParticleTypes.EXPLOSION, c.x, c.y + 0.5, c.z, 3, 1.0, 0.3, 1.0, 0);
 		AuraFx.particles(level, ParticleTypes.SPLASH, c.x, c.y + 0.5, c.z, 200, 2.5, 0.6, 2.5, 0.4);
 		AuraFx.particles(level, ParticleTypes.BUBBLE_POP, c.x, c.y + 0.5, c.z, 60, 2.0, 0.5, 2.0, 0.2);

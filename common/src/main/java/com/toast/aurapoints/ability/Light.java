@@ -13,7 +13,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.EntityTypeTags;
 import net.minecraft.util.Mth;
@@ -177,8 +176,8 @@ public final class Light {
 		}
 		AuraFx.particles(level, ParticleTypes.END_ROD, c.x, c.y, c.z, 24, 0.2, 0.2, 0.2, 0.14);
 		AuraFx.particles(level, ParticleTypes.WAX_OFF, c.x, c.y, c.z, 12, 0.6, 0.6, 0.6, 0);
-		sound(level, c, SoundEvents.BEACON_ACTIVATE, 1.0f, 1.6f);
-		sound(level, c, SoundEvents.AMETHYST_BLOCK_CHIME, 1.5f, 1.2f);
+		sound(level, c, AuraSounds.BEACON_ACTIVATE.value(), 1.0f, 1.6f);
+		sound(level, c, AuraSounds.AMETHYST_BLOCK_CHIME.value(), 1.5f, 1.2f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_LIGHT, 0);
 		Casts.used(p, Ability.RADIANT_PULSE, now, mode);
 		return true;
@@ -227,8 +226,8 @@ public final class Light {
 			Vec3 at = hand.add(d.scale(dist));
 			AuraFx.particles(level, i % 3 == 0 ? ParticleTypes.END_ROD : AuraFx.dust(i % 2 == 0 ? WHITE_GOLD : GOLD, 1.2f), at.x, at.y, at.z, 1, 0, 0, 0, 0);
 		}
-		sound(level, hand, SoundEvents.FIREWORK_ROCKET_BLAST, spotlight ? 0.7f : 1.2f, 1.5f);
-		sound(level, hand, SoundEvents.AMETHYST_BLOCK_RESONATE, 1.4f, 1.6f);
+		sound(level, hand, AuraSounds.FIREWORK_ROCKET_BLAST.value(), spotlight ? 0.7f : 1.2f, 1.5f);
+		sound(level, hand, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 1.4f, 1.6f);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_LIGHT, 1);
 		Casts.used(p, Ability.SOLAR_FLASH, now, spotlight ? AuraConfig.LIGHT_SPOTLIGHT_COOLDOWN_FACTOR : nova ? AuraConfig.CAST_CHARGED_COOLDOWN_FACTOR : 1.0);
 		return true;
@@ -277,7 +276,7 @@ public final class Light {
 			speed.addTransientModifier(new AttributeModifier(BEAM_SLOW, -0.4, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
 		}
 		NetworkHandler.sendBendAnim(p, BendingAnimPacket.PRISM_AIM);
-		sound(level, hand, SoundEvents.BEACON_ACTIVATE, 1.0f, 1.8f);
+		sound(level, hand, AuraSounds.BEACON_ACTIVATE.value(), 1.0f, 1.8f);
 		return true;
 	}
 
@@ -294,7 +293,7 @@ public final class Light {
 		AttributeInstance speed = p.getAttribute(Attributes.MOVEMENT_SPEED);
 		if (speed != null) speed.removeModifier(BEAM_SLOW);
 		NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
-		sound(b.level, p.position(), SoundEvents.BEACON_DEACTIVATE, 0.8f, 1.6f);
+		sound(b.level, p.position(), AuraSounds.BEACON_DEACTIVATE.value(), 0.8f, 1.6f);
 		AuraAbilities.markUsed(p, Ability.PRISM_BEAM, now);
 	}
 
@@ -338,7 +337,7 @@ public final class Light {
 			if (undead(target)) target.igniteForSeconds(2);
 			if (Branch.is(p, Branch.PRISMATIC) && isFlashed(target)) chain(p, target, beam);
 		}
-		if (b.t % 20 == 1) sound(level, from, SoundEvents.BEACON_AMBIENT, 1.2f, 1.7f);
+		if (b.t % 20 == 1) sound(level, from, AuraSounds.BEACON_AMBIENT.value(), 1.2f, 1.7f);
 		return true;
 	}
 

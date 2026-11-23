@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.config.AuraConfig;
 import com.toast.aurapoints.data.AuraState;
@@ -15,7 +16,6 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -217,7 +217,7 @@ public final class WaveTwists {
 				give(p, s);
 				p.sendSystemMessage(Component.literal("  Right-click the item of your pick (or /aura arena match twist N). Your hotbar comes back after.").withStyle(ChatFormatting.DARK_GRAY));
 			}
-			AuraFx.sound(p.serverLevel(), p, SoundEvents.NOTE_BLOCK_CHIME.value(), 1f, 1.2f);
+			AuraFx.sound(p.serverLevel(), p, AuraSounds.NOTE_BLOCK_CHIME.value(), 1f, 1.2f);
 		}
 		return true;
 	}
@@ -231,7 +231,7 @@ public final class WaveTwists {
 		s.votes.put(voter.getUUID(), n - 1);
 		Twist t = s.offered.get(n - 1);
 		voter.sendSystemMessage(Component.literal("You voted: " + t.displayName).withStyle(t.color));
-		AuraFx.sound(voter.serverLevel(), voter, SoundEvents.UI_BUTTON_CLICK.value(), 0.8f, 1.4f);
+		AuraFx.sound(voter.serverLevel(), voter, AuraSounds.UI_BUTTON_CLICK.value(), 0.8f, 1.4f);
 		return 1;
 	}
 
@@ -267,7 +267,7 @@ public final class WaveTwists {
 			ArenaFx.title(p, Component.literal(won.displayName + (n > 1 ? " x" + n : "")).withStyle(won.color, ChatFormatting.BOLD),
 					Component.literal(won.blurb(n)).withStyle(ChatFormatting.GRAY));
 			p.sendSystemMessage(Component.literal("✦ Twist: " + won.displayName + (n > 1 ? " x" + n : "") + "  (votes " + java.util.Arrays.toString(count) + "). Active: " + summary(run)).withStyle(won.color));
-			AuraFx.sound(p.serverLevel(), p, SoundEvents.ENDER_DRAGON_GROWL, 0.35f, 1.4f);
+			AuraFx.sound(p.serverLevel(), p, AuraSounds.ENDER_DRAGON_GROWL.value(), 0.35f, 1.4f);
 		}
 		s.votes.clear();
 		s.offered.clear();

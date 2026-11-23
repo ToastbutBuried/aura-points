@@ -1,5 +1,6 @@
 package com.toast.aurapoints.menu;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.AuraCommand;
 import com.toast.aurapoints.AuraCurrency;
 import com.toast.aurapoints.ability.AuraAbilities;
@@ -11,7 +12,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.SimpleContainer;
@@ -82,7 +82,7 @@ public final class AuraBook {
 	}
 
 	static void pageSound(ServerPlayer player) {
-		player.playNotifySound(SoundEvents.BOOK_PAGE_TURN, SoundSource.PLAYERS, 0.7f, 1.0f);
+		player.playNotifySound(AuraSounds.BOOK_PAGE_TURN.value(), SoundSource.PLAYERS, 0.7f, 1.0f);
 	}
 
 	// ---------------------------------------------------------------

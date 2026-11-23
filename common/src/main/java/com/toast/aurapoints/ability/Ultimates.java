@@ -17,7 +17,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Brightness;
 import net.minecraft.util.Mth;
@@ -178,7 +177,7 @@ public final class Ultimates {
 		player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(
 				Component.literal("✦ " + ult.displayName + " ✦").withStyle(s -> s.withColor(aura.rgb).withBold(true))));
 		player.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(Component.empty()));
-		sound(level, player.position(), SoundEvents.BEACON_POWER_SELECT, 1.2f, 0.6f);
+		sound(level, player.position(), AuraSounds.BEACON_POWER_SELECT.value(), 1.2f, 0.6f);
 		switch (ult) {
 			case ECLIPSE -> startEclipse(player, run);
 			case TIDAL_ASCENSION -> startTidal(player, run);
@@ -317,8 +316,8 @@ public final class Ultimates {
 		Vec3 c = AuraFx.chest(p);
 		AuraFx.burst(level, c.x, c.y, c.z, ParticleTypes.SQUID_INK, 8, 0.5, 0.08);
 		AuraFx.burst(level, c.x, c.y, c.z, AuraFx.dust(0x5A2A8C, 1.6f), 30, 0.8, 0);
-		sound(level, c, SoundEvents.WARDEN_SONIC_CHARGE, 1.0f, 1.4f);
-		sound(level, c, SoundEvents.ENDERMAN_SCREAM, 0.4f, 0.6f);
+		sound(level, c, AuraSounds.WARDEN_SONIC_CHARGE.value(), 1.0f, 1.4f);
+		sound(level, c, AuraSounds.ENDERMAN_SCREAM.value(), 0.4f, 0.6f);
 	}
 
 	private static boolean eclipse(ServerPlayer p, Run run) {
@@ -328,7 +327,7 @@ public final class Ultimates {
 			if (run.t == 6) {
 				for (LivingEntity e : Handhelds.enemies(p, level, AuraFx.chest(p), 6)) Handhelds.hurt(p, e, AuraConfig.ULT_ECLIPSE_DAMAGE * 0.5f);
 				AuraFx.ring(level, p.getX(), p.getY() + 0.3, p.getZ(), 4, ParticleTypes.SQUID_INK, 40);
-				sound(level, p.position(), SoundEvents.WITHER_SHOOT, 0.5f, 0.6f);
+				sound(level, p.position(), AuraSounds.WITHER_SHOOT.value(), 0.5f, 0.6f);
 			}
 			return run.t >= 10;
 		}
@@ -348,8 +347,8 @@ public final class Ultimates {
 				AuraFx.particles(level, ParticleTypes.SWEEP_ATTACK, c.x, c.y, c.z, 2, 0.3, 0.2, 0.3, 0);
 				AuraFx.burst(level, c.x, c.y, c.z, ParticleTypes.SQUID_INK, 3, 0.3, 0.05);
 				AuraFx.burst(level, c.x, c.y, c.z, AuraFx.dust(0x9B4FE0, 1.3f), 18, 0.5, 0);
-				sound(level, c, SoundEvents.PLAYER_ATTACK_SWEEP, 1.0f, 0.8f);
-				sound(level, c, SoundEvents.ENDERMAN_TELEPORT, 0.6f, 1.4f);
+				sound(level, c, AuraSounds.PLAYER_ATTACK_SWEEP.value(), 1.0f, 0.8f);
+				sound(level, c, AuraSounds.ENDERMAN_TELEPORT.value(), 0.6f, 1.4f);
 			}
 		}
 		if (run.struck >= run.targets.size() && run.t % 6 == 4) {
@@ -368,8 +367,8 @@ public final class Ultimates {
 	private static void startTidal(ServerPlayer p, Run run) {
 		hold(p);
 		run.baseY = p.getY();
-		sound(p.serverLevel(), p.position(), SoundEvents.TRIDENT_RIPTIDE_3.value(), 1.2f, 0.8f);
-		sound(p.serverLevel(), p.position(), SoundEvents.BUBBLE_COLUMN_UPWARDS_INSIDE, 1.5f, 0.8f);
+		sound(p.serverLevel(), p.position(), AuraSounds.TRIDENT_RIPTIDE_3.value(), 1.2f, 0.8f);
+		sound(p.serverLevel(), p.position(), AuraSounds.BUBBLE_COLUMN_UPWARDS_INSIDE.value(), 1.5f, 0.8f);
 	}
 
 	private static boolean tidal(ServerPlayer p, Run run) {
@@ -389,7 +388,7 @@ public final class Ultimates {
 			p.removeTag(FLY_TAG);
 			p.setNoGravity(false);
 			move(p, new Vec3(0, -2.0, 0));
-			sound(level, p.position(), SoundEvents.PLAYER_SPLASH_HIGH_SPEED, 1.2f, 0.7f);
+			sound(level, p.position(), AuraSounds.PLAYER_SPLASH_HIGH_SPEED.value(), 1.2f, 0.7f);
 		}
 		if (run.t > 20 && run.phaseAt < 0) {
 			p.fallDistance = 0;
@@ -397,8 +396,8 @@ public final class Ultimates {
 				run.phaseAt = run.t;
 				run.point = p.position();
 				p.heal(Math.max(0, AuraConfig.ULT_TIDAL_HEAL));
-				sound(level, run.point, SoundEvents.GENERIC_SPLASH, 2.5f, 0.6f);
-				sound(level, run.point, SoundEvents.TRIDENT_THUNDER.value(), 0.4f, 1.6f);
+				sound(level, run.point, AuraSounds.GENERIC_SPLASH.value(), 2.5f, 0.6f);
+				sound(level, run.point, AuraSounds.TRIDENT_THUNDER.value(), 0.4f, 1.6f);
 				AuraFx.burst(level, run.point.x, run.point.y + 0.5, run.point.z, ParticleTypes.SPLASH, 80, 1.0, 0.4);
 			}
 		}
@@ -432,8 +431,8 @@ public final class Ultimates {
 		p.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, AuraConfig.ULT_PHOENIX_TICKS + 80, 0, false, false, true));
 		ServerLevel level = p.serverLevel();
 		AuraFx.ring(level, p.getX(), p.getY() + 0.2, p.getZ(), 1.5, ParticleTypes.FLAME, 40);
-		sound(level, p.position(), SoundEvents.BLAZE_SHOOT, 1.2f, 0.7f);
-		sound(level, p.position(), SoundEvents.FIRECHARGE_USE, 1.0f, 0.6f);
+		sound(level, p.position(), AuraSounds.BLAZE_SHOOT.value(), 1.2f, 0.7f);
+		sound(level, p.position(), AuraSounds.FIRECHARGE_USE.value(), 0.6f, 0.6f);
 	}
 
 	private static boolean phoenix(ServerPlayer p, Run run) {
@@ -450,7 +449,7 @@ public final class Ultimates {
 					run.diving = true;
 					run.phaseAt = run.t;
 					run.dir = flat(dir);
-					sound(level, chest, SoundEvents.BLAZE_SHOOT, 1.0f, 0.5f);
+					sound(level, chest, AuraSounds.BLAZE_SHOOT.value(), 1.0f, 0.5f);
 				} else {
 					move(p, dir.scale(speed));
 				}
@@ -468,7 +467,7 @@ public final class Ultimates {
 					AuraFx.particles(level, i % 2 == 0 ? ParticleTypes.FLAME : AuraFx.dust(0xFFD040, 1.2f), w.x, w.y, w.z, 1, 0, 0, 0, 0);
 				}
 			}
-			if (run.t % 6 == 0) sound(level, chest, SoundEvents.BLAZE_BURN, 0.6f, 1.2f);
+			if (run.t % 6 == 0) sound(level, chest, AuraSounds.BLAZE_BURN.value(), 0.6f, 1.2f);
 			// burning whoever you pass
 			for (LivingEntity e : Handhelds.enemies(p, level, chest, 2.5)) {
 				Integer last = run.lastTouch.get(e);
@@ -497,8 +496,8 @@ public final class Ultimates {
 				e.setDeltaMovement(e.getDeltaMovement().add(out.x * 0.8, 0.5, out.z * 0.8));
 				e.hurtMarked = true;
 			}
-			sound(level, at, SoundEvents.GENERIC_EXPLODE.value(), 1.5f, 0.9f);
-			sound(level, at, SoundEvents.FIRECHARGE_USE, 1.2f, 0.5f);
+			sound(level, at, AuraSounds.GENERIC_EXPLODE.value(), 1.5f, 0.9f);
+			sound(level, at, AuraSounds.FIRECHARGE_USE.value(), 0.5f, 0.5f);
 			return true;
 		}
 		return false;
@@ -510,8 +509,8 @@ public final class Ultimates {
 
 	private static void startTempest(ServerPlayer p, Run run) {
 		p.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 25, 1, false, false, false));
-		sound(p.serverLevel(), p.position(), SoundEvents.BREEZE_SHOOT, 1.4f, 0.6f);
-		sound(p.serverLevel(), p.position(), SoundEvents.ELYTRA_FLYING, 0.6f, 1.4f);
+		sound(p.serverLevel(), p.position(), AuraSounds.BREEZE_SHOOT.value(), 1.4f, 0.6f);
+		sound(p.serverLevel(), p.position(), AuraSounds.ELYTRA_FLYING.value(), 0.6f, 1.4f);
 	}
 
 	private static boolean tempest(ServerPlayer p, Run run) {
@@ -547,7 +546,7 @@ public final class Ultimates {
 				if (run.t % 20 == 0) Handhelds.hurt(p, e, AuraConfig.ULT_TEMPEST_DAMAGE);
 				run.hit.add(e);
 			}
-			if (run.t % 20 == 0) sound(level, base, SoundEvents.ELYTRA_FLYING, 0.5f, 1.5f);
+			if (run.t % 20 == 0) sound(level, base, AuraSounds.ELYTRA_FLYING.value(), 0.5f, 1.5f);
 			return false;
 		}
 		// the end: everything flung away
@@ -558,7 +557,7 @@ public final class Ultimates {
 			Handhelds.hurt(p, e, AuraConfig.ULT_TEMPEST_FLING_DAMAGE);
 		}
 		AuraFx.burst(level, base.x, base.y + 2, base.z, ParticleTypes.CLOUD, 60, 2.0, 0.3);
-		sound(level, base, SoundEvents.WIND_CHARGE_BURST.value(), 1.6f, 0.7f);
+		sound(level, base, AuraSounds.WIND_CHARGE_BURST.value(), 1.6f, 0.7f);
 		return true;
 	}
 
@@ -568,8 +567,8 @@ public final class Ultimates {
 
 	private static void startPermafrost(ServerPlayer p, Run run) {
 		run.point = p.position();
-		sound(p.serverLevel(), run.point, SoundEvents.PLAYER_HURT_FREEZE, 1.2f, 0.6f);
-		sound(p.serverLevel(), run.point, SoundEvents.AMETHYST_BLOCK_RESONATE, 1.5f, 0.5f);
+		sound(p.serverLevel(), run.point, AuraSounds.PLAYER_HURT_FREEZE.value(), 1.2f, 0.6f);
+		sound(p.serverLevel(), run.point, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 1.5f, 0.5f);
 	}
 
 	private static boolean permafrost(ServerPlayer p, Run run) {
@@ -601,7 +600,7 @@ public final class Ultimates {
 				Handhelds.hurt(p, e, 2f);
 				run.targets.add(e);
 			}
-			sound(level, c, SoundEvents.GLASS_PLACE, 1.5f, 0.6f);
+			sound(level, c, AuraSounds.GLASS_PLACE.value(), 1.5f, 0.6f);
 		}
 		if (run.t > 10 && run.t < 10 + freeze && run.t % 3 == 0) {
 			var random = p.getRandom();
@@ -620,8 +619,8 @@ public final class Ultimates {
 			for (Display.BlockDisplay d : run.displays) {
 				AuraFx.burst(level, d.getX(), d.getY() + 1, d.getZ(), new BlockParticleOption(ParticleTypes.BLOCK, Blocks.PACKED_ICE.defaultBlockState()), 14, 0.3, 0.15);
 			}
-			sound(level, c, SoundEvents.GLASS_BREAK, 1.6f, 0.6f);
-			sound(level, c, SoundEvents.GLASS_BREAK, 1.2f, 0.9f);
+			sound(level, c, AuraSounds.GLASS_BREAK.value(), 1.6f, 0.6f);
+			sound(level, c, AuraSounds.GLASS_BREAK.value(), 1.2f, 0.9f);
 			return true;
 		}
 		return false;
@@ -658,8 +657,8 @@ public final class Ultimates {
 			float s = (float) b[3];
 			spawnDisplay(level, run, run.point, i % 2 == 0 ? leaves : leaves2, box(b[0], b[1], b[2], 0.001f, 0.001f), box(b[0], b[1] - s / 2, b[2], s, s));
 		}
-		sound(level, run.point, SoundEvents.ROOTED_DIRT_BREAK, 1.4f, 0.5f);
-		sound(level, run.point, SoundEvents.BONE_MEAL_USE, 1.2f, 0.8f);
+		sound(level, run.point, AuraSounds.ROOTED_DIRT_BREAK.value(), 1.4f, 0.5f);
+		sound(level, run.point, AuraSounds.BONE_MEAL_USE.value(), 1.2f, 0.8f);
 	}
 
 	/** A box {@code w} wide and {@code h} tall standing on (x, y, z) relative to the display. */
@@ -677,7 +676,7 @@ public final class Ultimates {
 				Rooted.lock(e, e.position(), false);
 				run.hit.add(e);
 			}
-			sound(level, base, SoundEvents.ROOTED_DIRT_PLACE, 1.4f, 0.6f);
+			sound(level, base, AuraSounds.ROOTED_DIRT_PLACE.value(), 1.4f, 0.6f);
 		}
 		if (run.t >= 8 && run.t <= 8 + rootTicks && run.t % 10 == 0) {
 			for (LivingEntity e : run.hit) {
@@ -704,7 +703,7 @@ public final class Ultimates {
 		}
 		if (run.t == ticks) {
 			wither(run, 20);
-			sound(level, base, SoundEvents.AZALEA_LEAVES_BREAK, 1.4f, 0.6f);
+			sound(level, base, AuraSounds.AZALEA_LEAVES_BREAK.value(), 1.4f, 0.6f);
 		}
 		if (run.t > ticks && run.t % 3 == 0) {
 			AuraFx.particles(level, ParticleTypes.FALLING_SPORE_BLOSSOM, base.x, base.y + 6, base.z, 6, 2.0, 1.0, 2.0, 0);
@@ -718,7 +717,7 @@ public final class Ultimates {
 
 	private static void startJudgement(ServerPlayer p, Run run) {
 		hold(p);
-		sound(p.serverLevel(), p.position(), SoundEvents.TRIDENT_THUNDER.value(), 1.0f, 0.7f);
+		sound(p.serverLevel(), p.position(), AuraSounds.TRIDENT_THUNDER.value(), 1.0f, 0.7f);
 		AuraFx.burst(p.serverLevel(), p.getX(), p.getY() + 0.2, p.getZ(), ParticleTypes.ELECTRIC_SPARK, 40, 1.0, 0.3);
 	}
 
@@ -770,8 +769,8 @@ public final class Ultimates {
 				e.setDeltaMovement(e.getDeltaMovement().add(out.x * 0.6, 0.8, out.z * 0.6));
 				e.hurtMarked = true;
 			}
-			sound(level, spot, SoundEvents.LIGHTNING_BOLT_THUNDER, 3.0f, 0.7f);
-			sound(level, spot, SoundEvents.LIGHTNING_BOLT_IMPACT, 2.0f, 0.8f);
+			sound(level, spot, AuraSounds.LIGHTNING_BOLT_THUNDER.value(), 3.0f, 0.7f);
+			sound(level, spot, AuraSounds.LIGHTNING_BOLT_IMPACT.value(), 2.0f, 0.8f);
 		}
 		return run.t >= finalAt + 6;
 	}
@@ -793,7 +792,7 @@ public final class Ultimates {
 		Earth.dust(level, ground(level, p.position(), p), surface(level, ground(level, p.position(), p)), 30, 0.7);
 		// the crack opens a step in front of you, not under your feet
 		run.point = ground(level, p.position().add(run.dir.scale(1.2)).add(0, 1, 0), p);
-		sound(level, run.point, SoundEvents.WARDEN_EMERGE, 1.3f, 0.9f);
+		sound(level, run.point, AuraSounds.WARDEN_EMERGE.value(), 1.3f, 0.9f);
 	}
 
 	private static boolean rift(ServerPlayer p, Run run) {
@@ -805,7 +804,7 @@ public final class Ultimates {
 		run.struck = run.displays.size();
 		if (run.t == start) {
 			sound(level, run.point, AuraSounds.MACE_SMASH_GROUND_HEAVY.value(), 1.8f, 0.5f);
-			sound(level, run.point, SoundEvents.GENERIC_EXPLODE.value(), 0.8f, 0.5f);
+			sound(level, run.point, AuraSounds.GENERIC_EXPLODE.value(), 0.8f, 0.5f);
 			AuraFx.particles(level, ParticleTypes.EXPLOSION, run.point.x, run.point.y + 0.3, run.point.z, 1, 0, 0, 0, 0);
 		}
 		if (run.t >= start && run.t <= crackEnd) {
@@ -843,11 +842,11 @@ public final class Ultimates {
 				e.hurtMarked = true;
 			}
 			sound(level, front, AuraSounds.MACE_SMASH_GROUND.value(), 1.0f, 0.55f + random.nextFloat() * 0.15f);
-			if (run.t % 2 == 0) sound(level, front, SoundEvents.DRIPSTONE_BLOCK_BREAK, 1.2f, 0.5f);
+			if (run.t % 2 == 0) sound(level, front, AuraSounds.DRIPSTONE_BLOCK_BREAK.value(), 1.2f, 0.5f);
 			if (last) {
 				AuraFx.particles(level, ParticleTypes.EXPLOSION_EMITTER, front.x, front.y + 0.5, front.z, 1, 0, 0, 0, 0);
 				sound(level, front, AuraSounds.MACE_SMASH_GROUND_HEAVY.value(), 2.0f, 0.6f);
-				sound(level, front, SoundEvents.GENERIC_EXPLODE.value(), 1.0f, 0.7f);
+				sound(level, front, AuraSounds.GENERIC_EXPLODE.value(), 1.0f, 0.7f);
 			}
 		}
 		if (run.t == crumbleAt) {
@@ -855,7 +854,7 @@ public final class Ultimates {
 			for (Display.BlockDisplay d : run.displays) {
 				AuraFx.particles(level, new BlockParticleOption(ParticleTypes.BLOCK, ((BlockDisplayAccessor) d).aurapoints$getBlockState()), d.getX(), d.getY() + 1, d.getZ(), 8, 0.3, 0.6, 0.3, 0.05);
 			}
-			sound(level, run.point.add(run.dir.scale(length / 2)), SoundEvents.GRAVEL_BREAK, 1.6f, 0.5f);
+			sound(level, run.point.add(run.dir.scale(length / 2)), AuraSounds.GRAVEL_BREAK.value(), 1.6f, 0.5f);
 		}
 		return run.t >= crumbleAt + 15;
 	}
@@ -884,8 +883,8 @@ public final class Ultimates {
 		spawnDisplay(level, run, run.point, Blocks.OCHRE_FROGLIGHT.defaultBlockState(), sunCube(0.001f, 0, 0), sunCube(1.35f, 0, 0));
 		spawnDisplay(level, run, run.point, Blocks.SHROOMLIGHT.defaultBlockState(), sunCube(0.001f, 0, 0), sunCube(1.2f, 0, 0.8f));
 		for (Display.BlockDisplay d : run.displays) ((DisplayAccessor) d).aurapoints$setBrightnessOverride(new Brightness(15, 15));
-		sound(level, run.point, SoundEvents.BEACON_ACTIVATE, 1.5f, 0.8f);
-		sound(level, run.point, SoundEvents.AMETHYST_BLOCK_RESONATE, 1.5f, 0.6f);
+		sound(level, run.point, AuraSounds.BEACON_ACTIVATE.value(), 1.5f, 0.8f);
+		sound(level, run.point, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 1.5f, 0.6f);
 	}
 
 	private static boolean sunburst(ServerPlayer p, Run run) {
@@ -930,8 +929,8 @@ public final class Ultimates {
 				Vec3 c = AuraFx.chest(target);
 				AuraFx.particles(level, ParticleTypes.END_ROD, c.x, c.y, c.z, 12, 0.2, 0.3, 0.2, 0.12);
 				AuraFx.particles(level, AuraFx.dust(Light.GOLD, 1.4f), c.x, c.y, c.z, 10, 0.3, 0.4, 0.3, 0);
-				sound(level, c, SoundEvents.AMETHYST_BLOCK_BREAK, 1.2f, 1.5f);
-				sound(level, c, SoundEvents.FIREWORK_ROCKET_BLAST, 0.7f, 1.8f);
+				sound(level, c, AuraSounds.AMETHYST_BLOCK_BREAK.value(), 1.2f, 1.5f);
+				sound(level, c, AuraSounds.FIREWORK_ROCKET_BLAST.value(), 0.7f, 1.8f);
 			}
 		}
 		// warmth for the friends near it
@@ -944,7 +943,7 @@ public final class Ultimates {
 		}
 		if (run.t == burstAt - 6) {
 			for (int i = 0; i < 2; i++) set(run.displays.get(i), sunCube(i == 0 ? 2.3f : 2.1f, lift, i == 0 ? run.t * 0.07f : -run.t * 0.07f + 0.8f), 6);
-			sound(level, sun, SoundEvents.BEACON_POWER_SELECT, 1.6f, 1.4f);
+			sound(level, sun, AuraSounds.BEACON_POWER_SELECT.value(), 1.6f, 1.4f);
 		}
 		if (run.t == burstAt) {
 			// it bursts: light everywhere, the enemies near it blinded and burnt
@@ -966,9 +965,8 @@ public final class Ultimates {
 				e.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40, 0), p);
 				if (Light.undead(e)) e.igniteForSeconds(4);
 			}
-			sound(level, sun, SoundEvents.GENERIC_EXPLODE.value(), 1.0f, 1.6f);
-			sound(level, sun, SoundEvents.AMETHYST_BLOCK_RESONATE, 2.0f, 1.8f);
-			sound(level, sun, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, 1.5f, 1.0f);
+			sound(level, sun, AuraSounds.GENERIC_EXPLODE.value(), 1.0f, 1.6f);
+			sound(level, sun, AuraSounds.FIREWORK_ROCKET_LARGE_BLAST.value(), 1.5f, 1.0f);
 		}
 		return run.t >= burstAt + 4;
 	}
@@ -989,9 +987,9 @@ public final class Ultimates {
 		}
 		Vec3 c = AuraFx.chest(p);
 		AuraFx.burst(level, c.x, c.y, c.z, AuraFx.dust(Blood.BRIGHT, 1.6f), 50, 1.2, 0);
-		sound(level, c, SoundEvents.WITHER_SPAWN, 0.6f, 0.6f);
-		sound(level, c, SoundEvents.WARDEN_HEARTBEAT, 2.0f, 0.7f);
-		sound(level, c, SoundEvents.WOLF_HOWL, 1.2f, 0.7f);
+		sound(level, c, AuraSounds.WITHER_SPAWN.value(), 0.5f, 0.6f);
+		sound(level, c, AuraSounds.WARDEN_HEARTBEAT.value(), 2.0f, 0.7f);
+		sound(level, c, AuraSounds.WOLF_HOWL.value(), 0.6f, 0.7f);
 	}
 
 	private static boolean bloodMoon(ServerPlayer p, Run run) {
@@ -1005,7 +1003,7 @@ public final class Ultimates {
 					p.getZ() + Math.sin(a) * d, 1, 0, 0.05, 0, 0);
 		}
 		if (run.t % 20 == 0) {
-			sound(level, p.position(), SoundEvents.WARDEN_HEARTBEAT, 1.2f, 0.8f);
+			sound(level, p.position(), AuraSounds.WARDEN_HEARTBEAT.value(), 1.2f, 0.8f);
 			Blood.moonBleed(p, Math.max(1, AuraConfig.BLOOD_MOON_RADIUS), 40);
 		}
 		return run.t >= ticks;
@@ -1032,8 +1030,8 @@ public final class Ultimates {
 		spawnDisplay(level, run, run.point, Blocks.BLACK_CONCRETE.defaultBlockState(), holeCube(0.001f, 0, 0), holeCube(1.7f, 0, 0.5f));
 		spawnDisplay(level, run, run.point, Blocks.BLACK_CONCRETE.defaultBlockState(), holeCube(0.001f, 0.8f, 0), holeCube(1.5f, 0.8f, -0.4f));
 		spawnDisplay(level, run, run.point, Blocks.PURPLE_STAINED_GLASS.defaultBlockState(), holeCube(0.001f, 0.4f, 0), holeCube(2.7f, 0.4f, 0.2f));
-		sound(level, run.point, SoundEvents.WARDEN_SONIC_CHARGE, 1.6f, 0.5f);
-		sound(level, run.point, SoundEvents.END_PORTAL_SPAWN, 0.7f, 1.6f);
+		sound(level, run.point, AuraSounds.WARDEN_SONIC_CHARGE.value(), 1.6f, 0.5f);
+		sound(level, run.point, AuraSounds.END_PORTAL_SPAWN.value(), 0.7f, 1.6f);
 	}
 
 	private static boolean singularity(ServerPlayer p, Run run) {
@@ -1078,14 +1076,14 @@ public final class Ultimates {
 				e.fallDistance = 0;
 				if (d < 2.5 && run.t % 10 == 0) Handhelds.hurt(p, e, AuraConfig.VOID_HOLE_GRIND_DAMAGE);
 			}
-			if (run.t % 20 == 0) sound(level, c, SoundEvents.PORTAL_AMBIENT, 1.4f, 0.5f);
-			if (run.t % 30 == 10) sound(level, c, SoundEvents.WARDEN_HEARTBEAT, 1.5f, 0.5f);
+			if (run.t % 20 == 0) sound(level, c, AuraSounds.PORTAL_AMBIENT.value(), 1.4f, 0.5f);
+			if (run.t % 30 == 10) sound(level, c, AuraSounds.WARDEN_HEARTBEAT.value(), 1.5f, 0.5f);
 		}
 		if (run.t == collapseAt) {
 			// it caves in on itself...
 			for (int i = 0; i < run.displays.size(); i++) set(run.displays.get(i), holeCube(0.001f, i * 0.8f, 0), 5);
-			sound(level, c, SoundEvents.BEACON_DEACTIVATE, 2.0f, 0.5f);
-			sound(level, c, SoundEvents.WARDEN_SONIC_CHARGE, 1.6f, 1.4f);
+			sound(level, c, AuraSounds.BEACON_DEACTIVATE.value(), 2.0f, 0.5f);
+			sound(level, c, AuraSounds.WARDEN_SONIC_CHARGE.value(), 1.6f, 1.4f);
 		}
 		if (run.t == collapseAt + 6) {
 			// ...and blows apart
@@ -1108,8 +1106,8 @@ public final class Ultimates {
 				e.setDeltaMovement(out.x * 1.4, Math.max(0.6, out.y * 1.4 + 0.5), out.z * 1.4);
 				e.hurtMarked = true;
 			}
-			sound(level, c, SoundEvents.GENERIC_EXPLODE.value(), 2.0f, 0.6f);
-			sound(level, c, SoundEvents.ENDER_DRAGON_GROWL, 0.8f, 1.6f);
+			sound(level, c, AuraSounds.GENERIC_EXPLODE.value(), 2.0f, 0.6f);
+			sound(level, c, AuraSounds.ENDER_DRAGON_GROWL.value(), 0.5f, 1.6f);
 		}
 		return run.t >= collapseAt + 8;
 	}
@@ -1191,7 +1189,7 @@ public final class Ultimates {
 		hold(player);
 		AuraFx.helix(player, AuraFx.dust(aura.rgb, 1.6f), 60, 1.1, 3.0);
 		AuraFx.helix(player, AuraFx.dust(0xFFC83D, 1.3f), 60, 1.5, 3.2);
-		sound(player.serverLevel(), player.position(), SoundEvents.BEACON_ACTIVATE, 1.5f, 0.8f);
+		sound(player.serverLevel(), player.position(), AuraSounds.BEACON_ACTIVATE.value(), 1.5f, 0.8f);
 		for (int t = 0; t <= 70; t++) {
 			final int tick = t;
 			AuraFx.later(server, t, () -> {
@@ -1208,8 +1206,8 @@ public final class Ultimates {
 					player.sendSystemMessage(Component.literal("✦ Ultimate unlocked: " + ult.displayName + " - press ").withStyle(ChatFormatting.YELLOW)
 							.append(Component.keybind("key.aurapoints.ultimate").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
 							.append(Component.literal(" while you hold " + aura.displayName + ".").withStyle(ChatFormatting.YELLOW)));
-					sound(level, player.position(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
-					sound(level, player.position(), SoundEvents.TOTEM_USE, 0.7f, 1.3f);
+					sound(level, player.position(), AuraSounds.UI_TOAST_CHALLENGE_COMPLETE.value(), 1.0f, 1.0f);
+					sound(level, player.position(), AuraSounds.TOTEM_USE.value(), 0.7f, 1.3f);
 					AuraFx.burst(level, player.getX(), player.getY() + 1, player.getZ(), ParticleTypes.TOTEM_OF_UNDYING, 60, 0.6, 0.5);
 					server.getPlayerList().broadcastSystemMessage(Component.literal("✦ " + player.getGameProfile().getName() + " has awakened ")
 							.withStyle(ChatFormatting.GOLD).append(AuraLabel.of(aura)).append(Component.literal(" and unlocked " + ult.displayName + "!")

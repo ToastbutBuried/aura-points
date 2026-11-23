@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraAbilities;
 import com.toast.aurapoints.config.AuraConfig;
 import com.toast.aurapoints.data.AuraPlayerData;
@@ -393,7 +394,7 @@ public final class Arena {
 			line = loser.getGameProfile().getName() + " knocked themself out";
 		}
 		com.toast.aurapoints.ability.AuraFx.particles(level, com.toast.aurapoints.ability.AuraFx.dust(rgb, 2f), loser.getX(), loser.getY() + 1, loser.getZ(), 50, 0.8, 0.8, 0.8, 0);
-		ArenaFx.sound(level, loser.position(), net.minecraft.sounds.SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1f, 0.8f);
+		ArenaFx.sound(level, loser.position(), AuraSounds.PLAYER_ATTACK_KNOCKBACK.value(), 1f, 0.8f);
 		for (ServerPlayer p : level.players()) {
 			if (inTraining(p)) p.sendSystemMessage(Component.literal("☠ " + line).withStyle(ChatFormatting.GRAY));
 		}

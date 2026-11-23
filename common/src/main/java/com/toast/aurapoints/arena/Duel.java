@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.AuraCurrency;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.AuraType;
@@ -13,7 +14,6 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.projectile.Projectile;
@@ -109,7 +109,7 @@ public final class Duel {
 				.append(button("[Accept]", ChatFormatting.GREEN, "/aura arena duel accept", "Teleports you both to the arena"))
 				.append(Component.literal(" "))
 				.append(button("[Decline]", ChatFormatting.RED, "/aura arena duel decline", "No thanks")));
-		AuraFx.sound(to.serverLevel(), to, SoundEvents.RAID_HORN.value(), 0.4f, 1.4f);
+		AuraFx.sound(to.serverLevel(), to, AuraSounds.RAID_HORN.value(), 0.4f, 1.4f);
 		from.sendSystemMessage(Component.literal("Challenge sent to " + to.getGameProfile().getName() + " (" + terms + ").").withStyle(ChatFormatting.GRAY));
 		return 1;
 	}
@@ -257,7 +257,7 @@ public final class Duel {
 					.withStyle(st -> st.withColor(ChatFormatting.RED).withClickEvent(new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, "/aura leave"))
 							.withHoverEvent(new net.minecraft.network.chat.HoverEvent(net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT, Component.literal("Forfeit and go back to where you were before the arena"))))));
 		}
-		ArenaFx.sound(arena, ringCentre(), SoundEvents.RAID_HORN.value(), 2f, 0.9f);
+		ArenaFx.sound(arena, ringCentre(), AuraSounds.RAID_HORN.value(), 2f, 0.9f);
 	}
 
 	/** "Name" in their aura's color. */
@@ -380,7 +380,7 @@ public final class Duel {
 					String n = String.valueOf(m.ticks / 20);
 					for (ServerPlayer p : new ServerPlayer[]{a, b}) {
 						ArenaFx.countdown(p, Component.literal(n).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
-						AuraFx.sound(p.serverLevel(), p, SoundEvents.NOTE_BLOCK_HAT.value(), 1f, 1f);
+						AuraFx.sound(p.serverLevel(), p, AuraSounds.NOTE_BLOCK_HAT.value(), 1f, 1f);
 					}
 				}
 				if (m.ticks <= 0) {
@@ -388,12 +388,12 @@ public final class Duel {
 					RingPillars.reset(arena.getGameTime());
 					for (ServerPlayer p : new ServerPlayer[]{a, b}) {
 						ArenaFx.countdown(p, Component.literal("FIGHT!").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
-						AuraFx.sound(p.serverLevel(), p, SoundEvents.NOTE_BLOCK_BELL.value(), 1f, 1.4f);
+						AuraFx.sound(p.serverLevel(), p, AuraSounds.NOTE_BLOCK_BELL.value(), 1f, 1.4f);
 					}
 					// a ring of light rushing out from the middle, the ring lit white
 					ArenaFx.shockwave(arena, 0xFFFFFF);
 					ArenaFx.flashRing(net.minecraft.world.level.block.Blocks.WHITE_STAINED_GLASS, 12, arena.getGameTime());
-					ArenaFx.sound(arena, ringCentre(), SoundEvents.WARDEN_SONIC_BOOM, 0.7f, 1.2f);
+					ArenaFx.sound(arena, ringCentre(), AuraSounds.WARDEN_SONIC_BOOM.value(), 0.7f, 1.2f);
 				}
 			}
 			case FIGHT -> {
@@ -454,7 +454,7 @@ public final class Duel {
 		loser.setGameMode(GameType.SPECTATOR);
 		ArenaFx.title(loser, Component.literal("You lost").withStyle(ChatFormatting.RED, ChatFormatting.BOLD), Component.literal(line).withStyle(ChatFormatting.GRAY));
 		ArenaFx.title(winner, Component.literal("Round won").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD), Component.literal(line).withStyle(ChatFormatting.GRAY));
-		AuraFx.sound(loser.serverLevel(), loser, SoundEvents.PLAYER_DEATH, 1f, 1f);
+		AuraFx.sound(loser.serverLevel(), loser, AuraSounds.PLAYER_DEATH.value(), 1f, 1f);
 		toArena(server, Component.literal("☠ " + line).withStyle(ChatFormatting.YELLOW)
 				.append(Component.literal("  (" + m.score() + ")").withStyle(ChatFormatting.GRAY)));
 		return true;
@@ -486,7 +486,7 @@ public final class Duel {
 			ArenaFx.title(winner, Component.literal("VICTORY").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
 					Component.literal(result + (prize > 0 ? "  ·  +" + prize + " Aura" : "")).withStyle(ChatFormatting.YELLOW));
 			AuraFx.helix(winner, AuraFx.dust(0xFFC83D, 1.3f), 30, 0.9, 2.4);
-			AuraFx.sound(winner.serverLevel(), winner, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1f);
+			AuraFx.sound(winner.serverLevel(), winner, AuraSounds.UI_TOAST_CHALLENGE_COMPLETE.value(), 0.8f, 1f);
 			if (forfeit == null) com.toast.aurapoints.cosmetic.Weekly.onDuelWon(winner);
 			if (Arena.in(winner) && forfeit == null) {
 				// the winner's victory pose (cosmetic), once the title is up

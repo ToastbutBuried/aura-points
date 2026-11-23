@@ -9,7 +9,6 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -69,7 +68,7 @@ public final class BlueBell {
 		RootCanvas canvas = new RootCanvas(level, BlockPos.containing(player.getEyePosition()));
 		Display.ItemDisplay bell = canvas.item(new ItemStack(AuraPoints.BLUE_BELL.get()), at);
 		FLIGHTS.add(new Flight(player.getUUID(), level, canvas, bell, at));
-		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BELL_BLOCK, SoundSource.PLAYERS, 1.5f, 1.2f);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), AuraSounds.BELL_BLOCK.value(), SoundSource.PLAYERS, 1.5f, 1.2f);
 		return true;
 	}
 
@@ -173,7 +172,7 @@ public final class BlueBell {
 		target.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30 + n * 10, 1));
 		if (n >= AuraConfig.BLUE_BELL_STRIKES / 2) target.setTicksFrozen(Math.min(target.getTicksRequiredToFreeze() + 40, target.getTicksFrozen() + 40 + n * 10));
 		// louder, higher, bigger every time
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.BELL_BLOCK, SoundSource.PLAYERS, 1.6f + k, 0.8f + 0.9f * k);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.BELL_BLOCK.value(), SoundSource.PLAYERS, 1.6f + k, 0.8f + 0.9f * k);
 		level.playSound(null, at.x, at.y, at.z, AuraSounds.GLASS_BREAK.value(), SoundSource.PLAYERS, 0.8f + k, 1.4f - 0.5f * k);
 		AuraFx.burst(level, at.x, at.y, at.z, AuraPoints.FROST_SHARD.get(), 8 + n * 5, 0.2, 0.25 + 0.3 * k);
 		AuraFx.burst(level, at.x, at.y, at.z, AuraPoints.FROST_BURST.get(), 1 + n / 2, 0.1, 0.0);
@@ -185,8 +184,8 @@ public final class BlueBell {
 		if (f.strikes >= AuraConfig.BLUE_BELL_STRIKES) {
 			f.stage = Stage.BLIZZARD;
 			f.blizzard = Math.max(40, AuraConfig.BLUE_BELL_BLIZZARD_TICKS);
-			level.playSound(null, owner.getX(), owner.getY(), owner.getZ(), SoundEvents.BELL_RESONATE, SoundSource.PLAYERS, 3.0f, 0.6f);
-			level.playSound(null, owner.getX(), owner.getY(), owner.getZ(), SoundEvents.POWDER_SNOW_BREAK, SoundSource.PLAYERS, 2.0f, 0.5f);
+			level.playSound(null, owner.getX(), owner.getY(), owner.getZ(), AuraSounds.BELL_RESONATE.value(), SoundSource.PLAYERS, 3.0f, 0.6f);
+			level.playSound(null, owner.getX(), owner.getY(), owner.getZ(), AuraSounds.POWDER_SNOW_BREAK.value(), SoundSource.PLAYERS, 2.0f, 0.5f);
 			double range = AuraConfig.BLUE_BELL_BLIZZARD_RADIUS + 40;
 			for (ServerPlayer p : level.players()) {
 				if (p.distanceToSqr(owner) <= range * range) NetworkHandler.sendFx(p, FxPacket.BLIZZARD, f.blizzard, "");
@@ -203,8 +202,8 @@ public final class BlueBell {
 		Vec3 top = c.add(0, 4.5 + Math.sin(f.age * 0.3) * 0.3, 0);
 		f.pos = f.pos.add(top.subtract(f.pos).scale(0.2));
 		show(f, f.age, 2.6f, (float) Math.sin(f.age * 0.9) * 0.35f);
-		if (f.age % 10 == 0) level.playSound(null, f.pos.x, f.pos.y, f.pos.z, SoundEvents.BELL_BLOCK, SoundSource.PLAYERS, 2.0f, 0.5f + (left % 20) * 0.02f);
-		if (f.age % 6 == 0) level.playSound(null, c.x, c.y, c.z, SoundEvents.POWDER_SNOW_STEP, SoundSource.PLAYERS, 1.2f, 0.5f);
+		if (f.age % 10 == 0) level.playSound(null, f.pos.x, f.pos.y, f.pos.z, AuraSounds.BELL_BLOCK.value(), SoundSource.PLAYERS, 2.0f, 0.5f + (left % 20) * 0.02f);
+		if (f.age % 6 == 0) level.playSound(null, c.x, c.y, c.z, AuraSounds.POWDER_SNOW_STEP.value(), SoundSource.PLAYERS, 1.2f, 0.5f);
 		// driving snow all over the area, streaming one way
 		for (int i = 0; i < 6; i++) {
 			double a = level.random.nextDouble() * Math.PI * 2, d = Math.sqrt(level.random.nextDouble()) * r;
@@ -232,7 +231,7 @@ public final class BlueBell {
 		Vec3 to = hand.subtract(f.pos);
 		double d = to.length();
 		if (d < 1.2) {
-			f.level.playSound(null, owner.getX(), owner.getY(), owner.getZ(), SoundEvents.BELL_BLOCK, SoundSource.PLAYERS, 1.0f, 1.8f);
+			f.level.playSound(null, owner.getX(), owner.getY(), owner.getZ(), AuraSounds.BELL_BLOCK.value(), SoundSource.PLAYERS, 1.0f, 1.8f);
 			return true;
 		}
 		f.pos = f.pos.add(to.scale(Math.min(1.0, 1.2 / d)));

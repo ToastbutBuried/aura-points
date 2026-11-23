@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.AuraCurrency;
 import com.toast.aurapoints.AuraPoints;
 import com.toast.aurapoints.ability.AuraFx;
@@ -19,7 +20,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.entity.Entity;
@@ -254,12 +254,12 @@ public final class Waves {
 		run.waveStarted = server.getTickCount();
 		roll(run, players.size());
 		ArenaBuilder.setGates(arena, false);
-		ArenaFx.sound(arena, new Vec3(0.5, Arena.RING_FLOOR + 2, Arena.RING_Z + 0.5), SoundEvents.IRON_DOOR_OPEN, 1.5f, 0.6f);
+		ArenaFx.sound(arena, new Vec3(0.5, Arena.RING_FLOOR + 2, Arena.RING_Z + 0.5), AuraSounds.IRON_DOOR_OPEN.value(), 1.5f, 0.6f);
 		Component title = Component.literal("Wave " + run.wave).withStyle(run.bossWave() ? ChatFormatting.DARK_RED : ChatFormatting.GOLD, ChatFormatting.BOLD);
 		Component sub = Component.literal(run.bossWave() ? "A champion comes!" : run.left() + " mobs incoming").withStyle(ChatFormatting.GRAY);
 		for (ServerPlayer p : players) {
 			ArenaFx.title(p, title, sub);
-			AuraFx.sound(arena, p, run.bossWave() ? SoundEvents.RAID_HORN.value() : SoundEvents.NOTE_BLOCK_BELL.value(), run.bossWave() ? 0.6f : 1f, 0.8f);
+			AuraFx.sound(arena, p, run.bossWave() ? AuraSounds.RAID_HORN.value() : AuraSounds.NOTE_BLOCK_BELL.value(), run.bossWave() ? 0.6f : 1f, 0.8f);
 		}
 		if (run.bossWave()) spawnBoss(arena, run, players.size());
 	}
@@ -354,7 +354,7 @@ public final class Waves {
 			com.toast.aurapoints.cosmetic.Weekly.onWaveCleared(p, run.wave);
 			ArenaFx.title(p, Component.literal("Wave " + run.wave + " cleared").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD),
 					Component.literal((aura > 0 ? "+" + aura + " Aura · " : "") + "next wave in " + breakSeconds(run) + "s").withStyle(ChatFormatting.GRAY));
-			AuraFx.sound(p.serverLevel(), p, SoundEvents.PLAYER_LEVELUP, 0.7f, 1.2f);
+			AuraFx.sound(p.serverLevel(), p, AuraSounds.PLAYER_LEVELUP.value(), 0.7f, 1.2f);
 		}
 		// what came along (vexes, riders) goes with the wave
 		for (Mob m : run.extras) m.discard();

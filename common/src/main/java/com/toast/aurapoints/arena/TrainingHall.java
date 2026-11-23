@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.config.AuraConfig;
 import com.toast.aurapoints.data.AuraState;
@@ -9,7 +10,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.Item;
@@ -151,7 +151,7 @@ public final class TrainingHall {
 					player.removeAllEffects();
 					player.clearFire();
 					player.displayClientMessage(Component.literal("Healed up").withStyle(ChatFormatting.GREEN), true);
-					AuraFx.sound(player.serverLevel(), player, SoundEvents.PLAYER_LEVELUP, 0.5f, 1.6f);
+					AuraFx.sound(player.serverLevel(), player, AuraSounds.PLAYER_LEVELUP.value(), 0.5f, 1.6f);
 				}
 				case RESET -> {
 					for (TrainingDummy d : dummies(player.serverLevel())) d.resetNow();
@@ -165,7 +165,7 @@ public final class TrainingHall {
 					for (TrainingDummy d : all) {
 						AuraFx.particles(player.serverLevel(), net.minecraft.core.particles.ParticleTypes.WAX_ON, d.getX(), d.getY() + 1, d.getZ(), 12, 0.4, 0.8, 0.4, 0);
 					}
-					ArenaFx.sound(player.serverLevel(), control.itemPos(), SoundEvents.ARMOR_EQUIP_IRON.value(), 1f, 1f);
+					ArenaFx.sound(player.serverLevel(), control.itemPos(), AuraSounds.ARMOR_EQUIP_IRON.value(), 1f, 1f);
 					writeKiosks(player.serverLevel(), tier, -1);
 				}
 				case PATROL -> {
@@ -341,13 +341,13 @@ public final class TrainingHall {
 			if (toStart > 0) {
 				if (toStart % 20 == 0) {
 					ArenaFx.countdown(p, Component.literal(String.valueOf(toStart / 20)).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD));
-					AuraFx.sound(p.serverLevel(), p, SoundEvents.NOTE_BLOCK_HAT.value(), 1f, 1f);
+					AuraFx.sound(p.serverLevel(), p, AuraSounds.NOTE_BLOCK_HAT.value(), 1f, 1f);
 				}
 				continue;
 			}
 			if (toStart == 0) {
 				ArenaFx.title(p, Component.literal("GO!").withStyle(ChatFormatting.RED, ChatFormatting.BOLD), Component.literal("30 seconds").withStyle(ChatFormatting.GRAY));
-				AuraFx.sound(p.serverLevel(), p, SoundEvents.NOTE_BLOCK_BELL.value(), 1f, 1.4f);
+				AuraFx.sound(p.serverLevel(), p, AuraSounds.NOTE_BLOCK_BELL.value(), 1f, 1.4f);
 			}
 			long left = c.start + CHALLENGE_TICKS - now;
 			if (left > 0) {
@@ -383,7 +383,7 @@ public final class TrainingHall {
 		ArenaFx.title(player, Component.literal(String.format(java.util.Locale.ROOT, "%.1f DPS", dps)).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD),
 				Component.literal(String.format(java.util.Locale.ROOT, "%.0f damage in 30 s", damage)
 						+ (top ? " · NEW RECORD!" : best ? " · personal best!" : "")).withStyle(ChatFormatting.YELLOW));
-		AuraFx.sound(player.serverLevel(), player, best ? SoundEvents.UI_TOAST_CHALLENGE_COMPLETE : SoundEvents.NOTE_BLOCK_CHIME.value(), 0.8f, 1f);
+		AuraFx.sound(player.serverLevel(), player, best ? AuraSounds.UI_TOAST_CHALLENGE_COMPLETE.value() : AuraSounds.NOTE_BLOCK_CHIME.value(), 0.8f, 1f);
 		if (top) {
 			for (ServerPlayer p : player.serverLevel().players()) {
 				p.sendSystemMessage(Component.literal(String.format(java.util.Locale.ROOT, "★ %s set a new DPS record: %.1f!", player.getGameProfile().getName(), dps)).withStyle(ChatFormatting.GOLD));
@@ -420,7 +420,7 @@ public final class TrainingHall {
 				"Rotation: %.0f damage + %d chains x%d + %d reactions x%d + %d different casts x%d = %.0f",
 				c.damage, c.chains, AuraConfig.TRAINING_ROTATION_CHAIN_POINTS, c.reactions, AuraConfig.TRAINING_ROTATION_REACTION_POINTS,
 				c.used.size(), AuraConfig.TRAINING_ROTATION_VARIETY_POINTS, score)).withStyle(ChatFormatting.AQUA));
-		AuraFx.sound(player.serverLevel(), player, best ? SoundEvents.UI_TOAST_CHALLENGE_COMPLETE : SoundEvents.NOTE_BLOCK_CHIME.value(), 0.8f, 1.1f);
+		AuraFx.sound(player.serverLevel(), player, best ? AuraSounds.UI_TOAST_CHALLENGE_COMPLETE.value() : AuraSounds.NOTE_BLOCK_CHIME.value(), 0.8f, 1.1f);
 		if (top) {
 			for (ServerPlayer p : player.serverLevel().players()) {
 				p.sendSystemMessage(Component.literal(String.format(java.util.Locale.ROOT, "✦ %s set a new rotation record: %.0f!", player.getGameProfile().getName(), score)).withStyle(ChatFormatting.AQUA));

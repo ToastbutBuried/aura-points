@@ -310,7 +310,7 @@ public final class AirBending {
 		if (ready && !b.readyAnnounced) {
 			b.readyAnnounced = true;
 			player.displayClientMessage(Component.literal("✦ Charged! Press again to fire ✦").withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), true);
-			level.playSound(null, p.x, p.y, p.z, AuraSounds.BREEZE_SHOOT.value(), SoundSource.PLAYERS, 0.6f, 1.8f);
+			level.playSound(null, p.x, p.y, p.z, AuraSounds.BREEZE_SHOOT.value(), SoundSource.PLAYERS, 0.6f, 1.6f);
 		}
 		if (full && !b.fullAnnounced) {
 			b.fullAnnounced = true;
@@ -381,8 +381,8 @@ public final class AirBending {
 		AuraFx.burst(level, c.x, c.y, c.z, AuraFx.dust(GALE, 2.4f), 50, r * 0.4, 0.0);
 		AuraFx.burst(level, c.x, c.y, c.z, AuraFx.dust(AuraType.WIND.rgb, 2.0f), 30, r * 0.3, 0.0);
 		level.playSound(null, c.x, c.y, c.z, AuraSounds.WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 2.0f, 0.5f);
-		level.playSound(null, c.x, c.y, c.z, AuraSounds.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 1.6f, 0.4f);
-		level.playSound(null, c.x, c.y, c.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.8f, 1.4f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 0.7f, 0.48f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 0.5f, 1.4f);
 	}
 
 	private static void pose(ServerPlayer player, Ball b, byte pose) {

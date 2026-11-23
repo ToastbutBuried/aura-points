@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.mojang.math.Transformation;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.Props;
@@ -13,7 +14,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -243,18 +243,18 @@ final class Reliquary {
 			int tt = t;
 			AuraFx.later(server, t, () -> {
 				List<ServerPlayer> here = Rifts.online(server, run);
-				note(here, SoundEvents.NOTE_BLOCK_BASS.value(), tt < 100 ? 3 : 6, 1.6f);
-				if (tt == 0) note(here, SoundEvents.NOTE_BLOCK_DIDGERIDOO.value(), 3, 1.4f);
+				note(here, AuraSounds.NOTE_BLOCK_BASS.value(), tt < 100 ? 3 : 6, 1.6f);
+				if (tt == 0) note(here, AuraSounds.NOTE_BLOCK_DIDGERIDOO.value(), 3, 1.4f);
 			});
 		}
 		int[][] bells = {{30, 3}, {36, 6}, {42, 10}, {48, 15}, {64, 1}, {70, 6}, {76, 8}, {82, 13}, {98, 3}, {104, 6}, {110, 10}, {116, 15}, {122, 18}, {128, 22}};
-		for (int[] b : bells) AuraFx.later(server, b[0], () -> note(Rifts.online(server, run), SoundEvents.NOTE_BLOCK_BELL.value(), b[1], 1.1f));
+		for (int[] b : bells) AuraFx.later(server, b[0], () -> note(Rifts.online(server, run), AuraSounds.NOTE_BLOCK_BELL.value(), b[1], 1.1f));
 		AuraFx.later(server, 140, () -> {
 			// the chord: the last door row is gone, the nave answers
 			List<ServerPlayer> here = Rifts.online(server, run);
-			for (int semi : new int[]{3, 6, 10}) note(here, SoundEvents.NOTE_BLOCK_PLING.value(), semi, 1.2f);
-			note(here, SoundEvents.NOTE_BLOCK_CHIME.value(), 15, 1.2f);
-			note(here, SoundEvents.NOTE_BLOCK_BELL.value(), 22, 1.4f);
+			for (int semi : new int[]{3, 6, 10}) note(here, AuraSounds.NOTE_BLOCK_PLING.value(), semi, 1.2f);
+			note(here, AuraSounds.NOTE_BLOCK_CHIME.value(), 15, 1.2f);
+			note(here, AuraSounds.NOTE_BLOCK_BELL.value(), 22, 1.4f);
 		});
 		// the wind: from tick 14 until a while after the last row, streaks out of the doorway towards the entry hall (+z)
 		for (int t = 14; t <= 172; t += 2) {
@@ -273,16 +273,16 @@ final class Reliquary {
 					if (r.nextInt(2) == 0) burst(rift, run, AuraFx.dust(rgb, 1.3f), p.x, p.y, p.z + r.nextDouble() * 14, 2, 0.5, 0.5, 0.5, 0);
 				}
 				if (tt % 10 == 0 && power > 0.2) {
-					heard(rift, run, SoundEvents.WIND_CHARGE_BURST.value(), (float) (1.6 * power), 0.55f + (float) (r.nextDouble() * 0.2));
-					heard(rift, run, SoundEvents.ELYTRA_FLYING, (float) (0.7 * power), 0.6f);
+					heard(rift, run, AuraSounds.WIND_CHARGE_BURST.value(), (float) (1.6 * power), 0.55f + (float) (r.nextDouble() * 0.2));
+					heard(rift, run, AuraSounds.ELYTRA_FLYING.value(), (float) (0.7 * power), 0.6f);
 				}
 			});
 		}
 		// the end of the doors: a flash and a ring of light in the doorway
 		AuraFx.later(server, openEnd + 2, () -> {
 			burst(rift, run, ParticleTypes.FLASH, mid.x, mid.y, mid.z, 1, 0, 0, 0, 0);
-			heard(rift, run, SoundEvents.BEACON_ACTIVATE, 2.0f, 0.7f);
-			heard(rift, run, SoundEvents.LIGHTNING_BOLT_THUNDER, 0.5f, 1.4f);
+			heard(rift, run, AuraSounds.BEACON_ACTIVATE.value(), 2.0f, 0.7f);
+			heard(rift, run, AuraSounds.LIGHTNING_BOLT_THUNDER.value(), 0.5f, 1.4f);
 			double rad = Math.max(x1 - x0, y1 - y0) / 2.0 + 1;
 			for (int k = 0; k < 40; k++) {
 				double a = k * Math.PI * 2 / 40;
@@ -321,8 +321,8 @@ final class Reliquary {
 					}
 				}
 				Vec3 c = Vec3.atCenterOf(o.offset(0, y, A().doorMin.getZ()));
-				rift.playSound(null, c.x, c.y, c.z, SoundEvents.PISTON_CONTRACT, SoundSource.BLOCKS, 1.4f, 0.5f);
-				rift.playSound(null, c.x, c.y, c.z, SoundEvents.GRINDSTONE_USE, SoundSource.BLOCKS, 1.2f, 0.6f);
+				rift.playSound(null, c.x, c.y, c.z, AuraSounds.PISTON_CONTRACT.value(), SoundSource.BLOCKS, 1.4f, 0.5f);
+				rift.playSound(null, c.x, c.y, c.z, AuraSounds.GRINDSTONE_USE.value(), SoundSource.BLOCKS, 1.2f, 0.6f);
 			});
 		}
 		run.flow.doorSealed = false;
@@ -406,8 +406,8 @@ final class Reliquary {
 		List<ServerPlayer> here = Rifts.online(rift.getServer(), run);
 		Vec3 altar = at(run, 0, 3, 0), plinth = cryptCenter(run).add(0, 2, 0);
 		for (ServerPlayer p : here) p.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 50, 0, false, false, false));
-		rift.playSound(null, altar.x, altar.y, altar.z, SoundEvents.WARDEN_EMERGE, SoundSource.HOSTILE, 3f, 0.5f);
-		rift.playSound(null, altar.x, altar.y, altar.z, SoundEvents.AMBIENT_CAVE.value(), SoundSource.HOSTILE, 3f, 0.6f);
+		rift.playSound(null, altar.x, altar.y, altar.z, AuraSounds.WARDEN_EMERGE.value(), SoundSource.HOSTILE, 3f, 0.5f);
+		rift.playSound(null, altar.x, altar.y, altar.z, AuraSounds.AMBIENT_CAVE.value(), SoundSource.HOSTILE, 3f, 0.6f);
 		RiftCam.shot(run.aura.rgb)
 				.key(0, at(run, 0, 46, 6), altar)
 				.key(FALL_AT - 6, at(run, 0, 30, 3), altar)
@@ -446,8 +446,8 @@ final class Reliquary {
 				}
 			}
 			Vec3 c = at(run, 0, 1, 0);
-			rift.playSound(null, c.x, c.y, c.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.BLOCKS, 2f, 0.5f);
-			if (t % 9 == 0) rift.playSound(null, c.x, c.y, c.z, SoundEvents.WARDEN_HEARTBEAT, SoundSource.HOSTILE, 3f, 0.6f);
+			rift.playSound(null, c.x, c.y, c.z, AuraSounds.DEEPSLATE_BREAK.value(), SoundSource.BLOCKS, 2f, 0.5f);
+			if (t % 9 == 0) rift.playSound(null, c.x, c.y, c.z, AuraSounds.WARDEN_HEARTBEAT.value(), SoundSource.HOSTILE, 3f, 0.6f);
 		}
 		if (t == FALL_AT) {
 			// the floor gives way: everything in the circle down to the crypt's ceiling goes, as tumbling stones
@@ -464,7 +464,7 @@ final class Reliquary {
 				}
 			}
 			Vec3 c = at(run, 0, 0, 0);
-			rift.playSound(null, c.x, c.y, c.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 4f, 0.5f);
+			rift.playSound(null, c.x, c.y, c.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 4f, 0.5f);
 			rift.sendParticles(ParticleTypes.EXPLOSION_EMITTER, c.x, c.y, c.z, 3, R * 0.4, 0.5, R * 0.4, 0);
 			// whoever isn't over the hole is pulled over it: everyone falls together
 			for (ServerPlayer p : here) {

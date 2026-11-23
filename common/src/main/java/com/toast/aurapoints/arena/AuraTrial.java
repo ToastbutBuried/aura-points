@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraAbilities;
 import com.toast.aurapoints.ability.AuraAbilities.Ability;
 import com.toast.aurapoints.ability.AuraFx;
@@ -20,7 +21,6 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -156,7 +156,7 @@ public final class AuraTrial {
 			Arena.toHall(player);
 		}
 		data.trialKit = true;
-		AuraFx.sound(player.serverLevel(), player, SoundEvents.BEACON_ACTIVATE, 0.7f, 1.3f);
+		AuraFx.sound(player.serverLevel(), player, AuraSounds.BEACON_ACTIVATE.value(), 0.7f, 1.3f);
 		ArenaFx.title(player, Component.literal(data.aura.displayName + " Trial").withStyle(data.aura.color, ChatFormatting.BOLD),
 				Component.literal(items.size() + " things to try - in any order").withStyle(ChatFormatting.GRAY));
 		player.sendSystemMessage(Component.literal("━━━ ✦ " + data.aura.displayName.toUpperCase(java.util.Locale.ROOT) + " TRIAL ✦ ━━━").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
@@ -253,7 +253,7 @@ public final class AuraTrial {
 		player.sendSystemMessage(Component.literal("✔ " + it.label).withStyle(ChatFormatting.GREEN)
 				.append(Component.literal("  (" + (run.items.size() - run.left) + "/" + run.items.size() + ")").withStyle(ChatFormatting.DARK_GRAY))
 				.append(Component.literal(it.what == null ? "" : "  " + it.what).withStyle(ChatFormatting.GRAY)));
-		AuraFx.sound(player.serverLevel(), player, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.6f, 1.0f + 0.5f * (run.items.size() - run.left) / run.items.size());
+		AuraFx.sound(player.serverLevel(), player, AuraSounds.EXPERIENCE_ORB_PICKUP.value(), 0.6f, 1.0f + 0.5f * (run.items.size() - run.left) / run.items.size());
 		if (run.left <= 0) finish(player, run);
 	}
 
@@ -265,7 +265,7 @@ public final class AuraTrial {
 		stop(player, null);
 		ArenaFx.title(player, Component.literal("Trial complete").withStyle(run.aura.color, ChatFormatting.BOLD),
 				Component.literal(run.aura.displayName + ": every ability, cast and chain").withStyle(ChatFormatting.GRAY));
-		AuraFx.sound(player.serverLevel(), player, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.1f);
+		AuraFx.sound(player.serverLevel(), player, AuraSounds.UI_TOAST_CHALLENGE_COMPLETE.value(), 0.8f, 1.1f);
 		player.sendSystemMessage(Component.literal("✦ " + run.aura.displayName + " Trial complete" + (first ? "!" : " again!")).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
 		player.sendSystemMessage(Component.literal("Back to your own kit now: buy actives in the Aura Book; casts open at Mastery "
 				+ com.toast.aurapoints.ability.Mastery.roman(AuraConfig.CAST_SNEAK_MASTERY) + " (sneak) and "

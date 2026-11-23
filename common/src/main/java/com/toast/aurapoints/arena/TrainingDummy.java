@@ -1,5 +1,6 @@
 package com.toast.aurapoints.arena;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraLabel;
 import com.toast.aurapoints.ability.AuraType;
 import com.toast.aurapoints.data.AuraState;
@@ -211,7 +212,7 @@ public class TrainingDummy extends Mob {
 		if (level() instanceof ServerLevel level) {
 			number(level, Component.literal("KO!").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
 			com.toast.aurapoints.ability.AuraFx.particles(level, net.minecraft.core.particles.ParticleTypes.TOTEM_OF_UNDYING, getX(), getY() + 1.2, getZ(), 40, 0.4, 0.7, 0.4, 0.4);
-			level.playSound(null, getX(), getY(), getZ(), net.minecraft.sounds.SoundEvents.TOTEM_USE, net.minecraft.sounds.SoundSource.NEUTRAL, 0.5f, 1.4f);
+			level.playSound(null, getX(), getY(), getZ(), AuraSounds.TOTEM_USE.value(), net.minecraft.sounds.SoundSource.NEUTRAL, 0.5f, 1.4f);
 		}
 	}
 
@@ -267,7 +268,7 @@ public class TrainingDummy extends Mob {
 		// sparks off the straw, a heavier thud for an ability
 		com.toast.aurapoints.ability.AuraFx.particles(level, abilityHit ? net.minecraft.core.particles.ParticleTypes.ENCHANTED_HIT : net.minecraft.core.particles.ParticleTypes.CRIT,
 				getX(), getY() + 1.3, getZ(), abilityHit ? 14 : 8, 0.3, 0.4, 0.3, 0.25);
-		level.playSound(null, getX(), getY(), getZ(), abilityHit ? net.minecraft.sounds.SoundEvents.ANVIL_LAND : net.minecraft.sounds.SoundEvents.WOOL_HIT,
+		level.playSound(null, getX(), getY(), getZ(), abilityHit ? AuraSounds.ANVIL_LAND.value() : AuraSounds.WOOL_HIT.value(),
 				net.minecraft.sounds.SoundSource.NEUTRAL, abilityHit ? 0.25f : 0.8f, abilityHit ? 1.8f : 0.9f);
 	}
 

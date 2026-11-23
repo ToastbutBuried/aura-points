@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraFx;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -9,7 +10,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -122,7 +122,7 @@ final class WardenAspects {
 				.key(40, c.add(-9, 3, 7), c)
 				.key(66, c.add(0, 5, 13), c)
 				.send(here);
-		level.playSound(null, w.getX(), w.getY() + 2, w.getZ(), SoundEvents.WARDEN_ROAR, SoundSource.HOSTILE, 2.5f, 0.8f);
+		level.playSound(null, w.getX(), w.getY() + 2, w.getZ(), AuraSounds.WARDEN_ROAR.value(), SoundSource.HOSTILE, 2.5f, 0.8f);
 		AuraFx.ring(level, w.getX(), w.getY() + 0.2, w.getZ(), 7, AuraFx.dust(rgb, 2.2f), 48);
 		motif(to);
 	}
@@ -134,19 +134,19 @@ final class WardenAspects {
 		SoundEvent inst;
 		switch (to) {
 			case BLUE -> {
-				inst = SoundEvents.NOTE_BLOCK_BELL.value();
+				inst = AuraSounds.NOTE_BLOCK_BELL.value();
 				seq = new int[][]{{0, 3}, {8, 6}, {16, 10}, {24, 15}, {40, 10}, {48, 15}};
 			}
 			case GREEN -> {
-				inst = SoundEvents.NOTE_BLOCK_HARP.value();
+				inst = AuraSounds.NOTE_BLOCK_HARP.value();
 				seq = new int[][]{{0, 8}, {6, 12}, {12, 15}, {18, 12}, {24, 8}, {36, 15}, {44, 20}};
 			}
 			case YELLOW -> {
-				inst = SoundEvents.NOTE_BLOCK_PLING.value();
+				inst = AuraSounds.NOTE_BLOCK_PLING.value();
 				seq = new int[][]{{0, 12}, {5, 16}, {10, 19}, {15, 24}, {30, 19}, {36, 24}, {44, 28}};
 			}
 			default -> {
-				inst = SoundEvents.NOTE_BLOCK_BASS.value();
+				inst = AuraSounds.NOTE_BLOCK_BASS.value();
 				seq = new int[][]{{0, 0}, {10, 0}, {20, 3}, {30, 3}, {40, 5}, {50, 7}};
 			}
 		}
@@ -155,8 +155,8 @@ final class WardenAspects {
 				if (w.run == null) return;
 				var here = Rifts.online(server, w.run);
 				Reliquary.note(here, inst, n[1], 1.3f);
-				if (to == RED) Reliquary.note(here, SoundEvents.NOTE_BLOCK_DIDGERIDOO.value(), n[1], 0.9f);
-				if (to == BLUE && n[0] == 0) Reliquary.note(here, SoundEvents.NOTE_BLOCK_BASS.value(), 3, 1.4f);
+				if (to == RED) Reliquary.note(here, AuraSounds.NOTE_BLOCK_DIDGERIDOO.value(), n[1], 0.9f);
+				if (to == BLUE && n[0] == 0) Reliquary.note(here, AuraSounds.NOTE_BLOCK_BASS.value(), 3, 1.4f);
 			});
 		}
 	}
@@ -174,7 +174,7 @@ final class WardenAspects {
 		Vec3 c = w.position();
 		int rings = w.run.difficulty.tier() >= 2 ? 2 : 1;
 		var server = level.getServer();
-		level.playSound(null, c.x, c.y + 1, c.z, SoundEvents.BELL_BLOCK, SoundSource.HOSTILE, 3f, 0.6f);
+		level.playSound(null, c.x, c.y + 1, c.z, AuraSounds.BELL_BLOCK.value(), SoundSource.HOSTILE, 3f, 0.6f);
 		// the tell: a blue ring pulls in on the Warden's feet
 		for (int k = 0; k < 28; k += 4) {
 			double r = 4.5 * (1 - k / 30.0);
@@ -190,7 +190,7 @@ final class WardenAspects {
 				AuraFx.later(server, start + step * 2, () -> {
 					if (!w.isAlive()) return;
 					AuraFx.ring(level, c.x, c.y + 0.15, c.z, r, AuraFx.dust(Reliquary.WING_RGB[BLUE], 1.9f), Math.max(24, (int) (r * 6)));
-					if ((int) (r * 10) % 3 == 0) level.playSound(null, c.x, c.y + 1, c.z, SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.HOSTILE, 1.4f, (float) (0.6 + r / 30));
+					if ((int) (r * 10) % 3 == 0) level.playSound(null, c.x, c.y + 1, c.z, AuraSounds.NOTE_BLOCK_CHIME.value(), SoundSource.HOSTILE, 1.4f, (float) (0.6 + r / 30));
 					for (ServerPlayer p : players(level)) {
 						if (hit.contains(p.getUUID())) continue;
 						double d = Math.hypot(p.getX() - c.x, p.getZ() - c.z);
@@ -238,8 +238,8 @@ final class WardenAspects {
 	void erupt(ServerLevel level, Vec3 at) {
 		level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.MOSS_BLOCK.defaultBlockState()), at.x, at.y + 0.4, at.z, 40, 1.2, 0.5, 1.2, 0.2);
 		level.sendParticles(ParticleTypes.COMPOSTER, at.x, at.y + 0.8, at.z, 20, 1.0, 0.8, 1.0, 0.05);
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.GRASS_BREAK, SoundSource.HOSTILE, 2f, 0.6f);
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.WARDEN_DIG, SoundSource.HOSTILE, 0.8f, 1.4f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.GRASS_BREAK.value(), SoundSource.HOSTILE, 2f, 0.6f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.WARDEN_DIG.value(), SoundSource.HOSTILE, 0.8f, 1.4f);
 		for (ServerPlayer p : players(level)) {
 			if (p.distanceToSqr(at.x, p.getY(), at.z) > 2.6 * 2.6 || Math.abs(p.getY() - at.y) > 2.5) continue;
 			w.hit(level, p, 7f);
@@ -284,7 +284,7 @@ final class WardenAspects {
 			ServerPlayer target = here.get(b % here.size());
 			Vec3 from = heads.get(level.random.nextInt(heads.size()));
 			Vec3[] aim = {target.position().add(0, 1.0, 0)};
-			level.playSound(null, from.x, from.y, from.z, SoundEvents.BEACON_POWER_SELECT, SoundSource.HOSTILE, 2f, 1.8f);
+			level.playSound(null, from.x, from.y, from.z, AuraSounds.BEACON_POWER_SELECT.value(), SoundSource.HOSTILE, 2f, 1.8f);
 			for (int k = 0; k <= 38; k += 2) {
 				int tk = k;
 				AuraFx.later(server, k, () -> {
@@ -316,7 +316,7 @@ final class WardenAspects {
 			level.sendParticles(ParticleTypes.END_ROD, q.x, q.y, q.z, 1, 0.05, 0.05, 0.05, 0.01);
 		}
 		level.sendParticles(ParticleTypes.FLASH, stop.x, stop.y, stop.z, 1, 0, 0, 0, 0);
-		level.playSound(null, from.x, from.y, from.z, SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.HOSTILE, 2f, 1.6f);
+		level.playSound(null, from.x, from.y, from.z, AuraSounds.LIGHTNING_BOLT_IMPACT.value(), SoundSource.HOSTILE, 2f, 1.6f);
 		for (ServerPlayer p : players(level)) {
 			Vec3 chest = p.position().add(0, 1.0, 0);
 			double t = Math.max(0, Math.min(len, chest.subtract(from).dot(dir)));
@@ -365,7 +365,7 @@ final class WardenAspects {
 	void impact(ServerLevel level, Vec3 at) {
 		level.sendParticles(ParticleTypes.EXPLOSION, at.x, at.y + 0.5, at.z, 3, 0.8, 0.2, 0.8, 0);
 		level.sendParticles(ParticleTypes.FLAME, at.x, at.y + 0.5, at.z, 40, 1.5, 0.5, 1.5, 0.1);
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2.5f, 0.8f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 2.5f, 0.8f);
 		for (ServerPlayer p : players(level)) {
 			if (p.distanceToSqr(at.x, p.getY(), at.z) > 3.2 * 3.2 || Math.abs(p.getY() - at.y) > 3) continue;
 			w.hit(level, p, 10f);

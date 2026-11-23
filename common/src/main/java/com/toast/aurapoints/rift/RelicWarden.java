@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.AuraPoints;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.AuraType;
@@ -13,7 +14,6 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
@@ -207,7 +207,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		switch (phase) {
 			case UNBOUND -> {
 				announce(level, "UNBOUND", "its arms come loose - keep moving");
-				playSound(SoundEvents.WITHER_SPAWN, 2f, 0.7f);
+				playSound(AuraSounds.WITHER_SPAWN.value(), 2f, 0.7f);
 				summonCd = 20;
 				barrageCd = 30;
 				chargeCd = 80;
@@ -343,8 +343,8 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		windup = -1;
 		landing = null;
 		parryable = false;
-		level.playSound(null, getX(), getY() + 2, getZ(), SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 1.5f, 1.8f);
-		level.playSound(null, getX(), getY() + 2, getZ(), SoundEvents.BELL_BLOCK, SoundSource.HOSTILE, 2f, 1.4f);
+		level.playSound(null, getX(), getY() + 2, getZ(), AuraSounds.ANVIL_LAND.value(), SoundSource.HOSTILE, 1.5f, 1.8f);
+		level.playSound(null, getX(), getY() + 2, getZ(), AuraSounds.BELL_BLOCK.value(), SoundSource.HOSTILE, 2f, 1.4f);
 		level.sendParticles(ParticleTypes.FLASH, getX(), getY() + 2.2, getZ(), 1, 0, 0, 0, 0);
 		level.sendParticles(AuraFx.dust(0xFFD23F, 2.5f), getX(), getY() + 2.2, getZ(), 40, 0.8, 0.8, 0.8, 0);
 		AuraFx.title(by, Component.literal("PARRY").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), Component.literal("it's exposed!").withStyle(ChatFormatting.YELLOW));
@@ -355,7 +355,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 
 	/** Swung at a yellow tell at the wrong moment: a dull clank, no damage, and you reel for a moment. */
 	private void mistimed(ServerLevel level, ServerPlayer p) {
-		level.playSound(null, p.getX(), p.getY() + 1, p.getZ(), SoundEvents.SHIELD_BLOCK, SoundSource.PLAYERS, 1.2f, 0.5f);
+		level.playSound(null, p.getX(), p.getY() + 1, p.getZ(), AuraSounds.SHIELD_BLOCK.value(), SoundSource.PLAYERS, 1.2f, 0.5f);
 		p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 1));
 		parryLock.put(p.getUUID(), tickCount + 30);
 		p.displayClientMessage(Component.literal("Mistimed - wait for the yellow flash").withStyle(ChatFormatting.GRAY), true);
@@ -464,7 +464,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		level.sendParticles(AuraFx.dust(col, 2.8f), getX(), getY() + 2.6, getZ(), 30, 0.6, 0.9, 0.6, 0);
 		level.sendParticles(ParticleTypes.FLASH, getX(), getY() + 2.6, getZ(), 1, 0, 0, 0, 0);
 		if (!yellow) level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, getX(), getY() + 2.6, getZ(), 20, 0.6, 0.9, 0.6, 0.02);
-		level.playSound(null, getX(), getY() + 2, getZ(), yellow ? SoundEvents.BELL_RESONATE : SoundEvents.WARDEN_SONIC_CHARGE, SoundSource.HOSTILE, 2f, yellow ? 1.6f : 1.2f);
+		level.playSound(null, getX(), getY() + 2, getZ(), yellow ? AuraSounds.BELL_RESONATE.value() : AuraSounds.WARDEN_SONIC_CHARGE.value(), SoundSource.HOSTILE, 2f, yellow ? 1.6f : 1.2f);
 	}
 
 	/** A ring of the aura's colour that tightens on a spot while an attack winds up there. */
@@ -516,7 +516,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			windUp(8, false, () -> {
 				Vec3 c = front(2.0);
 				level.sendParticles(ParticleTypes.SWEEP_ATTACK, c.x, c.y + 1.2, c.z, 3, 1.2, 0.3, 1.2, 0);
-				level.playSound(null, c.x, c.y, c.z, SoundEvents.PLAYER_ATTACK_SWEEP, SoundSource.HOSTILE, 1.6f, 0.5f);
+				level.playSound(null, c.x, c.y, c.z, AuraSounds.PLAYER_ATTACK_SWEEP.value(), SoundSource.HOSTILE, 1.6f, 0.5f);
 				Vec3 side = Vec3.directionFromRotation(0, getYRot() + 90);
 				for (ServerPlayer p : playersNear(level, c, 3.6)) {
 					hit(level, p, 8f);
@@ -535,7 +535,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		level.sendParticles(ParticleTypes.EXPLOSION, at.x, at.y + 0.3, at.z, 2, 0.5, 0.1, 0.5, 0);
 		level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, RealmBuilder.palette(aura()).floor().defaultBlockState()),
 				at.x, at.y + 0.2, at.z, 30, r * 0.6, 0.2, r * 0.6, 0.3);
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.WARDEN_ATTACK_IMPACT, SoundSource.HOSTILE, 2f, 0.6f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.WARDEN_ATTACK_IMPACT.value(), SoundSource.HOSTILE, 2f, 0.6f);
 		for (ServerPlayer p : playersNear(level, at, r)) {
 			hit(level, p, dmg);
 			p.setDeltaMovement(p.getDeltaMovement().x, 0.55, p.getDeltaMovement().z);
@@ -547,12 +547,12 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		triggerAnim("action", "slam");
 		Vec3 at = position();
 		warn(level, at, 4.5, 16);
-		playSound(SoundEvents.WARDEN_ATTACK_IMPACT, 2f, 0.6f);
+		playSound(AuraSounds.WARDEN_ATTACK_IMPACT.value(), 2f, 0.6f);
 		windUp(16, random.nextBoolean(), () -> {
 			level.sendParticles(ParticleTypes.EXPLOSION, at.x, at.y + 0.3, at.z, 6, 2, 0.1, 2, 0);
 			level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, RealmBuilder.palette(aura()).floor().defaultBlockState()),
 					at.x, at.y + 0.2, at.z, 60, 2.5, 0.2, 2.5, 0.3);
-			level.playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6f, 0.6f);
+			level.playSound(null, at.x, at.y, at.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6f, 0.6f);
 			for (ServerPlayer p : playersNear(level, at, 4.5)) {
 				hit(level, p, 10f);
 				Vec3 push = p.position().subtract(at).normalize().scale(0.9);
@@ -580,7 +580,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 				}
 			});
 		}
-		playSound(SoundEvents.RAVAGER_ROAR, 2f, 0.6f);
+		playSound(AuraSounds.RAVAGER_ROAR.value(), 2f, 0.6f);
 		windUp(18, false, () -> {
 			chargeTicks = 14;
 			chargeHit.clear();
@@ -634,7 +634,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		triggerAnim("action", "cast");
 		List<ServerPlayer> targets = playersNear(level, position(), 30);
 		if (targets.isEmpty()) return;
-		playSound(SoundEvents.BREEZE_SHOOT, 2f, 0.5f);
+		playSound(AuraSounds.BREEZE_SHOOT.value(), 2f, 0.5f);
 		int per = phase() == LAST_STAND ? 3 : 2;
 		for (int k = 0; k < targets.size() * per; k++) {
 			ServerPlayer t = targets.get(k % targets.size());
@@ -647,7 +647,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 				Display.BlockDisplay d = com.toast.aurapoints.ability.Props.spawn(level, from, block,
 						new com.mojang.math.Transformation(new org.joml.Vector3f(-0.3f, -0.3f, -0.3f), null, new org.joml.Vector3f(0.6f, 0.6f, 0.6f), null), 100, 2);
 				bolts.add(new Bolt(d, from, vel, t));
-				level.playSound(null, from.x, from.y, from.z, SoundEvents.BREEZE_SHOOT, SoundSource.HOSTILE, 1f, 1.2f);
+				level.playSound(null, from.x, from.y, from.z, AuraSounds.BREEZE_SHOOT.value(), SoundSource.HOSTILE, 1f, 1.2f);
 			});
 		}
 	}
@@ -683,7 +683,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 
 	private void startBeam(ServerLevel level) {
 		triggerAnim("action", "cast");
-		playSound(SoundEvents.BEACON_ACTIVATE, 3f, 0.5f);
+		playSound(AuraSounds.BEACON_ACTIVATE.value(), 3f, 0.5f);
 		warn(level, position(), 14, 24);
 		if (run != null) for (ServerPlayer p : Rifts.online(level.getServer(), run)) p.displayClientMessage(Component.literal("⚠ Core Beam - jump it!").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD), true);
 		windUp(24, false, () -> {
@@ -706,7 +706,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			}
 			level.sendParticles(ParticleTypes.END_ROD, getX() + dir.x * 14, y, getZ() + dir.z * 14, 2, 0.1, 0.1, 0.1, 0.02);
 		}
-		if (beamTicks % 10 == 0) level.playSound(null, getX(), getY(), getZ(), SoundEvents.BEACON_AMBIENT, SoundSource.HOSTILE, 2.5f, 1.6f);
+		if (beamTicks % 10 == 0) level.playSound(null, getX(), getY(), getZ(), AuraSounds.BEACON_AMBIENT.value(), SoundSource.HOSTILE, 2.5f, 1.6f);
 		for (ServerPlayer p : playersNear(level, position(), 15)) {
 			Vec3 rel = p.position().subtract(position());
 			double along = rel.x * dir.x + rel.z * dir.z, across = Math.abs(rel.x * dir.z - rel.z * dir.x);
@@ -733,7 +733,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		kneelTicks = 60;
 		setPose(POSE_KNEEL);
 		getNavigation().stop();
-		playSound(SoundEvents.WARDEN_HEARTBEAT, 3f, 0.6f);
+		playSound(AuraSounds.WARDEN_HEARTBEAT.value(), 3f, 0.6f);
 		announce(level, "LAST STAND", "its core is exposed - finish it");
 	}
 
@@ -742,14 +742,14 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		if (kneelTicks > 0) {
 			kneelTicks--;
 			getNavigation().stop();
-			if (kneelTicks % 10 == 0) playSound(SoundEvents.WARDEN_HEARTBEAT, 3f, 0.6f + (60 - kneelTicks) / 60f);
+			if (kneelTicks % 10 == 0) playSound(AuraSounds.WARDEN_HEARTBEAT.value(), 3f, 0.6f + (60 - kneelTicks) / 60f);
 			if (kneelTicks == 20) {
 				setPose(POSE_NONE);
 				triggerAnim("action", "rise");
 			}
 			if (kneelTicks == 0) {
 				desperation = 300;
-				playSound(SoundEvents.WARDEN_ROAR, 3f, 1.0f);
+				playSound(AuraSounds.WARDEN_ROAR.value(), 3f, 1.0f);
 				level.sendParticles(AuraFx.dust(aura().rgb, 3f), getX(), getY() + 2.5, getZ(), 120, 2, 2, 2, 0);
 				barrageCd = 0;
 			}
@@ -760,14 +760,14 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			setHealth(getMaxHealth() * 0.30f);
 			entityData.set(PHASE, OVERDRIVE);
 			announce(level, "IT ENDURES", "the Warden rallies - one last push");
-			playSound(SoundEvents.TOTEM_USE, 2f, 0.6f);
+			playSound(AuraSounds.TOTEM_USE.value(), 2f, 0.6f);
 		}
 		return false;
 	}
 
 	private void summon(ServerLevel level) {
 		triggerAnim("action", "summon");
-		playSound(SoundEvents.EVOKER_PREPARE_SUMMON, 2.5f, 0.6f);
+		playSound(AuraSounds.EVOKER_PREPARE_SUMMON.value(), 2.5f, 0.6f);
 		windUp(24, false, () -> {
 			wave++;
 			if (run == null) return;
@@ -808,7 +808,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		setPose(POSE_NONE);
 		getNavigation().stop();
 		triggerAnim("action", "cast");
-		playSound(SoundEvents.BEACON_ACTIVATE, 3f, 0.5f);
+		playSound(AuraSounds.BEACON_ACTIVATE.value(), 3f, 0.5f);
 		Vec3 home = run != null ? Reliquary.cryptCenter(run) : position();
 		for (int i = 0; i < 4; i++) {
 			double a = i * Math.PI / 2 + Math.PI / 4;
@@ -848,11 +848,11 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			}
 		}
 		if (pylons.isEmpty()) {
-			playSound(SoundEvents.IRON_GOLEM_DAMAGE, 3f, 0.4f);
+			playSound(AuraSounds.IRON_GOLEM_DAMAGE.value(), 3f, 0.4f);
 			entityData.set(PHASE, OVERDRIVE);
 			stagger(40, () -> {
 				triggerAnim("action", "roar");
-				playSound(SoundEvents.WARDEN_ROAR, 3f, 0.8f);
+				playSound(AuraSounds.WARDEN_ROAR.value(), 3f, 0.8f);
 				level.sendParticles(AuraFx.dust(aura().rgb, 3f), getX(), getY() + 2.5, getZ(), 80, 1.5, 1.5, 1.5, 0);
 				setPhase(level, OVERDRIVE);
 			});
@@ -880,7 +880,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 
 	private void signature(ServerLevel level, AuraType aura) {
 		triggerAnim("action", "cast");
-		playSound(SoundEvents.EVOKER_CAST_SPELL, 2.5f, 0.6f);
+		playSound(AuraSounds.EVOKER_CAST_SPELL.value(), 2.5f, 0.6f);
 		List<ServerPlayer> targets = playersNear(level, position(), 28);
 		if (targets.isEmpty()) return;
 		ServerPlayer main = getTarget() instanceof ServerPlayer sp ? sp : targets.get(0);
@@ -895,7 +895,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 					for (Vec3 s : spots) {
 						level.sendParticles(ParticleTypes.LAVA, s.x, s.y + 0.5, s.z, 12, 0.6, 0.3, 0.6, 0);
 						level.sendParticles(ParticleTypes.FLAME, s.x, s.y + 0.5, s.z, 30, 0.8, 0.5, 0.8, 0.05);
-						level.playSound(null, s.x, s.y, s.z, SoundEvents.BLAZE_SHOOT, SoundSource.HOSTILE, 1f, 0.6f);
+						level.playSound(null, s.x, s.y, s.z, AuraSounds.BLAZE_SHOOT.value(), SoundSource.HOSTILE, 1f, 0.6f);
 						for (ServerPlayer p : playersNear(level, s, 2.2)) {
 							hit(level, p, 7f);
 							p.igniteForSeconds(4);
@@ -907,7 +907,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 				warn(level, me, 10, 20);
 				windUp(20, false, () -> {
 					AuraFx.ring(level, me.x, me.y + 0.4, me.z, 6, ParticleTypes.SPLASH, 60);
-					level.playSound(null, me.x, me.y, me.z, SoundEvents.GENERIC_SPLASH, SoundSource.HOSTILE, 2f, 0.5f);
+					level.playSound(null, me.x, me.y, me.z, AuraSounds.GENERIC_SPLASH.value(), SoundSource.HOSTILE, 2f, 0.5f);
 					for (ServerPlayer p : playersNear(level, me, 10)) {
 						hit(level, p, 6f);
 						Vec3 push = p.position().subtract(me).normalize().scale(1.4);
@@ -920,7 +920,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			case WIND -> {
 				warn(level, me, 14, 20);
 				windUp(20, false, () -> {
-					level.playSound(null, me.x, me.y, me.z, SoundEvents.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.HOSTILE, 2f, 0.6f);
+					level.playSound(null, me.x, me.y, me.z, AuraSounds.BREEZE_WIND_CHARGE_BURST.value(), SoundSource.HOSTILE, 2f, 0.6f);
 					for (ServerPlayer p : playersNear(level, me, 14)) {
 						Vec3 pull = me.subtract(p.position()).normalize().scale(1.1);
 						p.setDeltaMovement(pull.x, 0.9, pull.z);
@@ -949,7 +949,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 							}
 						}
 					}
-					level.playSound(null, me.x, me.y, me.z, aura == AuraType.FROST ? SoundEvents.GLASS_BREAK : SoundEvents.ANVIL_LAND, SoundSource.HOSTILE, 2f, 0.6f);
+					level.playSound(null, me.x, me.y, me.z, aura == AuraType.FROST ? AuraSounds.GLASS_BREAK.value() : AuraSounds.ANVIL_LAND.value(), SoundSource.HOSTILE, 2f, 0.6f);
 				});
 			}
 			case VERDANT -> {
@@ -964,7 +964,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 							p.addEffect(new MobEffectInstance(MobEffects.POISON, 80, 1));
 						}
 					}
-					level.playSound(null, me.x, me.y, me.z, SoundEvents.ROOTED_DIRT_BREAK, SoundSource.HOSTILE, 2f, 0.5f);
+					level.playSound(null, me.x, me.y, me.z, AuraSounds.ROOTED_DIRT_BREAK.value(), SoundSource.HOSTILE, 2f, 0.5f);
 				});
 			}
 			case THUNDER, LIGHT -> {
@@ -983,7 +983,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 							}
 						} else {
 							level.sendParticles(ParticleTypes.END_ROD, s.x, s.y + 4, s.z, 50, 0.3, 4, 0.3, 0.02);
-							level.playSound(null, s.x, s.y, s.z, SoundEvents.BEACON_POWER_SELECT, SoundSource.HOSTILE, 1.5f, 1.6f);
+							level.playSound(null, s.x, s.y, s.z, AuraSounds.BEACON_POWER_SELECT.value(), SoundSource.HOSTILE, 1.5f, 1.6f);
 						}
 						for (ServerPlayer p : playersNear(level, s, 2)) {
 							hit(level, p, 8f);
@@ -997,7 +997,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 				Vec3 behind = main.position().subtract(main.getLookAngle().multiply(1, 0, 1).normalize().scale(2));
 				level.sendParticles(ParticleTypes.LARGE_SMOKE, getX(), getY() + 2, getZ(), 40, 0.8, 1.5, 0.8, 0.02);
 				teleportTo(behind.x, main.getY(), behind.z);
-				playSound(SoundEvents.ENDERMAN_TELEPORT, 2f, 0.5f);
+				playSound(AuraSounds.ENDERMAN_TELEPORT.value(), 2f, 0.5f);
 				main.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 80, 0));
 				windUp(10, true, () -> {
 					triggerAnim("action", "slam");
@@ -1031,7 +1031,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		// the death animation runs 2.5 s
 		++deathTime;
 		if (deathTime == 1) {
-			playSound(SoundEvents.WARDEN_DEATH, 3f, 0.6f);
+			playSound(AuraSounds.WARDEN_DEATH.value(), 3f, 0.6f);
 			for (Shulker s : pylons) s.discard();
 			for (Bolt b : bolts) com.toast.aurapoints.ability.Props.remove(b.d);
 			bolts.clear();

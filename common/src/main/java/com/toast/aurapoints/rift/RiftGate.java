@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.mojang.math.Transformation;
 import com.toast.aurapoints.ability.AuraType;
 import com.toast.aurapoints.ability.Props;
@@ -13,7 +14,6 @@ import net.minecraft.nbt.FloatTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -122,8 +122,8 @@ final class RiftGate {
 			debris.add(Props.spawn(level, center, palette.base().defaultBlockState(), none, -1, 0));
 		}
 		core = relicDisplay();
-		level.playSound(null, center.x, center.y, center.z, SoundEvents.END_PORTAL_SPAWN, SoundSource.AMBIENT, 1.5f, 1.3f);
-		level.playSound(null, ground.x, ground.y, ground.z, SoundEvents.WARDEN_EMERGE, SoundSource.AMBIENT, 1.2f, 0.6f);
+		level.playSound(null, center.x, center.y, center.z, AuraSounds.END_PORTAL_SPAWN.value(), SoundSource.AMBIENT, 1.5f, 1.3f);
+		level.playSound(null, ground.x, ground.y, ground.z, AuraSounds.WARDEN_EMERGE.value(), SoundSource.AMBIENT, 1.2f, 0.6f);
 	}
 
 	private Display.ItemDisplay relicDisplay() {
@@ -185,8 +185,8 @@ final class RiftGate {
 	void close() {
 		if (closingAge >= 0) return;
 		closingAge = 0;
-		level.playSound(null, center.x, center.y, center.z, SoundEvents.BEACON_DEACTIVATE, SoundSource.AMBIENT, 1.4f, 0.6f);
-		level.playSound(null, center.x, center.y, center.z, SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.AMBIENT, 1.2f, 0.7f);
+		level.playSound(null, center.x, center.y, center.z, AuraSounds.BEACON_DEACTIVATE.value(), SoundSource.AMBIENT, 1.4f, 0.6f);
+		level.playSound(null, center.x, center.y, center.z, AuraSounds.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.AMBIENT, 1.2f, 0.7f);
 	}
 
 	/** Every server tick; false once a closing gate is gone. */
@@ -316,8 +316,8 @@ final class RiftGate {
 
 	private void sounds() {
 		if (closingAge >= 0) return;
-		if (age % 50 == 10) level.playSound(null, center.x, center.y, center.z, SoundEvents.PORTAL_AMBIENT, SoundSource.AMBIENT, 0.9f, 0.55f);
-		if (age % 80 == 40) level.playSound(null, center.x, center.y, center.z, SoundEvents.BEACON_AMBIENT, SoundSource.AMBIENT, 1.6f, 0.5f);
+		if (age % 50 == 10) level.playSound(null, center.x, center.y, center.z, AuraSounds.PORTAL_AMBIENT.value(), SoundSource.AMBIENT, 0.9f, 0.55f);
+		if (age % 80 == 40) level.playSound(null, center.x, center.y, center.z, AuraSounds.BEACON_AMBIENT.value(), SoundSource.AMBIENT, 1.6f, 0.5f);
 	}
 
 	// ---------------------------------------------------------------

@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.mojang.math.Transformation;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.Relics;
@@ -12,7 +13,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Brightness;
 import net.minecraft.world.entity.Display;
@@ -91,7 +91,7 @@ final class Altar {
 		shards[i] = itemDisplay(level, top(i), RelicShardItem.make(run.aura, run.id, trial), 0.9f, 15);
 		placed++;
 		Vec3 t = top(i);
-		level.playSound(null, t.x, t.y, t.z, SoundEvents.END_PORTAL_FRAME_FILL, SoundSource.BLOCKS, 1.4f, 0.8f + placed * 0.15f);
+		level.playSound(null, t.x, t.y, t.z, AuraSounds.END_PORTAL_FRAME_FILL.value(), SoundSource.BLOCKS, 1.4f, 0.8f + placed * 0.15f);
 		level.sendParticles(AuraFx.dust(run.aura.rgb, 2f), t.x, t.y, t.z, 30, 0.2, 0.6, 0.2, 0);
 		for (ServerPlayer o : Rifts.online(level.getServer(), run)) {
 			o.displayClientMessage(Component.literal("Shard set on the altar (" + placed + "/4)").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb))), true);
@@ -115,7 +115,7 @@ final class Altar {
 					Component.literal("the shards remember what they were").withStyle(ChatFormatting.GRAY));
 		}
 		Vec3 f = focus();
-		level.playSound(null, f.x, f.y, f.z, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 2f, 0.6f);
+		level.playSound(null, f.x, f.y, f.z, AuraSounds.BEACON_ACTIVATE.value(), SoundSource.BLOCKS, 2f, 0.6f);
 	}
 
 	/** Every server tick during the run. Returns true on the tick the guardian must appear. */
@@ -149,7 +149,7 @@ final class Altar {
 				level.sendParticles(AuraFx.dust(run.aura.rgb, 1.2f), to.x, to.y, to.z, 2, 0.05, 0.05, 0.05, 0);
 			}
 		}
-		if (t % 20 == 0 && t < 110) level.playSound(null, f.x, f.y, f.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 1.6f, 0.5f + t / 110f);
+		if (t % 20 == 0 && t < 110) level.playSound(null, f.x, f.y, f.z, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.BLOCKS, 1.6f, 0.5f + t / 110f);
 		if (t > 40 && t < 126 && t % 3 == 0) {
 			level.sendParticles(ParticleTypes.END_ROD, f.x, f.y, f.z, 3, 0.1, 2.5, 0.1, 0.02);
 		}
@@ -162,7 +162,7 @@ final class Altar {
 			relic = itemDisplay(level, f.add(0, 4.5, 0), Relics.stack(run.aura), 1.6f, 15);
 			level.sendParticles(ParticleTypes.FLASH, f.x, f.y + 4.5, f.z, 1, 0, 0, 0, 0);
 			level.sendParticles(AuraFx.dust(run.aura.rgb, 3f), f.x, f.y + 4.5, f.z, 80, 1.2, 1.2, 1.2, 0);
-			level.playSound(null, f.x, f.y, f.z, SoundEvents.TOTEM_USE, SoundSource.BLOCKS, 1.4f, 0.8f);
+			level.playSound(null, f.x, f.y, f.z, AuraSounds.TOTEM_USE.value(), SoundSource.BLOCKS, 1.4f, 0.8f);
 			for (ServerPlayer o : Rifts.online(level.getServer(), run)) {
 				AuraFx.title(o, Component.literal(Relics.name(run.aura)).withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),
 						Component.literal("...something stirs beneath the altar").withStyle(ChatFormatting.DARK_RED));
@@ -170,7 +170,7 @@ final class Altar {
 		}
 		if (t > 126 && t % 4 == 0) {
 			// the ground shakes
-			level.playSound(null, f.x, f.y, f.z, SoundEvents.WARDEN_DIG, SoundSource.HOSTILE, 1.8f, 0.6f);
+			level.playSound(null, f.x, f.y, f.z, AuraSounds.WARDEN_DIG.value(), SoundSource.HOSTILE, 1.8f, 0.6f);
 			level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, RealmBuilder.palette(run.aura).accent().defaultBlockState()),
 					f.x, f.y - 1.2, f.z, 30, 2.5, 0.2, 2.5, 0.2);
 		}
@@ -178,7 +178,7 @@ final class Altar {
 			if (relic != null) relic.discard();
 			relic = null;
 			level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, f.x, f.y, f.z, 1, 0, 0, 0, 0);
-			level.playSound(null, f.x, f.y, f.z, SoundEvents.WARDEN_EMERGE, SoundSource.HOSTILE, 2.5f, 0.7f);
+			level.playSound(null, f.x, f.y, f.z, AuraSounds.WARDEN_EMERGE.value(), SoundSource.HOSTILE, 2.5f, 0.7f);
 			return true;
 		}
 		return false;
