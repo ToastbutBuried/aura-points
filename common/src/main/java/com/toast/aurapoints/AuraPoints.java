@@ -187,6 +187,8 @@ public class AuraPoints {
 	// the Altar Hall's pillars, their vein sections (altar_vein: custom_model_data (aura - 1) * 6 + section + 1) and the portal swirl, 5.30
 	public static final DeferredItem<Item> ALTAR_PILLAR = ITEMS.registerSimpleItem("altar_pillar");
 	public static final DeferredItem<Item> ALTAR_VEIN = ITEMS.registerSimpleItem("altar_vein");
+	/** The trial gates' veils (5.55): one model per aura and layer (custom_model_data). Displays only. */
+	public static final DeferredItem<Item> TRIAL_VEIL = ITEMS.registerSimpleItem("trial_veil");
 	public static final DeferredItem<Item> ALTAR_PORTAL = ITEMS.registerSimpleItem("altar_portal");
 	/** Not obtainable: the shadow dragon's body segments, shown by datapacks as item displays (16 px long on Z, 8x8 cross-section). */
 	public static final DeferredItem<Item> DRAGON_SEGMENT_A = ITEMS.registerSimpleItem("dragon_segment_a");

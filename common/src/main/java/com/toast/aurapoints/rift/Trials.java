@@ -363,6 +363,7 @@ final class Trials {
 			// the antechamber: a portal at the far wall of the wing, facing the altar
 			gate = new TrialPortal(at(hall - 3, 0, 0), -fx, -fz, rgb, kind);
 			back = new TrialPortal(arena(backF() - 1, 0, 0), fx, fz, rgb, kind);
+			gate.veil = back.veil = run.aura;
 			gate.to = back;
 			back.to = gate;
 			back.build(level, pal);

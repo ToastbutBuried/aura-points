@@ -45,6 +45,9 @@ final class TrialPortal {
 	/** Closed portals show no curtain and don't move anyone (the arena is still being built). */
 	boolean open;
 	private Trials.Kind shape;
+	/** The run's aura: its veil fills the gate (null = plain glass). */
+	com.toast.aurapoints.ability.AuraType veil;
+	private final List<Display.ItemDisplay> layers = new ArrayList<>();
 
 	/** A portal in its trial's own kind of gate (PortalShapes). */
 	TrialPortal(BlockPos base, int nx, int nz, int rgb, Trials.Kind shape) {
@@ -143,17 +146,46 @@ final class TrialPortal {
 	void setOpen(ServerLevel level, boolean on, Block glass) {
 		if (on == open) return;
 		open = on;
-		for (Display.BlockDisplay d : curtain) Props.remove(d);
-		curtain.clear();
+		remove();
+		open = on;
 		if (!on) return;
 		Vec3 c = Vec3.atBottomCenterOf(base.above());
+		if (veil == com.toast.aurapoints.ability.AuraType.SHADOW) {
+			for (int l = 0; l < 3; l++) layer(level, c, l);
+		} else {
 		// a bright slit first, torn open sideways over a second
 		sheet(level, c, glass.defaultBlockState(), 2 * w + 1, h, 0.12f, 0f);
 		// a second, thinner sheet of the aura's light for the shimmer
 		sheet(level, c, Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), 2 * w + 0.7f, h - 0.3f, 0.04f, 0.15f);
+		}
 		level.sendParticles(ParticleTypes.FLASH, c.x, c.y + h / 2.0, c.z, 1, 0, 0, 0, 0);
 		level.playSound(null, c.x, c.y + 2, c.z, AuraSounds.BEACON_ACTIVATE.value(), SoundSource.BLOCKS, 1.2f, 1.4f);
 		level.playSound(null, c.x, c.y + 2, c.z, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.BLOCKS, 1.6f, 0.6f);
+	}
+
+	/** One layer of the veil: the deep back, the sign in the middle, what reaches out in front; a gap between them gives depth. */
+	private void layer(ServerLevel level, Vec3 c, int l) {
+		Display.ItemDisplay d = new Display.ItemDisplay(net.minecraft.world.entity.EntityType.ITEM_DISPLAY, level);
+		double out = -0.3 + 0.28 * l;
+		d.moveTo(c.x + nx * out, c.y + h / 2.0, c.z + nz * out, nx != 0 ? 90f : 0f, 0f);
+		net.minecraft.world.item.ItemStack s = new net.minecraft.world.item.ItemStack(com.toast.aurapoints.AuraPoints.TRIAL_VEIL.get());
+		s.set(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA, new net.minecraft.world.item.component.CustomModelData(l + 1));
+		((com.toast.aurapoints.mixin.ItemDisplayAccessor) d).aurapoints$setItemStack(s);
+		((com.toast.aurapoints.mixin.ItemDisplayAccessor) d).aurapoints$setItemTransform(net.minecraft.world.item.ItemDisplayContext.FIXED);
+		var acc = (com.toast.aurapoints.mixin.DisplayAccessor) d;
+		acc.aurapoints$setViewRange(3f);
+		acc.aurapoints$setBrightnessOverride(new net.minecraft.util.Brightness(15, 15));
+		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(0.05f, h, 1f), null));
+		d.addTag(Trials.DISPLAY_TAG);
+		level.addFreshEntity(d);
+		layers.add(d);
+		float k = l == 2 ? 1.14f : 1f;
+		AuraFx.later(level.getServer(), 3 + l * 6, () -> {
+			if (d.isRemoved()) return;
+			acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f((2 * w + 1) * k, h * k, 1f), null));
+			acc.aurapoints$setInterpolationDuration(20);
+			d.getEntityData().set(com.toast.aurapoints.mixin.DisplayAccessor.aurapoints$startDelta(), 0, true);
+		});
 	}
 
 	private Transformation sheetT(float wide, float tall, float depth, float dy) {
@@ -217,6 +249,8 @@ final class TrialPortal {
 
 	void remove() {
 		for (Display.BlockDisplay d : curtain) Props.remove(d);
+		for (Display.ItemDisplay d : layers) d.discard();
+		layers.clear();
 		curtain.clear();
 		open = false;
 	}
