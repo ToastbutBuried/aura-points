@@ -43,6 +43,12 @@ public record FxPacket(byte kind, int value, String text) implements CustomPacke
 	/** A hold-and-release skill check (5.52, client/SkillCheckHud, rift/SkillChecks): value = ticks the bar takes (0 = stop), text = see SkillCheckHud.onPacket. */
 	public static final byte SKILL_CHECK = 13;
 
+	/**
+	 * The rift's music (5.53, client/AuraMusic): value = ticks of the time limit left (sent every second while the hurry
+	 * music should play), 0 = stop; text "won" = the run was won, play the closing sting.
+	 */
+	public static final byte RIFT_MUSIC = 14;
+
 	public static final Type<FxPacket> TYPE =
 			new Type<>(ResourceLocation.fromNamespaceAndPath("aurapoints", "fx"));
 

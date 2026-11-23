@@ -221,6 +221,10 @@ public final class TrialsDevTest {
 					p.teleportTo((ServerLevel) p.level(), g.x, g.y, g.z, t.forwardYaw(), 16f);
 				}
 				case "vote" -> Rifts.devVote(p, 2);
+				case "time125" -> Rifts.devTimeLeft(p, 125);
+				case "time50" -> Rifts.devTimeLeft(p, 50);
+				case "lose" -> Rifts.devEnd(p, false);
+				case "musicwin" -> Rifts.devEnd(p, true);
 				case "enter", "enterwind" -> {
 					// a Frost (or Wind: "enterwind") gate at the caller, and straight in
 					if (!Rifts.devTearOpen()) Rifts.open(p.getServer(), what.equals("enterwind") ? AuraType.WIND : AuraType.FROST, null, p.position().add(0, 1.6, 0));

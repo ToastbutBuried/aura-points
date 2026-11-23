@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraFx;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -20,7 +21,6 @@ import net.minecraft.network.protocol.game.ClientboundSoundPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -507,10 +507,10 @@ final class TrialBells extends Trials.Trial {
 		if (!TrialDecor.fake(p)) {
 			p.connection.send(new ClientboundBlockEventPacket(pos, Blocks.BELL, 1, bellFacing().get3DDataValue()));
 			long seed = level.random.nextLong();
-			p.connection.send(new ClientboundSoundPacket(holder(SoundEvents.BELL_BLOCK), SoundSource.BLOCKS, c.x, c.y, c.z, 3f, PITCH[b], seed));
-			p.connection.send(new ClientboundSoundPacket(SoundEvents.NOTE_BLOCK_BELL, SoundSource.BLOCKS, c.x, c.y, c.z, 3f, PITCH[b] * 1.5f, seed));
-			if (fake) p.connection.send(new ClientboundSoundPacket(holder(SoundEvents.SOUL_ESCAPE.value()), SoundSource.BLOCKS, c.x, c.y, c.z, 3f, 0.8f, seed));
-			if (ghostNote) p.connection.send(new ClientboundSoundPacket(holder(SoundEvents.VEX_CHARGE), SoundSource.HOSTILE, c.x, c.y, c.z, 3f, 0.6f, seed));
+			p.connection.send(new ClientboundSoundPacket(holder(AuraSounds.BELL_BLOCK.value()), SoundSource.BLOCKS, c.x, c.y, c.z, 3f, PITCH[b], seed));
+			p.connection.send(new ClientboundSoundPacket(holder(AuraSounds.NOTE_BLOCK_BELL.value()), SoundSource.BLOCKS, c.x, c.y, c.z, 3f, PITCH[b] * 1.5f, seed));
+			if (fake) p.connection.send(new ClientboundSoundPacket(holder(AuraSounds.SOUL_ESCAPE.value()), SoundSource.BLOCKS, c.x, c.y, c.z, 3f, 0.8f, seed));
+			if (ghostNote) p.connection.send(new ClientboundSoundPacket(holder(AuraSounds.VEX_CHARGE.value()), SoundSource.HOSTILE, c.x, c.y, c.z, 3f, 0.6f, seed));
 		}
 		level.sendParticles(p, AuraFx.dust(RGB[b], 2.2f), true, c.x, c.y - 0.6, c.z, 18, 0.7, 0.6, 0.7, 0);
 		level.sendParticles(p, ParticleTypes.NOTE, true, c.x, c.y + 0.9, c.z, 3, 0.5, 0.3, 0.5, PITCH[b] - 0.5);
@@ -707,13 +707,13 @@ final class TrialBells extends Trials.Trial {
 			return true;
 		}
 		if (bell < 0) return false;
-		RiftSfx.play(level, Vec3.atCenterOf(bellPos(bell)), SoundEvents.AMETHYST_BLOCK_HIT, 0.9f, sel.contains(bell) ? 0.8f : 1.3f);
+		RiftSfx.play(level, Vec3.atCenterOf(bellPos(bell)), AuraSounds.AMETHYST_BLOCK_HIT.value(), 0.9f, sel.contains(bell) ? 0.8f : 1.3f);
 		if (sel.contains(bell)) sel.remove((Integer) bell);
 		else {
 			if (sel.size() >= 2) sel.remove(0);
 			sel.add(bell);
 		}
-		p.playNotifySound(SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.PLAYERS, 0.8f, 1.5f);
+		p.playNotifySound(AuraSounds.UI_BUTTON_CLICK.value(), SoundSource.PLAYERS, 0.8f, 1.5f);
 		pickedBar(p);
 		return true;
 	}
@@ -756,7 +756,7 @@ final class TrialBells extends Trials.Trial {
 				played = -1;
 				pass = 0;
 				hears.clear();
-				level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.LODESTONE_COMPASS_LOCK, SoundSource.BLOCKS, 1f, 0.7f);
+				level.playSound(null, p.getX(), p.getY(), p.getZ(), AuraSounds.LODESTONE_COMPASS_LOCK.value(), SoundSource.BLOCKS, 1f, 0.7f);
 				dots(Component.empty());
 				actionBar(lastHere, replays > 0 ? "The choir sings again (" + replays + " left)" : "The choir sings again", ChatFormatting.GRAY);
 			}
@@ -773,8 +773,8 @@ final class TrialBells extends Trials.Trial {
 		BlockPos bp = bellPos(b);
 		// a rung bell is heard by everyone
 		level.blockEvent(bp, Blocks.BELL, 1, bellFacing().get3DDataValue());
-		level.playSound(null, bp, SoundEvents.BELL_BLOCK, SoundSource.BLOCKS, 2f, PITCH[b]);
-		level.playSound(null, bp, SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.BLOCKS, 1.5f, PITCH[b] * 1.5f);
+		level.playSound(null, bp, AuraSounds.BELL_BLOCK.value(), SoundSource.BLOCKS, 2f, PITCH[b]);
+		level.playSound(null, bp, AuraSounds.NOTE_BLOCK_BELL.value(), SoundSource.BLOCKS, 1.5f, PITCH[b] * 1.5f);
 		Vec3 c = Vec3.atCenterOf(bp);
 		level.sendParticles(AuraFx.dust(RGB[b], 1.8f), c.x, c.y - 0.6, c.z, 10, 0.6, 0.5, 0.6, 0);
 		for (ServerPlayer q : lastHere) lightTower(level, q, b, now + 12);
@@ -882,7 +882,7 @@ final class TrialBells extends Trials.Trial {
 		for (int b = 0; b < 4; b++) {
 			BlockPos bp = bellPos(b);
 			level.blockEvent(bp, Blocks.BELL, 1, bellFacing().get3DDataValue());
-			level.playSound(null, bp, SoundEvents.BELL_RESONATE, SoundSource.BLOCKS, 1.5f, 0.5f + b * 0.07f);
+			level.playSound(null, bp, AuraSounds.BELL_RESONATE.value(), SoundSource.BLOCKS, 1.5f, 0.5f + b * 0.07f);
 		}
 	}
 

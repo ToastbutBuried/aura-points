@@ -225,6 +225,21 @@ public final class AuraSounds {
 	public static final DeferredHolder<SoundEvent, SoundEvent> WOLF_HOWL = register("fx.entity.wolf.howl");
 	public static final DeferredHolder<SoundEvent, SoundEvent> WOLF_SHAKE = register("fx.entity.wolf.shake");
 	public static final DeferredHolder<SoundEvent, SoundEvent> WOOL_HIT = register("fx.block.wool.hit");
+	public static final DeferredHolder<SoundEvent, SoundEvent> AMETHYST_BLOCK_STEP = register("fx.block.amethyst_block.step");
+	public static final DeferredHolder<SoundEvent, SoundEvent> AMETHYST_CLUSTER_PLACE = register("fx.block.amethyst_cluster.place");
+	public static final DeferredHolder<SoundEvent, SoundEvent> ARMOR_EQUIP_GOLD = register("fx.item.armor.equip_gold");
+	public static final DeferredHolder<SoundEvent, SoundEvent> CANDLE_EXTINGUISH = register("fx.block.candle.extinguish");
+	public static final DeferredHolder<SoundEvent, SoundEvent> CHAIN_HIT = register("fx.block.chain.hit");
+	public static final DeferredHolder<SoundEvent, SoundEvent> DECORATED_POT_SHATTER = register("fx.block.decorated_pot.shatter");
+	public static final DeferredHolder<SoundEvent, SoundEvent> FIREWORK_ROCKET_LAUNCH = register("fx.entity.firework_rocket.launch");
+	public static final DeferredHolder<SoundEvent, SoundEvent> FLINTANDSTEEL_USE = register("fx.item.flintandsteel.use");
+	public static final DeferredHolder<SoundEvent, SoundEvent> GRAVEL_HIT = register("fx.block.gravel.hit");
+	public static final DeferredHolder<SoundEvent, SoundEvent> ITEM_PICKUP = register("fx.entity.item.pickup");
+	public static final DeferredHolder<SoundEvent, SoundEvent> LODESTONE_COMPASS_LOCK = register("fx.item.lodestone_compass.lock");
+	public static final DeferredHolder<SoundEvent, SoundEvent> PORTAL_TRAVEL = register("fx.block.portal.travel");
+	public static final DeferredHolder<SoundEvent, SoundEvent> SCULK_SHRIEKER_SHRIEK = register("fx.block.sculk_shrieker.shriek");
+	public static final DeferredHolder<SoundEvent, SoundEvent> UI_CARTOGRAPHY_TABLE_TAKE_RESULT = register("fx.ui.cartography_table.take_result");
+	public static final DeferredHolder<SoundEvent, SoundEvent> VEX_CHARGE = register("fx.entity.vex.charge");
 
 	// HUD, charge hums, sweeteners
 	public static final DeferredHolder<SoundEvent, SoundEvent> UI_READY = register("ui.ready");
@@ -254,4 +269,9 @@ public final class AuraSounds {
 	public static final DeferredHolder<SoundEvent, SoundEvent> CHARGE_READY = register("charge.ready");
 	public static final DeferredHolder<SoundEvent, SoundEvent> SWEET_IMPACT = register("sweet.impact");
 	public static final DeferredHolder<SoundEvent, SoundEvent> SWEET_WHOOSH = register("sweet.whoosh");
+
+	// music (own oggs, streamed)
+	public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_HURRY1 = register("music.hurry1");
+	public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_HURRY2 = register("music.hurry2");
+	public static final DeferredHolder<SoundEvent, SoundEvent> MUSIC_HURRY_DONE = register("music.hurry_done");
 }

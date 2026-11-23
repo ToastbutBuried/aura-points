@@ -125,6 +125,7 @@ public final class ScreenFx {
 			case FxPacket.RIFT_CAM -> RiftCamera.onPacket(p.value(), p.text());
 			case FxPacket.SKILL_CHECK -> SkillCheckHud.onPacket(p.value(), p.text());
 			case FxPacket.RIFT_SKY -> RiftSky.set(p.text());
+			case FxPacket.RIFT_MUSIC -> AuraMusic.onPacket(p.value(), p.text());
 			default -> {
 			}
 		}

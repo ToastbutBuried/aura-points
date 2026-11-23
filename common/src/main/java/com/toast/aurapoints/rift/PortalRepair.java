@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.Props;
 import com.toast.aurapoints.config.AuraConfig;
@@ -13,7 +14,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -359,7 +359,7 @@ public final class PortalRepair {
 			StringBuilder sb = new StringBuilder();
 			for (int k = 0; k < 4; k++) if (left[k] > 0) sb.append(sb.length() == 0 ? "" : ", ").append(left[k]).append(' ').append(KIND_NAME[k]).append(left[k] > 1 ? "s" : "");
 			say(p, sb.length() == 0 ? "The arch is whole - light it with the Keystones" : "Still missing: " + sb + " (they pulse in the model)", t.rgb);
-			RiftSfx.play(level, Vec3.atCenterOf(table), SoundEvents.UI_CARTOGRAPHY_TABLE_TAKE_RESULT, 0.8f, 1f);
+			RiftSfx.play(level, Vec3.atCenterOf(table), AuraSounds.UI_CARTOGRAPHY_TABLE_TAKE_RESULT.value(), 0.8f, 1f);
 			return true;
 		}
 		if (pedestal == null || !(pos.equals(pedestal) || pos.equals(pedestal.above()) || pos.equals(pedestal.above(2)))) return false;
@@ -561,8 +561,8 @@ public final class PortalRepair {
 			level.sendParticles(ParticleTypes.CLOUD, q.x, t.gate.base.getY() + 1.1, q.z, 2, 0.6, 0.05, 0.6, 0.01);
 		}
 		if (n < 70 && n % 12 == 0) {
-			RiftSfx.play(level, mid, SoundEvents.DEEPSLATE_BREAK, 1.4f, 0.5f);
-			RiftSfx.play(level, mid, SoundEvents.WARDEN_HEARTBEAT, 1.6f, 0.6f + n / 120f);
+			RiftSfx.play(level, mid, AuraSounds.DEEPSLATE_BREAK.value(), 1.4f, 0.5f);
+			RiftSfx.play(level, mid, AuraSounds.WARDEN_HEARTBEAT.value(), 1.6f, 0.6f + n / 120f);
 		}
 		// runes climb both posts
 		if (n >= 18 && n <= 66 && n % 6 == 0) {
@@ -573,7 +573,7 @@ public final class PortalRepair {
 				level.sendParticles(ParticleTypes.END_ROD, q.x, q.y, q.z, 8, 0.15, 0.2, 0.15, 0.04);
 				level.sendParticles(AuraFx.dust(t.rgb, 1.8f), q.x, q.y, q.z, 12, 0.25, 0.3, 0.25, 0);
 			}
-			RiftSfx.play(level, mid, SoundEvents.NOTE_BLOCK_CHIME, 1.4f, RiftSfx.note(k));
+			RiftSfx.play(level, mid, AuraSounds.NOTE_BLOCK_CHIME.value(), 1.4f, RiftSfx.note(k));
 		}
 		// lightning between the posts
 		if (n >= 60 && n < BURST - 8 && n % 7 == 0) {
@@ -583,8 +583,8 @@ public final class PortalRepair {
 				AuraFx.line(level, prev, next, ParticleTypes.ELECTRIC_SPARK, 5);
 				prev = next;
 			}
-			RiftSfx.play(level, mid, SoundEvents.FIREWORK_ROCKET_TWINKLE, 0.8f, 1.6f);
-			RiftSfx.play(level, mid, SoundEvents.TRIDENT_RETURN, 0.9f, 0.7f + (n - 60) / 80f);
+			RiftSfx.play(level, mid, AuraSounds.FIREWORK_ROCKET_TWINKLE.value(), 0.8f, 1.6f);
+			RiftSfx.play(level, mid, AuraSounds.TRIDENT_RETURN.value(), 0.9f, 0.7f + (n - 60) / 80f);
 		}
 		// the Keystones leave the pedestal and spiral into the middle, faster and faster
 		if (n >= 40 && n <= BURST - 12) {
@@ -596,11 +596,11 @@ public final class PortalRepair {
 				Props.move(flying.get(k), at);
 				level.sendParticles(AuraFx.dust(t.rgb, 1.0f), at.x, at.y, at.z, 2, 0.05, 0.05, 0.05, 0);
 			}
-			if (n % 5 == 0) RiftSfx.play(level, mid, SoundEvents.AMETHYST_BLOCK_RESONATE, 1.2f, (float) (0.6 + u * 1.4));
+			if (n % 5 == 0) RiftSfx.play(level, mid, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 1.2f, (float) (0.6 + u * 1.4));
 		}
 		// a held breath
 		if (n == BURST - 12) {
-			RiftSfx.play(level, mid, SoundEvents.BEACON_DEACTIVATE, 1.4f, 0.6f);
+			RiftSfx.play(level, mid, AuraSounds.BEACON_DEACTIVATE.value(), 1.4f, 0.6f);
 			for (Display.BlockDisplay d : flying) RuinKit.drop(t, d);
 			flying.clear();
 			level.sendParticles(AuraFx.dust(0xFFFFFF, 2f), mid.x, mid.y, mid.z, 6, 0.05, 0.05, 0.05, 0);
@@ -625,8 +625,8 @@ public final class PortalRepair {
 		level.sendParticles(ParticleTypes.EXPLOSION, mid.x, mid.y, mid.z, 3, 0.8, 1.2, 0.8, 0);
 		level.sendParticles(ParticleTypes.REVERSE_PORTAL, mid.x, mid.y, mid.z, 160, 0.6, 1.2, 0.6, 0.5);
 		level.sendParticles(ParticleTypes.END_ROD, mid.x, mid.y, mid.z, 60, 0.4, 1, 0.4, 0.25);
-		RiftSfx.play(level, mid, SoundEvents.GENERIC_EXPLODE, 0.7f, 0.7f);
-		RiftSfx.play(level, mid, SoundEvents.END_PORTAL_SPAWN, 0.5f, 1.2f);
+		RiftSfx.play(level, mid, AuraSounds.GENERIC_EXPLODE.value(), 0.7f, 0.7f);
+		RiftSfx.play(level, mid, AuraSounds.END_PORTAL_SPAWN.value(), 0.5f, 1.2f);
 		t.gate.setOpen(level, true, t.pal.gate());
 		t.freezeHazards(false);
 		t.repaired = true;
@@ -699,7 +699,7 @@ public final class PortalRepair {
 		if (!mine(p.getMainHandItem(), COMPASS) && !mine(p.getOffhandItem(), COMPASS)) return;
 		int d = (int) Math.round(p.position().distanceTo(Vec3.atCenterOf(target(p.position()))));
 		say(p, caches.isEmpty() ? "Every Keystone is found - the portal is " + d + " blocks away" : "Keystone: " + d + " blocks (" + caches.size() + " hidden)", t.rgb);
-		if (!caches.isEmpty() && d < 20) p.playNotifySound(SoundEvents.NOTE_BLOCK_HAT.value(), net.minecraft.sounds.SoundSource.PLAYERS, 0.4f, 1.8f - d * 0.04f);
+		if (!caches.isEmpty() && d < 20) p.playNotifySound(AuraSounds.NOTE_BLOCK_HAT.value(), net.minecraft.sounds.SoundSource.PLAYERS, 0.4f, 1.8f - d * 0.04f);
 	}
 
 	private interface Match {

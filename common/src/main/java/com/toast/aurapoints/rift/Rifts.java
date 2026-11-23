@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.AuraCurrency;
 import com.toast.aurapoints.AuraPoints;
 import com.toast.aurapoints.ability.AuraFx;
@@ -27,7 +28,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Display;
@@ -134,7 +134,7 @@ public final class Rifts {
 		Mob champion;
 		ServerBossEvent bar;
 		long startedAt = -1, endAt = -1;
-		boolean warnedTime;
+		boolean warnedTime, warnedTwo;
 		/** Seeds the trial arenas still waiting to be built (one per 10 ticks after the vote). */
 		net.minecraft.util.RandomSource trialRandom;
 
@@ -332,7 +332,7 @@ public final class Rifts {
 				continue;
 			}
 			t.pulling.put(pl.getUUID(), PULL_TICKS);
-			ow.playSound(null, pl.getX(), pl.getY(), pl.getZ(), SoundEvents.PORTAL_TRIGGER, net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 1.6f);
+			ow.playSound(null, pl.getX(), pl.getY(), pl.getZ(), AuraSounds.PORTAL_TRIGGER.value(), net.minecraft.sounds.SoundSource.PLAYERS, 0.5f, 1.6f);
 		}
 		if (t.pulling.isEmpty()) return;
 		for (var it = t.pulling.entrySet().iterator(); it.hasNext(); ) {
@@ -345,7 +345,7 @@ public final class Rifts {
 			}
 			if (left <= 0) {
 				it.remove();
-				ow.playSound(null, pl.getX(), pl.getY(), pl.getZ(), SoundEvents.ENDERMAN_TELEPORT, net.minecraft.sounds.SoundSource.PLAYERS, 1f, 0.6f);
+				ow.playSound(null, pl.getX(), pl.getY(), pl.getZ(), AuraSounds.ENDERMAN_TELEPORT.value(), net.minecraft.sounds.SoundSource.PLAYERS, 1f, 0.6f);
 				enter(server, pl);
 				if (tear != t) return; // the run started and closed this tear
 				continue;
@@ -437,6 +437,27 @@ public final class Rifts {
 		return p != null ? p : TEST_PLAYERS.get(id);
 	}
 
+	/** The hurry music plays for this last stretch of the time limit. */
+	private static final int HURRY_TICKS = 2400;
+
+	private static void music(List<ServerPlayer> to, int left, String text) {
+		for (ServerPlayer p : to) com.toast.aurapoints.network.NetworkHandler.sendFx(p, com.toast.aurapoints.network.FxPacket.RIFT_MUSIC, left, text);
+	}
+
+	/** Moves the time limit so {@code seconds} are left (client playtests). */
+	public static void devTimeLeft(ServerPlayer p, int seconds) {
+		Run run = runOf(p);
+		if (run == null) return;
+		long limit = Math.round(run.difficulty.minutes * 1200L * (AuraConfig.RIFT_TIME_LIMIT_MINUTES / 25.0));
+		run.startedAt = p.level().getGameTime() - limit + seconds * 20L;
+	}
+
+	/** Ends the caller's run (client playtests). */
+	public static void devEnd(ServerPlayer p, boolean won) {
+		Run run = runOf(p);
+		if (run != null) end(p.getServer(), run, won);
+	}
+
 	private static void tickRun(MinecraftServer server, ServerLevel rift, Run run) {
 		long now = rift.getGameTime();
 		List<ServerPlayer> here = online(server, run);
@@ -454,6 +475,11 @@ public final class Rifts {
 		if (phase != Reliquary.Phase.VOTE && AuraConfig.RIFT_TIME_LIMIT_MINUTES > 0) {
 			long limit = Math.round(run.difficulty.minutes * 1200L * (AuraConfig.RIFT_TIME_LIMIT_MINUTES / 25.0));
 			long left = run.startedAt + limit - now;
+			if (left <= HURRY_TICKS && left > 1200 && !run.warnedTwo) {
+				run.warnedTwo = true;
+				for (ServerPlayer p : here) p.sendSystemMessage(Component.literal("Two minutes left - hurry.").withStyle(ChatFormatting.GOLD));
+			}
+			if (left <= HURRY_TICKS && left > 0 && now % 20 == 0) music(here, (int) left, "");
 			if (left <= 1200 && !run.warnedTime) {
 				run.warnedTime = true;
 				for (ServerPlayer p : here) p.sendSystemMessage(Component.literal("The Reliquary begins to unravel - one minute left.").withStyle(ChatFormatting.RED));
@@ -749,6 +775,7 @@ public final class Rifts {
 		}
 		Reliquary.cleanup(run);
 		RiftCam.stop(online(server, run));
+		music(online(server, run), 0, won ? "won" : "");
 		for (ServerPlayer p : online(server, run)) {
 			if (won) {
 				AuraFx.title(p, Component.literal("RELIC RECLAIMED").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),

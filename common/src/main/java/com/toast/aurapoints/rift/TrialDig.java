@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraFx;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -9,7 +10,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Display;
@@ -364,7 +364,7 @@ final class TrialDig extends Trials.Trial {
 			sj = j;
 			for (ServerPlayer p : lastHere) p.displayClientMessage(Component.literal("You hear the shard burrow away under the soil...").withStyle(ChatFormatting.DARK_PURPLE), true);
 			Vec3 c = tileCentre(i, j, 0.5);
-			level.playSound(null, c.x, c.y, c.z, SoundEvents.ROOTED_DIRT_BREAK, SoundSource.BLOCKS, 1.5f, 0.5f);
+			level.playSound(null, c.x, c.y, c.z, AuraSounds.ROOTED_DIRT_BREAK.value(), SoundSource.BLOCKS, 1.5f, 0.5f);
 			return;
 		}
 	}
@@ -448,7 +448,7 @@ final class TrialDig extends Trials.Trial {
 					}
 					channelStart.remove(id);
 					readingUntil.put(id, now + SOLO_READING);
-					p.playNotifySound(SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 1.2f, 1f);
+					p.playNotifySound(AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.BLOCKS, 1.2f, 1f);
 				}
 			}
 			showReading(level, p, k, now);
@@ -466,7 +466,7 @@ final class TrialDig extends Trials.Trial {
 			StringBuilder b = new StringBuilder("Pylon " + PYLON_NAME[k] + " hums: ");
 			for (int q = 0; q < dists.size(); q++) b.append(q > 0 ? "  ·  " : "").append(Math.round(dists.get(q))).append(" blocks");
 			p.displayClientMessage(Component.literal(b.toString()).withStyle(s -> s.withColor(PYLON_RGB[k])), true);
-			if (now % 40 == 0) p.playNotifySound(SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 1f, 0.8f);
+			if (now % 40 == 0) p.playNotifySound(AuraSounds.AMETHYST_BLOCK_CHIME.value(), SoundSource.BLOCKS, 1f, 0.8f);
 			return;
 		}
 		p.displayClientMessage(Component.literal("Pylon " + PYLON_NAME[k] + " resonates - follow its ring").withStyle(s -> s.withColor(PYLON_RGB[k])), true);
@@ -484,7 +484,7 @@ final class TrialDig extends Trials.Trial {
 				level.sendParticles(p, dust, true, at.x, at.y, at.z, 1, 0, 0, 0, 0);
 			}
 		}
-		if (now % 40 == 0) p.playNotifySound(SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS, 1f, 0.6f + k * 0.3f);
+		if (now % 40 == 0) p.playNotifySound(AuraSounds.AMETHYST_BLOCK_CHIME.value(), SoundSource.BLOCKS, 1f, 0.6f + k * 0.3f);
 	}
 
 	@Override
@@ -508,7 +508,7 @@ final class TrialDig extends Trials.Trial {
 		Vec3 c = tileCentre(i, j, 1);
 		if (blanked) {
 			p.displayClientMessage(Component.literal("The probe crackles - the ground is too restless to read.").withStyle(ChatFormatting.DARK_GRAY), true);
-			p.playNotifySound(SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.6f, 1.6f);
+			p.playNotifySound(AuraSounds.FIRE_EXTINGUISH.value(), SoundSource.BLOCKS, 0.6f, 1.6f);
 			return;
 		}
 		Probe pr = probes.get(key(i, j));
@@ -520,7 +520,7 @@ final class TrialDig extends Trials.Trial {
 		}
 		pr.until = now + probeLife();
 		setProbeText(pr);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.BLOCKS, 0.8f, 0.7f + pr.count * 0.15f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.NOTE_BLOCK_CHIME.value(), SoundSource.BLOCKS, 0.8f, 0.7f + pr.count * 0.15f);
 		level.sendParticles(ParticleTypes.ENCHANT, c.x, c.y, c.z, 12, 0.8, 0.3, 0.8, 0.5);
 	}
 
@@ -568,7 +568,7 @@ final class TrialDig extends Trials.Trial {
 	private void digNow(ServerLevel level, ServerPlayer p, int i, int j, long now) {
 		Vec3 c = tileCentre(i, j, 0.5);
 		level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COARSE_DIRT.defaultBlockState()), c.x, c.y + 0.5, c.z, 40, 1, 0.3, 1, 0.1);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.ROOTED_DIRT_BREAK, SoundSource.BLOCKS, 1.2f, 0.8f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.ROOTED_DIRT_BREAK.value(), SoundSource.BLOCKS, 1.2f, 0.8f);
 		if (i == si && j == sj) {
 			hole(level, i, j);
 			state[i][j] = 1;
@@ -620,7 +620,7 @@ final class TrialDig extends Trials.Trial {
 			set(level, cf + a, cl + b, -2, DigDecor.hash(cf + a, cl + b, 5) < 30 ? Blocks.BONE_BLOCK : Blocks.SOUL_SOIL);
 		}
 		Vec3 c = tileCentre(i, j, -1);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 0.8f, 0.6f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 0.8f, 0.6f);
 		level.sendParticles(ParticleTypes.SOUL, c.x, c.y + 1, c.z, 20, 1, 0.5, 1, 0.03);
 		level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, pal.base().defaultBlockState()), c.x, c.y + 1.5, c.z, 60, 1.2, 0.6, 1.2, 0.2);
 		int silver = 2 + tier / 2;
@@ -662,7 +662,7 @@ final class TrialDig extends Trials.Trial {
 			Vec3 c = DigDecor.v(this, (k < 2 ? -1 : 1) * (half + 3), (k % 2 == 0 ? -1 : 1) * (half + 3), 10);
 			level.sendParticles(new BlockParticleOption(ParticleTypes.FALLING_DUST, pal.base().defaultBlockState()), c.x, c.y, c.z, 30, 1.5, 0.5, 1.5, 0);
 		}
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.DEEPSLATE_BREAK, SoundSource.BLOCKS, 2f, 0.4f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.DEEPSLATE_BREAK.value(), SoundSource.BLOCKS, 2f, 0.53f);
 	}
 
 	@Override
@@ -671,7 +671,7 @@ final class TrialDig extends Trials.Trial {
 		for (Probe pr : probes.values()) dropDisplay(pr.d);
 		probes.clear();
 		for (ServerPlayer p : lastHere) p.displayClientMessage(Component.literal("A tremor - every probe reading is lost!").withStyle(ChatFormatting.RED), true);
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.WARDEN_DIG, SoundSource.HOSTILE, 1.5f, 0.8f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.WARDEN_DIG.value(), SoundSource.HOSTILE, 1.5f, 0.8f);
 		punish(level, at, 1 + tier / 2);
 	}
 

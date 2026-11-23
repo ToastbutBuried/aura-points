@@ -1,5 +1,6 @@
 package com.toast.aurapoints;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraAbilities;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.AuraStats;
@@ -1156,7 +1157,7 @@ public class AuraPoints {
 							net.minecraft.network.chat.Component.literal("PvP Tree Unlocked").withStyle(net.minecraft.ChatFormatting.RED, net.minecraft.ChatFormatting.BOLD),
 							net.minecraft.network.chat.Component.literal("/aura redeem pvp").withStyle(net.minecraft.ChatFormatting.GRAY));
 					AuraFx.helix(player, AuraFx.dust(0xB0121B, 1.3f), 30, 0.9, 2.4);
-					AuraFx.sound(player.serverLevel(), player, net.minecraft.sounds.SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.0f);
+					AuraFx.sound(player.serverLevel(), player, AuraSounds.UI_TOAST_CHALLENGE_COMPLETE.value(), 0.8f, 1.0f);
 				}
 			}
 		}

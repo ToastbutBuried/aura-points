@@ -191,6 +191,8 @@
   "aurapoints.configuration.almostReadyTick.tooltip": "A soft tick in the last second of each cooldown, to time abilities by ear.",
   "aurapoints.configuration.hitSound": "Hit sound",
   "aurapoints.configuration.hitSound.tooltip": "A quiet sound with the hit mark, and a bell on a kill.",
+  "aurapoints.configuration.riftMusic": "Rift music",
+  "aurapoints.configuration.riftMusic.tooltip": "Hurry music in the last two minutes of a rift, and a short sting when you win. Follows the Music slider.",
   "stat.aurapoints.sonic_blossom_uses": "Sonic Blossom Uses",
   "stat.aurapoints.listening_tree_uses": "Listening Tree Uses",
   "stat.aurapoints.abyssal_grasp_uses": "Abyssal Grasp Uses",

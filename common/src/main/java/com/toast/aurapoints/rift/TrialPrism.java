@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.mojang.math.Transformation;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.Props;
@@ -10,7 +11,6 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Display;
@@ -1031,7 +1031,7 @@ final class TrialPrism extends Trials.Trial {
 			if (b.end == END_PLAYER && b.who != null) {
 				// a body just stops the light
 				level.sendParticles(ParticleTypes.END_ROD, end.x, end.y, end.z, 1, 0.08, 0.08, 0.08, 0.02);
-				if (hummed.add(b.who.getUUID())) RiftSfx.play(level, end, SoundEvents.AMETHYST_BLOCK_RESONATE, 0.8f, 1.6f);
+				if (hummed.add(b.who.getUUID())) RiftSfx.play(level, end, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 0.8f, 1.6f);
 				inBeam.add(b.who.getUUID());
 			}
 			if (b.end == END_CROSS) cross = end;
@@ -1040,7 +1040,7 @@ final class TrialPrism extends Trials.Trial {
 		if (cross != null) {
 			crossCharge += (int) dt;
 			level.sendParticles(ParticleTypes.ELECTRIC_SPARK, cross.x, cross.y, cross.z, 6, 0.2, 0.2, 0.2, 0.15);
-			if (now % 9 < 3) level.playSound(null, cross.x, cross.y, cross.z, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 0.6f, 1.8f);
+			if (now % 9 < 3) level.playSound(null, cross.x, cross.y, cross.z, AuraSounds.FIRECHARGE_USE.value(), SoundSource.BLOCKS, 0.6f, 1.8f);
 			if (now % 9 < 3) actionBar(here, "⚠ The two beams cross - overload in " + Math.max(1, (CROSS_CHARGE - crossCharge + 19) / 20) + " s. Keep them apart!", ChatFormatting.RED);
 			if (crossCharge >= CROSS_CHARGE) {
 				crossCharge = 0;
@@ -1060,10 +1060,10 @@ final class TrialPrism extends Trials.Trial {
 			Vec3 at = node(rc.i, rc.j);
 			if (good) {
 				level.sendParticles(ParticleTypes.END_ROD, at.x, at.y + 0.6, at.z, 2 + rc.charge / 10, 0.25, 0.4, 0.25, 0.01);
-				if (now % 9 < 3) level.playSound(null, at.x, at.y, at.z, SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.BLOCKS, 1f, 0.6f + rc.charge / 40f);
+				if (now % 9 < 3) level.playSound(null, at.x, at.y, at.z, AuraSounds.NOTE_BLOCK_CHIME.value(), SoundSource.BLOCKS, 1f, 0.6f + rc.charge / 40f);
 			} else {
 				level.sendParticles(ParticleTypes.ELECTRIC_SPARK, at.x, at.y + 0.5, at.z, 3 + rc.charge / 8, 0.3, 0.4, 0.3, 0.1);
-				if (now % 9 < 3) level.playSound(null, at.x, at.y, at.z, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 0.7f, 1.6f);
+				if (now % 9 < 3) level.playSound(null, at.x, at.y, at.z, AuraSounds.FIRECHARGE_USE.value(), SoundSource.BLOCKS, 0.7f, 1.6f);
 				rc.why = b.recv != step ? "wrong order - light " + ROMAN[step] + " first" : "wrong colour - it needs " + colourName(rc.rgb) + ", this is " + colourName(b.col);
 				if (now % 18 < 3) actionBar(here, "⚠ Receiver " + ROMAN[b.recv] + ": " + rc.why, ChatFormatting.GOLD);
 			}
@@ -1161,8 +1161,8 @@ final class TrialPrism extends Trials.Trial {
 			Vec3 from = node(rc.i, rc.j).add(0, 1.5, 0);
 			AuraFx.line(level, from, shard.add(0, 1, 0), AuraFx.dust(rc.rgb, 1.4f), 30);
 		}
-		level.playSound(null, shard.x, shard.y, shard.z, SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.2f, 1.3f);
-		level.playSound(null, shard.x, shard.y, shard.z, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 1.5f, 0.8f);
+		level.playSound(null, shard.x, shard.y, shard.z, AuraSounds.PLAYER_LEVELUP.value(), SoundSource.PLAYERS, 1.2f, 1.3f);
+		level.playSound(null, shard.x, shard.y, shard.z, AuraSounds.BEACON_ACTIVATE.value(), SoundSource.BLOCKS, 1.5f, 0.8f);
 		solve(level, shard.add(0, 0.6, 0));
 	}
 
@@ -1173,7 +1173,7 @@ final class TrialPrism extends Trials.Trial {
 			double a = Math.PI * 2 * k / fangs;
 			level.addFreshEntity(new EvokerFangs(level, at.x + Math.cos(a) * 1.8, Rifts.FLOOR + 1, at.z + Math.sin(a) * 1.8, (float) Math.toDegrees(a), k * 2, null));
 		}
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 0.8f, 1.6f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 0.8f, 1.6f);
 		level.sendParticles(ParticleTypes.FLASH, at.x, at.y, at.z, 1, 0, 0, 0, 0);
 		List<Mirror> moved = new ArrayList<>();
 		for (Mirror m : mirrors) if (m.state != m.home) moved.add(m);
@@ -1195,7 +1195,7 @@ final class TrialPrism extends Trials.Trial {
 		turnDisplays(m);
 		Vec3 c = node(m.i, m.j);
 		level.sendParticles(ParticleTypes.CLOUD, c.x, c.y, c.z, 6, 0.3, 0.3, 0.3, 0.02);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.GRINDSTONE_USE, SoundSource.BLOCKS, 0.8f, 0.7f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.GRINDSTONE_USE.value(), SoundSource.BLOCKS, 0.8f, 0.7f);
 	}
 
 	private void turnDisplays(Mirror m) {
@@ -1222,7 +1222,7 @@ final class TrialPrism extends Trials.Trial {
 					p.displayClientMessage(Component.literal("Sealed - turn it from its rune stone (" + GLYPHS[m.glyph] + ") on the " + (m.runeL > 0 ? "left" : "right") + " gallery")
 							.withStyle(ChatFormatting.GOLD), true);
 					cables(level, List.of(p), true, m);
-					level.playSound(null, pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, SoundEvents.CHAIN_HIT, SoundSource.BLOCKS, 1f, 0.6f);
+					level.playSound(null, pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, AuraSounds.CHAIN_HIT.value(), SoundSource.BLOCKS, 1f, 0.6f);
 					return true;
 				}
 				turn(level, m, p.isShiftKeyDown() ? -1 : 1);
@@ -1243,7 +1243,7 @@ final class TrialPrism extends Trials.Trial {
 				if (!pos.equals(arena(nf(rc.i), nl(rc.j), dy))) continue;
 				String say = rc.lit ? "lit" : rc.why != null ? "overloading: " + rc.why : k == step ? "next - " + wants(rc) : "waits - light " + ROMAN[step] + " first; it " + wants(rc);
 				p.displayClientMessage(Component.literal("Receiver " + ROMAN[k] + ": " + say).withStyle(rc.why != null ? ChatFormatting.RED : ChatFormatting.AQUA), true);
-				p.playNotifySound(SoundEvents.AMETHYST_BLOCK_HIT, SoundSource.BLOCKS, 0.8f, 1.2f);
+				p.playNotifySound(AuraSounds.AMETHYST_BLOCK_HIT.value(), SoundSource.BLOCKS, 0.8f, 1.2f);
 				return true;
 			}
 		}
@@ -1366,7 +1366,7 @@ final class TrialPrism extends Trials.Trial {
 			int diff = Math.floorMod(m.home - m.state, 4);
 			m.state = Math.floorMod(m.state + (diff <= 2 ? 1 : -1), 4);
 			turnDisplays(m);
-			level.playSound(null, c.x, c.y, c.z, SoundEvents.GRINDSTONE_USE, SoundSource.BLOCKS, 0.7f, 0.5f);
+			level.playSound(null, c.x, c.y, c.z, AuraSounds.GRINDSTONE_USE.value(), SoundSource.BLOCKS, 0.7f, 0.5f);
 			m.driftAt = now + driftEvery();
 		}
 	}
@@ -1417,7 +1417,7 @@ final class TrialPrism extends Trials.Trial {
 			Vec3 c = node(m.i, m.j);
 			level.sendParticles(ParticleTypes.SMOKE, c.x, c.y, c.z, 5, 0.3, 0.3, 0.3, 0.01);
 		}
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.BEACON_DEACTIVATE, SoundSource.BLOCKS, 1.5f, 0.6f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.BEACON_DEACTIVATE.value(), SoundSource.BLOCKS, 1.5f, 0.6f);
 	}
 
 	@Override

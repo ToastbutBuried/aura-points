@@ -15,7 +15,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Display;
@@ -770,7 +769,7 @@ final class TrialRings extends Trials.Trial {
 			p.setDeltaMovement(p.getDeltaMovement().add(p.getLookAngle().scale(0.7)));
 			p.hurtMarked = true;
 		}
-		p.playNotifySound(SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.8f, 1.3f);
+		p.playNotifySound(AuraSounds.ITEM_PICKUP.value(), SoundSource.PLAYERS, 0.8f, 1.3f);
 	}
 
 	private ItemStack rocketStack(ServerPlayer p, int n) {
@@ -918,7 +917,7 @@ final class TrialRings extends Trials.Trial {
 		p.setDeltaMovement(fx * 0.35, 3.2, fz * 0.35);
 		p.hurtMarked = true;
 		level.playSound(null, c.x, c.y, c.z, AuraSounds.WIND_CHARGE_BURST.value(), SoundSource.PLAYERS, 1.6f, 0.7f);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.PLAYERS, 1.2f, 0.6f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.FIREWORK_ROCKET_LAUNCH.value(), SoundSource.PLAYERS, 1.2f, 0.6f);
 		level.sendParticles(th.lift, c.x, c.y + 0.5, c.z, 40, 0.8, 1.5, 0.8, 0.2);
 		AuraFx.title(p, Component.literal("Fly!").withStyle(s -> s.withColor(rgb).withBold(true)),
 				Component.literal("score " + target + " and land on the far pad - " + seconds() + " s").withStyle(ChatFormatting.GRAY));
@@ -1063,7 +1062,7 @@ final class TrialRings extends Trials.Trial {
 		for (Draft d : drafts) {
 			if (Math.hypot(pos.x - d.base.x, pos.z - d.base.z) <= 3.6 && pos.y >= d.base.y - 2 && pos.y <= d.top) {
 				push = push.add(0, Math.min(0.3, 1.15 - fl.vel.y), 0);
-				if (now % 8 == 0) level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.ELYTRA_FLYING, SoundSource.PLAYERS, 0.25f, 1.6f);
+				if (now % 8 == 0) level.playSound(null, pos.x, pos.y, pos.z, AuraSounds.ELYTRA_FLYING.value(), SoundSource.PLAYERS, 0.25f, 1.6f);
 			}
 		}
 		if (push.lengthSqr() > 1.0e-6) {
@@ -1103,21 +1102,21 @@ final class TrialRings extends Trials.Trial {
 			int n = taken();
 			Vec3 ear = p.position();
 			if (g.bonus) {
-				RiftSfx.play(level, ear, SoundEvents.AMETHYST_CLUSTER_BREAK, 1.6f, 0.9f);
-				for (int k = 0; k < 3; k++) RiftSfx.play(level, ear, SoundEvents.NOTE_BLOCK_HARP, 1.6f, RiftSfx.note(k * 2 + 1));
+				RiftSfx.play(level, ear, AuraSounds.AMETHYST_CLUSTER_BREAK.value(), 1.6f, 0.9f);
+				for (int k = 0; k < 3; k++) RiftSfx.play(level, ear, AuraSounds.NOTE_BLOCK_HARP.value(), 1.6f, RiftSfx.note(k * 2 + 1));
 				level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, Blocks.AMETHYST_BLOCK.defaultBlockState()), g.c.x, g.c.y, g.c.z, 40, 0.6, 0.6, 0.6, 0.2);
 			} else {
-				RiftSfx.play(level, ear, SoundEvents.NOTE_BLOCK_CHIME, 1.8f, RiftSfx.note(n - 1));
-				RiftSfx.play(level, ear, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.7f, 1.2f);
+				RiftSfx.play(level, ear, AuraSounds.NOTE_BLOCK_CHIME.value(), 1.8f, RiftSfx.note(n - 1));
+				RiftSfx.play(level, ear, AuraSounds.EXPERIENCE_ORB_PICKUP.value(), 0.7f, 1.2f);
 			}
-			RiftSfx.play(level, ear, SoundEvents.FIREWORK_ROCKET_LAUNCH, 0.35f, 1.7f);
+			RiftSfx.play(level, ear, AuraSounds.FIREWORK_ROCKET_LAUNCH.value(), 0.35f, 1.7f);
 			level.sendParticles(ParticleTypes.FLASH, g.c.x, g.c.y, g.c.z, 1, 0, 0, 0, 0);
 			level.sendParticles(AuraFx.dust(g.bonus ? 0xE58CFF : 0x7CFF6B, 1.8f), g.c.x, g.c.y, g.c.z, 40, g.r * 0.5, g.r * 0.5, g.r * 0.5, 0);
 			if (g.bonus) p.displayClientMessage(Component.literal("Bonus ring +" + g.pts + ", two rockets").withStyle(ChatFormatting.LIGHT_PURPLE), true);
 			if (score >= target && !targetCalled) {
 				targetCalled = true;
 				for (ServerPlayer q : here) AuraFx.title(q, Component.literal("Target reached").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD), Component.literal("land on the far pad").withStyle(ChatFormatting.GRAY));
-				level.playSound(null, g.c.x, g.c.y, g.c.z, SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1f, 1.3f);
+				level.playSound(null, g.c.x, g.c.y, g.c.z, AuraSounds.PLAYER_LEVELUP.value(), SoundSource.PLAYERS, 1f, 1.3f);
 			}
 		}
 	}
@@ -1237,7 +1236,7 @@ final class TrialRings extends Trials.Trial {
 			default -> {
 				level.sendParticles(ParticleTypes.FLASH, at.x, at.y, at.z, 1, 0, 0, 0, 0);
 				level.sendParticles(ParticleTypes.END_ROD, at.x, at.y, at.z, 40, 0.5, 0.5, 0.5, 0.3);
-				level.playSound(null, at.x, at.y, at.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.HOSTILE, 2f, 1.6f);
+				level.playSound(null, at.x, at.y, at.z, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.HOSTILE, 2f, 1.6f);
 			}
 		}
 		for (ServerPlayer p : here) {
@@ -1260,7 +1259,7 @@ final class TrialRings extends Trials.Trial {
 	@Override
 	void onReact(ServerLevel level, Vec3 at) {
 		Vec3 h = home();
-		level.playSound(null, h.x, h.y + 10, h.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.HOSTILE, 0.8f, 1.4f);
+		level.playSound(null, h.x, h.y + 10, h.z, AuraSounds.LIGHTNING_BOLT_THUNDER.value(), SoundSource.HOSTILE, 0.8f, 1.4f);
 		level.sendParticles(th.lift, h.x, h.y + 3, h.z, 40, 4, 2, 4, 0.05);
 	}
 

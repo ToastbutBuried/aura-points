@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.mojang.math.Transformation;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.Props;
@@ -10,7 +11,6 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -680,12 +680,12 @@ final class TrialStatues extends Trials.Trial {
 				int blink = Math.max(10, (int) Math.round(AuraConfig.RIFT_STATUES_BLINK_SECONDS * 20));
 				blinkUntil.put(id, now + blink);
 				p.addEffect(new MobEffectInstance(MobEffects.DARKNESS, blink + 10, 0, false, false));
-				p.playNotifySound(SoundEvents.WARDEN_HEARTBEAT, SoundSource.AMBIENT, 1.4f, 0.6f);
+				p.playNotifySound(AuraSounds.WARDEN_HEARTBEAT.value(), SoundSource.AMBIENT, 1.4f, 0.6f);
 				p.displayClientMessage(Component.literal("Your eyes give - the stone moves").withStyle(ChatFormatting.RED), true);
 				for (Statue s : statues) s.nextStep = Math.min(s.nextStep, now + 3);
 			} else if (sees && d >= limit * 0.6 && now % 20 == 0) {
 				double f = (double) d / limit;
-				p.playNotifySound(SoundEvents.WARDEN_HEARTBEAT, SoundSource.AMBIENT, 0.8f, (float) (0.7 + f * 0.5));
+				p.playNotifySound(AuraSounds.WARDEN_HEARTBEAT.value(), SoundSource.AMBIENT, 0.8f, (float) (0.7 + f * 0.5));
 				p.displayClientMessage(Component.literal(f < 0.85 ? "Your eyes ache - look away" : "You cannot hold it much longer...").withStyle(f < 0.85 ? ChatFormatting.GRAY : ChatFormatting.DARK_RED), true);
 			}
 			dread.put(id, d);
@@ -695,8 +695,8 @@ final class TrialStatues extends Trials.Trial {
 	private void lifted(ServerLevel level, Sigil s, ServerPlayer p) {
 		s.state = 2;
 		Vec3 at = plinthTop(s);
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 1.4f, 1.2f);
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.ARMOR_EQUIP_GOLD.value(), SoundSource.BLOCKS, 1f, 0.8f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.BLOCKS, 1.4f, 1.2f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.ARMOR_EQUIP_GOLD.value(), SoundSource.BLOCKS, 1f, 0.8f);
 		level.sendParticles(AuraFx.dust(s.rgb, 1.5f), at.x, at.y + 0.5, at.z, 20, 0.3, 0.4, 0.3, 0);
 		p.displayClientMessage(Component.literal("You carry the sigil " + GLYPHS[s.n] + " - bring it to the altar").withStyle(ChatFormatting.GREEN), true);
 	}
@@ -798,7 +798,7 @@ final class TrialStatues extends Trials.Trial {
 		Vec3 pos = statuePos(s);
 		s.yaw = yawTo(pos, target.position());
 		place(s, dist < 8);
-		if (moved) level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.GRINDSTONE_USE, SoundSource.HOSTILE, 0.9f, 0.45f + level.random.nextFloat() * 0.1f);
+		if (moved) level.playSound(null, pos.x, pos.y, pos.z, AuraSounds.GRINDSTONE_USE.value(), SoundSource.HOSTILE, 0.9f, 0.45f + level.random.nextFloat() * 0.1f);
 		for (ServerPlayer p : here) {
 			if (p.isSpectator()) continue;
 			Vec3 pp = p.position();
@@ -818,8 +818,8 @@ final class TrialStatues extends Trials.Trial {
 		immune.put(p.getUUID(), now + 60);
 		Vec3 pos = statuePos(s);
 		level.sendParticles(ParticleTypes.CLOUD, pos.x, pos.y + 1, pos.z, 20, 0.4, 0.8, 0.4, 0.02);
-		level.playSound(null, pos.x, pos.y, pos.z, SoundEvents.STONE_BREAK, SoundSource.HOSTILE, 1.5f, 0.5f);
-		level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.WARDEN_ATTACK_IMPACT, SoundSource.HOSTILE, 1.2f, 0.8f);
+		level.playSound(null, pos.x, pos.y, pos.z, AuraSounds.STONE_BREAK.value(), SoundSource.HOSTILE, 1.5f, 0.5f);
+		level.playSound(null, p.getX(), p.getY(), p.getZ(), AuraSounds.WARDEN_ATTACK_IMPACT.value(), SoundSource.HOSTILE, 1.2f, 0.8f);
 		Sigil held = carried(p);
 		if (held != null) {
 			showOnPlinth(level, held);
@@ -861,7 +861,7 @@ final class TrialStatues extends Trials.Trial {
 			s.carrier = p.getUUID();
 			s.liftFrom = p.position();
 			s.liftDone = now + (s.check ? 54 : LIFT[tier]);
-			level.playSound(null, pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, SoundEvents.BEACON_AMBIENT, SoundSource.BLOCKS, 1.5f, 1.4f);
+			level.playSound(null, pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, AuraSounds.BEACON_AMBIENT.value(), SoundSource.BLOCKS, 1.5f, 1.4f);
 			return true;
 		}
 		for (Alcove al : alcoves) {
@@ -889,7 +889,7 @@ final class TrialStatues extends Trials.Trial {
 				Vec3 sp = statuePos(st);
 				level.sendParticles(ParticleTypes.CLOUD, sp.x, sp.y + 1, sp.z, 12, 0.3, 0.8, 0.3, 0.02);
 			}
-			level.playSound(null, at.x, at.y, at.z, SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.2f, 1.2f);
+			level.playSound(null, at.x, at.y, at.z, AuraSounds.PLAYER_LEVELUP.value(), SoundSource.PLAYERS, 1.2f, 1.2f);
 			solve(level, at);
 		} else {
 			actionBar(RuinKit.arenaPlayers(this, level), "Sigil " + GLYPHS[s.n] + " set - " + (sigils.size() - placed) + " to go", ChatFormatting.AQUA);
@@ -905,7 +905,7 @@ final class TrialStatues extends Trials.Trial {
 		if (s.tag != null) s.tag.setPos(at.x, at.y + 0.5, at.z);
 		BlockPos sp = socketPos(s.n);
 		RealmBuilder.set(level, sp.getX(), sp.getY(), sp.getZ(), pal.light());
-		level.playSound(null, at.x, at.y, at.z, SoundEvents.END_PORTAL_FRAME_FILL, SoundSource.BLOCKS, 1.5f, 1f);
+		level.playSound(null, at.x, at.y, at.z, AuraSounds.END_PORTAL_FRAME_FILL.value(), SoundSource.BLOCKS, 1.5f, 1f);
 		level.sendParticles(AuraFx.dust(s.rgb, 1.5f), at.x, at.y, at.z, 20, 0.2, 0.6, 0.2, 0);
 	}
 
@@ -936,7 +936,7 @@ final class TrialStatues extends Trials.Trial {
 			flickerUntil = 0;
 		}
 		if (now == nextFlicker - 30) {
-			for (ServerPlayer p : here) p.playNotifySound(SoundEvents.CANDLE_EXTINGUISH, SoundSource.AMBIENT, 1f, 0.6f);
+			for (ServerPlayer p : here) p.playNotifySound(AuraSounds.CANDLE_EXTINGUISH.value(), SoundSource.AMBIENT, 1f, 0.6f);
 			for (int k = 0; k < candles.size(); k += 3) {
 				BlockPos c = candles.get(k);
 				level.sendParticles(ParticleTypes.SMOKE, c.getX() + 0.5, c.getY() + 0.7, c.getZ() + 0.5, 3, 0.1, 0.1, 0.1, 0.01);
@@ -948,7 +948,7 @@ final class TrialStatues extends Trials.Trial {
 			candles(level, false);
 			for (ServerPlayer p : here) {
 				p.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 50, 0, false, false));
-				p.playNotifySound(SoundEvents.AMBIENT_CAVE.value(), SoundSource.AMBIENT, 1f, 0.7f);
+				p.playNotifySound(AuraSounds.AMBIENT_CAVE.value(), SoundSource.AMBIENT, 1f, 0.7f);
 			}
 			for (Statue s : statues) s.nextStep = Math.min(s.nextStep, now + 6);
 		}

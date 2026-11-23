@@ -45,7 +45,7 @@ public final class AuraClientConfig {
 
 	// sound
 	public static final ModConfigSpec.DoubleValue ABILITY_VOLUME;
-	public static final ModConfigSpec.BooleanValue READY_CHIME, NOT_READY_SOUND, CHARGE_HUMS, ALMOST_READY_TICK, HIT_SOUND;
+	public static final ModConfigSpec.BooleanValue READY_CHIME, NOT_READY_SOUND, CHARGE_HUMS, ALMOST_READY_TICK, HIT_SOUND, RIFT_MUSIC;
 
 	/** Which ability animations (arm poses and gestures) this client shows. */
 	public enum AnimationMode {
@@ -308,6 +308,9 @@ public final class AuraClientConfig {
 		HIT_SOUND = b.comment("A quiet sound with the hit mark (and a bell on a kill).")
 				.translation("aurapoints.configuration.hitSound")
 				.define("hitSound", true);
+		RIFT_MUSIC = b.comment("Music in the rifts: the hurry music in the last two minutes, and the closing sting of a won run (Music slider).")
+				.translation("aurapoints.configuration.riftMusic")
+				.define("riftMusic", true);
 		b.pop();
 		SPEC = b.build();
 	}

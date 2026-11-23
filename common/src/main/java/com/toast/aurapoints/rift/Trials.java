@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.AuraType;
 import net.minecraft.ChatFormatting;
@@ -10,7 +11,6 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -481,19 +481,19 @@ final class Trials {
 			if (solved) return;
 			strikes++;
 			totalStrikes++;
-			level.playSound(null, at.x, at.y, at.z, SoundEvents.WARDEN_HEARTBEAT, SoundSource.HOSTILE, 2f, 0.6f);
+			level.playSound(null, at.x, at.y, at.z, AuraSounds.WARDEN_HEARTBEAT.value(), SoundSource.HOSTILE, 2f, 0.6f);
 			level.sendParticles(ParticleTypes.SCULK_SOUL, at.x, at.y + 1, at.z, 20, 1.5, 0.8, 1.5, 0.02);
 			for (ServerPlayer p : here) p.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 50, 0, false, false));
 			actionBar(here, "Strike " + strikes + " / 3", strikes >= 3 ? ChatFormatting.DARK_RED : ChatFormatting.RED);
 			if (strikes == 1) {
 				onReact(level, at);
 			} else if (strikes == 2) {
-				level.playSound(null, at.x, at.y, at.z, SoundEvents.EVOKER_PREPARE_SUMMON, SoundSource.HOSTILE, 1.5f, 0.8f);
+				level.playSound(null, at.x, at.y, at.z, AuraSounds.EVOKER_PREPARE_SUMMON.value(), SoundSource.HOSTILE, 1.5f, 0.8f);
 				onHazard(level, at);
 			} else {
 				strikes = 0;
 				clearHazards();
-				level.playSound(null, at.x, at.y, at.z, SoundEvents.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.HOSTILE, 2f, 0.6f);
+				level.playSound(null, at.x, at.y, at.z, AuraSounds.RESPAWN_ANCHOR_DEPLETE.value(), SoundSource.HOSTILE, 2f, 0.6f);
 				for (ServerPlayer p : here) AuraFx.title(p, Component.literal("The trial resets").withStyle(ChatFormatting.DARK_RED, ChatFormatting.BOLD), Component.literal("a new layout").withStyle(ChatFormatting.GRAY));
 				onReset(level, random != null ? random : level.random);
 				if (run.difficulty.oneLife() && who != null) Rifts.knockoutFromTrial(who);
@@ -552,7 +552,7 @@ final class Trials {
 				Mob m = Rifts.trialMob(level, run, at);
 				if (m != null) hazards.add(m);
 			}
-			level.playSound(null, at.x, at.y, at.z, SoundEvents.EVOKER_PREPARE_SUMMON, SoundSource.HOSTILE, 1f, 1.2f);
+			level.playSound(null, at.x, at.y, at.z, AuraSounds.EVOKER_PREPARE_SUMMON.value(), SoundSource.HOSTILE, 1f, 1.2f);
 		}
 
 		/** The trial resets: its mistakes' mobs go with the old layout. */

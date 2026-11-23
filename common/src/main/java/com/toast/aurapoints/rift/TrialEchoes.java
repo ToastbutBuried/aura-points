@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -9,7 +10,6 @@ import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
@@ -293,7 +293,7 @@ final class TrialEchoes extends Trials.Trial {
 		farGate.setOpen(level, true, pal.gate());
 		Vec3 c = DigDecor.v(this, 51, 0, 5);
 		level.sendParticles(ParticleTypes.REVERSE_PORTAL, c.x, c.y, c.z, 160, Math.abs(lx) * 4 + 0.2, 4, Math.abs(lz) * 4 + 0.2, 0.1);
-		RiftSfx.play(level, c, SoundEvents.END_PORTAL_SPAWN, 0.7f, 1.3f);
+		RiftSfx.play(level, c, AuraSounds.END_PORTAL_SPAWN.value(), 0.7f, 1.3f);
 		label(level, DigDecor.v(this, 49, 0, 12.6), Component.literal("The way out").withStyle(s -> s.withColor(rgb).withBold(true)), 1.6f);
 	}
 
@@ -352,7 +352,7 @@ final class TrialEchoes extends Trials.Trial {
 		for (int row = STAGES[s][0]; row <= STAGES[s][1]; row++) for (int col = 0; col < COLS; col++) tile(level, row, col, tileBlock(row, col));
 		Vec3 c = DigDecor.v(this, (rowF(STAGES[s][0]) + rowF(STAGES[s][1])) / 2.0, 0, 0.5);
 		level.sendParticles(ParticleTypes.REVERSE_PORTAL, c.x, c.y, c.z, 120, 9, 0.3, 9, 0.05);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 2f, 0.6f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.BLOCKS, 2f, 0.6f);
 	}
 
 	private void clearStage(ServerLevel level, int s) {
@@ -493,7 +493,7 @@ final class TrialEchoes extends Trials.Trial {
 		Vec3 to = solved ? DigDecor.v(this, PLINTH_F - 4, 0, 1) : checkpoint(stage);
 		DigDecor.tp(p, level, to, forwardYaw(), 0f);
 		p.displayClientMessage(Component.literal("The echoes catch you. Back to the checkpoint.").withStyle(ChatFormatting.GRAY), true);
-		level.playSound(null, to.x, to.y, to.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, 1.2f);
+		level.playSound(null, to.x, to.y, to.z, AuraSounds.ENDERMAN_TELEPORT.value(), SoundSource.PLAYERS, 0.8f, 1.2f);
 	}
 
 	/** Broken tiles come back; Extreme path tiles crumble on their timer. */
@@ -512,7 +512,7 @@ final class TrialEchoes extends Trials.Trial {
 			if (left <= 60 && now % 10 == 0) {
 				Vec3 c = DigDecor.v(this, rowF(row), colL(col), 0.9);
 				level.sendParticles(new BlockParticleOption(ParticleTypes.FALLING_DUST, tileBlock(row, col).defaultBlockState()), c.x, c.y - 1, c.z, 8, 1, 0.1, 1, 0);
-				level.playSound(null, c.x, c.y, c.z, SoundEvents.GRAVEL_HIT, SoundSource.BLOCKS, 0.8f, 0.6f);
+				level.playSound(null, c.x, c.y, c.z, AuraSounds.GRAVEL_HIT.value(), SoundSource.BLOCKS, 0.8f, 0.6f);
 			}
 			if (left > 0) continue;
 			it.remove();
@@ -525,7 +525,7 @@ final class TrialEchoes extends Trials.Trial {
 		tile(level, row, col, Blocks.AIR);
 		broken.put(key(row, col), now + back);
 		Vec3 c = DigDecor.v(this, rowF(row), colL(col), 0.5);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.GLASS_BREAK, SoundSource.BLOCKS, 1.2f, 0.6f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.GLASS_BREAK.value(), SoundSource.BLOCKS, 1.2f, 0.6f);
 		level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, was.defaultBlockState()), c.x, c.y, c.z, 40, 1, 0.2, 1, 0.1);
 	}
 
@@ -542,7 +542,7 @@ final class TrialEchoes extends Trials.Trial {
 			if (!walked()) {
 				DigDecor.tp(p, level, checkpoint(stage), forwardYaw(), 0f);
 				p.displayClientMessage(Component.literal("The hall did not hear your steps - walk the path itself").withStyle(ChatFormatting.GOLD), true);
-				level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, 1.2f);
+				level.playSound(null, p.getX(), p.getY(), p.getZ(), AuraSounds.ENDERMAN_TELEPORT.value(), SoundSource.PLAYERS, 0.8f, 1.2f);
 				return false;
 			}
 			stageCleared(level, here, now);
@@ -727,7 +727,7 @@ final class TrialEchoes extends Trials.Trial {
 		RiftCam.shot(rgb).title("The echo", mirrored() ? "mirrored - left is right" : "remember the path").skippable(false)
 				.key(0, DigDecor.v(this, fa, 0, 24), DigDecor.v(this, fa + 0.3, 0, 0))
 				.key(show, DigDecor.v(this, fb, 0, 24), DigDecor.v(this, fb + 0.3, 0, 0)).send(List.of(p));
-		p.playNotifySound(SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 1.4f, 0.8f);
+		p.playNotifySound(AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.BLOCKS, 1.4f, 0.8f);
 	}
 
 	private void revertSolo(ServerLevel level) {
@@ -785,7 +785,7 @@ final class TrialEchoes extends Trials.Trial {
 	void onReact(ServerLevel level, Vec3 at) {
 		Vec3 c = DigDecor.v(this, (rowF(STAGES[stage][0]) + rowF(STAGES[stage][1])) / 2.0, 0, 1);
 		level.sendParticles(ParticleTypes.SCULK_SOUL, c.x, c.y, c.z, 40, 9, 0.2, 9, 0.02);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.SCULK_SHRIEKER_SHRIEK, SoundSource.HOSTILE, 1.5f, 0.7f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.SCULK_SHRIEKER_SHRIEK.value(), SoundSource.HOSTILE, 1.5f, 0.7f);
 	}
 
 	@Override

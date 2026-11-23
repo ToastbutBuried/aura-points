@@ -1,5 +1,6 @@
 package com.toast.aurapoints.rift;
 
+import com.toast.aurapoints.ability.AuraSounds;
 import com.mojang.math.Transformation;
 import com.toast.aurapoints.ability.AuraFx;
 import com.toast.aurapoints.ability.Props;
@@ -7,7 +8,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.level.block.Block;
@@ -154,8 +154,8 @@ final class TrialPortal {
 		// a second, thinner sheet of the aura's light for the shimmer
 		sheet(level, c, Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), 2 * w + 0.7f, h - 0.3f, 0.04f, 0.15f);
 		level.sendParticles(ParticleTypes.FLASH, c.x, c.y + h / 2.0, c.z, 1, 0, 0, 0, 0);
-		level.playSound(null, c.x, c.y + 2, c.z, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 1.2f, 1.4f);
-		level.playSound(null, c.x, c.y + 2, c.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 1.6f, 0.6f);
+		level.playSound(null, c.x, c.y + 2, c.z, AuraSounds.BEACON_ACTIVATE.value(), SoundSource.BLOCKS, 1.2f, 1.4f);
+		level.playSound(null, c.x, c.y + 2, c.z, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.BLOCKS, 1.6f, 0.6f);
 	}
 
 	private Transformation sheetT(float wide, float tall, float depth, float dy) {

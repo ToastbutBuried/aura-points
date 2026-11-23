@@ -3876,5 +3876,304 @@
    }
   ],
   "subtitle": "subtitles.block.generic.hit"
+ },
+ "fx.block.amethyst_block.step": {
+  "sounds": [
+   {
+    "name": "minecraft:block.amethyst_block.step",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:block.amethyst_block.step",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:block.amethyst_block.step",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.block.generic.footsteps"
+ },
+ "fx.block.amethyst_cluster.place": {
+  "sounds": [
+   {
+    "name": "minecraft:block.amethyst_cluster.place",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:block.amethyst_cluster.place",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:block.amethyst_cluster.place",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.block.generic.place"
+ },
+ "fx.item.armor.equip_gold": {
+  "sounds": [
+   {
+    "name": "minecraft:item.armor.equip_gold",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:item.armor.equip_gold",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:item.armor.equip_gold",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.item.armor.equip_gold"
+ },
+ "fx.block.candle.extinguish": {
+  "sounds": [
+   {
+    "name": "minecraft:block.candle.extinguish",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:block.candle.extinguish",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:block.candle.extinguish",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.block.candle.extinguish"
+ },
+ "fx.block.chain.hit": {
+  "sounds": [
+   {
+    "name": "minecraft:block.chain.hit",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:block.chain.hit",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:block.chain.hit",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.block.generic.hit"
+ },
+ "fx.block.decorated_pot.shatter": {
+  "sounds": [
+   {
+    "name": "minecraft:block.decorated_pot.shatter",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:block.decorated_pot.shatter",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:block.decorated_pot.shatter",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.block.decorated_pot.shatter"
+ },
+ "fx.entity.firework_rocket.launch": {
+  "sounds": [
+   {
+    "name": "minecraft:entity.firework_rocket.launch",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:entity.firework_rocket.launch",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:entity.firework_rocket.launch",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.entity.firework_rocket.launch"
+ },
+ "fx.item.flintandsteel.use": {
+  "sounds": [
+   {
+    "name": "minecraft:item.flintandsteel.use",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:item.flintandsteel.use",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:item.flintandsteel.use",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.item.flintandsteel.use"
+ },
+ "fx.block.gravel.hit": {
+  "sounds": [
+   {
+    "name": "minecraft:block.gravel.hit",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:block.gravel.hit",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:block.gravel.hit",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.block.generic.hit"
+ },
+ "fx.entity.item.pickup": {
+  "sounds": [
+   {
+    "name": "minecraft:entity.item.pickup",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:entity.item.pickup",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:entity.item.pickup",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.entity.item.pickup"
+ },
+ "fx.item.lodestone_compass.lock": {
+  "sounds": [
+   {
+    "name": "minecraft:item.lodestone_compass.lock",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:item.lodestone_compass.lock",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:item.lodestone_compass.lock",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.item.lodestone_compass.lock"
+ },
+ "fx.block.portal.travel": {
+  "sounds": [
+   {
+    "name": "minecraft:block.portal.travel",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:block.portal.travel",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:block.portal.travel",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.block.portal.travel"
+ },
+ "fx.block.sculk_shrieker.shriek": {
+  "sounds": [
+   {
+    "name": "minecraft:block.sculk_shrieker.shriek",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:block.sculk_shrieker.shriek",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:block.sculk_shrieker.shriek",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.block.sculk_shrieker.shriek"
+ },
+ "fx.ui.cartography_table.take_result": {
+  "sounds": [
+   {
+    "name": "minecraft:ui.cartography_table.take_result",
+    "type": "event"
+   }
+  ],
+  "subtitle": "subtitles.ui.cartography_table.take_result"
+ },
+ "fx.entity.vex.charge": {
+  "sounds": [
+   {
+    "name": "minecraft:entity.vex.charge",
+    "type": "event",
+    "pitch": 0.95
+   },
+   {
+    "name": "minecraft:entity.vex.charge",
+    "type": "event"
+   },
+   {
+    "name": "minecraft:entity.vex.charge",
+    "type": "event",
+    "pitch": 1.05
+   }
+  ],
+  "subtitle": "subtitles.entity.vex.charge"
+ },
+ "music.hurry1": {
+  "sounds": [
+   {
+    "name": "aurapoints:music/hurry1",
+    "stream": true
+   }
+  ]
+ },
+ "music.hurry2": {
+  "sounds": [
+   {
+    "name": "aurapoints:music/hurry2",
+    "stream": true
+   }
+  ]
+ },
+ "music.hurry_done": {
+  "sounds": [
+   {
+    "name": "aurapoints:music/hurry_done",
+    "stream": true
+   }
+  ]
  }
 }
