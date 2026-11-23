@@ -1804,7 +1804,7 @@ public final class AuraConfig {
 	/** Extra health and damage for the realm's mobs per trial solved (0.15 = +15% after the first...). */
 	public static double RIFT_SCALE_PER_ROOM = 0.15;
 	/** The guardian's health, and the share more per extra player. */
-	public static double RIFT_BOSS_HEALTH = 400;
+	public static double RIFT_BOSS_HEALTH = 520;
 	public static double RIFT_BOSS_HEALTH_PER_PLAYER = 0.5;
 	/** Rewards: Aura and mastery XP per trial solved and for the guardian; relic chance per player (always on your first clear of an aura). */
 	public static int RIFT_ROOM_AURA = 20;

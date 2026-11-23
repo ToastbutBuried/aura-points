@@ -397,7 +397,7 @@ final class Reliquary {
 	// The Warden's entrance: the floor gives way
 	// ---------------------------------------------------------------
 
-	static final int CRACK_FROM = 10, CRACK_TICKS = 60, FALL_AT = 74, RISE_AT = 130, ENTRANCE_END = 175;
+	static final int CRACK_FROM = 10, CRACK_TICKS = 60, FALL_AT = 74, FALL_STEPS = 8, RISE_AT = 150, ENTRANCE_END = 300;
 
 	static void startCollapse(ServerLevel rift, Rifts.Run run) {
 		State s = run.flow;
@@ -408,13 +408,16 @@ final class Reliquary {
 		for (ServerPlayer p : here) p.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 50, 0, false, false, false));
 		rift.playSound(null, altar.x, altar.y, altar.z, AuraSounds.WARDEN_EMERGE.value(), SoundSource.HOSTILE, 3f, 0.5f);
 		rift.playSound(null, altar.x, altar.y, altar.z, AuraSounds.AMBIENT_CAVE.value(), SoundSource.HOSTILE, 3f, 0.6f);
-		RiftCam.shot(run.aura.rgb)
+		RiftCam.shot(run.aura.rgb).skippable(true)
 				.key(0, at(run, 0, 46, 6), altar)
 				.key(FALL_AT - 6, at(run, 0, 30, 3), altar)
 				.cut(FALL_AT, plinth.add(14, 1, 14), at(run, 0, -4, 0))
-				.key(RISE_AT - 10, plinth.add(10, 2, 10), at(run, 0, -10, 0))
-				.cut(RISE_AT, plinth.add(0, 2, 15), plinth.add(0, 2.5, 0))
-				.key(ENTRANCE_END - 10, plinth.add(0, 1, 10), plinth.add(0, 3.5, 0))
+				.key(128, plinth.add(10, 2, 10), at(run, 0, -10, 0))
+				.cut(130, plinth.add(13, 9, 13), plinth).key(RISE_AT, plinth.add(9, 5, 9), plinth)
+				.cut(RISE_AT + 1, plinth.add(1.5, 1.0, 7), plinth.add(0, 1.4, 0)).key(RISE_AT + 34, plinth.add(0.5, 1.2, 5.5), plinth.add(0, 1.8, 0))
+				.cut(RISE_AT + 35, plinth.add(8, 1.2, 6), plinth.add(0, 2.4, 0)).key(RISE_AT + 78, plinth.add(6, 1.0, 8), plinth.add(0, 3.6, 0))
+				.cut(RISE_AT + 79, plinth.add(-3, 2, 8), plinth.add(0, 3.6, 0)).key(RISE_AT + 100, plinth.add(0, 2, 8), plinth.add(0, 4.2, 0))
+				.cut(RISE_AT + 101, plinth.add(0, 1.5, 12), plinth.add(0, 4, 0)).key(ENTRANCE_END - 10, plinth.add(0, 2.5, 19), plinth.add(0, 3.5, 0))
 				.send(here);
 	}
 
@@ -449,20 +452,42 @@ final class Reliquary {
 			rift.playSound(null, c.x, c.y, c.z, AuraSounds.DEEPSLATE_BREAK.value(), SoundSource.BLOCKS, 2f, 0.5f);
 			if (t % 9 == 0) rift.playSound(null, c.x, c.y, c.z, AuraSounds.WARDEN_HEARTBEAT.value(), SoundSource.HOSTILE, 3f, 0.6f);
 		}
-		if (t == FALL_AT) {
-			// the floor gives way: everything in the circle down to the crypt's ceiling goes, as tumbling stones
+		if (t >= FALL_AT && t < FALL_AT + FALL_STEPS * 2 && (t - FALL_AT) % 2 == 0) {
+			// the floor gives way ring by ring, all the way round, down to the crypt's ceiling
+			int k = (t - FALL_AT) / 2;
+			double in = R * k / (double) FALL_STEPS, out = R * (k + 1) / (double) FALL_STEPS;
+			java.util.List<BlockPos> gone = new java.util.ArrayList<>();
+			java.util.Map<BlockPos, BlockState> what = new java.util.HashMap<>();
 			for (int dx = -R; dx <= R; dx++) {
 				for (int dz = -R; dz <= R; dz++) {
-					if (dx * dx + dz * dz > R * R) continue;
+					double d = Math.sqrt(dx * dx + dz * dz);
+					if (d > R || d < in || (d >= out && k < FALL_STEPS - 1)) continue;
 					for (int dy = -4; dy <= 4; dy++) {
 						BlockPos p = o.offset(dx, dy, dz);
 						BlockState was = rift.getBlockState(p);
 						if (was.isAir()) continue;
 						rift.setBlock(p, Blocks.AIR.defaultBlockState(), 2 | 16);
-						if (rift.random.nextInt(14) == 0 && s.debris.size() < 70) debris(rift, s, Vec3.atCenterOf(p), was);
+						gone.add(p);
+						what.put(p, was);
 					}
 				}
 			}
+			// the tumbling stones are picked evenly round the ring, so it falls everywhere
+			gone.sort(java.util.Comparator.comparingDouble(p -> Math.atan2(p.getZ() - o.getZ(), p.getX() - o.getX())));
+			int want = Math.min(gone.size(), 10 + 3 * k);
+			for (int n = 0; n < want; n++) {
+				BlockPos p = gone.get((int) ((n + rift.random.nextDouble()) * gone.size() / want));
+				debris(rift, s, Vec3.atCenterOf(p), what.get(p));
+			}
+			for (int n = 0; n < 24; n++) {
+				double a = n * Math.PI / 12, d = (in + out) / 2;
+				Vec3 q = at(run, Math.cos(a) * d, 0.5, Math.sin(a) * d);
+				burst(rift, run, ParticleTypes.CAMPFIRE_COSY_SMOKE, q.x, q.y, q.z, 2, 0.6, 0.3, 0.6, 0.02);
+			}
+			Vec3 c = at(run, 0, 0, 0);
+			rift.playSound(null, c.x, c.y, c.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 2.5f, 0.5f + k * 0.03f);
+		}
+		if (t == FALL_AT) {
 			Vec3 c = at(run, 0, 0, 0);
 			rift.playSound(null, c.x, c.y, c.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, 4f, 0.5f);
 			rift.sendParticles(ParticleTypes.EXPLOSION_EMITTER, c.x, c.y, c.z, 3, R * 0.4, 0.5, R * 0.4, 0);
@@ -476,14 +501,72 @@ final class Reliquary {
 				p.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 30, 0, false, false, false));
 			}
 		}
+		if (t > FALL_AT && t < ENTRANCE_END) entrance(rift, run, t, now);
 		tickDebris(rift, s);
 		return t == RISE_AT;
 	}
 
+	/** The Warden's coming: the wings' colours run to the middle, a fist breaks the floor, it hauls itself up, takes its shards and roars. */
+	private static void entrance(ServerLevel rift, Rifts.Run run, int t, long now) {
+		State s = run.flow;
+		Vec3 c = cryptCenter(run), top = c.add(0, 2, 0);
+		int u = t - RISE_AT;
+		if (t >= 128 && u < 0) {
+			double in = 26 * (1 - (t - 128) / (double) (RISE_AT - 128));
+			for (int i = 0; i < 4; i++) {
+				double a = i * Math.PI / 2 + Math.PI / 4;
+				for (int k = 0; k < 6; k++) {
+					double d = Math.max(0, in + k * 0.6);
+					rift.sendParticles(AuraFx.dust(WING_RGB[i], 2f), c.x + Math.cos(a) * d, c.y + 0.3 + (d < 4 ? 2 : 0), c.z + Math.sin(a) * d, 2, 0.15, 0.05, 0.15, 0);
+				}
+			}
+			if (t % 8 == 0) rift.playSound(null, c.x, c.y, c.z, AuraSounds.WARDEN_HEARTBEAT.value(), SoundSource.HOSTILE, 4f, 0.5f + (t - 128) / 60f);
+		}
+		if (u < 0 || !(run.champion instanceof RelicWarden w)) return;
+		if (u == 2 || u == 30 || u == 60) {
+			// the fist, the slam, the heave: stones fly
+			for (int k = 0; k < 14; k++) debris(rift, s, top.add(Math.cos(k * 0.45) * 1.6, 0.6, Math.sin(k * 0.45) * 1.6), Blocks.CRACKED_DEEPSLATE_TILES.defaultBlockState(), 0.35);
+			rift.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, Blocks.DEEPSLATE_TILES.defaultBlockState()), top.x, top.y + 0.3, top.z, 80, 1.5, 0.3, 1.5, 0.3);
+			rift.sendParticles(ParticleTypes.EXPLOSION, top.x, top.y + 0.3, top.z, 2, 1, 0.1, 1, 0);
+			rift.playSound(null, c.x, c.y, c.z, u == 2 ? AuraSounds.WARDEN_EMERGE.value() : AuraSounds.WARDEN_ATTACK_IMPACT.value(), SoundSource.HOSTILE, 4f, 0.5f);
+			rift.playSound(null, c.x, c.y, c.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.5f, 0.6f);
+		}
+		if (u < 78 && u % 4 == 0) rift.sendParticles(ParticleTypes.LARGE_SMOKE, top.x, top.y + 0.2, top.z, 6, 1.4, 0.2, 1.4, 0.02);
+		if (u >= 60 && u < 100) {
+			// the four shards spiral into its chest
+			double f = (u - 60) / 40.0, rad = 7 * (1 - f * f);
+			for (int i = 0; i < 4; i++) {
+				double a = i * Math.PI / 2 + f * f * 14;
+				Vec3 q = top.add(Math.cos(a) * rad, 5.5 - 2.4 * f, Math.sin(a) * rad);
+				rift.sendParticles(AuraFx.dust(WING_RGB[i], 2.6f), q.x, q.y, q.z, 5, 0.1, 0.1, 0.1, 0);
+				rift.sendParticles(ParticleTypes.END_ROD, q.x, q.y, q.z, 1, 0, 0, 0, 0.01);
+			}
+			if (u % 10 == 0) rift.playSound(null, c.x, c.y, c.z, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.HOSTILE, 3f, 0.5f + (float) f);
+		}
+		if (u == 100) {
+			Vec3 chest = top.add(0, 3, 0);
+			rift.sendParticles(ParticleTypes.FLASH, chest.x, chest.y, chest.z, 3, 0.3, 0.5, 0.3, 0);
+			for (int i = 0; i < 4; i++) rift.sendParticles(AuraFx.dust(WING_RGB[i], 3f), chest.x, chest.y, chest.z, 40, 0.8, 1, 0.8, 0);
+			rift.playSound(null, c.x, c.y, c.z, AuraSounds.BEACON_ACTIVATE.value(), SoundSource.HOSTILE, 4f, 0.5f);
+		}
+		if (u == 106) {
+			w.triggerAnim("action", "roar");
+			rift.playSound(null, c.x, c.y, c.z, AuraSounds.WARDEN_ROAR.value(), SoundSource.HOSTILE, 5f, 0.6f);
+			rift.playSound(null, c.x, c.y, c.z, AuraSounds.WITHER_SPAWN.value(), SoundSource.HOSTILE, 2f, 0.6f);
+		}
+		if (u > 108 && u < 134 && u % 2 == 0) AuraFx.ring(rift, c.x, c.y + 0.4, c.z, (u - 106) * 1.1, AuraFx.dust(run.aura.rgb, 2.6f), 60);
+		if (u > 108 && u < 140 && u % 5 == 0) burst(rift, run, ParticleTypes.CAMPFIRE_COSY_SMOKE, c.x, c.y + 20, c.z, 12, 12, 3, 12, 0.01);
+	}
+
 	private static void debris(ServerLevel rift, State s, Vec3 at, BlockState state) {
+		debris(rift, s, at, state, 0.15);
+	}
+
+	private static void debris(ServerLevel rift, State s, Vec3 at, BlockState state, double up) {
 		float size = 0.6f + rift.random.nextFloat() * 0.5f;
+		double push = up > 0.2 ? 0.5 : 0.2;
 		Display.BlockDisplay d = Props.spawn(rift, at, state, new Transformation(new Vector3f(-size / 2), null, new Vector3f(size), null), 120, 1);
-		s.debris.add(new Debris(d, state, new Vec3[]{at}, new Vec3[]{new Vec3((rift.random.nextDouble() - 0.5) * 0.2, 0.15, (rift.random.nextDouble() - 0.5) * 0.2)},
+		s.debris.add(new Debris(d, state, new Vec3[]{at}, new Vec3[]{new Vec3((rift.random.nextDouble() - 0.5) * push, up + rift.random.nextDouble() * 0.1, (rift.random.nextDouble() - 0.5) * push)},
 				new float[]{(rift.random.nextFloat() - 0.5f) * 0.4f, 0}));
 	}
 

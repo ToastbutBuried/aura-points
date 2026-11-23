@@ -25,7 +25,7 @@ final class Guardian {
 		RelicWarden w = RelicWarden.create(rift, run, at);
 		if (w == null) return null;
 		health(w, players, run.difficulty);
-		w.triggerAnim("action", "rise");
+		w.devEntrance(true);
 		rift.addFreshEntity(w);
 		rift.sendParticles(net.minecraft.core.particles.ParticleTypes.EXPLOSION_EMITTER, at.x, at.y, at.z, 1, 0, 0, 0, 0);
 		return w;

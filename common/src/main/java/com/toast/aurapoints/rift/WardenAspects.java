@@ -34,8 +34,8 @@ import java.util.UUID;
  * <li>YELLOW, the Prism (50-25%): the crypt's pillars charge beams at the players - break the line behind a pillar.</li>
  * <li>RED, the Wrath (25-0%): meteors fall on the players and round the Warden.</li>
  * </ul>
- * Every change of Aspect is a short scene (a camera shot, a title, a motif of notes) during which the Warden holds
- * still and the players take no damage, so a cutscene never gets anyone hurt. Hazards are telegraphed, hurt through
+ * A change of Aspect never stops the fight (5.55): a line in chat, a motif, the Warden and the crypt's pillars take the
+ * colour. Hazards are telegraphed, hurt through
  * {@link RelicWarden#hit} (so difficulty scales them) and come faster on higher difficulties. Off with
  * RIFT_WARDEN_ASPECTS.
  */
@@ -50,11 +50,9 @@ final class WardenAspects {
 
 	private final RelicWarden w;
 	private int aspect = -1;
-	private long next, freezeUntil;
+	private long next;
 	/** Dev tests turn the layer off so the phase checks stay about the phases. */
 	boolean off;
-	/** DEV ONLY: players a scene protected. */
-	int devProtected;
 
 	WardenAspects(RelicWarden w) {
 		this.w = w;
@@ -77,7 +75,8 @@ final class WardenAspects {
 			transition(level, want, now);
 			return;
 		}
-		if (paused || now < freezeUntil || now < next) return;
+		if (now % 8 == 0) for (Vec3 e : emitters()) level.sendParticles(AuraFx.dust(Reliquary.WING_RGB[aspect], 1.8f), e.x, e.y - 1, e.z, 3, 0.3, 2.2, 0.3, 0);
+		if (paused || now < next) return;
 		int tier = Math.max(0, Math.min(4, w.run.difficulty.tier()));
 		next = now + Math.round(EVERY[aspect] * TIER_SCALE[tier]);
 		switch (aspect) {
@@ -89,7 +88,7 @@ final class WardenAspects {
 	}
 
 	/** The run's players in the crypt (the run's own list: dev tests' fake players are in no entity list). */
-	private List<ServerPlayer> players(ServerLevel level) {
+	List<ServerPlayer> players(ServerLevel level) {
 		List<ServerPlayer> out = new ArrayList<>();
 		if (w.run == null) return out;
 		Vec3 c = Reliquary.cryptCenter(w.run);
@@ -105,23 +104,17 @@ final class WardenAspects {
 
 	private void transition(ServerLevel level, int to, long now) {
 		aspect = to;
-		next = now + 110;
-		freezeUntil = now + 66;
+		next = now + 70;
 		int rgb = Reliquary.WING_RGB[to];
-		List<ServerPlayer> here = players(level);
-		for (ServerPlayer p : here) {
-			AuraFx.title(p, Component.literal(NAME[to]).withStyle(s -> s.withColor(rgb).withBold(true)), Component.literal(HINT[to]).withStyle(ChatFormatting.GRAY));
-			// the scene is no time to get hurt: nothing lands while the camera is not theirs
-			p.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 80, 4, false, false));
-			devProtected++;
+		w.showAspect(to);
+		if (w.run.bar != null) w.run.bar.setColor(new net.minecraft.world.BossEvent.BossBarColor[]{net.minecraft.world.BossEvent.BossBarColor.BLUE, net.minecraft.world.BossEvent.BossBarColor.GREEN,
+				net.minecraft.world.BossEvent.BossBarColor.YELLOW, net.minecraft.world.BossEvent.BossBarColor.RED}[to]);
+		w.say(level, NAME[to].charAt(0) + NAME[to].substring(1).toLowerCase(java.util.Locale.ROOT) + " - " + HINT[to], rgb);
+		for (Vec3 e : emitters()) AuraFx.line(level, w.position().add(0, 2.9, 0), e, AuraFx.dust(rgb, 1.6f), 30);
+		for (int k = 1; k <= 5; k++) {
+			double r = k * 3.0;
+			AuraFx.later(level.getServer(), k * 2, () -> AuraFx.ring(level, w.getX(), w.getY() + 0.2, w.getZ(), r, AuraFx.dust(rgb, 2.2f), 24 + (int) r * 3));
 		}
-		w.hold(66);
-		Vec3 c = w.position().add(0, 3, 0);
-		RiftCam.shot(rgb).title(NAME[to], HINT[to]).skippable(true)
-				.key(0, c.add(9, 4, 9), c)
-				.key(40, c.add(-9, 3, 7), c)
-				.key(66, c.add(0, 5, 13), c)
-				.send(here);
 		level.playSound(null, w.getX(), w.getY() + 2, w.getZ(), AuraSounds.WARDEN_ROAR.value(), SoundSource.HOSTILE, 2.5f, 0.8f);
 		AuraFx.ring(level, w.getX(), w.getY() + 0.2, w.getZ(), 7, AuraFx.dust(rgb, 2.2f), 48);
 		motif(to);
@@ -259,7 +252,7 @@ final class WardenAspects {
 	}
 
 	/** Where a crypt pillar's beam starts: its side towards the middle of the arena, a few blocks above the floor. */
-	private List<Vec3> emitters() {
+	List<Vec3> emitters() {
 		var an = Monument.anchors();
 		BlockPos hub = w.run.hub();
 		Vec3 cc = Reliquary.cryptCenter(w.run);
@@ -415,13 +408,13 @@ final class WardenAspects {
 		log.accept("[aspects] beam behind a pillar: hurt " + (w.devHits > h) + " (must be false), line blocked " + blocked + " (must be true)");
 		level.setBlock(mid, was1, 3);
 		level.setBlock(mid.above(), was2, 3);
-		// a change of Aspect is a protected scene: the Warden holds, the players take nothing meanwhile
+		// a change of Aspect doesn't stop the fight
 		boolean keepOff = off;
 		off = false;
 		aspect = -1;
-		devProtected = 0;
+		boolean was = w.devStaggered();
 		transition(level, GREEN, level.getGameTime());
-		log.accept("[aspects] scene: aspect " + aspect + " (must be 1), the Warden holds " + w.devStaggered() + " (must be true), players protected " + (devProtected >= 1) + " (must be true)");
+		log.accept("[aspects] change: aspect " + aspect + " (must be 1), the Warden stopped " + (w.devStaggered() && !was) + " (must be false), shown " + (w.aspectRgb() == Reliquary.WING_RGB[GREEN]) + " (must be true)");
 		off = keepOff;
 	}
 }

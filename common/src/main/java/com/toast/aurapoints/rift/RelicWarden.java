@@ -32,9 +32,7 @@ import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
-import net.minecraft.world.entity.monster.Shulker;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -52,12 +50,13 @@ import java.util.List;
 /**
  * The Relic Warden (5.46.0): the guardian a rift realm's altar wakes once the relic is forged. A stone colossus in
  * the aura's colours (textures/entity/relic_warden_&lt;aura&gt;.png), the stolen relic glowing in its open chest.
- * Five phases, each announced with a title:
+ * Five phases, each announced with a line in chat and shown on it (no scene, no pause):
  * <ol>
- * <li>GUARDIAN (100-70%): melee combos (slam, backhand), a Ground Slam and the aura's signature attack.</li>
- * <li>UNBOUND (70-40%): also hurls its arm fragments as homing barrages, charges across the arena along a warned
+ * <li>GUARDIAN (100-80%): melee combos (slam, backhand), a Ground Slam and the aura's signature attack.</li>
+ * <li>UNBOUND (80-60%): also hurls its arm fragments as homing barrages, charges across the arena along a warned
  * line and calls waves of touched mobs out of the pedestals.</li>
- * <li>SHATTERED (40%): the four shards break loose as Shard Pylons; it can't be hurt until they're broken. It staggers.</li>
+ * <li>SHATTERED (60%): its four shards tear out one by one (WardenShards). It fights on, hard to hurt; each broken shard
+ * lets it fall 5% further and leaves it open for a moment.</li>
  * <li>OVERDRIVE: tinted red, faster and harder, three-hit combos, the Core Beam (a low beam sweeping round the hub:
  * jump it, or stand on the raised rim), signature attacks twice as often.</li>
  * <li>LAST STAND (10%): it drops to one knee, rises with its core torn out in front (takes 50% more damage) and
@@ -74,7 +73,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 
 	public static final int GUARDIAN = 0, UNBOUND = 1, SHIELDED = 2, OVERDRIVE = 3, LAST_STAND = 4;
 	/** What the main animation shows besides walking: 0 nothing, 1 charging, 2 beaming, 3 kneeling. */
-	public static final int POSE_NONE = 0, POSE_CHARGE = 1, POSE_BEAM = 2, POSE_KNEEL = 3;
+	public static final int POSE_NONE = 0, POSE_CHARGE = 1, POSE_BEAM = 2, POSE_KNEEL = 3, POSE_ENTRANCE = 4;
 	private static final int PARRY_LEAD = 10, PARRY_WINDOW = 4, PARRY_LOCKOUT = 10;
 	/** Per player: the tick of their last hit on the Warden, and when they may try to parry again. */
 	private final java.util.Map<java.util.UUID, Integer> lastHit = new java.util.HashMap<>(), parryLock = new java.util.HashMap<>();
@@ -87,6 +86,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	private static final EntityDataAccessor<Integer> AURA = SynchedEntityData.defineId(RelicWarden.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Integer> PHASE = SynchedEntityData.defineId(RelicWarden.class, EntityDataSerializers.INT);
 	private static final EntityDataAccessor<Integer> POSE = SynchedEntityData.defineId(RelicWarden.class, EntityDataSerializers.INT);
+	private static final EntityDataAccessor<Integer> ASPECT = SynchedEntityData.defineId(RelicWarden.class, EntityDataSerializers.INT);
 
 	private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("animation.relic_warden.idle");
 	private static final RawAnimation WALK = RawAnimation.begin().thenLoop("animation.relic_warden.walk");
@@ -94,6 +94,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	private static final RawAnimation BEAM = RawAnimation.begin().thenLoop("animation.relic_warden.beam");
 	private static final RawAnimation KNEEL = RawAnimation.begin().thenPlayAndHold("animation.relic_warden.kneel");
 	private static final RawAnimation EXPOSED = RawAnimation.begin().thenLoop("animation.relic_warden.exposed");
+	private static final RawAnimation ENTRANCE = RawAnimation.begin().thenPlayAndHold("animation.relic_warden.entrance");
 	private static final RawAnimation DEATH = RawAnimation.begin().thenPlayAndHold("animation.relic_warden.death");
 
 	private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
@@ -106,7 +107,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	private int windup = -1;
 	private boolean parryable;
 	private Runnable landing;
-	private final List<Shulker> pylons = new ArrayList<>();
+	final WardenShards shards = new WardenShards(this);
 	private int staggerTicks;
 	private Runnable afterStagger;
 	/** Charging: direction, ticks left, who was hit already. */
@@ -148,6 +149,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		builder.define(AURA, 0);
 		builder.define(PHASE, GUARDIAN);
 		builder.define(POSE, POSE_NONE);
+		builder.define(ASPECT, -1);
 	}
 
 	public AuraType aura() {
@@ -173,6 +175,21 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		return entityData.get(POSE);
 	}
 
+	/** The colour of its Aspect (0 = none yet). */
+	public int aspectRgb() {
+		int a = entityData.get(ASPECT);
+		return a < 0 ? 0 : Reliquary.WING_RGB[a];
+	}
+
+	void showAspect(int a) {
+		entityData.set(ASPECT, a);
+	}
+
+	/** Rising out of the floor (its entrance), or done with it. */
+	void devEntrance(boolean on) {
+		setPose(on ? POSE_ENTRANCE : POSE_NONE);
+	}
+
 	private void setPose(int pose) {
 		entityData.set(POSE, pose);
 	}
@@ -196,10 +213,16 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	private void announce(ServerLevel level, String title, String sub) {
 		if (run == null) return;
 		for (ServerPlayer p : Rifts.online(level.getServer(), run)) {
-			AuraFx.title(p, Component.literal(title).withStyle(s -> s.withColor(aura().rgb).withBold(true)), Component.literal(sub).withStyle(ChatFormatting.GRAY));
+			p.sendSystemMessage(Component.literal("✦ " + title + " ").withStyle(s -> s.withColor(aura().rgb).withBold(true)).append(Component.literal("- " + sub).withStyle(s -> s.withColor(0xAAAAAA).withBold(false))));
 		}
 		if (run.bar != null) run.bar.setName(Component.literal(getCustomName() == null ? "Warden" : getCustomName().getString()).append(Component.literal(" - " + title.toLowerCase(java.util.Locale.ROOT)))
 				.withStyle(aura().color, ChatFormatting.BOLD));
+	}
+
+	/** A line in chat for everyone here. */
+	void say(ServerLevel level, String text, int rgb) {
+		if (run == null) return;
+		for (ServerPlayer p : Rifts.online(level.getServer(), run)) p.sendSystemMessage(Component.literal("✦ " + text).withStyle(s -> s.withColor(rgb)));
 	}
 
 	private void setPhase(ServerLevel level, int phase) {
@@ -229,8 +252,8 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	/** The lowest its health may fall in the current phase: each phase has to be gone through. */
 	private float floor() {
 		return switch (phase()) {
-			case GUARDIAN, UNBOUND -> getMaxHealth() * 0.40f;
-			case SHIELDED -> getHealth();
+			case GUARDIAN, UNBOUND -> getMaxHealth() * 0.60f;
+			case SHIELDED -> getMaxHealth() * (0.60f - 0.05f * shards.broken);
 			case OVERDRIVE -> lastStandUsed ? 0f : getMaxHealth() * 0.10f;
 			default -> kneelTicks > 0 ? getHealth() : 0f;
 		};
@@ -244,12 +267,12 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.0, true) {
 			@Override
 			public boolean canUse() {
-				return !busy() && phase() != SHIELDED && super.canUse();
+				return !busy() && super.canUse();
 			}
 
 			@Override
 			public boolean canContinueToUse() {
-				return !busy() && phase() != SHIELDED && super.canContinueToUse();
+				return !busy() && super.canContinueToUse();
 			}
 		});
 		goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 24f));
@@ -268,7 +291,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	@Override
 	public boolean isInvulnerableTo(DamageSource source) {
 		if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) return super.isInvulnerableTo(source);
-		return phase() == SHIELDED || kneelTicks > 0 || super.isInvulnerableTo(source);
+		return !awake || kneelTicks > 0 || super.isInvulnerableTo(source);
 	}
 
 	/** /kill and other invulnerability-bypassing damage skip the phase floor. */
@@ -295,10 +318,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			}
 		}
 		if (!(level() instanceof ServerLevel level)) return super.hurt(source, amount);
-		if (phase() == SHIELDED) {
-			if (source.getEntity() instanceof ServerPlayer p) p.displayClientMessage(Component.literal("The pylons shield it - break them!").withStyle(ChatFormatting.GOLD), true);
-			return false;
-		}
+		amount *= taken();
 		if (source.getDirectEntity() instanceof ServerPlayer p && windup >= 0 && parryable) {
 			int since = tickCount - lastHit.getOrDefault(p.getUUID(), -1000);
 			lastHit.put(p.getUUID(), tickCount);
@@ -322,13 +342,6 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		return super.hurt(source, amount);
 	}
 
-	@Override
-	protected void actuallyHurt(DamageSource source, float amount) {
-		if (phase() == LAST_STAND && kneelTicks <= 0 && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) amount *= 1.5f;
-		if (tickCount < exposedUntil) amount *= 2.5f;
-		super.actuallyHurt(source, amount);
-	}
-
 	/**
 	 * Every way down goes through here (NeoForge's damage pipeline ignores an amount changed in actuallyHurt): health
 	 * never falls below the current phase's floor, so no single hit skips the shield or the last stand.
@@ -339,14 +352,43 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		super.setHealth(health);
 	}
 
+	/** How much of a hit it takes now. Applied before the damage pipeline (NeoForge's ignores an amount changed in actuallyHurt). */
+	private float taken() {
+		float k = phase() == LAST_STAND ? 1.5f : 1f;
+		if (tickCount < exposedUntil) return k * 1.5f;
+		return phase() == SHIELDED ? 0.35f : k;
+	}
+
+	/** A shard broke: it reels, open for three seconds; after the last one it goes into Overdrive. */
+	void shardsDown(ServerLevel level, boolean last) {
+		playSound(AuraSounds.IRON_GOLEM_DAMAGE.value(), 3f, 0.4f);
+		exposedUntil = tickCount + 60;
+		windup = -1;
+		landing = null;
+		chargeTicks = 0;
+		var speed = getAttribute(Attributes.MOVEMENT_SPEED);
+		if (speed != null) speed.setBaseValue(0.24 + 0.015 * shards.broken);
+		if (!last) {
+			stagger(15, null);
+			return;
+		}
+		entityData.set(PHASE, OVERDRIVE);
+		stagger(15, () -> {
+			triggerAnim("action", "roar");
+			playSound(AuraSounds.WARDEN_ROAR.value(), 3f, 0.8f);
+			level.sendParticles(AuraFx.dust(aura().rgb, 3f), getX(), getY() + 3.1, getZ(), 80, 1.8, 1.8, 1.8, 0);
+			setPhase(level, OVERDRIVE);
+		});
+	}
+
 	private void parried(ServerLevel level, ServerPlayer by) {
 		windup = -1;
 		landing = null;
 		parryable = false;
 		level.playSound(null, getX(), getY() + 2, getZ(), AuraSounds.ANVIL_LAND.value(), SoundSource.HOSTILE, 1.5f, 1.8f);
 		level.playSound(null, getX(), getY() + 2, getZ(), AuraSounds.BELL_BLOCK.value(), SoundSource.HOSTILE, 2f, 1.4f);
-		level.sendParticles(ParticleTypes.FLASH, getX(), getY() + 2.2, getZ(), 1, 0, 0, 0, 0);
-		level.sendParticles(AuraFx.dust(0xFFD23F, 2.5f), getX(), getY() + 2.2, getZ(), 40, 0.8, 0.8, 0.8, 0);
+		level.sendParticles(ParticleTypes.FLASH, getX(), getY() + 2.8, getZ(), 1, 0, 0, 0, 0);
+		level.sendParticles(AuraFx.dust(0xFFD23F, 2.5f), getX(), getY() + 2.8, getZ(), 40, 0.8, 0.8, 0.8, 0);
 		AuraFx.title(by, Component.literal("PARRY").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD), Component.literal("it's exposed!").withStyle(ChatFormatting.YELLOW));
 		by.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 200, 0));
 		exposedUntil = tickCount + 60;
@@ -386,6 +428,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			return;
 		}
 		tickBolts(level);
+		if (phase() == SHIELDED) shards.tick(level, aspects.players(level));
 		if (com.toast.aurapoints.config.AuraConfig.RIFT_WARDEN_ASPECTS) aspects.tick(level, phase() == SHIELDED || (phase() == LAST_STAND && kneelTicks > 0));
 		float hp = getHealth() / getMaxHealth();
 		if (staggerTicks > 0) {
@@ -398,12 +441,8 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			return;
 		}
 		// phase changes
-		if (phase() == GUARDIAN && hp <= 0.70f) setPhase(level, UNBOUND);
-		if (phase() == UNBOUND && hp <= 0.40f + 0.001f) shield(level);
-		if (phase() == SHIELDED) {
-			tickShield(level);
-			return;
-		}
+		if (phase() == GUARDIAN && hp <= 0.80f) setPhase(level, UNBOUND);
+		if (phase() == UNBOUND && hp <= 0.60f + 0.001f) shield(level);
 		if (phase() == OVERDRIVE && !lastStandUsed && getHealth() <= getMaxHealth() * 0.10f + 0.01f) lastStand(level);
 		if (phase() == LAST_STAND && tickLastStand(level)) return;
 		if (chargeTicks > 0) {
@@ -440,13 +479,13 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		if (ph == OVERDRIVE && beamCd <= 0) {
 			beamCd = 260;
 			startBeam(level);
-		} else if ((ph == UNBOUND || fast) && chargeCd <= 0 && distanceTo(t) > 6) {
+		} else if ((ph == UNBOUND || ph == SHIELDED || fast) && chargeCd <= 0 && distanceTo(t) > 6) {
 			chargeCd = fast ? 120 : 180;
 			startCharge(level, t);
-		} else if ((ph == UNBOUND || fast) && barrageCd <= 0) {
+		} else if ((ph == UNBOUND || ph == SHIELDED || fast) && barrageCd <= 0) {
 			barrageCd = ph == LAST_STAND ? 30 : fast ? 90 : 130;
 			barrage(level);
-		} else if (slamCd <= 0 && distanceTo(t) < 7) {
+		} else if (slamCd <= 0 && distanceTo(t) < 8) {
 			slamCd = fast ? 90 : 140;
 			slam(level);
 		} else if (signatureCd <= 0) {
@@ -461,9 +500,9 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	/** The tell before an attack lands: YELLOW = parryable, BLUE = not. */
 	private void flash(ServerLevel level, boolean yellow) {
 		int col = yellow ? 0xFFD23F : 0x3FA9FF;
-		level.sendParticles(AuraFx.dust(col, 2.8f), getX(), getY() + 2.6, getZ(), 30, 0.6, 0.9, 0.6, 0);
-		level.sendParticles(ParticleTypes.FLASH, getX(), getY() + 2.6, getZ(), 1, 0, 0, 0, 0);
-		if (!yellow) level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, getX(), getY() + 2.6, getZ(), 20, 0.6, 0.9, 0.6, 0.02);
+		level.sendParticles(AuraFx.dust(col, 2.8f), getX(), getY() + 3.2, getZ(), 30, 0.6, 0.9, 0.6, 0);
+		level.sendParticles(ParticleTypes.FLASH, getX(), getY() + 3.2, getZ(), 1, 0, 0, 0, 0);
+		if (!yellow) level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, getX(), getY() + 3.2, getZ(), 20, 0.6, 0.9, 0.6, 0.02);
 		level.playSound(null, getX(), getY() + 2, getZ(), yellow ? AuraSounds.BELL_RESONATE.value() : AuraSounds.WARDEN_SONIC_CHARGE.value(), SoundSource.HOSTILE, 2f, yellow ? 1.6f : 1.2f);
 	}
 
@@ -507,18 +546,18 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		if (step == 0) {
 			triggerAnim("action", "slam");
 			windUp(13, true, () -> {
-				Vec3 at = front(2.2);
-				smash(level, at, 2.6, 10f);
+				Vec3 at = front(2.7);
+				smash(level, at, 3.0, 10f);
 				combo(level, 1);
 			});
 		} else if (step == 1) {
 			triggerAnim("action", "sweep");
 			windUp(8, false, () -> {
-				Vec3 c = front(2.0);
+				Vec3 c = front(2.5);
 				level.sendParticles(ParticleTypes.SWEEP_ATTACK, c.x, c.y + 1.2, c.z, 3, 1.2, 0.3, 1.2, 0);
 				level.playSound(null, c.x, c.y, c.z, AuraSounds.PLAYER_ATTACK_SWEEP.value(), SoundSource.HOSTILE, 1.6f, 0.5f);
 				Vec3 side = Vec3.directionFromRotation(0, getYRot() + 90);
-				for (ServerPlayer p : playersNear(level, c, 3.6)) {
+				for (ServerPlayer p : playersNear(level, c, 4.2)) {
 					hit(level, p, 8f);
 					p.setDeltaMovement(side.x * 1.2, 0.35, side.z * 1.2);
 					p.hurtMarked = true;
@@ -527,11 +566,12 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			});
 		} else {
 			triggerAnim("action", "slam");
-			windUp(11, true, () -> smash(level, front(2.4), 3.2, 12f));
+			windUp(11, true, () -> smash(level, front(2.9), 3.6, 12f));
 		}
 	}
 
 	private void smash(ServerLevel level, Vec3 at, double r, float dmg) {
+		shards.blow(level, at, r);
 		level.sendParticles(ParticleTypes.EXPLOSION, at.x, at.y + 0.3, at.z, 2, 0.5, 0.1, 0.5, 0);
 		level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, RealmBuilder.palette(aura()).floor().defaultBlockState()),
 				at.x, at.y + 0.2, at.z, 30, r * 0.6, 0.2, r * 0.6, 0.3);
@@ -546,14 +586,15 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	private void slam(ServerLevel level) {
 		triggerAnim("action", "slam");
 		Vec3 at = position();
-		warn(level, at, 4.5, 16);
+		warn(level, at, 5.2, 16);
 		playSound(AuraSounds.WARDEN_ATTACK_IMPACT.value(), 2f, 0.6f);
 		windUp(16, random.nextBoolean(), () -> {
+			shards.blow(level, at, 5.2);
 			level.sendParticles(ParticleTypes.EXPLOSION, at.x, at.y + 0.3, at.z, 6, 2, 0.1, 2, 0);
 			level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, RealmBuilder.palette(aura()).floor().defaultBlockState()),
 					at.x, at.y + 0.2, at.z, 60, 2.5, 0.2, 2.5, 0.3);
 			level.playSound(null, at.x, at.y, at.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.6f, 0.6f);
-			for (ServerPlayer p : playersNear(level, at, 4.5)) {
+			for (ServerPlayer p : playersNear(level, at, 5.2)) {
 				hit(level, p, 10f);
 				Vec3 push = p.position().subtract(at).normalize().scale(0.9);
 				p.setDeltaMovement(push.x, 0.7, push.z);
@@ -597,7 +638,8 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			moveTo(next.x, getY(), next.z, getYRot(), 0);
 			level.sendParticles(AuraFx.dust(aura().rgb, 2f), getX(), getY() + 1, getZ(), 6, 0.6, 0.8, 0.6, 0);
 		}
-		for (ServerPlayer p : playersNear(level, position(), 2.3)) {
+		shards.blow(level, position(), 2.0);
+		for (ServerPlayer p : playersNear(level, position(), 2.8)) {
 			if (!chargeHit.add(p.getUUID())) continue;
 			hit(level, p, 12f);
 			Vec3 side = new Vec3(-chargeDir.z, 0, chargeDir.x).scale(p.position().subtract(position()).dot(new Vec3(-chargeDir.z, 0, chargeDir.x)) >= 0 ? 1 : -1);
@@ -641,7 +683,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			int delay = k * 4;
 			AuraFx.later(level.getServer(), 8 + delay, () -> {
 				if (!isAlive() || !t.isAlive()) return;
-				Vec3 from = position().add(0, 2.6, 0).add(Vec3.directionFromRotation(0, getYRot() + (bolts.size() % 2 == 0 ? 90 : -90)).scale(1.4));
+				Vec3 from = position().add(0, 3.2, 0).add(Vec3.directionFromRotation(0, getYRot() + (bolts.size() % 2 == 0 ? 90 : -90)).scale(1.75));
 				Vec3 vel = t.position().add(0, 1, 0).subtract(from).normalize().scale(0.55).add(0, 0.25, 0);
 				var block = RealmBuilder.palette(aura()).accent().defaultBlockState();
 				Display.BlockDisplay d = com.toast.aurapoints.ability.Props.spawn(level, from, block,
@@ -730,7 +772,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		landing = null;
 		chargeTicks = 0;
 		beamTicks = 0;
-		kneelTicks = 60;
+		kneelTicks = 25;
 		setPose(POSE_KNEEL);
 		getNavigation().stop();
 		playSound(AuraSounds.WARDEN_HEARTBEAT.value(), 3f, 0.6f);
@@ -742,15 +784,15 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		if (kneelTicks > 0) {
 			kneelTicks--;
 			getNavigation().stop();
-			if (kneelTicks % 10 == 0) playSound(AuraSounds.WARDEN_HEARTBEAT.value(), 3f, 0.6f + (60 - kneelTicks) / 60f);
-			if (kneelTicks == 20) {
+			if (kneelTicks % 10 == 0) playSound(AuraSounds.WARDEN_HEARTBEAT.value(), 3f, 0.6f + (25 - kneelTicks) / 25f);
+			if (kneelTicks == 12) {
 				setPose(POSE_NONE);
 				triggerAnim("action", "rise");
 			}
 			if (kneelTicks == 0) {
 				desperation = 300;
 				playSound(AuraSounds.WARDEN_ROAR.value(), 3f, 1.0f);
-				level.sendParticles(AuraFx.dust(aura().rgb, 3f), getX(), getY() + 2.5, getZ(), 120, 2, 2, 2, 0);
+				level.sendParticles(AuraFx.dust(aura().rgb, 3f), getX(), getY() + 3.1, getZ(), 120, 2, 2, 2, 0);
 				barrageCd = 0;
 			}
 			return true;
@@ -799,81 +841,14 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	// ------------------------------------------------------------ the shield
 
 	private void shield(ServerLevel level) {
+		if (run == null) { // a stray one has no crypt to set its shards in
+			setPhase(level, OVERDRIVE);
+			return;
+		}
 		entityData.set(PHASE, SHIELDED);
-		announce(level, "SHATTERED", "the shards shield it - break the four pylons");
-		windup = -1;
-		landing = null;
-		chargeTicks = 0;
-		beamTicks = 0;
-		setPose(POSE_NONE);
-		getNavigation().stop();
-		triggerAnim("action", "cast");
+		announce(level, "SHATTERED", "its shards tear out - break them to open it");
 		playSound(AuraSounds.BEACON_ACTIVATE.value(), 3f, 0.5f);
-		Vec3 home = run != null ? Reliquary.cryptCenter(run) : position();
-		for (int i = 0; i < 4; i++) {
-			double a = i * Math.PI / 2 + Math.PI / 4;
-			Vec3 at = home.add(Math.cos(a) * 9, 1, Math.sin(a) * 9);
-			Shulker s = EntityType.SHULKER.create(level);
-			if (s == null) continue;
-			s.moveTo(at.x, at.y, at.z, 0, 0);
-			s.setNoAi(true);
-			s.setPersistenceRequired();
-			s.addTag(Rifts.MOB_TAG);
-			s.setCustomName(Component.literal("Shard Pylon").withStyle(aura().color));
-			s.setGlowingTag(true);
-			var hp = s.getAttribute(Attributes.MAX_HEALTH);
-			if (hp != null) hp.setBaseValue(24 + 12 * (run == null ? 0 : Math.max(0, Rifts.online(level.getServer(), run).size() - 1)));
-			s.setHealth(s.getMaxHealth());
-			DyeColor dye = dye(aura());
-			s.setVariant(java.util.Optional.of(dye));
-			level.addFreshEntity(s);
-			pylons.add(s);
-			if (run != null) run.mobs.add(s);
-			level.sendParticles(ParticleTypes.FLASH, at.x, at.y + 0.5, at.z, 1, 0, 0, 0, 0);
-		}
-	}
-
-	private void tickShield(ServerLevel level) {
-		getNavigation().stop();
-		pylons.removeIf(s -> !s.isAlive() || s.isRemoved());
-		if (tickCount % 4 == 0) {
-			// beams from each pylon to the stolen relic in its chest
-			Vec3 chest = position().add(0, 2.3, 0);
-			for (Shulker s : pylons) {
-				Vec3 from = s.position().add(0, 0.6, 0);
-				for (int k = 1; k < 12; k++) {
-					Vec3 p = from.lerp(chest, k / 12.0);
-					level.sendParticles(AuraFx.dust(aura().rgb, 1.0f), p.x, p.y, p.z, 1, 0.02, 0.02, 0.02, 0);
-				}
-			}
-		}
-		if (pylons.isEmpty()) {
-			playSound(AuraSounds.IRON_GOLEM_DAMAGE.value(), 3f, 0.4f);
-			entityData.set(PHASE, OVERDRIVE);
-			stagger(40, () -> {
-				triggerAnim("action", "roar");
-				playSound(AuraSounds.WARDEN_ROAR.value(), 3f, 0.8f);
-				level.sendParticles(AuraFx.dust(aura().rgb, 3f), getX(), getY() + 2.5, getZ(), 80, 1.5, 1.5, 1.5, 0);
-				setPhase(level, OVERDRIVE);
-			});
-		}
-	}
-
-
-	private static DyeColor dye(AuraType a) {
-		return switch (a) {
-			case FIRE -> DyeColor.ORANGE;
-			case WATER -> DyeColor.BLUE;
-			case WIND -> DyeColor.WHITE;
-			case FROST -> DyeColor.LIGHT_BLUE;
-			case VERDANT -> DyeColor.LIME;
-			case THUNDER -> DyeColor.YELLOW;
-			case EARTH -> DyeColor.BROWN;
-			case LIGHT -> DyeColor.YELLOW;
-			case SHADOW -> DyeColor.PURPLE;
-			case BLOOD -> DyeColor.RED;
-			default -> DyeColor.GRAY;
-		};
+		shards.start(level);
 	}
 
 	// ------------------------------------------------------------ the signature attacks
@@ -1011,7 +986,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 						if (!isAlive() || !main.isAlive() || main.distanceTo(this) > 20) return;
 						hit(level, main, 2f);
 						heal(4f);
-						Vec3 a = main.position().add(0, 1, 0), b = position().add(0, 2.3, 0);
+						Vec3 a = main.position().add(0, 1, 0), b = position().add(0, 2.9, 0);
 						for (int i = 1; i < 10; i++) {
 							Vec3 p = a.lerp(b, i / 10.0);
 							level.sendParticles(AuraFx.dust(0xB0121B, 1.2f), p.x, p.y, p.z, 1, 0, 0, 0, 0);
@@ -1032,7 +1007,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		++deathTime;
 		if (deathTime == 1) {
 			playSound(AuraSounds.WARDEN_DEATH.value(), 3f, 0.6f);
-			for (Shulker s : pylons) s.discard();
+			shards.clear();
 			for (Bolt b : bolts) com.toast.aurapoints.ability.Props.remove(b.d);
 			bolts.clear();
 		}
@@ -1049,6 +1024,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	public void remove(RemovalReason reason) {
 		for (Bolt b : bolts) com.toast.aurapoints.ability.Props.remove(b.d);
 		bolts.clear();
+		shards.clear();
 		super.remove(reason);
 	}
 
@@ -1062,6 +1038,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			return switch (w.pose()) {
 				case POSE_CHARGE -> state.setAndContinue(CHARGE);
 				case POSE_BEAM -> state.setAndContinue(BEAM);
+				case POSE_ENTRANCE -> state.setAndContinue(ENTRANCE);
 				case POSE_KNEEL -> state.setAndContinue(KNEEL);
 				default -> state.setAndContinue(state.isMoving() ? WALK : IDLE);
 			};
@@ -1118,7 +1095,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	}
 
 	public int devPylons() {
-		return pylons.size();
+		return shards.left();
 	}
 
 	/** Starts a parryable slam (yellow) whatever the dice say; true if the windup is on. */

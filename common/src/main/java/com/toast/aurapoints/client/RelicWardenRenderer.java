@@ -30,15 +30,21 @@ public class RelicWardenRenderer extends GeoEntityRenderer<RelicWarden> {
 				return SKINS[w.skin()];
 			}
 		});
-		this.shadowRadius = 1.6f;
+		this.shadowRadius = 2f;
+		withScale(1.25f);
 		addRenderLayer(new software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer<>(this));
 	}
 
-	/** Overdrive and the last stand: tinted red, pulsing. */
+	/** Overdrive and the last stand: tinted red, pulsing. Otherwise a wash of its Aspect's colour. */
 	@Override
 	public software.bernie.geckolib.util.Color getRenderColor(RelicWarden w, float partialTick, int packedLight) {
 		int ph = w.phase();
-		if (ph != RelicWarden.OVERDRIVE && ph != RelicWarden.LAST_STAND) return super.getRenderColor(w, partialTick, packedLight);
+		if (ph != RelicWarden.OVERDRIVE && ph != RelicWarden.LAST_STAND) {
+			int rgb = w.aspectRgb();
+			if (rgb == 0) return super.getRenderColor(w, partialTick, packedLight);
+			float k = 0.22f + 0.08f * (float) Math.sin((w.tickCount + partialTick) * 0.1);
+			return software.bernie.geckolib.util.Color.ofRGBA((int) (255 * (1 - k) + (rgb >> 16 & 255) * k), (int) (255 * (1 - k) + (rgb >> 8 & 255) * k), (int) (255 * (1 - k) + (rgb & 255) * k), 255);
+		}
 		float pulse = 0.5f + 0.5f * (float) Math.sin((w.tickCount + partialTick) * (ph == RelicWarden.LAST_STAND ? 0.4 : 0.15));
 		int gb = (int) (255 * (0.55f + 0.2f * pulse));
 		return software.bernie.geckolib.util.Color.ofRGBA(255, gb, gb, 255);

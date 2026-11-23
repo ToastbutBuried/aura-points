@@ -360,6 +360,10 @@ public final class TrialsDevTest {
 			w.invulnerableTime = 0;
 			w.hurt(src2, 5f);
 			log("[warden] parry: windup on " + on + " (must be true), staggered " + w.devStaggered() + " (must be true), bonus damage " + ((hp0 - w.getHealth()) > 5f) + " (must be true)");
+			w.invulnerableTime = 0;
+			float ex0 = w.getHealth();
+			w.hurt(rift.damageSources().magic(), 10f);
+			log("[warden] exposed: 10 magic damage costs " + (ex0 - w.getHealth()) + " (must be 15.0)");
 			// a second hit in the same window by the same player can't parry again
 			w.devStartParryable();
 			w.devSetWindup(2);
@@ -374,20 +378,60 @@ public final class TrialsDevTest {
 			// a huge hit can't skip the shield: the floor is 40%
 			w.invulnerableTime = 0;
 			w.hurt(rift.damageSources().magic(), 9999f);
-			log("[warden] huge hit in Unbound: hp share " + String.format("%.2f", w.getHealth() / w.getMaxHealth()) + " (must be 0.40), alive " + w.isAlive());
+			log("[warden] huge hit in Unbound: hp share " + String.format("%.2f", w.getHealth() / w.getMaxHealth()) + " (must be 0.60), alive " + w.isAlive());
 			w.devAiStep();
 			log("[warden] then: phase " + w.phase() + " (must be 2), pylons " + w.devPylons() + " (must be 4)");
 			w.invulnerableTime = 0;
 			float hp1 = w.getHealth();
 			w.hurt(src, 50f);
-			log("[warden] shielded: took damage " + (w.getHealth() < hp1) + " (must be false)");
-			for (var e : rift.getEntitiesOfClass(net.minecraft.world.entity.monster.Shulker.class, w.getBoundingBox().inflate(20))) e.kill();
+			log("[warden] shattered: at its floor, took damage " + (w.getHealth() < hp1) + " (must be false)");
+			WardenShards sh = w.shards;
+			long gt = rift.getGameTime();
+			sh.devKind(rift, WardenShards.BLUE);
+			for (long q = gt; sh.kind() == WardenShards.BLUE && q < gt + 200; q++) if (sh.beat(q) == 5) {
+				sh.struck(rift, fake, q);
+				break;
+			}
+			log("[shards] blue off the beat: hits " + sh.hits + " (must be 0), broken " + sh.broken + " (must be 0)");
+			int blue = 0;
+			for (long q = gt; blue < 3 && q < gt + 400; q++) if (sh.beat(q) == WardenShards.CYCLE - 4) {
+				sh.struck(rift, fake, q);
+				blue++;
+			}
+			log("[shards] blue on the beat: broken " + sh.broken + " (must be 1)");
+			sh.devKind(rift, WardenShards.GREEN);
+			sh.blow(rift, sh.spot().add(9, 0, 0), 3);
+			log("[shards] green: a blow far off, hits " + sh.hits + " (must be 0)");
+			sh.blow(rift, sh.spot(), 3);
+			sh.nextAct = 0;
+			sh.blow(rift, sh.spot(), 3);
+			log("[shards] green: the Warden's blows, broken " + sh.broken + " (must be 2)");
+			w.invulnerableTime = 0;
+			w.hurt(rift.damageSources().magic(), 9999f);
+			log("[shards] two broken: hp share " + String.format("%.2f", w.getHealth() / w.getMaxHealth()) + " (must be 0.50)");
+			sh.devKind(rift, WardenShards.YELLOW);
+			Vec3 pil = sh.devPillar(), past = sh.spot().add(sh.spot().subtract(pil).multiply(1, 0, 1).normalize().scale(4));
+			sh.devBeam(rift, sh.spot().add(0, 0, 0).subtract(sh.spot().subtract(pil).scale(0.5)));
+			log("[shards] yellow: the beam ends short of it, hits " + sh.hits + " (must be 0)");
+			sh.devBeam(rift, past);
+			sh.devBeam(rift, past);
+			log("[shards] yellow: through it, broken " + sh.broken + " (must be 3)");
+			sh.devKind(rift, WardenShards.RED);
+			sh.devEmber(rift, false);
+			log("[shards] red: ember the wrong way, hits " + sh.hits + " (must be 0)");
+			sh.since = rift.getGameTime() - WardenShards.STUCK - 5;
+			for (int q = 0; q < 7; q++) sh.struck(rift, fake, rift.getGameTime());
+			log("[shards] stuck: 7 plain hits, broken " + sh.broken + " (must be 3)");
+			sh.since = rift.getGameTime();
+			sh.devEmber(rift, true);
+			sh.devEmber(rift, true);
+			log("[shards] red: embers into it, left " + w.devPylons() + " (must be 0)");
 			for (int k = 0; k < 45; k++) w.devAiStep();
-			log("[warden] pylons down: phase " + w.phase() + " (must be 3)");
+			log("[warden] shards down: phase " + w.phase() + " (must be 3)");
 			w.invulnerableTime = 0;
 			w.hurt(rift.damageSources().magic(), 9999f);
 			w.devAiStep();
-			log("[warden] huge hit in Overdrive: phase " + w.phase() + " (must be 4), hp share " + String.format("%.2f", w.getHealth() / w.getMaxHealth()) + " (must be 0.10), kneel " + w.devKneel() + " (must be 59)");
+			log("[warden] huge hit in Overdrive: phase " + w.phase() + " (must be 4), hp share " + String.format("%.2f", w.getHealth() / w.getMaxHealth()) + " (must be 0.10), kneel " + w.devKneel() + " (must be 24)");
 			w.invulnerableTime = 0;
 			float hp2 = w.getHealth();
 			w.hurt(src, 50f);

@@ -530,7 +530,10 @@ public final class Rifts {
 				Component name = run.champion != null && run.champion.getCustomName() != null ? run.champion.getCustomName() : Component.literal("Relic Warden");
 				for (ServerPlayer p : here) AuraFx.title(p, Component.literal("RELIC WARDEN").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),
 						Component.literal("it took the " + Relics.name(run.aura) + " - take it back").withStyle(ChatFormatting.GRAY));
-				if (run.champion instanceof RelicWarden w) w.awake = true;
+				if (run.champion instanceof RelicWarden w) {
+					w.awake = true;
+					w.devEntrance(false);
+				}
 				if (name == null) return;
 			}
 		}
@@ -1149,7 +1152,10 @@ public final class Rifts {
 		ServerLevel rift = level(p.getServer());
 		while (r.altar.ritual >= 0 && r.altar.ritual < Altar.RITUAL_TICKS) if (r.altar.tick(rift)) wakeGuardian(rift, r, 1);
 		r.flow.phase = Reliquary.Phase.BOSS;
-		if (r.champion instanceof RelicWarden w) w.awake = true;
+		if (r.champion instanceof RelicWarden w) {
+			w.awake = true;
+			w.devEntrance(false);
+		}
 	}
 
 	public static Mob devGuardian(ServerPlayer p) {

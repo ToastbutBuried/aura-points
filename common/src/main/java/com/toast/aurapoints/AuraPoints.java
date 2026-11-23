@@ -65,7 +65,7 @@ public class AuraPoints {
 	public static final java.util.function.Supplier<net.minecraft.world.entity.EntityType<com.toast.aurapoints.rift.RelicWarden>> RELIC_WARDEN =
 			ENTITY_TYPES.register("relic_warden", () -> net.minecraft.world.entity.EntityType.Builder
 					.<com.toast.aurapoints.rift.RelicWarden>of(com.toast.aurapoints.rift.RelicWarden::new, net.minecraft.world.entity.MobCategory.MONSTER)
-					.sized(1.8f, 3.6f).fireImmune().clientTrackingRange(16).updateInterval(2).noSave().build("relic_warden"));
+					.sized(2.25f, 4.5f).fireImmune().clientTrackingRange(16).updateInterval(2).noSave().build("relic_warden"));
 
 	/** The Aura Arena's training dummy (arena/TrainingDummy). */
 	public static final java.util.function.Supplier<net.minecraft.world.entity.EntityType<com.toast.aurapoints.arena.TrainingDummy>> TRAINING_DUMMY =
