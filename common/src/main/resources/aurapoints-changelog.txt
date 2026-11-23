@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.54.0
+- Titles keep the same size on your screen whatever your GUI scale, with a new client option titleSize; titles, subtitles and the action bar never run off the screen any more.
+- Twelve ability icons redrawn so they show what the ability does (Boulder Toss, Fireball, Hemorrhage, Blood Tether, Blood Moon, Tidal Ascension, Permafrost, Quake, Eclipse, Null Orb and more). Clients must update.
+
 == 5.53.0
 - Rift music: the last two minutes of a run play hurry music that speeds up as time runs out, and a won run ends on a short sting (client option riftMusic, Music slider).
 - Sounds: hundreds of mod sounds now follow the Aura Points volume slider, a few got their own new sounds (ready chime, impacts, crystal chime), and stacks that were too loud were turned down. Clients must update.
