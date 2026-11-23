@@ -45,6 +45,7 @@ neoForge {
 		}
 		server {
 			server()
+			programArgument 'nogui' // no Swing server window on the desktop
 			systemProperty 'aurapoints.devtest', 'true'
 		}
 		data {

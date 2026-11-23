@@ -552,6 +552,20 @@ final class TrialDig extends Trials.Trial {
 			p.displayClientMessage(Component.literal("Already dug.").withStyle(ChatFormatting.GRAY), true);
 			return;
 		}
+		if (i == si && j == sj && SkillChecks.enabled()) {
+			// something holds it: pull it free
+			if (SkillChecks.busy(p)) return;
+			Vec3 at = tileCentre(i, j, 1.2);
+			SkillChecks.start(p, "Pull the shard free", rgb, tier, at, true, () -> !solved && state[i][j] == 0 && i == si && j == sj, res -> {
+				if (res == SkillChecks.GOOD) digNow(level, p, i, j, now);
+				else if (res != SkillChecks.CANCEL) p.displayClientMessage(Component.literal("Something is down there - the soil slides back, dig again").withStyle(ChatFormatting.AQUA), true);
+			});
+			return;
+		}
+		digNow(level, p, i, j, now);
+	}
+
+	private void digNow(ServerLevel level, ServerPlayer p, int i, int j, long now) {
 		Vec3 c = tileCentre(i, j, 0.5);
 		level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COARSE_DIRT.defaultBlockState()), c.x, c.y + 0.5, c.z, 40, 1, 0.3, 1, 0.1);
 		level.playSound(null, c.x, c.y, c.z, SoundEvents.ROOTED_DIRT_BREAK, SoundSource.BLOCKS, 1.2f, 0.8f);
@@ -735,6 +749,11 @@ final class TrialDig extends Trials.Trial {
 		// the shard
 		clickCd.clear();
 		use(level, fake, arena(cen(si), cen(sj), 0));
+		boolean chk = SkillChecks.devAnswer(fake, SkillChecks.LATE);
+		log.accept("dig: shard's check opened " + chk + " (must be true), late release -> solved " + solved + " (must be false), strikes " + strikes + " (must be 2)");
+		clickCd.clear();
+		use(level, fake, arena(cen(si), cen(sj), 0));
+		SkillChecks.devAnswer(fake, SkillChecks.GOOD);
 		fake.setShiftKeyDown(false);
 		log.accept("dig: shard dug -> solved " + solved + " (must be true)");
 		for (Mob m : run.mobs) m.discard();

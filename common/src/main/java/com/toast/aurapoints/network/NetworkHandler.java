@@ -28,7 +28,7 @@ public final class NetworkHandler {
 
 	@SubscribeEvent
 	public static void register(RegisterPayloadHandlersEvent event) {
-		PayloadRegistrar registrar = event.registrar("46");
+		PayloadRegistrar registrar = event.registrar("47");
 		registrar.playToServer(
 				AbilityKeyPacket.TYPE,
 				AbilityKeyPacket.STREAM_CODEC,
@@ -145,6 +145,15 @@ public final class NetworkHandler {
 				(packet, context) -> context.enqueueWork(() -> {
 					ClientAuraState.rooted = packet.on();
 					ClientAuraState.mash = packet.on() && packet.mash();
+				})
+		);
+		registrar.playToServer(
+				RiftInputPacket.TYPE,
+				RiftInputPacket.STREAM_CODEC,
+				(packet, context) -> context.enqueueWork(() -> {
+					if (!(context.player() instanceof net.minecraft.server.level.ServerPlayer player) || !com.toast.aurapoints.rift.Rifts.in(player)) return;
+					if (packet.kind() == RiftInputPacket.SKILL) com.toast.aurapoints.rift.SkillChecks.answer(player, packet.id(), packet.value());
+					else if (packet.kind() == RiftInputPacket.CAM_CLOSED) com.toast.aurapoints.rift.Rifts.camClosed(player);
 				})
 		);
 		registrar.playToServer(

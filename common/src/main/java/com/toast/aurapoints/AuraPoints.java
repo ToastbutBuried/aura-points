@@ -657,6 +657,8 @@ public class AuraPoints {
 			if (com.toast.aurapoints.ability.IceSpike.isFrozen(event.getEntity())) event.setCanceled(true);
 			// the wave twist vote items (hotbar mode)
 			else if (event.getEntity() instanceof ServerPlayer sp && com.toast.aurapoints.arena.WaveTwists.onUse(sp, sp.getItemInHand(event.getHand()))) event.setCanceled(true);
+			// an arch stone aimed at its slot in a rift (5.52)
+			else if (event.getEntity() instanceof ServerPlayer sp && event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND && com.toast.aurapoints.rift.Rifts.onUseAir(sp)) event.setCanceled(true);
 		}
 
 		@SubscribeEvent
@@ -673,6 +675,12 @@ public class AuraPoints {
 			// a rift realm's trials and altar (5.46)
 			if (event.getEntity() instanceof ServerPlayer player && event.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND
 					&& com.toast.aurapoints.rift.Rifts.onUse(player, event.getPos())) {
+				event.setCanceled(true);
+				return;
+			}
+			// arch stones are never placed as plain blocks, not from the other hand either
+			if (event.getEntity() instanceof ServerPlayer player && com.toast.aurapoints.rift.Rifts.in(player)
+					&& com.toast.aurapoints.rift.PortalRepair.isStone(player.getItemInHand(event.getHand()))) {
 				event.setCanceled(true);
 				return;
 			}

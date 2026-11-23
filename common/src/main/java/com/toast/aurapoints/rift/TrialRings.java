@@ -47,7 +47,9 @@ import java.util.UUID;
  * A sky palace at the way back holds the launch stone: a right-click lends Trial Wings (the chest item is kept safe),
  * starts the clock and fires you up out of the wind cannon. Rings of glowing bars line a flowing 3D route between
  * floating islands (Wind cloud palaces, Light gold isles, Thunder storm spires); flying through a ring's middle scores
- * it for the whole party, bonus rings off the line are worth more, updraft columns give height back. Land on the far
+ * it for the whole party and hands the flyer a rocket; the next ring pulses with arrows through it, bonus rings off the
+ * line are turning stars round a crystal and worth more, updraft columns (flat double hoops, one climbing) give height
+ * back, taken rings shrink to a thin grey hoop. Land on the far
  * pad with the score target met before the clock runs out and the shard comes out of its plinth.
  * <p>
  * Strikes: falling below the course, leaving it or the clock running out. 1 the sky rumbles, 2 gusts (or lightning,
@@ -59,8 +61,7 @@ import java.util.UUID;
 final class TrialRings extends Trials.Trial {
 
 	/** Arena frame: the wind cannon, the launch stone and the spot flyers come back to; the landing pad at the far end. */
-	private static final int TERRACE_F = -96, CANNON_F = -92, STONE_F = -99, HOME_F = -101, PAD_F = 95, PAD_R = 8;
-	private static final int HALF = 110, UP = 120;
+	private static final int HALF = 160, UP = 160, TERRACE_F = -HALF + 14, CANNON_F = TERRACE_F + 4, STONE_F = TERRACE_F - 3, HOME_F = TERRACE_F - 5, PAD_F = HALF - 15, PAD_R = 8;
 	/** A gliding player's middle above their feet. */
 	private static final double BODY = 0.4;
 	static final String LENT = "aurapoints_lent";
@@ -77,7 +78,7 @@ final class TrialRings extends Trials.Trial {
 			case WIND -> new Theme(Blocks.WHITE_WOOL, Blocks.SNOW_BLOCK, Blocks.DIORITE, Blocks.CALCITE, Blocks.SMOOTH_QUARTZ, Blocks.QUARTZ_PILLAR,
 					Blocks.PEARLESCENT_FROGLIGHT, Blocks.LIGHT_BLUE_CONCRETE, Blocks.PEARLESCENT_FROGLIGHT, ParticleTypes.CLOUD, 0);
 			case LIGHT -> new Theme(Blocks.CALCITE, Blocks.WHITE_WOOL, Blocks.CALCITE, Blocks.SMOOTH_QUARTZ, Blocks.GOLD_BLOCK, Blocks.QUARTZ_PILLAR,
-					Blocks.GLOWSTONE, Blocks.WHITE_CONCRETE, Blocks.GOLD_BLOCK, ParticleTypes.END_ROD, 1);
+					Blocks.GLOWSTONE, Blocks.ORANGE_CONCRETE, Blocks.GOLD_BLOCK, ParticleTypes.END_ROD, 1);
 			case THUNDER -> new Theme(Blocks.GRAY_WOOL, Blocks.LIGHT_GRAY_WOOL, Blocks.COBBLED_DEEPSLATE, Blocks.POLISHED_DEEPSLATE, Blocks.WAXED_CUT_COPPER,
 					Blocks.POLISHED_DEEPSLATE, Blocks.GLOWSTONE, Blocks.CYAN_CONCRETE, Blocks.LIGHTNING_ROD, ParticleTypes.ELECTRIC_SPARK, 2);
 			default -> new Theme(pal.base(), pal.edge(), pal.base(), pal.floor(), pal.accent(), pal.edge(), pal.light(), Blocks.LIME_CONCRETE, pal.light(),
@@ -90,8 +91,11 @@ final class TrialRings extends Trials.Trial {
 		final double r;
 		final int pts;
 		final boolean bonus;
-		boolean taken;
+		/** Set by someone flying through; {@code next}: the one to fly through now. */
+		boolean taken, next;
 		final List<Display.BlockDisplay> bars = new ArrayList<>();
+		Display.BlockDisplay crystal;
+		double turn;
 
 		Ring(Vec3 c, Vec3 n, double r, int pts, boolean bonus) {
 			this.c = c;
@@ -179,15 +183,16 @@ final class TrialRings extends Trials.Trial {
 	}
 
 	private double ringR() {
-		return new double[]{3.0, 2.6, 2.3, 2.0, 1.8}[tier];
+		return new double[]{4.0, 3.5, 3.1, 2.8, 2.5}[tier];
 	}
 
 	private int seconds() {
-		return new int[]{110, 90, 80, 70, 65}[tier];
+		return new int[]{154, 126, 112, 98, 91}[tier];
 	}
 
-	private boolean rockets() {
-		return tier <= 1;
+	/** Rockets lent at the launch; every ring hands out more. */
+	private int rockets() {
+		return tier <= 1 ? 3 : 1;
 	}
 
 	private int computeTarget() {
@@ -389,9 +394,9 @@ final class TrialRings extends Trials.Trial {
 
 	/** Floating islands in the aura's style around (never on) the route, plus cloud banks below or a storm above. */
 	private void islands(ServerLevel level, RandomSource r) {
-		int want = 15, placed = 0;
-		for (int tries = 0; tries < 300 && placed < want; tries++) {
-			int cf = -72 + r.nextInt(150), cl = -95 + r.nextInt(191), cdy = -10 + r.nextInt(50);
+		int want = 26, placed = 0;
+		for (int tries = 0; tries < 500 && placed < want; tries++) {
+			int cf = -118 + r.nextInt(236), cl = -138 + r.nextInt(277), cdy = -10 + r.nextInt(70);
 			int rad = th.style == 2 ? 3 + r.nextInt(2) : 4 + r.nextInt(4);
 			int height = th.style == 2 ? 14 + r.nextInt(18) : th.style == 0 ? (int) Math.ceil(rad * 0.6) + 6 : 9;
 			Obstacle o = new Obstacle(cf, cl, cdy - rad - 2, cdy + height, rad + 1.5);
@@ -404,15 +409,15 @@ final class TrialRings extends Trials.Trial {
 		}
 		// a sea of cloud far below (Wind, Thunder) - the line you must not fall under is just beneath it
 		if (th.style != 1) {
-			for (int k = 0; k < 5; k++) {
-				double cf = -60 + r.nextInt(140), cl = -80 + r.nextInt(160);
+			for (int k = 0; k < 9; k++) {
+				double cf = -110 + r.nextInt(220), cl = -125 + r.nextInt(250);
 				puff(level, cf, cl, -20, 10 + r.nextInt(6), 2, th.cloud, th.cloud2);
 			}
 		}
 		// Thunder: storm clouds over the course
 		if (th.style == 2) {
 			for (int k = 0; k < 5; k++) {
-				int cf = -60 + r.nextInt(140), cl = -80 + r.nextInt(160), cdy = 74 + r.nextInt(16);
+				int cf = -110 + r.nextInt(220), cl = -125 + r.nextInt(250), cdy = 100 + r.nextInt(20);
 				Obstacle o = new Obstacle(cf, cl, cdy - 3, cdy + 4, 12);
 				if (!clear(o, 6)) continue;
 				obstacles.add(o);
@@ -515,10 +520,10 @@ final class TrialRings extends Trials.Trial {
 			double s = s0 + (s1 - s0) * (k + 0.5 + r.nextDouble() * 0.5) / (bonusCount() + 0.5);
 			int i = at(arc, s);
 			Vec3 q = best.get(i), t = best.get(Math.min(best.size() - 1, i + 1)).subtract(best.get(Math.max(0, i - 1)));
-			Vec3 side = new Vec3(-t.y, t.x, 0).normalize().scale((r.nextBoolean() ? 1 : -1) * (10 + r.nextInt(6)));
+			Vec3 side = new Vec3(-t.y, t.x, 0).normalize().scale((r.nextBoolean() ? 1 : -1) * (13 + r.nextInt(8)));
 			Vec3 b = q.add(side).add(0, 0, 4 + r.nextInt(5));
-			b = new Vec3(clamp(b.x, -HALF + 16, HALF - 16), clamp(b.y, -HALF + 16, HALF - 16), clamp(b.z, 6, UP - 20));
-			rings.add(new Ring(w(b), tangent(best, i), ringR() - 0.3, 25, true));
+			b = new Vec3(clamp(b.x, -HALF + 32, HALF - 32), clamp(b.y, -HALF + 32, HALF - 32), clamp(b.z, 6, UP - 28));
+			rings.add(new Ring(w(b), tangent(best, i), ringR(), 25, true));
 		}
 		drafts.clear();
 		for (int k = 0; k < bestPlan.draftAt.size(); k++) {
@@ -556,19 +561,19 @@ final class TrialRings extends Trials.Trial {
 		double h = 38;
 		int sign = r.nextBoolean() ? 1 : -1;
 		for (int i = 0; i < k; i++) {
-			double f = -55 + 125.0 * (i + 0.5) / k + r.nextInt(9) - 4;
-			double l = sign * (25 + r.nextInt(48));
+			double f = -100 + 205.0 * (i + 0.5) / k + r.nextInt(13) - 6;
+			double l = sign * (35 + r.nextInt(72));
 			sign = -sign;
 			Vec3 prev = pts.get(pts.size() - 1);
 			h -= Math.hypot(f - prev.x, l - prev.y) / 10.0;
 			if (h < 16) {
 				// an updraft at the last point lifts you back up for this leg
-				double top = prev.z + 26;
+				double top = prev.z + 34;
 				draftAt.add(pts.size() - 1);
 				draftTop.add(top);
 				h = top - Math.hypot(f - prev.x, l - prev.y) / 10.0;
 			}
-			h = clamp(h + r.nextInt(7) - 3, 10, 72);
+			h = clamp(h + r.nextInt(9) - 4, 10, 100);
 			pts.add(new Vec3(f, l, h));
 		}
 		if (draftAt.isEmpty() || tier == 0) {
@@ -579,7 +584,7 @@ final class TrialRings extends Trials.Trial {
 				draftTop.add(pts.get(mid).z + 22);
 			}
 		}
-		pts.add(new Vec3(PAD_F - 16, 0, 8));
+		pts.add(new Vec3(PAD_F - 20, 0, 9));
 		pts.add(new Vec3(PAD_F, 0, 3));
 		return new Plan(pts, draftAt, draftTop);
 	}
@@ -604,58 +609,187 @@ final class TrialRings extends Trials.Trial {
 	// Displays
 	// ---------------------------------------------------------------
 
-	private BlockState ringBlock(Ring g) {
-		if (g.taken || solved) return Blocks.GOLD_BLOCK.defaultBlockState();
-		return (g.bonus ? Blocks.AMETHYST_BLOCK : th.ring).defaultBlockState();
+	private static final int BARS = 16;
+	private static final float THICK = 0.36f;
+	/** The arrows through the next ring, the climbing hoops of the updrafts (with their own column), the labels. */
+	private final List<Display.BlockDisplay> arrows = new ArrayList<>();
+	private final List<List<Display.BlockDisplay>> climbers = new ArrayList<>();
+	private final List<Display.TextDisplay> tags = new ArrayList<>();
+
+	/** Bar {@code i}'s block: the theme's colour, lime for the next ring, amethyst and magenta by turns on a star, grey glass once taken. */
+	private BlockState ringBlock(Ring g, int i) {
+		if (g.taken || solved) return Blocks.LIGHT_GRAY_STAINED_GLASS.defaultBlockState();
+		if (g.bonus) return (i % 2 == 0 ? Blocks.AMETHYST_BLOCK : Blocks.MAGENTA_CONCRETE).defaultBlockState();
+		return (g.next ? Blocks.LIME_CONCRETE : th.ring).defaultBlockState();
+	}
+
+	private static Vec3[] plane(Vec3 n) {
+		Vec3 u = n.cross(new Vec3(0, 1, 0));
+		if (u.lengthSqr() < 1.0e-4) u = new Vec3(1, 0, 0);
+		u = u.normalize();
+		return new Vec3[]{u, n.cross(u).normalize()};
+	}
+
+	/** Bar {@code i} of a ring: a round hoop; a bonus ring's are the sixteen edges of an eight-pointed star. */
+	private Transformation barT(Ring g, int i, double scale) {
+		Vec3[] uv = plane(g.n);
+		boolean gone = g.taken || solved;
+		double a0 = g.turn + i * Math.PI * 2 / BARS, a1 = g.turn + (i + 1) * Math.PI * 2 / BARS;
+		double r = g.r * scale * (gone ? 0.75 : 1);
+		// the star's inner corners are the ring you must fly through, its points stick out
+		double r0 = g.bonus && !gone ? r * (i % 2 == 0 ? 1.5 : 1.0) : r, r1 = g.bonus && !gone ? r * (i % 2 == 0 ? 1.0 : 1.5) : r;
+		Vec3 p0 = uv[0].scale(Math.cos(a0) * r0).add(uv[1].scale(Math.sin(a0) * r0)), p1 = uv[0].scale(Math.cos(a1) * r1).add(uv[1].scale(Math.sin(a1) * r1));
+		return rod(p0, p1, gone ? 0.07f : THICK);
+	}
+
+	/** A bar from a to b (relative to its display), its ends a little longer so corners close. */
+	private static Transformation rod(Vec3 a, Vec3 b, float w) {
+		Vec3 d = b.subtract(a).normalize().scale(w / 2);
+		Vec3 p = a.subtract(d), q = b.add(d);
+		return RuinKit.rod(new Vector3f((float) p.x, (float) p.y, (float) p.z), new Vector3f((float) q.x, (float) q.y, (float) q.z), w);
+	}
+
+	private Display.BlockDisplay bar(ServerLevel level, Vec3 at, BlockState s, Transformation t, int smooth) {
+		Display.BlockDisplay d = Props.spawn(level, at, s, t, -1, smooth);
+		Props.glow(d);
+		d.addTag(Trials.DISPLAY_TAG);
+		RuinKit.bigBounds(d, 8f);
+		((com.toast.aurapoints.mixin.DisplayAccessor) d).aurapoints$setViewRange(6f);
+		bars.add(d);
+		return d;
 	}
 
 	private void spawnCourse(ServerLevel level) {
 		for (Ring g : rings) {
-			Vec3 n = g.n;
-			Vec3 u = n.cross(new Vec3(0, 1, 0));
-			if (u.lengthSqr() < 1.0e-4) u = new Vec3(1, 0, 0);
-			u = u.normalize();
-			Vec3 v = n.cross(u).normalize();
-			hoop(level, g.c, u, v, g.r, g.bonus ? 10 : 12, ringBlock(g), g.bars);
+			for (int i = 0; i < BARS; i++) g.bars.add(bar(level, g.c, ringBlock(g, i), barT(g, i, 1), 0));
+			if (!g.bonus) continue;
+			g.crystal = bar(level, g.c, Blocks.AMETHYST_BLOCK.defaultBlockState(), crystalT(0), 0);
+			tag(level, g.c.add(0, g.r * 1.5 + 1.1, 0), Component.literal("+" + g.pts).withStyle(s -> s.withColor(0xE58CFF).withBold(true)));
 		}
+		// the two arrows that fly along with the next ring
+		for (int i = 0; i < 4; i++) arrows.add(bar(level, home(), Blocks.LIME_CONCRETE.defaultBlockState(), rod(Vec3.ZERO, new Vec3(0, 0.01, 0), 0.01f), 0));
+		BlockState up = Blocks.YELLOW_CONCRETE.defaultBlockState();
 		for (Draft d : drafts) {
-			List<Display.BlockDisplay> vent = new ArrayList<>();
-			hoop(level, d.base, new Vec3(1, 0, 0), new Vec3(0, 0, 1), 3.3, 10, th.ring.defaultBlockState(), vent);
-			hoop(level, new Vec3(d.base.x, d.top, d.base.z), new Vec3(1, 0, 0), new Vec3(0, 0, 1), 3.3, 10, th.ring.defaultBlockState(), vent);
+			Vec3 top = new Vec3(d.base.x, d.top, d.base.z);
+			for (Vec3 at : new Vec3[]{d.base, top}) for (double rad : new double[]{3.5, 2.6}) flat(level, at, rad, up, 0, null);
+			// arrows up the column's sides
+			for (double y = d.base.y + 4; y < d.top - 3; y += 6) {
+				for (int k = 0; k < 4; k++) {
+					double a = k * Math.PI / 2;
+					Vec3 at = new Vec3(d.base.x + Math.cos(a) * 3.4, y, d.base.z + Math.sin(a) * 3.4), side = new Vec3(-Math.sin(a), 0, Math.cos(a)).scale(0.6);
+					bar(level, at, up, rod(side.add(0, -0.6, 0), Vec3.ZERO, 0.16f), 0);
+					bar(level, at, up, rod(side.scale(-1).add(0, -0.6, 0), Vec3.ZERO, 0.16f), 0);
+				}
+			}
+			List<Display.BlockDisplay> climb = new ArrayList<>();
+			flat(level, d.base, 3.0, up, 10, climb);
+			climbers.add(climb);
+			tag(level, d.base.add(0, 1.6, 0), Component.literal("Updraft ▲").withStyle(s -> s.withColor(0xFFE45C).withBold(true)));
+		}
+		if (!rings.isEmpty()) tag(level, rings.get(0).c.add(0, rings.get(0).r + 1.2, 0), Component.literal("+10 and a rocket").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
+		showNext();
+	}
+
+	private void tag(ServerLevel level, Vec3 at, Component text) {
+		Display.TextDisplay d = label(level, at, text, 3.2f);
+		if (d != null) tags.add(d);
+	}
+
+	/** A flat hoop (an updraft's). */
+	private void flat(ServerLevel level, Vec3 c, double rad, BlockState s, int smooth, List<Display.BlockDisplay> into) {
+		for (int i = 0; i < 12; i++) {
+			double a0 = i * Math.PI / 6, a1 = (i + 1) * Math.PI / 6;
+			Display.BlockDisplay d = bar(level, c, s, rod(new Vec3(Math.cos(a0) * rad, 0, Math.sin(a0) * rad), new Vec3(Math.cos(a1) * rad, 0, Math.sin(a1) * rad), 0.22f), smooth);
+			if (into != null) into.add(d);
 		}
 	}
 
-	/** A ring of {@code n} thin glowing bars around {@code c} in the plane of u, v. */
-	private void hoop(ServerLevel level, Vec3 c, Vec3 u, Vec3 v, double rad, int n, BlockState s, List<Display.BlockDisplay> into) {
-		float wdt = 0.24f;
-		for (int i = 0; i < n; i++) {
-			double a0 = i * Math.PI * 2 / n, a1 = (i + 1) * Math.PI * 2 / n;
-			Vec3 p0 = u.scale(Math.cos(a0) * rad).add(v.scale(Math.sin(a0) * rad));
-			Vec3 p1 = u.scale(Math.cos(a1) * rad).add(v.scale(Math.sin(a1) * rad));
-			Vec3 d = p1.subtract(p0);
-			float len = (float) d.length() + wdt;
-			Vec3 dn = d.normalize();
-			Vec3 from = p0.subtract(dn.scale(wdt / 2));
-			Quaternionf rot = new Quaternionf().rotationTo(0f, 1f, 0f, (float) dn.x, (float) dn.y, (float) dn.z);
-			Vector3f off = rot.transform(new Vector3f(wdt / 2f, 0f, wdt / 2f));
-			Transformation t = new Transformation(new Vector3f((float) from.x, (float) from.y, (float) from.z).sub(off), rot, new Vector3f(wdt, len, wdt), null);
-			Display.BlockDisplay bd = Props.spawn(level, c, s, t, -1, 0);
-			Props.glow(bd);
-			bd.addTag(Trials.DISPLAY_TAG);
-			into.add(bd);
-			bars.add(bd);
+	private static Transformation crystalT(double turn) {
+		return RuinKit.centred(new Vector3f(), 1.0f, 1.0f, 1.0f, new Quaternionf().rotationY((float) turn).rotateXYZ(0.62f, 0f, 0.79f));
+	}
+
+	private Ring nextRing() {
+		for (Ring g : rings) if (!g.taken && !g.bonus) return g;
+		return null;
+	}
+
+	/** Marks the ring to fly through now: its colour and the arrows. */
+	private void showNext() {
+		Ring n = solved ? null : nextRing();
+		for (Ring g : rings) {
+			boolean is = g == n;
+			if (g.next == is) continue;
+			g.next = is;
+			recolour(g);
+		}
+		for (int i = 0; i < arrows.size(); i++) {
+			Display.BlockDisplay d = arrows.get(i);
+			if (n == null) {
+				Props.set(d, rod(Vec3.ZERO, new Vec3(0, 0.01, 0), 0.01f), 0);
+				continue;
+			}
+			Props.move(d, n.c);
+			Vec3 u = plane(n.n)[0], tip = n.n.scale(i < 2 ? 0.9 : 2.6), tail = n.n.scale(i < 2 ? -0.5 : 1.2).add(u.scale(i % 2 == 0 ? 1.1 : -1.1));
+			Props.set(d, rod(tail, tip, 0.2f), 0);
 		}
 	}
 
 	private void recolour(Ring g) {
-		BlockState s = ringBlock(g);
-		for (Display.BlockDisplay d : g.bars) ((BlockDisplayAccessor) d).aurapoints$setBlockState(s);
+		for (int i = 0; i < g.bars.size(); i++) {
+			Display.BlockDisplay d = g.bars.get(i);
+			((BlockDisplayAccessor) d).aurapoints$setBlockState(ringBlock(g, i));
+			Props.set(d, barT(g, i, 1), g.taken ? 8 : 0);
+		}
+		if (g.crystal != null) Props.set(g.crystal, g.taken || solved ? rod(Vec3.ZERO, new Vec3(0, 0.01, 0), 0.01f) : crystalT(g.turn * 3), 6);
+	}
+
+	/** The next ring breathes, the stars turn, the updrafts' hoops climb. */
+	private void animate(long now) {
+		if (now % 10 != 0) return;
+		for (Ring g : rings) {
+			if (g.taken) continue;
+			if (g.next) for (int i = 0; i < g.bars.size(); i++) Props.set(g.bars.get(i), barT(g, i, now % 20 == 0 ? 1.12 : 1.0), 10);
+			else if (g.bonus) {
+				g.turn += 0.12;
+				for (int i = 0; i < g.bars.size(); i++) Props.set(g.bars.get(i), barT(g, i, 1), 10);
+				if (g.crystal != null) Props.set(g.crystal, crystalT(g.turn * 3), 10);
+			}
+		}
+		for (int k = 0; k < climbers.size() && k < drafts.size(); k++) {
+			Draft d = drafts.get(k);
+			double u = (now % 60) / 50.0;
+			Vec3 at = new Vec3(d.base.x, u > 1 ? d.base.y : d.base.y + (d.top - d.base.y) * u, d.base.z);
+			for (Display.BlockDisplay b : climbers.get(k)) Props.move(b, at);
+		}
+	}
+
+	/** Rockets for a ring flown through; with no room in the bags a push forward instead. */
+	private void reward(ServerLevel level, ServerPlayer p, int n) {
+		ItemStack rk = rocketStack(p, n);
+		if (!p.getInventory().add(rk) && !rk.isEmpty()) {
+			p.setDeltaMovement(p.getDeltaMovement().add(p.getLookAngle().scale(0.7)));
+			p.hurtMarked = true;
+		}
+		p.playNotifySound(SoundEvents.ITEM_PICKUP, SoundSource.PLAYERS, 0.8f, 1.3f);
+	}
+
+	private ItemStack rocketStack(ServerPlayer p, int n) {
+		ItemStack rk = mark(new ItemStack(Items.FIREWORK_ROCKET, n), p, null);
+		rk.set(DataComponents.FIREWORKS, new Fireworks(1, List.of()));
+		return rk;
 	}
 
 	private void clearCourse() {
 		for (Display.BlockDisplay d : bars) Props.remove(d);
 		bars.clear();
-		for (Ring g : rings) g.bars.clear();
+		arrows.clear();
+		climbers.clear();
+		for (Display.TextDisplay d : tags) RuinKit.drop(this, d);
+		tags.clear();
+		for (Ring g : rings) {
+			g.bars.clear();
+			g.crystal = null;
+		}
 	}
 
 	@Override
@@ -694,7 +828,7 @@ final class TrialRings extends Trials.Trial {
 		return c.is(Items.ELYTRA) && isLent(c);
 	}
 
-	/** Trial Wings on, the chest item kept (map + inside the wings), rockets on Easy/Medium. */
+	/** Trial Wings on, the chest item kept (map + inside the wings), the first rockets. */
 	private void lend(ServerPlayer p) {
 		purgeLent(p);
 		ItemStack orig = p.getItemBySlot(EquipmentSlot.CHEST).copy();
@@ -703,11 +837,7 @@ final class TrialRings extends Trials.Trial {
 		wings.set(DataComponents.UNBREAKABLE, new Unbreakable(false));
 		wings.set(DataComponents.CUSTOM_NAME, Component.literal("Trial Wings").withStyle(s -> s.withColor(rgb).withItalic(false)));
 		p.setItemSlot(EquipmentSlot.CHEST, wings);
-		if (rockets()) {
-			ItemStack rk = mark(new ItemStack(Items.FIREWORK_ROCKET, 3), p, null);
-			rk.set(DataComponents.FIREWORKS, new Fireworks(1, List.of()));
-			p.getInventory().add(rk);
-		}
+		p.getInventory().add(rocketStack(p, rockets()));
 	}
 
 	/**
@@ -778,6 +908,7 @@ final class TrialRings extends Trials.Trial {
 				g.taken = false;
 				recolour(g);
 			}
+			showNext();
 		}
 		lend(p);
 		flyers.put(p.getUUID(), new Flyer(now));
@@ -828,6 +959,7 @@ final class TrialRings extends Trials.Trial {
 			g.taken = false;
 			recolour(g);
 		}
+		showNext();
 	}
 
 	private void endAll(ServerLevel level, boolean home) {
@@ -867,6 +999,7 @@ final class TrialRings extends Trials.Trial {
 	@Override
 	void tick(ServerLevel level, List<ServerPlayer> here, long now) {
 		ambient(level, here, now);
+		if (!here.isEmpty() && !solved) animate(now);
 		// flyers that left the arena for the antechamber, or went offline
 		for (UUID id : new ArrayList<>(flyers.keySet())) {
 			boolean in = false;
@@ -925,8 +1058,8 @@ final class TrialRings extends Trials.Trial {
 		// soft walls: the wind turns you back near the edges and the ceiling
 		Vec3 push = Vec3.ZERO;
 		if (Math.abs(f) > HALF - 14) push = push.add(wdir(new Vec3(-Math.signum(f) * 0.14, 0, 0)));
-		if (Math.abs(l) > HALF - 14) push = push.add(wdir(new Vec3(0, -Math.signum(l) * 0.14, 0)));
-		if (dy > UP - 12) push = push.add(0, -0.14, 0);
+		if (Math.abs(l) > HALF - 24) push = push.add(wdir(new Vec3(0, -Math.signum(l) * 0.14, 0)));
+		if (dy > UP - 20) push = push.add(0, -0.14, 0);
 		for (Draft d : drafts) {
 			if (Math.hypot(pos.x - d.base.x, pos.z - d.base.z) <= 3.6 && pos.y >= d.base.y - 2 && pos.y <= d.top) {
 				push = push.add(0, Math.min(0.3, 1.15 - fl.vel.y), 0);
@@ -965,12 +1098,22 @@ final class TrialRings extends Trials.Trial {
 			g.taken = true;
 			score += g.pts;
 			recolour(g);
+			showNext();
+			reward(level, p, g.bonus ? 2 : 1);
 			int n = taken();
-			level.playSound(null, g.c.x, g.c.y, g.c.z, SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.PLAYERS, 1.6f, Math.min(2f, 0.7f + n * 0.06f));
-			level.playSound(null, g.c.x, g.c.y, g.c.z, SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.PLAYERS, 0.8f, g.bonus ? 0.6f : 1.2f);
+			Vec3 ear = p.position();
+			if (g.bonus) {
+				RiftSfx.play(level, ear, SoundEvents.AMETHYST_CLUSTER_BREAK, 1.6f, 0.9f);
+				for (int k = 0; k < 3; k++) RiftSfx.play(level, ear, SoundEvents.NOTE_BLOCK_HARP, 1.6f, RiftSfx.note(k * 2 + 1));
+				level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, Blocks.AMETHYST_BLOCK.defaultBlockState()), g.c.x, g.c.y, g.c.z, 40, 0.6, 0.6, 0.6, 0.2);
+			} else {
+				RiftSfx.play(level, ear, SoundEvents.NOTE_BLOCK_CHIME, 1.8f, RiftSfx.note(n - 1));
+				RiftSfx.play(level, ear, SoundEvents.EXPERIENCE_ORB_PICKUP, 0.7f, 1.2f);
+			}
+			RiftSfx.play(level, ear, SoundEvents.FIREWORK_ROCKET_LAUNCH, 0.35f, 1.7f);
 			level.sendParticles(ParticleTypes.FLASH, g.c.x, g.c.y, g.c.z, 1, 0, 0, 0, 0);
-			level.sendParticles(AuraFx.dust(0xFFD24A, 1.4f), g.c.x, g.c.y, g.c.z, 30, g.r * 0.5, g.r * 0.5, g.r * 0.5, 0);
-			if (g.bonus) p.displayClientMessage(Component.literal("Bonus ring +" + g.pts).withStyle(ChatFormatting.LIGHT_PURPLE), true);
+			level.sendParticles(AuraFx.dust(g.bonus ? 0xE58CFF : 0x7CFF6B, 1.8f), g.c.x, g.c.y, g.c.z, 40, g.r * 0.5, g.r * 0.5, g.r * 0.5, 0);
+			if (g.bonus) p.displayClientMessage(Component.literal("Bonus ring +" + g.pts + ", two rockets").withStyle(ChatFormatting.LIGHT_PURPLE), true);
 			if (score >= target && !targetCalled) {
 				targetCalled = true;
 				for (ServerPlayer q : here) AuraFx.title(q, Component.literal("Target reached").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD), Component.literal("land on the far pad").withStyle(ChatFormatting.GRAY));
@@ -988,10 +1131,11 @@ final class TrialRings extends Trials.Trial {
 	private void win(ServerLevel level, List<ServerPlayer> here, long now) {
 		attempt = false;
 		gusts.clear();
-		for (Ring g : rings) recolour(g);
 		for (ServerPlayer q : here) q.displayClientMessage(Component.literal("Course complete: " + score + " points").withStyle(ChatFormatting.GREEN), true);
 		hudMute = now + 100;
 		solve(level, plinth());
+		for (Ring g : rings) recolour(g);
+		showNext();
 		// grounded flyers give the wings back at once, the rest when they land
 		for (ServerPlayer q : here) if (flyers.containsKey(q.getUUID()) && q.onGround()) endFlight(q, false);
 	}
@@ -1174,6 +1318,7 @@ final class TrialRings extends Trials.Trial {
 		fake.setItemSlot(EquipmentSlot.CHEST, new ItemStack(Items.DIAMOND_CHESTPLATE));
 		int main = ringCount();
 		log.accept("rings: " + main + " rings + " + bonusCount() + " bonus, " + drafts.size() + " updrafts, " + obstacles.size() + " islands, rings built " + (rings.size() == main + bonusCount()) + " (must be true)");
+		devRoutes(log);
 		// 1: launch, two rings, then a fall
 		use(level, fake, launchStone());
 		log.accept("rings: launch -> wings on " + wearsWings(fake) + " (must be true), chest kept " + ORIG.containsKey(fake.getUUID()) + " (must be true), attempt " + attempt + " (must be true), target " + target);
@@ -1183,7 +1328,7 @@ final class TrialRings extends Trials.Trial {
 		for (int k = 0; k < 2; k++) {
 			through(fake, rings.get(k), tick);
 			expect += 10;
-			log.accept("rings: through ring " + (k + 1) + " -> score " + score + " (must be " + expect + ")");
+			log.accept("rings: through ring " + (k + 1) + " -> score " + score + " (must be " + expect + "), rockets " + devRockets(fake) + " (must be " + (rockets() + k + 1) + "), next ring marked " + (rings.get(k + 1).next && !rings.get(k).next) + " (must be true)");
 		}
 		Vec3 low = w(0, 0, -30);
 		fake.moveTo(low.x, low.y, low.z);
@@ -1220,6 +1365,60 @@ final class TrialRings extends Trials.Trial {
 				+ fake.getItemBySlot(EquipmentSlot.CHEST).is(Items.DIAMOND_CHESTPLATE) + " (must be true)");
 		fake.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
 		done.run();
+	}
+
+	private int devAt;
+
+	/** Dev: hangs {@code p} in front of the next ring, a bonus ring and an updraft in turn, looking at it. */
+	void devLook(ServerPlayer p) {
+		Ring bonus = null;
+		for (Ring g : rings) if (g.bonus) bonus = g;
+		Vec3 at = devAt == 0 ? rings.get(0).c : devAt == 1 && bonus != null ? bonus.c : devAt == 2 ? drafts.get(0).base.add(0, 8, 0) : rings.get(2).c;
+		Vec3 n = devAt == 0 ? rings.get(0).n : devAt == 1 && bonus != null ? bonus.n : new Vec3(1, 0, 0);
+		devAt++;
+		Vec3 from = at.subtract(n.scale(13)).add(0, 2, 0), d = at.subtract(from);
+		p.teleportTo((ServerLevel) p.level(), from.x, from.y - 1.6, from.z, (float) Math.toDegrees(Math.atan2(-d.x, d.z)), (float) -Math.toDegrees(Math.atan2(d.y, Math.hypot(d.x, d.z))));
+		p.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.LEVITATION, 60, 255, false, false));
+	}
+
+	private static int devRockets(ServerPlayer p) {
+		int n = 0;
+		for (int i = 0; i < p.getInventory().getContainerSize(); i++) if (isLent(p.getInventory().getItem(i)) && p.getInventory().getItem(i).is(Items.FIREWORK_ROCKET)) n += p.getInventory().getItem(i).getCount();
+		return n;
+	}
+
+	/** Dev: 200 routes: every ring well inside the sky and above the line you must not fall under. */
+	private void devRoutes(java.util.function.Consumer<String> log) {
+		List<Ring> keepR = new ArrayList<>(rings);
+		List<Draft> keepD = new ArrayList<>(drafts);
+		List<Vec3> keepP = new ArrayList<>(path), keepF = new ArrayList<>(framePath);
+		int out = 0;
+		double minGap = 1e9, sumGap = 0, gaps = 0, top = 0;
+		for (int s = 0; s < 200; s++) {
+			route(RandomSource.create(31L * s + 5), false);
+			Ring prev = null;
+			for (Ring g : rings) {
+				double f = af(g.c), l = al(g.c), dy = g.c.y - Rifts.FLOOR;
+				if (Math.abs(f) + g.r > HALF - 24 && !(f > PAD_F - 30) || Math.abs(l) + g.r > HALF - 24 || dy < 1 || dy > UP - 20) out++;
+				top = Math.max(top, dy);
+				if (!g.bonus && prev != null) {
+					minGap = Math.min(minGap, g.c.distanceTo(prev.c));
+					sumGap += g.c.distanceTo(prev.c);
+					gaps++;
+				}
+				if (!g.bonus) prev = g;
+			}
+			for (Draft d : drafts) if (d.top > Rifts.FLOOR + UP - 20) out++;
+		}
+		log.accept("rings: 200 routes, out of the sky " + out + " (must be 0), gap average " + (int) (sumGap / gaps) + " least " + (int) minGap + ", highest ring " + (int) top);
+		rings.clear();
+		rings.addAll(keepR);
+		drafts.clear();
+		drafts.addAll(keepD);
+		path.clear();
+		path.addAll(keepP);
+		framePath.clear();
+		framePath.addAll(keepF);
 	}
 
 	/** Dev: moves {@code p} through ring {@code g} along its normal, a tick on each side. */

@@ -13,6 +13,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.Display;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -36,7 +37,9 @@ import java.util.function.Consumer;
  * <p>
  * With two or more players one is the Seer, up on a perch beside the stage: only the Seer sees the path glow (per-player
  * block updates) and calls it out to the Walkers. The perch moves with each stage; in stage 3 a different player becomes
- * the Seer. Alone, an echo plays: the camera looks straight down on the stage while the path glows for a few seconds
+ * the Seer. A veil shuts each stage off until its path has been shown (5.52), and a stage only counts as crossed when
+ * the path was really walked. The great gate at the far end opens when the hall is solved and leads back to the wing.
+ * Alone, an echo plays: the camera looks straight down on the stage while the path glows for a few seconds
  * (shorter on higher tiers, mirrored on Extreme+); the echo pad on each checkpoint replays it.
  * <p>
  * Tiers: longer paths from Hard; on Hard+ the Seer's sight flickers; Extreme: path tiles crumble 10 s after the first
@@ -61,10 +64,17 @@ final class TrialEchoes extends Trials.Trial {
 	private long nextSeerSend;
 	UUID soloViewer;
 	final List<BlockPos> soloShown = new ArrayList<>();
-	long soloUntil, soloAutoAt = -1, padNext;
+	long soloUntil, padNext;
+	/** The stage's veil is down: its path was shown since it was last rolled. */
+	boolean open;
+	private final List<Display.BlockDisplay> veil = new ArrayList<>();
+	/** Path tiles someone stepped on since the path was rolled. */
+	final Set<Integer> stepped = new HashSet<>();
+	/** Solo: since when they stand on the checkpoint; the Seer: since when on the perch (0 = not). */
+	private long readySince;
+	private TrialPortal farGate;
 	private int hintShown;
 	private List<ServerPlayer> lastHere = List.of();
-	private long lastNow;
 
 	TrialEchoes(Rifts.Run run, int index) {
 		super(run, index, Trials.Kind.ECHOES);
@@ -173,7 +183,7 @@ final class TrialEchoes extends Trials.Trial {
 		}
 		// echo pads (used alone) on every checkpoint
 		for (int s = 0; s <= 2; s++) {
-			set(level, cpF(s), PAD_L, 0, pal.light());
+			for (int df = -1; df <= 1; df++) for (int dl = -1; dl <= 1; dl++) set(level, cpF(s) + df, PAD_L + dl, 0, df == 0 && dl == 0 ? pal.light() : pal.accent());
 			label(level, DigDecor.v(this, cpF(s), PAD_L, 2.6), Component.literal("Echo pad").withStyle(ChatFormatting.DARK_AQUA), 0.7f);
 		}
 		// the colonnade: pillars over the void on both sides, pointed arches across, lanterns on chains
@@ -213,6 +223,85 @@ final class TrialEchoes extends Trials.Trial {
 		for (int f = -58; f <= 54; f += 9) for (int l = -18; l <= 18; l += 9) DigDecor.glow(level, this, f, l, 4, 13);
 		buildStage(level, 0);
 		rollPath(r);
+		seal(level);
+	}
+
+	// --- the veil and the far gate
+
+	private int veilF() {
+		return F0 + STAGES[stage][0] * T;
+	}
+
+	/** Shuts the current stage off until its path is shown: a wall of glass with barriers in it. */
+	private void seal(ServerLevel level) {
+		dropVeil(level, false);
+		open = false;
+		readySince = 0;
+		stepped.clear();
+		int f = veilF();
+		for (int l = -27; l <= 27; l++) for (int dy = 1; dy <= 4; dy++) if (level.getBlockState(arena(f, l, dy)).isAir()) set(level, f, l, dy, Blocks.BARRIER);
+		for (int k = 0; k < COLS; k++) veil.add(RuinKit.prop(this, level, DigDecor.v(this, f, L0 + k * T + 1, 1), pal.gate().defaultBlockState(), veilT(5f), 0, true));
+		RiftSfx.veilUp(level, DigDecor.v(this, f, 0, 2));
+	}
+
+	private com.mojang.math.Transformation veilT(float tall) {
+		float wx = Math.abs(lx) * 2.96f + Math.abs(fx) * 0.12f, wz = Math.abs(lz) * 2.96f + Math.abs(fz) * 0.12f;
+		return RuinKit.box(-wx / 2, 0, -wz / 2, wx, tall, wz);
+	}
+
+	private void dropVeil(ServerLevel level, boolean show) {
+		if (veil.isEmpty()) return;
+		// where the standing veil was put up (the stage may have moved on since)
+		int f = (int) Math.round(af(veil.get(0).position()));
+		for (int l = -27; l <= 27; l++) for (int dy = 1; dy <= 4; dy++) if (level.getBlockState(arena(f, l, dy)).is(Blocks.BARRIER)) set(level, f, l, dy, Blocks.AIR);
+		for (Display.BlockDisplay d : veil) {
+			if (!show) {
+				RuinKit.drop(this, d);
+				continue;
+			}
+			com.toast.aurapoints.ability.Props.set(d, veilT(0.02f), 14);
+			com.toast.aurapoints.ability.AuraFx.later(level.getServer(), 16, () -> RuinKit.drop(this, d));
+			level.sendParticles(ParticleTypes.END_ROD, d.getX(), d.getY() + 2, d.getZ(), 4, 1, 1.2, 1, 0.04);
+		}
+		veil.clear();
+	}
+
+	/** The path was shown: the veil falls. */
+	private void unseal(ServerLevel level) {
+		if (open) return;
+		open = true;
+		freezeHazards(false);
+		Vec3 c = DigDecor.v(this, veilF(), 0, 2);
+		dropVeil(level, true);
+		RiftSfx.veilFall(level, c);
+		for (ServerPlayer p : lastHere) p.displayClientMessage(Component.literal("The veil falls - walk the path").withStyle(ChatFormatting.AQUA), true);
+	}
+
+	/** On the current stage's checkpoint (its whole width). */
+	boolean onCheckpoint(ServerPlayer p) {
+		double f = af(p.position()), dy = p.getY() - Rifts.FLOOR;
+		if (dy < 0.4 || dy > 3) return false;
+		double edge = F0 + STAGES[stage][0] * T - 0.5;
+		return f <= edge && f >= (stage == 0 ? -64 : edge - 3.2);
+	}
+
+	private void openFarGate(ServerLevel level) {
+		if (farGate != null) return;
+		farGate = new TrialPortal(arena(51, 0, 0), -fx, -fz, rgb, 5, 12);
+		farGate.to = gate;
+		exits.add(farGate);
+		farGate.setOpen(level, true, pal.gate());
+		Vec3 c = DigDecor.v(this, 51, 0, 5);
+		level.sendParticles(ParticleTypes.REVERSE_PORTAL, c.x, c.y, c.z, 160, Math.abs(lx) * 4 + 0.2, 4, Math.abs(lz) * 4 + 0.2, 0.1);
+		RiftSfx.play(level, c, SoundEvents.END_PORTAL_SPAWN, 0.7f, 1.3f);
+		label(level, DigDecor.v(this, 49, 0, 12.6), Component.literal("The way out").withStyle(s -> s.withColor(rgb).withBold(true)), 1.6f);
+	}
+
+	@Override
+	RiftCam solvedCam(Vec3 look) {
+		return RiftCam.shot(rgb).title("Shard freed", "the great gate opens - carry it through").skippable(true)
+				.key(0, DigDecor.v(this, PLINTH_F - 8, 5, 5), look).key(34, DigDecor.v(this, PLINTH_F - 6, 3, 4), look)
+				.cut(36, DigDecor.v(this, PLINTH_F - 12, 0, 6), DigDecor.v(this, 51, 0, 6)).key(80, DigDecor.v(this, PLINTH_F - 5, 0, 5), DigDecor.v(this, 51, 0, 5));
 	}
 
 	/** A Seer's perch beside stage s: a railed balcony on a pillar, with a canopy, a lantern and a banner. */
@@ -310,7 +399,6 @@ final class TrialEchoes extends Trials.Trial {
 		lastHere = here;
 		long now = level.getGameTime();
 		if (here.size() >= 2) pickSeer(level, here, false);
-		else soloAutoAt = now + 170;
 	}
 
 	@Override
@@ -326,23 +414,72 @@ final class TrialEchoes extends Trials.Trial {
 	@Override
 	void tick(ServerLevel level, List<ServerPlayer> here, long now) {
 		lastHere = here;
-		lastNow = now;
 		for (ServerPlayer p : here) catchFall(level, p);
-		if (solved) return;
+		if (solved) {
+			// also when the hall was skipped
+			if (farGate == null) {
+				revertSeer(level);
+				revertSolo(level);
+				dropVeil(level, true);
+				openFarGate(level);
+			}
+			return;
+		}
 		restore(level, now);
 		if (now % 10 == 0) seerTick(level, here, now);
-		if (soloViewer != null && now >= soloUntil) revertSolo(level);
-		else if (soloViewer != null && now % 20 == 10) resendSolo(level);
-		if (here.size() == 1) {
-			ServerPlayer p = here.get(0);
-			if (soloAutoAt >= 0 && now >= soloAutoAt) {
-				soloAutoAt = -1;
-				echo(level, p, now);
-			}
-			if (now % 5 == 0) pad(level, p, now);
+		if (soloViewer != null && now >= soloUntil) {
+			revertSolo(level);
+			unseal(level);
+		} else if (soloViewer != null && cutShort(level, now)) {
+			// the camera closed before the path was seen: it plays again
+			revertSolo(level);
+			readySince = 0;
 		}
+		if (soloViewer != null && now % 20 == 10) resendSolo(level);
+		if (!open) sealed(level, here, now);
+		if (open && here.size() == 1 && now % 5 == 0) pad(level, here.get(0), now);
 		for (ServerPlayer p : new ArrayList<>(here)) if (walk(level, p, here, now)) break;
 		if (now % 20 == 0 && hintsAllowed()) hints(level, here);
+	}
+
+	private boolean cutShort(ServerLevel level, long now) {
+		ServerPlayer p = find(level, soloViewer);
+		if (p == null) return true;
+		return !com.toast.aurapoints.shim.Platform.get().isFakePlayer(p) && now < soloUntil - 14 && !RiftCam.watching(p);
+	}
+
+	/**
+	 * The stage is shut: alone, standing on the checkpoint (with no other shot running) plays the echo and the veil falls
+	 * after it; with a Seer it falls once the Seer stands on the perch. Nobody gets past it any other way.
+	 */
+	private void sealed(ServerLevel level, List<ServerPlayer> here, long now) {
+		for (ServerPlayer p : here) {
+			if (p.getUUID().equals(seer) || p.isSpectator()) continue;
+			double f = af(p.position());
+			if (f > veilF() + 0.4 && Math.abs(al(p.position())) < 27 && p.getY() > Rifts.FLOOR - 3 && !onPerch(p)) {
+				DigDecor.tp(p, level, checkpoint(stage), forwardYaw(), 0f);
+				p.displayClientMessage(Component.literal("The veil holds - the path has not been shown yet").withStyle(ChatFormatting.GRAY), true);
+			}
+		}
+		boolean ready = false;
+		if (here.size() == 1) {
+			ServerPlayer p = here.get(0);
+			ready = soloViewer == null && !p.isSpectator() && onCheckpoint(p) && !RiftCam.watching(p);
+			if (ready && readySince != 0 && now - readySince >= 15) {
+				readySince = 0;
+				echo(level, p, now);
+				return;
+			}
+		} else if (here.size() >= 2) {
+			ServerPlayer s = find(level, seer);
+			ready = s != null && here.contains(s) && onPerch(s) && !RiftCam.watching(s);
+			if (ready && readySince != 0 && now - readySince >= 50) {
+				unseal(level);
+				return;
+			}
+		}
+		if (!ready) readySince = 0;
+		else if (readySince == 0) readySince = now;
 	}
 
 	/** A fall below the floor: caught and put back on the checkpoint, or knocked out on Hardcore. */
@@ -400,24 +537,50 @@ final class TrialEchoes extends Trials.Trial {
 		if (dy < 0.9 || dy > 1.6) return false;
 		double u = af(pos) - (F0 - 0.5), w = al(pos) - (L0 - 0.5);
 		int row = Mth.floor(u / T), col = Mth.floor(w / T);
+		if (!open) return false;
 		if (row > STAGES[stage][1] && Math.abs(al(pos)) <= 26) {
+			if (!walked()) {
+				DigDecor.tp(p, level, checkpoint(stage), forwardYaw(), 0f);
+				p.displayClientMessage(Component.literal("The hall did not hear your steps - walk the path itself").withStyle(ChatFormatting.GOLD), true);
+				level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, 1.2f);
+				return false;
+			}
 			stageCleared(level, here, now);
 			return true;
 		}
 		if (row < STAGES[stage][0] || col < 0 || col >= COLS) return false;
-		double fu = u - row * T, fw = w - col * T;
-		if (fu < 0.3 || fu > T - 0.3 || fw < 0.3 || fw > T - 0.3) return false;
 		int k = key(row, col);
+		// every tile under the feet counts: one of the path's is enough to stand safe, none of them is a false step
+		boolean safe = false;
+		for (double du : new double[]{-0.3, 0.3}) {
+			for (double dw : new double[]{-0.3, 0.3}) {
+				int kr = Mth.floor((u + du) / T), kc = Mth.floor((w + dw) / T);
+				if (kr < STAGES[stage][0] || kr > STAGES[stage][1]) {
+					safe = true; // a foot on the bridge
+					continue;
+				}
+				if (kc < 0 || kc >= COLS || !pathSet.contains(key(kr, kc)) || broken.containsKey(key(kr, kc))) continue;
+				safe = true;
+				if (stepped.add(key(kr, kc))) RiftSfx.step(level, pos, stepped.size() - 1);
+			}
+		}
 		if (broken.containsKey(k)) return false;
-		if (!pathSet.contains(k)) {
+		if (!safe) {
 			if (pushed(p)) return false;
 			breakTile(level, row, col, now, 60);
 			p.displayClientMessage(Component.literal("A false echo - the tile shatters!").withStyle(ChatFormatting.RED), true);
 			strike(level, p, Vec3.atBottomCenterOf(arena(rowF(row), colL(col), 0)), here);
 			return true;
 		}
-		if (tier >= 3 && !crumbleAt.containsKey(k)) crumbleAt.put(k, now + 200);
+		if (tier >= 3 && pathSet.contains(k) && !crumbleAt.containsKey(k)) crumbleAt.put(k, now + 200);
 		return false;
+	}
+
+	/** The path was really walked: its last tile and most of the rest (a jump may skip a few). */
+	boolean walked() {
+		if (path.isEmpty()) return true;
+		int[] end = path.get(path.size() - 1);
+		return stepped.contains(key(end[0], end[1])) && stepped.size() >= (int) Math.ceil(path.size() * 0.7);
 	}
 
 	private void stageCleared(ServerLevel level, List<ServerPlayer> here, long now) {
@@ -429,23 +592,23 @@ final class TrialEchoes extends Trials.Trial {
 		crumbleAt.clear();
 		stage++;
 		Vec3 c = checkpoint(stage);
-		level.playSound(null, c.x, c.y, c.z, SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1.2f, 0.8f + stage * 0.2f);
+		RiftSfx.checkpoint(level, c, stage);
 		if (stage >= 3) {
 			solve(level, DigDecor.v(this, PLINTH_F, 0, 2.2));
+			openFarGate(level);
 			return;
 		}
 		for (ServerPlayer p : here) com.toast.aurapoints.ability.AuraFx.title(p, Component.literal("Stage " + stage + " / 3 crossed").withStyle(s -> s.withColor(rgb).withBold(true)),
 				Component.literal(stage == 2 && here.size() >= 2 ? "the sight passes to another" : "the hall echoes on").withStyle(ChatFormatting.GRAY));
 		buildStage(level, stage);
 		rollPath(random != null ? random : level.random);
+		seal(level);
 		if (here.size() >= 2) {
 			if (stage == 2 || seer == null) pickSeer(level, here, stage == 2);
 			else {
 				ServerPlayer s = find(level, seer);
 				if (s != null) toPerch(s);
 			}
-		} else if (here.size() == 1) {
-			echo(level, here.get(0), now);
 		}
 	}
 
@@ -499,7 +662,7 @@ final class TrialEchoes extends Trials.Trial {
 				if (s != null && here.contains(s) && onPerch(s)) {
 					Vec3 to = checkpoint(stage);
 					DigDecor.tp(s, level, to, forwardYaw(), 0f);
-					soloAutoAt = now + 10;
+					if (open) seal(level); // alone now: the echo shows the path again
 				}
 				seer = null;
 			}
@@ -641,11 +804,9 @@ final class TrialEchoes extends Trials.Trial {
 		revertSolo(level);
 		crumbleAt.clear();
 		rollPath(random != null ? random : level.random);
+		seal(level);
 		punish(level, cp, 2 + tier / 2);
-		if (lastHere.size() == 1) {
-			soloAutoAt = lastNow + 40;
-			freezeHazards(true);
-		}
+		if (lastHere.size() == 1) freezeHazards(true); // until the echo is over
 	}
 
 	@Override
@@ -663,12 +824,18 @@ final class TrialEchoes extends Trials.Trial {
 			if (p.getUUID().equals(seer) && lastHere.size() >= 2) toPerch(p);
 			else DigDecor.tp(p, level, cp, forwardYaw(), 0f);
 		}
-		if (lastHere.size() == 1) soloAutoAt = lastNow + 40;
+		seal(level);
 	}
 
 	@Override
 	Vec3 plinth() {
 		return DigDecor.v(this, PLINTH_F, 0, 2.2);
+	}
+
+	@Override
+	void remove() {
+		veil.clear();
+		super.remove();
 	}
 
 	@Override
@@ -695,8 +862,14 @@ final class TrialEchoes extends Trials.Trial {
 		List<ServerPlayer> here = List.of(fake);
 		long now = level.getGameTime() + 400;
 		// alone: the echo plays and lights the path
-		soloAutoAt = now;
-		tick(level, here, now);
+		Vec3 cp0 = checkpoint(0);
+		log.accept("echoes: sealed at the start " + (!open && level.getBlockState(arena(veilF(), 0, 1)).is(Blocks.BARRIER)) + " (must be true)");
+		// past the veil without being shown the path (a skipped intro, a jump): put back
+		stand(fake, rowF(2), 0, 1);
+		tick(level, here, ++now);
+		log.accept("echoes: past the veil -> back on the checkpoint " + (fake.position().distanceTo(cp0) < 1) + " (must be true), strikes " + strikes + " (must be 0)");
+		stand(fake, cpF(0), 12, 1);
+		for (int k = 0; k < 20 && soloViewer == null; k++) tick(level, here, ++now);
 		// the last row of every stage holds exactly one lit tile (many random paths)
 		List<int[]> keepPath = new ArrayList<>(path);
 		Set<Integer> keepSet = new HashSet<>(pathSet);
@@ -716,10 +889,17 @@ final class TrialEchoes extends Trials.Trial {
 		pathSet.addAll(keepSet);
 		log.accept("echoes: last row has one tile in 180 paths " + oneEnd + " (must be true)");
 		log.accept("echoes: solo echo shows " + soloShown.size() + " blocks (must be " + path.size() * T * T + ")");
-		// a wrong tile: it breaks and strikes
+		int shown = showTicks() + 20;
+		for (int k = 0; k < shown; k++) tick(level, here, ++now);
+		log.accept("echoes: echo over -> veil down " + open + " (must be true), no barrier left " + level.getBlockState(arena(veilF(), 0, 1)).isAir() + " (must be true)");
+		// a jump over everything: refused, no strike
+		stand(fake, rowF(STAGES[0][1] + 1), 0, 1);
+		tick(level, here, ++now);
+		log.accept("echoes: jumped the stage -> stage " + stage + " (must be 0), strikes " + strikes + " (must be 0)");
+		// a wrong tile, stood on right at its edge (the seam used to count for nothing): it breaks and strikes
 		int r0 = STAGES[0][0], wrong = -1;
 		for (int c = 0; c < COLS; c++) if (!pathSet.contains(key(r0, c))) wrong = c;
-		stand(fake, rowF(r0), colL(wrong), 1);
+		stand(fake, rowF(r0), colL(wrong) + (wrong == 0 || pathSet.contains(key(r0, wrong - 1)) ? 0 : -1.4), 1);
 		tick(level, here, ++now);
 		log.accept("echoes: wrong tile -> strikes " + strikes + " (must be 1), tile gone " + level.getBlockState(arena(rowF(r0), colL(wrong), 0)).isAir() + " (must be true)");
 		// falling through: caught at the checkpoint
@@ -737,9 +917,18 @@ final class TrialEchoes extends Trials.Trial {
 			int nextF = s < 2 ? rowF(STAGES[s][1] + 1) : PLINTH_F - 4;
 			stand(fake, nextF, 0, 1);
 			tick(level, here, ++now);
+			if (s < 2) {
+				stand(fake, cpF(stage), 3, 1);
+				for (int k = 0; k < showTicks() + 60 && !open; k++) tick(level, here, ++now);
+				log.accept("echoes: stage " + (stage + 1) + " shown -> veil down " + open + " (must be true)");
+			}
 			if (s < 2) log.accept("echoes: on to stage " + (stage + 1) + " (must be " + (s + 2) + ")");
 		}
 		log.accept("echoes: end reached -> solved " + solved + " (must be true)");
+		Vec3 g = Vec3.atBottomCenterOf(arena(51, 0, 1));
+		fake.moveTo(g.x, g.y, g.z);
+		boolean went = farGate != null && farGate.tick(level, here, now + 400);
+		log.accept("echoes: the great gate leads out " + went + " (must be true), in the wing " + inWing(fake.position()) + " (must be true)");
 		done.run();
 	}
 

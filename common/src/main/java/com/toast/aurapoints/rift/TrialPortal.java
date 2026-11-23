@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -37,12 +38,21 @@ final class TrialPortal {
 	final int nx, nz;
 	final int rgb;
 	TrialPortal to;
+	/** Half width and height of this portal's opening (a trial's own big gate is larger), and whether it has its own arch. */
+	final int w, h;
 	private final List<Display.BlockDisplay> curtain = new ArrayList<>();
 	private final Map<UUID, Long> cooldown = new HashMap<>();
 	/** Closed portals show no curtain and don't move anyone (the arena is still being built). */
 	boolean open;
 
 	TrialPortal(BlockPos base, int nx, int nz, int rgb) {
+		this(base, nx, nz, rgb, W, H);
+	}
+
+	/** A portal in a gate that already stands there: only the curtain, half width {@code w}, {@code h} tall. */
+	TrialPortal(BlockPos base, int nx, int nz, int rgb, int w, int h) {
+		this.w = w;
+		this.h = h;
 		this.base = base;
 		this.nx = nx;
 		this.nz = nz;
@@ -78,46 +88,58 @@ final class TrialPortal {
 		}
 	}
 
-	/** One block of the arch and where it stands. */
-	record Piece(BlockPos pos, Block block) {
+	/** The kinds of arch stones. */
+	static final int POST = 0, LINTEL = 1, CROWN = 2, LAMP = 3;
+
+	/** One block of the arch, where it stands and which kind of stone it is. */
+	record Piece(BlockPos pos, Block block, int kind) {
 	}
 
-	private Piece piece(int s, int y, Block b) {
-		return new Piece(new BlockPos(base.getX() + sx() * s, base.getY() + y, base.getZ() + sz() * s), b);
-	}
-
-	/** The arch in building order: the two posts rise, then the lintel, the crown and the lit feet. */
-	List<Piece> frame(RealmBuilder.Palette pal) {
-		List<Piece> out = new ArrayList<>();
-		for (int side : new int[]{-1, 1}) for (int y = 1; y <= H; y++) out.add(piece(side * (W + 1), y, pal.edge()));
-		for (int s = -(W + 1); s <= W + 1; s++) out.add(piece(s, H + 1, pal.edge()));
-		for (int s = -W; s <= W; s++) out.add(piece(s, H + 2, s == 0 ? pal.accent() : pal.edge()));
-		out.add(piece(0, H + 3, pal.light()));
-		for (int s : new int[]{-W - 2, W + 2}) {
-			out.add(piece(s, 1, pal.edge()));
-			out.add(piece(s, 2, pal.light()));
+	/** The four stones of an aura's arch, always four different blocks. */
+	static Block[] stones(RealmBuilder.Palette pal) {
+		Block[] want = {pal.edge(), pal.base(), pal.accent(), pal.light()};
+		Block[] spare = {pal.floor(), Blocks.CHISELED_STONE_BRICKS, Blocks.POLISHED_ANDESITE, Blocks.CHISELED_DEEPSLATE, Blocks.BRICKS};
+		List<Block> out = new ArrayList<>();
+		for (Block b : want) {
+			Block use = b;
+			for (int k = 0; k < spare.length && (out.contains(use) || (out.size() < 3 && use == pal.light())); k++) use = spare[k];
+			out.add(use);
 		}
+		return out.toArray(new Block[0]);
+	}
+
+	private Piece piece(int s, int y, int kind, Block[] st) {
+		return new Piece(new BlockPos(base.getX() + sx() * s, base.getY() + y, base.getZ() + sz() * s), st[kind], kind);
+	}
+
+	/** The arch in building order: the posts rise together, then the feet with their lamps, the lintel, the crown and its lamp. */
+	List<Piece> frame(RealmBuilder.Palette pal) {
+		Block[] st = stones(pal);
+		List<Piece> out = new ArrayList<>();
+		for (int y = 1; y <= H; y++) for (int side : new int[]{-1, 1}) out.add(piece(side * (W + 1), y, POST, st));
+		for (int s : new int[]{-W - 2, W + 2}) out.add(piece(s, 1, POST, st));
+		for (int s : new int[]{-W - 2, W + 2}) out.add(piece(s, 2, LAMP, st));
+		for (int s : new int[]{-W - 1, W + 1, -W, W, 0}) out.add(piece(s, H + 1, LINTEL, st));
+		for (int s : new int[]{-W, W, 0}) out.add(piece(s, H + 2, CROWN, st));
+		out.add(piece(0, H + 3, LAMP, st));
 		return out;
 	}
 
-	/** A broken portal: the floor strip and the first {@code done} of {@code total} parts of the arch; the rest is rubble-free air. */
-	void buildPartial(ServerLevel level, RealmBuilder.Palette pal, int done, int total) {
+	/** Where a piece sits in the arch: {along, up from the floor}. */
+	int[] slot(Piece p) {
+		return new int[]{(p.pos().getX() - base.getX()) * sx() + (p.pos().getZ() - base.getZ()) * sz(), p.pos().getY() - base.getY()};
+	}
+
+	/** A world point {@code along} the opening, {@code up} from the floor's top, {@code out} in front of it. */
+	Vec3 point(double along, double up, double out) {
+		return Vec3.atBottomCenterOf(base.above()).add(sx() * along + nx * out, up, sz() * along + nz * out);
+	}
+
+	/** The floor strip, an empty opening, and every piece of the arch that is not {@code missing}. */
+	void buildBroken(ServerLevel level, RealmBuilder.Palette pal, java.util.Set<BlockPos> missing) {
 		for (int s = -W - 1; s <= W + 1; s++) RealmBuilder.set(level, base.getX() + sx() * s, base.getY(), base.getZ() + sz() * s, pal.accent());
 		for (int s = -W; s <= W; s++) for (int y = 1; y <= H; y++) RealmBuilder.set(level, base.getX() + sx() * s, base.getY() + y, base.getZ() + sz() * s, Blocks.AIR);
-		List<Piece> all = frame(pal);
-		int upTo = total <= 0 ? all.size() : (int) Math.round(all.size() * (double) Math.min(done, total) / total);
-		for (int i = 0; i < all.size(); i++) {
-			Piece p = all.get(i);
-			// the lowest course of each post always stands: a broken arch, not an empty wall
-			boolean stump = p.pos().getY() == base.getY() + 1 && Math.abs((p.pos().getX() - base.getX()) * sx() + (p.pos().getZ() - base.getZ()) * sz()) == W + 1;
-			RealmBuilder.set(level, p.pos().getX(), p.pos().getY(), p.pos().getZ(), i < upTo || stump ? p.block() : Blocks.AIR);
-		}
-		// the part just rebuilt: dust and a clack
-		if (done > 0 && upTo > 0) {
-			Vec3 c = Vec3.atBottomCenterOf(base.above()).add(0, H / 2.0, 0);
-			level.sendParticles(ParticleTypes.CLOUD, c.x, c.y, c.z, 14, 1.2, 1.4, 0.3, 0.02);
-			level.playSound(null, c.x, c.y, c.z, SoundEvents.STONE_PLACE, SoundSource.BLOCKS, 1.6f, 0.7f);
-		}
+		for (Piece p : frame(pal)) RealmBuilder.set(level, p.pos().getX(), p.pos().getY(), p.pos().getZ(), missing.contains(p.pos()) ? Blocks.AIR : p.block());
 	}
 
 	void setOpen(ServerLevel level, boolean on, Block glass) {
@@ -127,22 +149,30 @@ final class TrialPortal {
 		curtain.clear();
 		if (!on) return;
 		Vec3 c = Vec3.atBottomCenterOf(base.above());
-		float w = 2 * W + 1, depth = 0.12f;
+		// a bright slit first, torn open sideways over a second
+		sheet(level, c, glass.defaultBlockState(), 2 * w + 1, h, 0.12f, 0f);
+		// a second, thinner sheet of the aura's light for the shimmer
+		sheet(level, c, Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), 2 * w + 0.7f, h - 0.3f, 0.04f, 0.15f);
+		level.sendParticles(ParticleTypes.FLASH, c.x, c.y + h / 2.0, c.z, 1, 0, 0, 0, 0);
+		level.playSound(null, c.x, c.y + 2, c.z, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 1.2f, 1.4f);
+		level.playSound(null, c.x, c.y + 2, c.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.BLOCKS, 1.6f, 0.6f);
+	}
+
+	private Transformation sheetT(float wide, float tall, float depth, float dy) {
 		boolean alongX = sx() != 0;
-		Vector3f scale = alongX ? new Vector3f(w, H, depth) : new Vector3f(depth, H, w);
-		Vector3f t = new Vector3f(-scale.x / 2f, 0f, -scale.z / 2f);
-		Display.BlockDisplay d = Props.spawn(level, c, glass.defaultBlockState(), new Transformation(t, new Quaternionf(), scale, null), -1, 3);
+		Vector3f scale = alongX ? new Vector3f(wide, tall, depth) : new Vector3f(depth, tall, wide);
+		return new Transformation(new Vector3f(-scale.x / 2f, dy, -scale.z / 2f), new Quaternionf(), scale, null);
+	}
+
+	private void sheet(ServerLevel level, Vec3 c, BlockState block, float wide, float tall, float depth, float dy) {
+		Display.BlockDisplay d = Props.spawn(level, c, block, sheetT(0.1f, tall, depth, dy), -1, 3);
 		Props.glow(d);
 		d.addTag(Trials.DISPLAY_TAG);
+		RuinKit.bigBounds(d, Math.max(wide, tall));
 		curtain.add(d);
-		// a second, thinner sheet of the aura's light for the shimmer
-		Vector3f scale2 = alongX ? new Vector3f(w - 0.3f, H - 0.3f, 0.04f) : new Vector3f(0.04f, H - 0.3f, w - 0.3f);
-		Vector3f t2 = new Vector3f(-scale2.x / 2f, 0.15f, -scale2.z / 2f);
-		Display.BlockDisplay d2 = Props.spawn(level, c, Blocks.LIGHT_BLUE_STAINED_GLASS.defaultBlockState(), new Transformation(t2, new Quaternionf(), scale2, null), -1, 3);
-		Props.glow(d2);
-		d2.addTag(Trials.DISPLAY_TAG);
-		curtain.add(d2);
-		level.playSound(null, c.x, c.y + 2, c.z, SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 1.2f, 1.4f);
+		AuraFx.later(level.getServer(), 3, () -> {
+			if (!d.isRemoved()) Props.set(d, sheetT(wide, tall, depth, dy), 20);
+		});
 	}
 
 	/** Where someone coming out of this portal stands. */
@@ -158,7 +188,7 @@ final class TrialPortal {
 		double dx = p.x - (base.getX() + 0.5), dz = p.z - (base.getZ() + 0.5);
 		double along = dx * sx() + dz * sz(), across = dx * nx + dz * nz;
 		double dy = p.y - (base.getY() + 1);
-		return Math.abs(along) <= W + 0.5 && Math.abs(across) <= 0.6 && dy >= -0.5 && dy < H;
+		return Math.abs(along) <= w + 0.5 && Math.abs(across) <= 0.6 && dy >= -0.5 && dy < h;
 	}
 
 	/** Particles every few ticks; moves players who walk in. True = someone went through. */
@@ -166,8 +196,8 @@ final class TrialPortal {
 		if (!open || to == null) return false;
 		Vec3 c = Vec3.atBottomCenterOf(base.above());
 		if (now % 4 == 0) {
-			level.sendParticles(AuraFx.dust(rgb, 1.2f), c.x, c.y + H / 2.0, c.z, 4, sx() * 0.9 + 0.05, H / 3.0, sz() * 0.9 + 0.05, 0);
-			level.sendParticles(ParticleTypes.REVERSE_PORTAL, c.x, c.y + 0.4, c.z, 2, sx() * 0.9, 0.1, sz() * 0.9, 0.01);
+			level.sendParticles(AuraFx.dust(rgb, 1.2f), c.x, c.y + h / 2.0, c.z, 2 + 2 * w, sx() * w * 0.9 + 0.05, h / 3.0, sz() * w * 0.9 + 0.05, 0);
+			level.sendParticles(ParticleTypes.REVERSE_PORTAL, c.x, c.y + 0.4, c.z, 2 * w, sx() * w * 0.9, 0.1, sz() * w * 0.9, 0.01);
 		}
 		boolean moved = false;
 		for (ServerPlayer p : near) {
@@ -181,7 +211,7 @@ final class TrialPortal {
 			if (com.toast.aurapoints.shim.Platform.get().isFakePlayer(p)) p.moveTo(e.x, e.y, e.z, to.exitYaw(), 0f); // dev tests: no connection to teleport through
 			else p.teleportTo(level, e.x, e.y, e.z, to.exitYaw(), 0f);
 			p.fallDistance = 0;
-			level.playSound(null, e.x, e.y, e.z, SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.4f, 0.7f);
+			RiftSfx.passage(level, e);
 			moved = true;
 		}
 		return moved;

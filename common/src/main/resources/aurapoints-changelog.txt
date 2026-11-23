@@ -1,6 +1,14 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.52.0
+- Reliquary portals: take a compass off the pedestal's lodestone to find the Keystones, rebuild the arch from the stones in the hall by the model on the table, then rub the Keystones alight (hold right-click, let go in the green). The portal opens with a real scene.
+- Prism Chamber: much easier, and every layout is proven solvable. Signs say which receiver is next, what it needs and why one is overloading. The beam no longer burns, your body just stops it.
+- Choir of Bells: a sung bell lights its whole tower in its colour, throws a beam into the sky and is named on screen; the song is slower.
+- Hall of Echoes: a veil holds each stage until you were shown its path, steps on tile edges count, and the great gate at the end is the way out.
+- Skyward Rings: a far bigger sky, bigger rings, a rocket for every ring (two for a bonus star), and ring types you can tell apart.
+- Weeping Statues and Resonance Dig: lifting a sigil and pulling out the shard are hold-and-release checks now. New sounds all over the trials. Clients must update.
+
 == 5.51.0
 - Relic Warden: four Aspects, one per wing colour, as its health falls (75 / 50 / 25%). The Chime: rings of sound roll across the crypt - jump them. The Garden: roots erupt under you and round it - keep moving. The Prism: the crypt's pillars charge beams at you - break the line behind a pillar. The Wrath: meteors fall. Each Aspect opens with a short scene (the Warden holds still and you take no damage meanwhile). Config RIFT_WARDEN_ASPECTS turns it off.
 

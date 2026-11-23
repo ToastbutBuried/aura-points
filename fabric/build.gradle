@@ -24,6 +24,7 @@ loom {
 		}
 		server {
 			runDir '../run-fabric'
+			programArg 'nogui' // no Swing server window on the desktop
 			property 'aurapoints.devtest', 'true'
 		}
 	}
