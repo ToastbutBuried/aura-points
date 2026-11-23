@@ -174,7 +174,8 @@ final class TrialPortal {
 		((com.toast.aurapoints.mixin.ItemDisplayAccessor) d).aurapoints$setItemTransform(net.minecraft.world.item.ItemDisplayContext.FIXED);
 		var acc = (com.toast.aurapoints.mixin.DisplayAccessor) d;
 		acc.aurapoints$setViewRange(3f);
-		acc.aurapoints$setBrightnessOverride(new net.minecraft.util.Brightness(15, 15));
+		// not full-bright: shader packs bloom that into a blob
+		acc.aurapoints$setBrightnessOverride(new net.minecraft.util.Brightness(10, 0));
 		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(0.05f, h, 1f), null));
 		d.addTag(Trials.DISPLAY_TAG);
 		level.addFreshEntity(d);
