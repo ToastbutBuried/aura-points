@@ -54,11 +54,11 @@ final class TrialPrism extends Trials.Trial {
 	/** Ticks of light before the right receiver lights, before a wrong one overloads, before a crossing does. */
 	static final int CHARGE = 30, OVERLOAD = 100, CROSS_CHARGE = 120;
 
-	private static final int[] RECV = {2, 2, 3, 3, 4}, FILT = {0, 1, 1, 2, 2}, DECOY = {0, 1, 2, 3, 4};
-	private static final int[] MIN_T = {1, 1, 2, 2, 3}, MAX_T = {2, 3, 3, 4, 4};
+	private static final int[] RECV = {2, 3, 3, 4, 4}, FILT = {0, 1, 2, 2, 3}, DECOY = {2, 3, 4, 5, 6};
+	private static final int[] MIN_T = {1, 2, 2, 3, 3}, MAX_T = {3, 3, 4, 5, 5};
 	/** Most clicks a layout may need in all, from its start to the last receiver. */
-	private static final int[] MAX_CLICKS = {6, 9, 14, 20, 26};
-	private static final int[] LOCK = {0, 1, 2, 2, 3}, LOCK_SOLO = {0, 0, 1, 1, 1};
+	private static final int[] MAX_CLICKS = {12, 18, 22, 32, 38};
+	private static final int[] LOCK = {1, 2, 3, 3, 4}, LOCK_SOLO = {0, 1, 1, 2, 2};
 	private static final int[] FILTER_RGB = {0x3BD8D8, 0xD83BD8, 0xF28A2E, 0x8A3BD8};
 	private static final String[] FILTER_NAME = {"cyan", "magenta", "amber", "violet"};
 	private static final int BEAM_B = 0xF0F0F0;
@@ -156,7 +156,7 @@ final class TrialPrism extends Trials.Trial {
 	@Override
 	String hint() {
 		return "Turn the mirrors (right-click their base, sneak to turn back) to bring the light to the numbered receivers in order, "
-				+ "through the prism of their colour. " + overloadRules() + (tier >= 2 || run.players.size() > 1 ? " Sealed mirrors turn from their rune stone on the galleries." : "");
+				+ "through the prism of their colour. " + overloadRules() + (tier >= 1 || run.players.size() > 1 ? " Sealed mirrors turn from their rune stone on the galleries." : "");
 	}
 
 	private String overloadRules() {
@@ -1474,7 +1474,7 @@ final class TrialPrism extends Trials.Trial {
 	/** 200 layouts per tier, alone and in a group: how many are the plain fallback, and the clicks they need. */
 	private void devLayouts(java.util.function.Consumer<String> log) {
 		for (int tr = 0; tr < 5; tr++) {
-			int bad = 0, max = 0, sum = 0, plain = 0, slow = 0;
+			int bad = 0, max = 0, sum = 0, plain = 0, slow = 0, few = 0;
 			long t0 = System.nanoTime();
 			for (int s = 0; s < 200; s++) {
 				TrialPrism t = new TrialPrism(run, index, tr);
@@ -1495,11 +1495,12 @@ final class TrialPrism extends Trials.Trial {
 					}
 				}
 				if (!ok) bad++;
+				if (t.receivers.size() < RECV[tr]) few++;
 				if (t.mirrors.size() == 2 && t.receivers.size() == 2 && t.filters.isEmpty() && t.sources.size() == 1 && t.mirrors.get(0).i == 6 && t.mirrors.get(1).i == 2) plain++;
 				sum += total;
 				max = Math.max(max, total);
 			}
-			log.accept("prism layouts tier " + tr + ": of 200 unsolvable " + bad + " (must be 0), plain ones " + plain + ", clicks average " + sum / 200 + " most " + max + " (must be at most " + MAX_CLICKS[tr] + "), slowest " + slow + " ms, all " + (System.nanoTime() - t0) / 1_000_000 + " ms");
+			log.accept("prism layouts tier " + tr + ": of 200 unsolvable " + bad + " (must be 0), plain ones " + plain + ", short of receivers " + few + " (must be 0), clicks average " + sum / 200 + " most " + max + " (must be at most " + MAX_CLICKS[tr] + "), slowest " + slow + " ms, all " + (System.nanoTime() - t0) / 1_000_000 + " ms");
 		}
 	}
 
