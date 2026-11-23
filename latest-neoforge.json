@@ -1,8 +1,8 @@
 {
-  "version": "5.53.0",
-  "file": "aura-points-neoforge-5.53.0.jar",
-  "url": "https://github.com/ToastbutBuried/aura-points/releases/download/v5.53.0/aura-points-neoforge-5.53.0.jar",
-  "sha256": "a287a86ffac3848cf9f63b152a9813e7efd6ee203fa85943c431b709e32e304c",
+  "version": "5.54.0",
+  "file": "aura-points-neoforge-5.54.0.jar",
+  "url": "https://github.com/ToastbutBuried/aura-points/releases/download/v5.54.0/aura-points-neoforge-5.54.0.jar",
+  "sha256": "db22d8e15c665b9bc4013f2ae6de8cca098d755221db35a6b1134c1b439eb9c3",
   "loader": "neoforge",
   "minecraft": "1.21.1",
   "loader_version": "21.1.251",
