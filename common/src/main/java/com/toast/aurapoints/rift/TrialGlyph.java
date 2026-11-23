@@ -36,11 +36,11 @@ import java.util.List;
  * Glyph Vault (5.49.0): an asymmetric "keep talking" puzzle. One building, two sealed rooms that can't see each other
  * (a tower between them) but are close enough to shout: the Vault, where an Operator turns 4-5 rune pillars through
  * their glyphs and sees the signs (moon lamps, the brazier's flame, the Seal over the door), and the Library, where
- * the Readers find each pillar's rules on wall tablets and in the Codex on a lectern. The first rule that holds decides
- * a pillar's glyph. The Operator pulls the lever to submit; a wrong answer is a strike.
+ * the Readers find each pillar's rules on wall tablets and in the Codex on a lectern. Exactly one of a
+ * pillar's lines is true, whatever the signs show, and it gives the glyph. The Operator pulls the lever to submit; a wrong answer is a strike.
  * <p>
- * Tiers: Easy 4 pillars / 6 glyphs / 2 rules each, Medium adds the Seal and all 8 glyphs, Hard 5 pillars, 3 rules and
- * rules that name other pillars (some only in the Codex), Extreme rules with two conditions and the tablets rewrite
+ * Tiers: Easy 4 pillars / 6 glyphs, lines about one sign; Medium adds the Seal, all 8 glyphs and a second sign; Hard 5
+ * pillars, 4 lines, lines that name other pillars (some pillars only in the Codex); Extreme three signs, and the tablets rewrite
  * themselves after every strike. Alone, a swap lever in each room carries you to the other one (the clock runs on).
  */
 final class TrialGlyph extends Trials.Trial {
@@ -59,12 +59,17 @@ final class TrialGlyph extends Trials.Trial {
 	/** Tablet niches in the library (f, l of the niche's middle column). */
 	private static final int[][] SPOTS = {{-9, -29}, {-1, -29}, {7, -29}, {-9, -11}, {-1, -11}, {7, -11}};
 
-	enum C {MOONS_MIN, MOONS_EQ, FLAME, SEAL, PILLAR}
+	enum C {MOONS, FLAME, SEAL, PILLAR}
 
-	record Cond(C type, int a, int b) {
+	/** A sign (or pillar {@code of}'s answer) is one of the values in {@code mask} (a bit per value). */
+	record Cond(C type, int of, int mask) {
 	}
 
 	record Rule(List<Cond> all, int glyph) {
+	}
+
+	/** What a split looks at: a sign, or pillar {@code of}'s answer. */
+	private record Var(C type, int of) {
 	}
 
 	final int n, glyphs;
@@ -340,14 +345,8 @@ final class TrialGlyph extends Trials.Trial {
 		}
 		rules.clear();
 		for (int i = 0; i < n; i++) {
-			List<Rule> best = null;
-			for (int tries = 0; tries < 8; tries++) {
-				List<Rule> rs = pillarRules(i, r);
-				best = rs;
-				if (winner(i, rs) >= 0 || r.nextInt(3) == 0) break;
-			}
-			rules.add(best);
-			target[i] = answer(i, best);
+			rules.add(pillarRules(i, r));
+			target[i] = answer(i, rules.get(i));
 		}
 		for (int i = 0; i < n; i++) {
 			start[i] = r.nextInt(glyphs);
@@ -367,79 +366,82 @@ final class TrialGlyph extends Trials.Trial {
 		return tier >= 2 && (i == 1 || i == 3);
 	}
 
-	/** A pillar's rules: 2 (3 from Hard) conditional rules with their own glyphs, then "otherwise". */
+	/**
+	 * A pillar's lines: one sign's values are cut into cells, and from Medium cells are cut again by another sign. Cells
+	 * never overlap and leave no gap, so exactly one line is true in every state; one cell becomes "Otherwise".
+	 */
 	private List<Rule> pillarRules(int i, RandomSource r) {
-		int count = tier <= 1 ? 2 : 3;
+		List<Var> vars = new ArrayList<>(List.of(new Var(C.MOONS, 0), new Var(C.FLAME, 0)));
+		if (tier >= 1) vars.add(new Var(C.SEAL, 0));
+		if (tier >= 2 && i > 0) vars.add(new Var(C.PILLAR, r.nextInt(i)));
+		Collections.shuffle(vars, new java.util.Random(r.nextLong()));
+		Var a = vars.get(0), b = vars.get(1);
+		boolean plain = tier == 0 || (tier == 1 && r.nextBoolean());
+		List<List<Cond>> cells = new ArrayList<>();
+		int[] first = cells(a, plain || tier == 2 ? 3 : 2, r);
+		// which cell is cut again: one of them, or (Extreme) all of them, each by its own sign
+		int again = plain ? -1 : r.nextInt(first.length);
+		for (int k = 0; k < first.length; k++) {
+			Cond c = new Cond(a.type, a.of, first[k]);
+			if (plain || (tier < 3 && k != again)) {
+				cells.add(List.of(c));
+				continue;
+			}
+			Var v = tier >= 3 && k > 0 ? vars.get(2) : b;
+			for (int m : cells(v, 2, r)) cells.add(List.of(c, new Cond(v.type, v.of, m)));
+		}
+		Collections.shuffle(cells, new java.util.Random(r.nextLong()));
 		List<Integer> pool = new ArrayList<>();
 		for (int g = 0; g < glyphs; g++) pool.add(g);
 		Collections.shuffle(pool, new java.util.Random(r.nextLong()));
 		List<Rule> out = new ArrayList<>();
-		for (int k = 0; k < count; k++) {
-			List<Cond> all = new ArrayList<>();
-			// no rule may be unreachable (an earlier rule always fires first) or impossible: a sign must never read like a mistake
-			for (int attempt = 0; attempt < 40; attempt++) {
-				all = new ArrayList<>();
-				all.add(cond(i, r));
-				if (tier >= 3 && r.nextBoolean()) {
-					Cond c2;
-					do c2 = cond(i, r); while (c2.type == all.get(0).type);
-					all.add(c2);
-				}
-				if (!shadowed(out, all) && !contradicts(all)) break;
-			}
-			out.add(new Rule(all, pool.get(k)));
-		}
-		otherwise[i] = pool.get(count);
+		for (int k = 0; k < cells.size() - 1; k++) out.add(new Rule(cells.get(k), pool.get(k)));
+		otherwise[i] = pool.get(cells.size() - 1);
 		return out;
 	}
 
-	/** Condition x being true makes y true. */
-	private static boolean implies(Cond x, Cond y) {
-		if (x.equals(y)) return true;
-		return y.type == C.MOONS_MIN && (x.type == C.MOONS_MIN || x.type == C.MOONS_EQ) && x.a >= y.a;
+	private int values(C type) {
+		return switch (type) {
+			case MOONS -> 4;
+			case FLAME -> 3;
+			case SEAL, PILLAR -> glyphs;
+		};
 	}
 
-	/** An earlier rule whose every condition follows from these: it always wins, so this rule could never fire. */
-	private static boolean shadowed(List<Rule> earlier, List<Cond> all) {
-		for (Rule e : earlier) if (e.all.stream().allMatch(ec -> all.stream().anyMatch(c -> implies(c, ec)))) return true;
-		return false;
-	}
-
-	/** Two conditions that cannot both hold (exactly 0 moons and at least 2 moons). */
-	private static boolean contradicts(List<Cond> all) {
-		for (Cond a : all) for (Cond b : all) if (a.type == C.MOONS_EQ && b.type == C.MOONS_MIN && a.a < b.a) return true;
-		return false;
-	}
-
-	private Cond cond(int i, RandomSource r) {
-		List<C> types = new ArrayList<>(List.of(C.MOONS_MIN, C.MOONS_EQ, C.FLAME));
-		if (tier >= 1) types.add(C.SEAL);
-		if (tier >= 2 && i > 0) types.add(C.PILLAR);
-		C t = types.get(r.nextInt(types.size()));
-		return switch (t) {
-			case MOONS_MIN -> new Cond(t, 1 + r.nextInt(3), 0);
-			case MOONS_EQ -> new Cond(t, r.nextInt(4), 0);
-			case FLAME -> new Cond(t, r.nextInt(3), 0);
-			// half the time the true seal, so seal rules hold now and then
-			case SEAL -> new Cond(t, r.nextBoolean() ? seal : r.nextInt(glyphs), 0);
-			case PILLAR -> {
-				int j = r.nextInt(i);
-				yield new Cond(t, j, r.nextBoolean() ? target[j] : r.nextInt(glyphs));
+	/** Cuts all values of v into {@code count} (2 or 3) cells as bit masks: disjoint, none empty, nothing left over. */
+	private int[] cells(Var v, int count, RandomSource r) {
+		int size = values(v.type), full = (1 << size) - 1;
+		if (v.type == C.MOONS) { // ranges
+			if (count == 2) {
+				int low = (1 << (1 + r.nextInt(3))) - 1;
+				return new int[]{low, full & ~low};
 			}
+			int skip = 1 + r.nextInt(3); // two of the three cuts (below 1, 2, 3)
+			int low = (1 << (skip == 1 ? 2 : 1)) - 1, mid = (1 << (skip == 3 ? 2 : 3)) - 1;
+			return new int[]{low, mid & ~low, full & ~mid};
+		}
+		// single values and the rest; half the time the true value, so such lines come true now and then
+		int x = v.type != C.FLAME && r.nextBoolean() ? value(v.type, v.of) : r.nextInt(size);
+		if (count == 2) return new int[]{1 << x, full & ~(1 << x)};
+		int y = (x + 1 + r.nextInt(size - 1)) % size;
+		return new int[]{1 << x, 1 << y, full & ~(1 << x) & ~(1 << y)};
+	}
+
+	/** What a sign shows now (PILLAR: that pillar's answer). */
+	private int value(C type, int of) {
+		return switch (type) {
+			case MOONS -> moons;
+			case FLAME -> flame;
+			case SEAL -> seal;
+			case PILLAR -> target[of];
 		};
 	}
 
 	boolean holds(Cond c) {
-		return switch (c.type) {
-			case MOONS_MIN -> moons >= c.a;
-			case MOONS_EQ -> moons == c.a;
-			case FLAME -> flame == c.a;
-			case SEAL -> seal == c.a;
-			case PILLAR -> target[c.a] == c.b;
-		};
+		return (c.mask >> value(c.type, c.of) & 1) == 1;
 	}
 
-	/** The first rule of pillar i that holds, -1 = none (otherwise). */
+	/** The one rule of pillar i that holds, -1 = none (otherwise). */
 	private int winner(int i, List<Rule> rs) {
 		for (int k = 0; k < rs.size(); k++) if (rs.get(k).all.stream().allMatch(this::holds)) return k;
 		return -1;
@@ -460,21 +462,56 @@ final class TrialGlyph extends Trials.Trial {
 
 	private MutableComponent condText(Cond c) {
 		return switch (c.type) {
-			case MOONS_MIN -> Component.literal(c.a == 1 ? "a moon is lit" : "at least " + WORD[c.a] + " moons are lit");
-			case MOONS_EQ -> Component.literal(c.a == 0 ? "no moon is lit" : "exactly " + WORD[c.a] + (c.a == 1 ? " moon is lit" : " moons are lit"));
-			case FLAME -> Component.literal(FLAME[c.a]);
-			case SEAL -> Component.literal("the Seal shows ").append(glyphName(c.a));
-			case PILLAR -> Component.literal("pillar " + ROMAN[c.a] + " is set to ").append(glyphName(c.b));
+			case MOONS -> Component.literal(moonsText(c.mask));
+			case FLAME -> Component.literal(switch (c.mask) {
+				case 1, 2, 4 -> FLAME[Integer.numberOfTrailingZeros(c.mask)];
+				case 3 -> "the brazier is burning";
+				case 5 -> "the brazier is not blue";
+				default -> "the brazier is not red";
+			});
+			case SEAL -> glyphCond("the Seal shows ", "the Seal does not show ", c.mask);
+			case PILLAR -> glyphCond("pillar " + ROMAN[c.of] + "'s answer is ", "pillar " + ROMAN[c.of] + "'s answer is not ", c.mask);
 		};
+	}
+
+	/** A range of lit moons: "no moon is lit", "exactly two moons are lit", "fewer than two moons are lit"... */
+	private static String moonsText(int mask) {
+		int lo = Integer.numberOfTrailingZeros(mask), hi = 31 - Integer.numberOfLeadingZeros(mask);
+		if (hi == 0) return "no moon is lit";
+		if (lo == 3) return "all three moons are lit";
+		if (lo == hi) return "exactly " + WORD[lo] + (lo == 1 ? " moon is lit" : " moons are lit");
+		if (hi == 3) return "at least " + WORD[lo] + (lo == 1 ? " moon is lit" : " moons are lit");
+		if (lo == 0) return "fewer than " + WORD[hi + 1] + " moons are lit";
+		return WORD[lo] + " or " + WORD[hi] + " moons are lit";
+	}
+
+	/** One glyph, or every glyph but one or two. */
+	private MutableComponent glyphCond(String is, String not, int mask) {
+		if (Integer.bitCount(mask) == 1) return Component.literal(is).append(glyphName(Integer.numberOfTrailingZeros(mask)));
+		int out = ((1 << glyphs) - 1) & ~mask;
+		MutableComponent t = Component.literal(not);
+		boolean more = false;
+		for (int g = 0; g < glyphs; g++) {
+			if ((out >> g & 1) == 0) continue;
+			if (more) t.append(Component.literal(" or "));
+			t.append(glyphName(g));
+			more = true;
+		}
+		return t;
 	}
 
 	/** Pillar i's rules as tablet text. */
 	MutableComponent rulesText(int i) {
+		return rulesText(i, 0, rules.get(i).size() + 1);
+	}
+
+	/** Lines {@code from} to {@code to} (exclusive; the last one is "Otherwise") of pillar i. */
+	private MutableComponent rulesText(int i, int from, int to) {
 		MutableComponent t = Component.literal("Pillar " + ROMAN[i]).withStyle(s -> s.withColor(rgb).withBold(true));
 		List<Rule> rs = rules.get(i);
-		for (int k = 0; k < rs.size(); k++) {
+		for (int k = from; k < Math.min(to, rs.size()); k++) {
 			Rule rule = rs.get(k);
-			MutableComponent line = Component.literal("\n" + (k == 0 ? "If " : "Else if ")).withStyle(ChatFormatting.GRAY);
+			MutableComponent line = Component.literal("\nIf ").withStyle(ChatFormatting.GRAY);
 			for (int c = 0; c < rule.all.size(); c++) {
 				if (c > 0) line.append(Component.literal(" and ").withStyle(ChatFormatting.GRAY));
 				line.append(condText(rule.all.get(c)).withStyle(ChatFormatting.WHITE));
@@ -482,7 +519,7 @@ final class TrialGlyph extends Trials.Trial {
 			line.append(Component.literal(": ").withStyle(ChatFormatting.GRAY)).append(glyphName(rule.glyph));
 			t.append(line);
 		}
-		t.append(Component.literal("\nOtherwise: ").withStyle(ChatFormatting.GRAY)).append(glyphName(otherwise[i]));
+		if (to > rs.size()) t.append(Component.literal("\nOtherwise: ").withStyle(ChatFormatting.GRAY)).append(glyphName(otherwise[i]));
 		return t;
 	}
 
@@ -544,9 +581,12 @@ final class TrialGlyph extends Trials.Trial {
 	private ItemStack codex() {
 		List<Component> pages = new ArrayList<>();
 		pages.add(Component.literal("The Glyph Vault\n\n").withStyle(ChatFormatting.BOLD)
-				.append(Component.literal("The Operator turns the Vault's pillars (use; sneak to turn back) and pulls the lever to seal the answer.\n\nEach pillar has its rules. The first rule that holds decides its glyph.").withStyle(ChatFormatting.RESET)));
+				.append(Component.literal("The Operator turns the Vault's pillars (use; sneak to turn back) and pulls the lever to seal the answer.\n\nEach pillar has its rules. Exactly one line is true: it names the glyph.").withStyle(ChatFormatting.RESET)));
 		pages.add(Component.literal("Signs only the Vault shows:\n\n- the moon lamps (0 to 3 lit)\n- the brazier: red, blue or cold" + (tier >= 1 ? "\n- the Seal over the door" : "")));
-		for (int i = 0; i < n; i++) if (inCodex(i)) pages.add(rulesText(i));
+		for (int i = 0; i < n; i++) if (inCodex(i)) { // two lines a page, so nothing runs off it
+			pages.add(rulesText(i, 0, 2));
+			pages.add(rulesText(i, 2, rules.get(i).size() + 1));
+		}
 		return writtenBook("Codex", pages);
 	}
 
@@ -737,6 +777,8 @@ final class TrialGlyph extends Trials.Trial {
 	@Override
 	void devPlay(net.minecraft.server.MinecraftServer server, ServerLevel level, ServerPlayer fake, java.util.function.Consumer<String> log, Runnable done) {
 		long now = level.getGameTime();
+		log.accept("glyph: pillars with two true lines or a line that never holds, 300 rolls x every sign state -> " + devOverlaps(level.random) + " (must be 0)");
+		showAll(level);
 		// solo swap: library -> vault
 		Vec3 lib = Vec3.atBottomCenterOf(arena(-12, LIB - 5, 1));
 		fake.moveTo(lib.x, lib.y, lib.z);
@@ -765,5 +807,41 @@ final class TrialGlyph extends Trials.Trial {
 			log.accept("glyph: right submit -> solved " + solved + " (must be true), strikes " + strikes + " (must be 1)");
 			done.run();
 		});
+	}
+
+	/** Rolls 300 times and tries every state of the signs (and of the pillar a rule names); ends on a fresh roll. */
+	private int devOverlaps(RandomSource r) {
+		int bad = 0;
+		for (int roll = 0; roll < 300; roll++) {
+			roll(r, true);
+			int m0 = moons, f0 = flame, s0 = seal;
+			int[] t0 = target.clone();
+			for (int i = 0; i < n; i++) {
+				List<Rule> rs = rules.get(i);
+				int of = 0;
+				for (Rule rule : rs) for (Cond c : rule.all) if (c.type == C.PILLAR) of = c.of;
+				boolean[] seen = new boolean[rs.size() + 1];
+				boolean two = false;
+				for (moons = 0; moons < 4; moons++)
+					for (flame = 0; flame < 3; flame++)
+						for (seal = 0; seal < glyphs; seal++)
+							for (int g = 0; g < glyphs; g++) {
+								target[of] = g;
+								int count = 0;
+								for (Rule rule : rs) if (rule.all.stream().allMatch(this::holds)) count++;
+								two |= count > 1;
+								int w = winner(i, rs);
+								seen[w < 0 ? rs.size() : w] = true;
+							}
+				for (boolean b : seen) two |= !b;
+				if (two) bad++;
+				moons = m0;
+				flame = f0;
+				seal = s0;
+				System.arraycopy(t0, 0, target, 0, n);
+			}
+		}
+		roll(r, true);
+		return bad;
 	}
 }
