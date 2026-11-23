@@ -363,6 +363,10 @@ public final class ClientAuraState {
 	public static java.util.function.Consumer<ArenaTitlePacket> arenaTitle = p -> {
 	};
 
+	/** Shows one of the mod's titles; client/AuraTitles puts the real one in. */
+	public static java.util.function.Consumer<TitlePacket> title = p -> {
+	};
+
 	public static void pushFx(FxPacket packet) {
 		// a client that never polls (no screen yet) mustn't pile them up
 		if (FX.size() < 64) FX.add(packet);

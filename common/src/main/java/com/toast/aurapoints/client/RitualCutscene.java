@@ -308,12 +308,13 @@ public final class RitualCutscene {
 				g.pose().pushPose();
 				g.pose().translate(w / 2f, h * 0.30f, 0);
 				g.pose().pushPose();
-				g.pose().scale(4f, 4f, 1f);
 				Component title = Component.literal("AWAKENED").withStyle(net.minecraft.ChatFormatting.BOLD);
+				float big = AuraTitles.size(h), ts = AuraTitles.fit(font, title, 4f * big, w), us = AuraTitles.fit(font, Component.literal(ultimate), 2f * big, w);
+				g.pose().scale(ts, ts, 1f);
 				g.drawString(font, title, -font.width(title) / 2, 0, alpha << 24 | 0xFFC83D, true);
 				g.pose().popPose();
-				g.pose().translate(0, 44f, 0);
-				g.pose().scale(2f, 2f, 1f);
+				g.pose().translate(0, 44f * big, 0);
+				g.pose().scale(us, us, 1f);
 				g.drawString(font, ultimate, -font.width(ultimate) / 2, 0, alpha << 24 | (rgb & 0xFFFFFF), true);
 				g.pose().popPose();
 			}

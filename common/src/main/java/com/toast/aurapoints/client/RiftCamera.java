@@ -237,13 +237,14 @@ public final class RiftCamera {
 				g.pose().pushPose();
 				Component tc = Component.literal(shotTitle).withStyle(net.minecraft.ChatFormatting.BOLD);
 				// as big as fits: 3x, smaller for a long title
-				float sc = Math.min(3f, (w * 0.9f) / Math.max(1, font.width(tc)));
+				float big = AuraTitles.size(h), sc = AuraTitles.fit(font, tc, 3f * big, w);
 				g.pose().scale(sc, sc, 1f);
 				g.drawString(font, tc, -font.width(tc) / 2, 0, alpha << 24 | (rgb & 0xFFFFFF), true);
 				g.pose().popPose();
 				if (!subtitle.isEmpty()) {
-					g.pose().translate(0, 32f, 0);
-					g.pose().scale(1.5f, 1.5f, 1f);
+					g.pose().translate(0, 32f * big, 0);
+					float ss = AuraTitles.fit(font, Component.literal(subtitle), 1.5f * big, w);
+					g.pose().scale(ss, ss, 1f);
 					g.drawString(font, subtitle, -font.width(subtitle) / 2, 0, alpha << 24 | 0xDDDDDD, true);
 				}
 				g.pose().popPose();
