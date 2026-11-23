@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.55.0
+- Relic Warden: a new entrance, bigger and tougher, and its phases no longer stop the fight. Instead of shulkers it loses four shards, each broken its own way.
+- Reliquary trials: the Dig's pylons are rung and light up the tiles that answer, the Prism is harder again, Glyph rules never contradict, every trial has its own gate to rebuild (with scaffolding), and Shadow gates have a new portal. Clients must update.
+
 == 5.54.0
 - Titles keep the same size on your screen whatever your GUI scale, with a new client option titleSize; titles, subtitles and the action bar never run off the screen any more.
 - Twelve ability icons redrawn so they show what the ability does (Boulder Toss, Fireball, Hemorrhage, Blood Tether, Blood Moon, Tidal Ascension, Permafrost, Quake, Eclipse, Null Orb and more). Clients must update.
