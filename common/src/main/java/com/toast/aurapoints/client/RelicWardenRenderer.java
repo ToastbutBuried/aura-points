@@ -35,6 +35,12 @@ public class RelicWardenRenderer extends GeoEntityRenderer<RelicWarden> {
 		addRenderLayer(new software.bernie.geckolib.renderer.layer.AutoGlowingGeoLayer<>(this));
 	}
 
+	/** Never lost in the dark of its crypt. */
+	@Override
+	protected int getBlockLightLevel(RelicWarden w, net.minecraft.core.BlockPos pos) {
+		return Math.max(13, super.getBlockLightLevel(w, pos));
+	}
+
 	/** Overdrive and the last stand: tinted red, pulsing. Otherwise a wash of its Aspect's colour. */
 	@Override
 	public software.bernie.geckolib.util.Color getRenderColor(RelicWarden w, float partialTick, int packedLight) {

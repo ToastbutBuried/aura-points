@@ -414,10 +414,11 @@ final class Reliquary {
 				.cut(FALL_AT, plinth.add(14, 1, 14), at(run, 0, -4, 0))
 				.key(128, plinth.add(10, 2, 10), at(run, 0, -10, 0))
 				.cut(130, plinth.add(13, 9, 13), plinth).key(RISE_AT, plinth.add(9, 5, 9), plinth)
-				.cut(RISE_AT + 1, plinth.add(1.5, 1.0, 7), plinth.add(0, 1.4, 0)).key(RISE_AT + 34, plinth.add(0.5, 1.2, 5.5), plinth.add(0, 1.8, 0))
-				.cut(RISE_AT + 35, plinth.add(8, 1.2, 6), plinth.add(0, 2.4, 0)).key(RISE_AT + 78, plinth.add(6, 1.0, 8), plinth.add(0, 3.6, 0))
-				.cut(RISE_AT + 79, plinth.add(-3, 2, 8), plinth.add(0, 3.6, 0)).key(RISE_AT + 100, plinth.add(0, 2, 8), plinth.add(0, 4.2, 0))
-				.cut(RISE_AT + 101, plinth.add(0, 1.5, 12), plinth.add(0, 4, 0)).key(ENTRANCE_END - 10, plinth.add(0, 2.5, 19), plinth.add(0, 3.5, 0))
+				.cut(RISE_AT + 1, plinth.add(1.2, 0.5, 4.2), plinth.add(0, 1.2, 0)).key(RISE_AT + 30, plinth.add(0.3, 0.7, 3.2), plinth.add(0, 1.4, 0))
+				.cut(RISE_AT + 31, plinth.add(3.8, 0.6, 4.2), plinth.add(0, 1.2, 0)).key(RISE_AT + 64, plinth.add(2.6, 0.5, 5.0), plinth.add(0, 2.2, 0))
+				.cut(RISE_AT + 65, plinth.add(-3.4, 0.4, 5.2), plinth.add(0, 3.0, 0)).key(RISE_AT + 98, plinth.add(-0.5, 0.6, 6.2), plinth.add(0, 3.6, 0))
+				.cut(RISE_AT + 99, plinth.add(0, 1.2, 4.6), plinth.add(0, 3.9, 0)).key(RISE_AT + 112, plinth.add(0, 1.0, 5.4), plinth.add(0, 3.8, 0))
+				.key(ENTRANCE_END - 8, plinth.add(0, 1.6, 11), plinth.add(0, 3.4, 0))
 				.send(here);
 	}
 
@@ -523,22 +524,31 @@ final class Reliquary {
 			if (t % 8 == 0) rift.playSound(null, c.x, c.y, c.z, AuraSounds.WARDEN_HEARTBEAT.value(), SoundSource.HOSTILE, 4f, 0.5f + (t - 128) / 60f);
 		}
 		if (u < 0 || !(run.champion instanceof RelicWarden w)) return;
+		if (u == 1) {
+			// light on it: the crypt is as dark as it is (hidden lights, they go with the realm)
+			for (int[] l : new int[][]{{3, 3}, {-3, 3}, {3, -3}, {-3, -3}}) for (int y : new int[]{1, 5}) {
+				BlockPos q = BlockPos.containing(top.x + l[0], top.y + y, top.z + l[1]);
+				if (rift.getBlockState(q).isAir()) rift.setBlock(q, Blocks.LIGHT.defaultBlockState(), 2 | 16);
+			}
+		}
+		// a shaft of the aura's light falls on it through the broken floor
+		if (u % 3 == 0) for (int k = 0; k < 10; k++)
+			rift.sendParticles(AuraFx.dust(run.aura.rgb, 1.6f), top.x, top.y + 2 + k * 3, top.z, 2, 1.6, 1.2, 1.6, 0);
 		if (u == 2 || u == 30 || u == 60) {
 			// the fist, the slam, the heave: stones fly
 			for (int k = 0; k < 14; k++) debris(rift, s, top.add(Math.cos(k * 0.45) * 1.6, 0.6, Math.sin(k * 0.45) * 1.6), Blocks.CRACKED_DEEPSLATE_TILES.defaultBlockState(), 0.35);
 			rift.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, Blocks.DEEPSLATE_TILES.defaultBlockState()), top.x, top.y + 0.3, top.z, 80, 1.5, 0.3, 1.5, 0.3);
-			rift.sendParticles(ParticleTypes.EXPLOSION, top.x, top.y + 0.3, top.z, 2, 1, 0.1, 1, 0);
 			rift.playSound(null, c.x, c.y, c.z, u == 2 ? AuraSounds.WARDEN_EMERGE.value() : AuraSounds.WARDEN_ATTACK_IMPACT.value(), SoundSource.HOSTILE, 4f, 0.5f);
 			rift.playSound(null, c.x, c.y, c.z, AuraSounds.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 1.5f, 0.6f);
 		}
-		if (u < 78 && u % 4 == 0) rift.sendParticles(ParticleTypes.LARGE_SMOKE, top.x, top.y + 0.2, top.z, 6, 1.4, 0.2, 1.4, 0.02);
-		if (u >= 60 && u < 100) {
+		if (u < 78 && u % 6 == 0) rift.sendParticles(ParticleTypes.SMOKE, top.x, top.y + 0.2, top.z, 8, 1.4, 0.2, 1.4, 0.02);
+		if (u >= 56 && u < 94) {
 			// the four shards spiral into its chest
-			double f = (u - 60) / 40.0, rad = 7 * (1 - f * f);
+			double f = (u - 56) / 38.0, rad = 5 * (1 - f * f);
 			for (int i = 0; i < 4; i++) {
 				double a = i * Math.PI / 2 + f * f * 14;
 				Vec3 q = top.add(Math.cos(a) * rad, 5.5 - 2.4 * f, Math.sin(a) * rad);
-				rift.sendParticles(AuraFx.dust(WING_RGB[i], 2.6f), q.x, q.y, q.z, 5, 0.1, 0.1, 0.1, 0);
+				rift.sendParticles(AuraFx.dust(WING_RGB[i], 1.8f), q.x, q.y, q.z, 3, 0.06, 0.06, 0.06, 0);
 				rift.sendParticles(ParticleTypes.END_ROD, q.x, q.y, q.z, 1, 0, 0, 0, 0.01);
 			}
 			if (u % 10 == 0) rift.playSound(null, c.x, c.y, c.z, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.HOSTILE, 3f, 0.5f + (float) f);
@@ -546,7 +556,7 @@ final class Reliquary {
 		if (u == 100) {
 			Vec3 chest = top.add(0, 3, 0);
 			rift.sendParticles(ParticleTypes.FLASH, chest.x, chest.y, chest.z, 3, 0.3, 0.5, 0.3, 0);
-			for (int i = 0; i < 4; i++) rift.sendParticles(AuraFx.dust(WING_RGB[i], 3f), chest.x, chest.y, chest.z, 40, 0.8, 1, 0.8, 0);
+			for (int i = 0; i < 4; i++) rift.sendParticles(AuraFx.dust(WING_RGB[i], 1.4f), chest.x, chest.y, chest.z, 8, 0.5, 0.6, 0.5, 0);
 			rift.playSound(null, c.x, c.y, c.z, AuraSounds.BEACON_ACTIVATE.value(), SoundSource.HOSTILE, 4f, 0.5f);
 		}
 		if (u == 106) {

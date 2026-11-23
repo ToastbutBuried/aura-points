@@ -27,7 +27,6 @@ final class Guardian {
 		health(w, players, run.difficulty);
 		w.devEntrance(true);
 		rift.addFreshEntity(w);
-		rift.sendParticles(net.minecraft.core.particles.ParticleTypes.EXPLOSION_EMITTER, at.x, at.y, at.z, 1, 0, 0, 0, 0);
 		return w;
 	}
 

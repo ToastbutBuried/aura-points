@@ -1063,7 +1063,9 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		if (w == null) return null;
 		w.run = run;
 		w.setAura(run.aura);
-		w.moveTo(at.x, at.y, at.z, 180f, 0f);
+		// facing the entrance's camera (+z)
+		w.moveTo(at.x, at.y, at.z, 0f, 0f);
+		w.yBodyRot = w.yBodyRotO = w.yHeadRot = w.yHeadRotO = 0f;
 		w.setPersistenceRequired();
 		w.addTag(Rifts.MOB_TAG);
 		return w;
