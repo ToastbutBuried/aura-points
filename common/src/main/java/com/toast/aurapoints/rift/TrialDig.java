@@ -28,15 +28,16 @@ import java.util.function.Consumer;
 
 /**
  * Resonance Dig (5.49.0, replaces the Tuning Fork hunt): an excavation site on a floating island with a grid of 3x3
- * soil tiles (9x9 tiles, 11x11 on Hard/Extreme, 13x13 on Hardcore) and resonance pylons around it. Standing on a
- * pylon's plate shows you (only you) a ring of particles at the shard's distance from it, so players split up and call
- * out readings; the rings cross at the shard. Right-click a tile = probe (how many of its 8 neighbours are cursed, a
- * floating number that fades after a while); sneak + right-click = dig. A cursed dig collapses the tile into a pit full
- * of silverfish and husks (a strike); an empty dig is a strike and blanks the probes for 30 s. Dig up the shard to solve.
+ * soil tiles (9x9 tiles, 11x11 on Hard/Extreme, 13x13 on Hardcore) and resonance pylons around it. Right-click a pylon to
+ * sound it (5.55): a wave rolls over the field, and the tiles as far from that pylon as the shard is stay lit in its colour
+ * for everyone. Tiles two pylons agree on turn white, tiles they all agree on shine: the shard is under one of those.
+ * Right-click a tile = probe (how many of its 8 neighbours are cursed, a floating number that fades after a while);
+ * sneak + right-click = dig. A cursed dig collapses the tile into a pit full of silverfish and husks (a strike); an
+ * empty dig is a strike and blanks the probes for 30 s. Dig up the shard to solve.
  * <p>
- * Tiers: Easy 3 sharp rings; Medium 3 blurred rings; Hard 2 pylons (two crossings); Extreme a decoy (every pylon shows a
- * second ring to a cursed tile) and the shard moves after each strike; Hardcore numbers instead of rings. Solo: each
- * reading takes a 10 s attunement on the plate and lasts 10 s.
+ * Tiers: Easy narrow bands; Medium wider ones; Hard 2 pylons (two crossings); Extreme a decoy (every pylon also lights a
+ * cursed tile's distance), marks fade and the shard moves after each strike; Hardcore marks fade sooner. Two players
+ * sounding two pylons within 3 s get narrower bands.
  */
 final class TrialDig extends Trials.Trial {
 
@@ -44,7 +45,9 @@ final class TrialDig extends Trials.Trial {
 	/** Pylon ring colours (aqua, magenta, gold) and names. */
 	static final int[] PYLON_RGB = {0x43E8E0, 0xE04BD8, 0xF2C43A};
 	static final String[] PYLON_NAME = {"I", "II", "III"};
-	static final int BLANK_TICKS = 600, SOLO_CHANNEL = 200, SOLO_READING = 200;
+	static final int BLANK_TICKS = 600, SOUND_CD = 300, TOGETHER = 60;
+	/** How far a sounding's wave rolls per tick. */
+	private static final double WAVE = 1.1;
 
 	final int n, half, radius;
 	final boolean[][] cursed;
@@ -58,7 +61,15 @@ final class TrialDig extends Trials.Trial {
 	final Map<Integer, Probe> probes = new HashMap<>();
 	long blankUntil;
 	private boolean blanked;
-	final Map<UUID, Long> channelStart = new HashMap<>(), readingUntil = new HashMap<>();
+	/** Each pylon's obelisk (f, l), its lit tiles, when they fade, when it was last sounded, by whom, how far off its band lies (-1..1). */
+	private final int[][] obelisk = new int[3][2];
+	final boolean[][][] marked;
+	private final long[] fadeAt = new long[3], soundedAt = {-10000, -10000, -10000};
+	private final UUID[] soundedBy = new UUID[3];
+	private final double[] skew = new double[3];
+	private final Display.BlockDisplay[][] lit;
+	private final int[][] litKind;
+	private final List<Wave> waves = new ArrayList<>();
 	private final Map<UUID, Long> clickCd = new HashMap<>();
 	private List<ServerPlayer> lastHere = List.of();
 	private int hintShown;
@@ -69,6 +80,10 @@ final class TrialDig extends Trials.Trial {
 		long until;
 	}
 
+	/** A sounding on its way: the tiles it will light, nearest first. */
+	private record Wave(int k, long start, List<int[]> tiles) {
+	}
+
 	TrialDig(Rifts.Run run, int index) {
 		super(run, index, Trials.Kind.DIG);
 		this.n = tier >= 4 ? 13 : tier >= 2 ? 11 : 9;
@@ -77,6 +92,9 @@ final class TrialDig extends Trials.Trial {
 		this.cursed = new boolean[n][n];
 		this.state = new int[n][n];
 		this.live = tier == 2 ? 2 : 3;
+		this.marked = new boolean[3][n][n];
+		this.lit = new Display.BlockDisplay[n][n];
+		this.litKind = new int[n][n];
 		for (int k = 0; k < 3; k++) {
 			double ang = Math.toRadians(k * 120);
 			pylons[k][0] = (int) Math.round(Math.cos(ang) * radius);
@@ -91,17 +109,12 @@ final class TrialDig extends Trials.Trial {
 
 	@Override
 	String hint() {
-		return solo() ? "Attune on a pylon (stand on its plate 10 s): a ring shows the shard's distance. Right-click a tile to probe for cursed ground, sneak + right-click to dig."
-				: "Split up on the pylons: each of you sees a ring at the shard's distance - call them out, the rings cross at the shard. Right-click a tile to probe, sneak + right-click to dig.";
+		return "Right-click the pylons to sound them: each lights the tiles as far away as the shard is. The shard lies where the colours meet. Right-click a tile to probe for cursed ground, sneak + right-click to dig.";
 	}
 
 	@Override
 	int arenaHalf() {
 		return 56;
-	}
-
-	private boolean solo() {
-		return lastHere.size() <= 1;
 	}
 
 	int cursedCount() {
@@ -114,14 +127,20 @@ final class TrialDig extends Trials.Trial {
 		};
 	}
 
-	/** Ring blur half-width in blocks. */
+	/** How far off (blocks) a pylon's band may lie from the shard's true distance. */
 	double blur() {
 		return switch (tier) {
-			case 0 -> 0.2;
-			case 1 -> 1.4;
-			case 2 -> 1.6;
-			default -> 1.3;
+			// simulated tiles all pylons agree on: Easy 1.8, Medium 4.2, Hard 5, Extreme and Hardcore about 6
+			case 0 -> 1.5;
+			case 1 -> 3.0;
+			case 2 -> 2.0;
+			default -> 1.8;
 		};
+	}
+
+	/** How long the lit tiles stay. */
+	long markLife() {
+		return tier <= 2 ? Long.MAX_VALUE / 4 : tier == 3 ? 900 : 500;
 	}
 
 	/** How long a probe's number stays up. */
@@ -306,11 +325,14 @@ final class TrialDig extends Trials.Trial {
 		}
 		// the obelisk stands one step outward of the plate
 		int of = pf + uf + Integer.signum(uf), ol = pl + ul + Integer.signum(ul);
+		obelisk[k][0] = of;
+		obelisk[k][1] = ol;
 		int h = on ? 11 : 4 + r.nextInt(2);
 		for (int dy = 1; dy <= h; dy++) set(level, of, ol, dy, dy % 4 == 0 ? pal.accent() : pal.edge());
 		if (on) {
 			set(level, of, ol, h + 1, Blocks.AMETHYST_BLOCK);
 			set(level, of, ol, h + 2, Blocks.AMETHYST_CLUSTER);
+			label(level, DigDecor.v(this, pf, pl, 4.6), Component.literal("Right-click to sound").withStyle(ChatFormatting.GRAY), 0.8f);
 			label(level, DigDecor.v(this, of, ol, h + 4.2), Component.literal("Pylon " + PYLON_NAME[k]).withStyle(s -> s.withColor(PYLON_RGB[k]).withBold(true)), 1.6f);
 		} else {
 			for (int q = 0; q < 4; q++) set(level, of + r.nextInt(5) - 2, ol + r.nextInt(5) - 2, 1, r.nextBoolean() ? Blocks.AMETHYST_BLOCK : pal.edge());
@@ -323,6 +345,7 @@ final class TrialDig extends Trials.Trial {
 			cursed[i][j] = false;
 			state[i][j] = 0;
 		}
+		for (int k = 0; k < 3; k++) skew[k] = r.nextDouble() * 2 - 1;
 		si = 1 + r.nextInt(n - 2);
 		sj = 1 + r.nextInt(n - 2);
 		// the crossing is blurred: put two or three traps right next to the shard so probing matters (not on Easy)
@@ -362,7 +385,8 @@ final class TrialDig extends Trials.Trial {
 			if (cursed[i][j] || state[i][j] != 0 || (i == si && j == sj)) continue;
 			si = i;
 			sj = j;
-			for (ServerPlayer p : lastHere) p.displayClientMessage(Component.literal("You hear the shard burrow away under the soil...").withStyle(ChatFormatting.DARK_PURPLE), true);
+			clearMarks();
+			for (ServerPlayer p : lastHere) p.displayClientMessage(Component.literal("The shard burrows away under the soil - the lit tiles mean nothing now").withStyle(ChatFormatting.DARK_PURPLE), true);
 			Vec3 c = tileCentre(i, j, 0.5);
 			level.playSound(null, c.x, c.y, c.z, AuraSounds.ROOTED_DIRT_BREAK.value(), SoundSource.BLOCKS, 1.5f, 0.5f);
 			return;
@@ -393,7 +417,7 @@ final class TrialDig extends Trials.Trial {
 	void tick(ServerLevel level, List<ServerPlayer> here, long now) {
 		lastHere = here;
 		if (solved) return;
-		if (now % 8 == 0) pylonTick(level, here, now);
+		waveTick(level, now);
 		if (now % 20 == 0) {
 			if (blanked && now >= blankUntil) {
 				blanked = false;
@@ -409,82 +433,150 @@ final class TrialDig extends Trials.Trial {
 		if (now % 40 == 0 && hintsAllowed()) hints(level, here);
 	}
 
-	private boolean onPlate(ServerPlayer p, int k) {
-		Vec3 pos = p.position();
-		double f = af(pos) - pylons[k][0], l = al(pos) - pylons[k][1];
-		double dy = pos.y - Rifts.FLOOR;
-		return Math.abs(f) <= 1.7 && Math.abs(l) <= 1.7 && dy > 1.8 && dy < 2.8;
-	}
+	// --- sounding
 
-	int standingOn(ServerPlayer p) {
-		for (int k = 0; k < live; k++) if (onPlate(p, k)) return k;
+	/** The pylon a clicked block belongs to (its plate, posts or obelisk), -1 = none. */
+	int pylonAt(int f, int l, int dy) {
+		if (dy < 1) return -1;
+		for (int k = 0; k < live; k++) {
+			if (Math.abs(f - pylons[k][0]) <= 2 && Math.abs(l - pylons[k][1]) <= 2 && dy <= 4) return k;
+			if (Math.abs(f - obelisk[k][0]) <= 1 && Math.abs(l - obelisk[k][1]) <= 1) return k;
+		}
 		return -1;
 	}
 
-	private void pylonTick(ServerLevel level, List<ServerPlayer> here, long now) {
-		boolean solo = here.size() <= 1;
-		for (ServerPlayer p : here) {
-			int k = standingOn(p);
-			UUID id = p.getUUID();
-			if (k < 0) {
-				channelStart.remove(id);
-				readingUntil.remove(id);
-				continue;
+	/** The tiles pylon k lights: as far from it as the shard (and on Extreme+ the decoy); always the shard's own among them. */
+	List<int[]> band(int k, boolean sharp) {
+		double pf = pylons[k][0], pl = pylons[k][1], off = sharp ? blur() * 0.6 : blur();
+		double[] want = di >= 0 ? new double[]{dist(k, si, sj), dist(k, di, dj)} : new double[]{dist(k, si, sj)};
+		List<int[]> out = new ArrayList<>();
+		for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
+			if (state[i][j] != 0) continue;
+			for (double w : want) {
+				if (Math.abs(Math.hypot(cen(i) - pf, cen(j) - pl) - (w + skew[k] * off)) > 1.7 + off) continue;
+				out.add(new int[]{i, j});
+				break;
 			}
-			if (solo) {
-				// alone, every reading costs a 10 s attunement on the plate and lasts 10 s
-				Long until = readingUntil.get(id);
-				if (until == null || now >= until) {
-					if (until != null) readingUntil.remove(id);
-					Long start = channelStart.get(id);
-					if (start == null) channelStart.put(id, start = now);
-					long t = now - start;
-					if (t < SOLO_CHANNEL) {
-						int pct = (int) (100 * t / SOLO_CHANNEL);
-						p.displayClientMessage(Component.literal("Attuning to Pylon " + PYLON_NAME[k] + "... " + pct + "%").withStyle(s -> s.withColor(PYLON_RGB[k])), true);
-						Vec3 c = DigDecor.v(this, pylons[k][0], pylons[k][1], 2.2);
-						level.sendParticles(p, ParticleTypes.ENCHANT, true, c.x, c.y + 1, c.z, 6, 1, 0.6, 1, 0.4);
-						continue;
-					}
-					channelStart.remove(id);
-					readingUntil.put(id, now + SOLO_READING);
-					p.playNotifySound(AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.BLOCKS, 1.2f, 1f);
+		}
+		out.sort(java.util.Comparator.comparingDouble(t -> dist(k, t[0], t[1])));
+		return out;
+	}
+
+	private double dist(int k, int i, int j) {
+		return Math.hypot(cen(i) - pylons[k][0], cen(j) - pylons[k][1]);
+	}
+
+	void sound(ServerLevel level, ServerPlayer p, int k, long now) {
+		long left = soundedAt[k] + SOUND_CD - now;
+		if (left > 0) {
+			p.displayClientMessage(Component.literal("Pylon " + PYLON_NAME[k] + " is still humming - " + (left / 20 + 1) + " s").withStyle(ChatFormatting.GRAY), true);
+			return;
+		}
+		boolean sharp = false;
+		for (int o = 0; o < live; o++) {
+			if (o == k || now - soundedAt[o] > TOGETHER || p.getUUID().equals(soundedBy[o])) continue;
+			sharp = true;
+			start(level, o, true, now);
+		}
+		soundedAt[k] = now;
+		soundedBy[k] = p.getUUID();
+		int count = start(level, k, sharp, now);
+		String msg = "Pylon " + PYLON_NAME[k] + ": " + count + " tiles answer - the shard is under one of them" + (sharp ? " (in unison: sharper)" : "");
+		for (ServerPlayer q : lastHere.isEmpty() ? List.of(p) : lastHere) q.displayClientMessage(Component.literal(msg).withStyle(s -> s.withColor(PYLON_RGB[k])), true);
+		Vec3 c = DigDecor.v(this, pylons[k][0], pylons[k][1], 2.5);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.BELL_RESONATE.value(), SoundSource.BLOCKS, 2.5f, 0.7f + k * 0.2f);
+		level.playSound(null, c.x, c.y, c.z, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.BLOCKS, 2.5f, 0.6f + k * 0.3f);
+		level.sendParticles(ParticleTypes.END_ROD, c.x, c.y + 1, c.z, 30, 0.6, 1.5, 0.6, 0.05);
+	}
+
+	/** The wave sets off; the pylon's old marks go out. */
+	private int start(ServerLevel level, int k, boolean sharp, long now) {
+		marked[k] = new boolean[n][n];
+		waves.removeIf(w -> w.k == k);
+		List<int[]> tiles = band(k, sharp);
+		waves.add(new Wave(k, now, new ArrayList<>(tiles)));
+		fadeAt[k] = now + markLife();
+		refreshMarks(level);
+		return tiles.size();
+	}
+
+	private void waveTick(ServerLevel level, long now) {
+		boolean change = false;
+		for (var it = waves.iterator(); it.hasNext(); ) {
+			Wave w = it.next();
+			double rad = (now - w.start) * WAVE;
+			while (!w.tiles.isEmpty() && dist(w.k, w.tiles.get(0)[0], w.tiles.get(0)[1]) <= rad) {
+				int[] t = w.tiles.remove(0);
+				if (state[t[0]][t[1]] != 0) continue;
+				marked[w.k][t[0]][t[1]] = true;
+				change = true;
+				Vec3 c = tileCentre(t[0], t[1], 1.2);
+				level.sendParticles(AuraFx.dust(PYLON_RGB[w.k], 1.6f), c.x, c.y, c.z, 10, 0.8, 0.2, 0.8, 0);
+				level.playSound(null, c.x, c.y, c.z, AuraSounds.AMETHYST_BLOCK_CHIME.value(), SoundSource.BLOCKS, 0.7f, 0.7f + w.k * 0.3f);
+			}
+			// the wave's crest over the field, for everyone
+			if (now % 2 == 0) {
+				int pts = (int) Math.min(150, Math.max(16, rad * Math.PI * 2 / 1.0));
+				for (int q = 0; q < pts; q++) {
+					double a = Math.PI * 2 * q / pts, f = pylons[w.k][0] + Math.cos(a) * rad, l = pylons[w.k][1] + Math.sin(a) * rad;
+					if (Math.abs(f) > half + 1.5 || Math.abs(l) > half + 1.5) continue;
+					Vec3 at = DigDecor.v(this, f, l, 1.3);
+					level.sendParticles(AuraFx.dust(PYLON_RGB[w.k], 1.8f), at.x, at.y, at.z, 1, 0, 0.05, 0, 0);
 				}
 			}
-			showReading(level, p, k, now);
+			if (rad > 2 * radius + half) it.remove();
+		}
+		for (int k = 0; k < live; k++) {
+			if (fadeAt[k] == 0 || now < fadeAt[k]) continue;
+			fadeAt[k] = 0;
+			marked[k] = new boolean[n][n];
+			change = true;
+		}
+		if (change) refreshMarks(level);
+		if (now % 20 == 0) for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
+			if (agree(i, j) < live) continue;
+			Vec3 c = tileCentre(i, j, 1.4);
+			level.sendParticles(ParticleTypes.END_ROD, c.x, c.y + 0.6, c.z, 3, 0.5, 0.6, 0.5, 0.01);
 		}
 	}
 
-	/** Pylon k's reading for p: a ring (or on Hardcore numbers) to the shard and, on Extreme+, the decoy. */
-	private void showReading(ServerLevel level, ServerPlayer p, int k, long now) {
-		double pf = pylons[k][0], pl = pylons[k][1];
-		List<Double> dists = new ArrayList<>();
-		dists.add(Math.hypot(cen(si) - pf, cen(sj) - pl));
-		if (di >= 0) dists.add(Math.hypot(cen(di) - pf, cen(dj) - pl));
-		if (tier >= 4) {
-			dists.sort(Double::compare);
-			StringBuilder b = new StringBuilder("Pylon " + PYLON_NAME[k] + " hums: ");
-			for (int q = 0; q < dists.size(); q++) b.append(q > 0 ? "  ·  " : "").append(Math.round(dists.get(q))).append(" blocks");
-			p.displayClientMessage(Component.literal(b.toString()).withStyle(s -> s.withColor(PYLON_RGB[k])), true);
-			if (now % 40 == 0) p.playNotifySound(AuraSounds.AMETHYST_BLOCK_CHIME.value(), SoundSource.BLOCKS, 1f, 0.8f);
-			return;
+	/** How many pylons light this tile. */
+	int agree(int i, int j) {
+		int c = 0;
+		for (int k = 0; k < live; k++) if (marked[k][i][j]) c++;
+		return c;
+	}
+
+	private static final Block[] LIT = {Blocks.CYAN_STAINED_GLASS, Blocks.MAGENTA_STAINED_GLASS, Blocks.YELLOW_STAINED_GLASS, Blocks.WHITE_STAINED_GLASS, Blocks.SEA_LANTERN};
+
+	private void refreshMarks(ServerLevel level) {
+		for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
+			int a = agree(i, j), kind = 0;
+			if (state[i][j] == 0 && a >= live) kind = 5;
+			else if (state[i][j] == 0 && a == 2) kind = 4;
+			else if (state[i][j] == 0 && a == 1) for (int k = 0; k < live; k++) if (marked[k][i][j]) kind = k + 1;
+			if (kind == litKind[i][j]) continue;
+			RuinKit.drop(this, lit[i][j]);
+			lit[i][j] = null;
+			litKind[i][j] = kind;
+			if (kind == 0) continue;
+			lit[i][j] = RuinKit.prop(this, level, tileCentre(i, j, 1.04), LIT[kind - 1].defaultBlockState(),
+					RuinKit.centred(new org.joml.Vector3f(), 2.7f, 0.06f, 2.7f, new org.joml.Quaternionf()), 0, true);
 		}
-		p.displayClientMessage(Component.literal("Pylon " + PYLON_NAME[k] + " resonates - follow its ring").withStyle(s -> s.withColor(PYLON_RGB[k])), true);
-		var dust = AuraFx.dust(PYLON_RGB[k], 1.6f);
-		RandomSource r = level.random;
-		double lim = half + 1.5;
-		for (double d : dists) {
-			int pts = (int) Math.min(220, Math.max(40, d * Math.PI * 2 / 0.9));
-			for (int q = 0; q < pts; q++) {
-				double ang = Math.PI * 2 * q / pts + (now % 16) * 0.004;
-				double rr = d + (r.nextDouble() * 2 - 1) * blur();
-				double f = pf + Math.cos(ang) * rr, l = pl + Math.sin(ang) * rr;
-				if (Math.abs(f) > lim || Math.abs(l) > lim) continue;
-				Vec3 at = DigDecor.v(this, f, l, 1.25);
-				level.sendParticles(p, dust, true, at.x, at.y, at.z, 1, 0, 0, 0, 0);
-			}
+	}
+
+	private void clearMarks() {
+		waves.clear();
+		for (int k = 0; k < 3; k++) {
+			marked[k] = new boolean[n][n];
+			fadeAt[k] = 0;
+			soundedAt[k] = -10000;
 		}
-		if (now % 40 == 0) p.playNotifySound(AuraSounds.AMETHYST_BLOCK_CHIME.value(), SoundSource.BLOCKS, 1f, 0.6f + k * 0.3f);
+		for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
+			RuinKit.drop(this, lit[i][j]);
+			lit[i][j] = null;
+			litKind[i][j] = 0;
+		}
 	}
 
 	@Override
@@ -493,6 +585,11 @@ final class TrialDig extends Trials.Trial {
 		Vec3 c = Vec3.atCenterOf(pos);
 		int f = (int) Math.round(af(c)), l = (int) Math.round(al(c));
 		int dy = pos.getY() - Rifts.FLOOR;
+		int k = pylonAt(f, l, dy);
+		if (k >= 0) {
+			sound(level, p, k, level.getGameTime());
+			return true;
+		}
 		int i = tileOf(f), j = tileOf(l);
 		if (i < 0 || j < 0 || dy > 0 || dy < -3) return false;
 		long now = level.getGameTime();
@@ -570,6 +667,7 @@ final class TrialDig extends Trials.Trial {
 		level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.COARSE_DIRT.defaultBlockState()), c.x, c.y + 0.5, c.z, 40, 1, 0.3, 1, 0.1);
 		level.playSound(null, c.x, c.y, c.z, AuraSounds.ROOTED_DIRT_BREAK.value(), SoundSource.BLOCKS, 1.2f, 0.8f);
 		if (i == si && j == sj) {
+			clearMarks();
 			hole(level, i, j);
 			state[i][j] = 1;
 			set(level, cen(i), cen(j), -2, pal.light());
@@ -580,12 +678,14 @@ final class TrialDig extends Trials.Trial {
 		if (cursed[i][j]) {
 			collapse(level, i, j);
 			state[i][j] = 2;
+			refreshMarks(level);
 			p.displayClientMessage(Component.literal("Cursed ground! It gives way...").withStyle(ChatFormatting.DARK_RED), true);
 			strikeAt(level, p, c);
 			return;
 		}
 		hole(level, i, j);
 		state[i][j] = 1;
+		refreshMarks(level);
 		strikeAt(level, p, c);
 		if (!solved && strikes != 0) {
 			blanked = true;
@@ -681,6 +781,7 @@ final class TrialDig extends Trials.Trial {
 		probes.clear();
 		blanked = false;
 		blankUntil = 0;
+		clearMarks();
 		roll(r);
 		for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) soil(level, i, j);
 		// anyone standing in a pit is lifted out with the soil
@@ -696,8 +797,6 @@ final class TrialDig extends Trials.Trial {
 
 	@Override
 	void release(ServerPlayer p) {
-		channelStart.remove(p.getUUID());
-		readingUntil.remove(p.getUUID());
 		clickCd.remove(p.getUUID());
 	}
 
@@ -710,16 +809,30 @@ final class TrialDig extends Trials.Trial {
 		long now = level.getGameTime();
 		List<ServerPlayer> here = List.of(fake);
 		tick(level, here, now);
-		// a pylon plate: solo attunement first, then the reading
-		Vec3 plate = DigDecor.v(this, pylons[0][0], pylons[0][1], 2);
-		fake.moveTo(plate.x, plate.y, plate.z);
-		fake.setOnGround(true);
-		log.accept("dig: on pylon I " + (standingOn(fake) == 0) + " (must be true)");
-		long t = (now / 8 + 1) * 8;
-		tick(level, here, t);
-		log.accept("dig: attuning, no reading yet " + !readingUntil.containsKey(fake.getUUID()) + " (must be true)");
-		tick(level, here, t + SOLO_CHANNEL + 8);
-		log.accept("dig: after 10 s attuned " + readingUntil.containsKey(fake.getUUID()) + " (must be true)");
+		// every pylon's band holds the shard, over many rolls, sharp or not
+		int miss = 0, all = 0;
+		RandomSource rr = RandomSource.create(5);
+		for (int roll = 0; roll < 200; roll++) {
+			roll(rr);
+			int[][] hits = new int[n][n];
+			for (int k = 0; k < live; k++) {
+				boolean has = false;
+				for (int[] t : band(k, roll % 2 == 0)) {
+					hits[t[0]][t[1]]++;
+					if (t[0] == si && t[1] == sj) has = true;
+				}
+				if (!has) miss++;
+			}
+			for (int[] row : hits) for (int h : row) if (h == live) all++;
+		}
+		log.accept("dig: bands without the shard, 200 rolls " + miss + " (must be 0), tiles all pylons agree on, average " + all / 200.0);
+		for (int k = 0; k < live; k++) use(level, fake, arena(pylons[k][0], pylons[k][1], 1));
+		log.accept("dig: waves out " + waves.size() + " (must be " + live + ")");
+		int w0 = waves.size();
+		use(level, fake, arena(pylons[0][0], pylons[0][1], 1));
+		log.accept("dig: pylon on cooldown " + (waves.size() == w0) + " (must be true)");
+		for (int q = 1; q <= 200; q++) waveTick(level, now + q);
+		log.accept("dig: shard's tile lit by all " + (agree(si, sj) == live) + " (must be true), shown " + (litKind[si][sj] == 5) + " (must be true), waves left " + waves.size() + " (must be 0)");
 		// probe a tile next to the shard
 		int pi = si > 0 ? si - 1 : si + 1, pj = sj;
 		fake.setShiftKeyDown(false);
