@@ -361,15 +361,15 @@ final class Trials {
 			Monument.clearColumns(level, a.getX() - h, a.getZ() - h, 2 * h + 1);
 			build(level, r);
 			// the antechamber: a portal at the far wall of the wing, facing the altar
-			gate = new TrialPortal(at(hall - 3, 0, 0), -fx, -fz, rgb);
-			back = new TrialPortal(arena(backF() - 1, 0, 0), fx, fz, rgb);
+			gate = new TrialPortal(at(hall - 3, 0, 0), -fx, -fz, rgb, kind);
+			back = new TrialPortal(arena(backF() - 1, 0, 0), fx, fz, rgb, kind);
 			gate.to = back;
 			back.to = gate;
 			back.build(level, pal);
 			// a landing under the way back, in case the arena left it floating
 			for (int f = backF() - 3; f <= backF() + 4; f++)
 				for (int l = -3; l <= 3; l++) if (level.getBlockState(arena(f, l, 0)).isAir()) set(level, f, l, 0, pal.floor());
-			label(level, Vec3.atBottomCenterOf(at(hall - 3, 0, TrialPortal.H + 4)).add(0, 0.8, 0), Component.literal(name()).withStyle(s -> s.withColor(rgb).withBold(true)), 2.2f);
+			label(level, Vec3.atBottomCenterOf(at(hall - 3, 0, PortalShapes.top(kind) + 1)).add(0, 0.8, 0), Component.literal(name()).withStyle(s -> s.withColor(rgb).withBold(true)), 2.2f);
 			dressWing(level);
 			repair.setup(level, r);
 			built = true;

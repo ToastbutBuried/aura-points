@@ -60,7 +60,11 @@ public final class PortalRepair {
 	private static final int BURST = 124, SCENE = 156;
 	private static final String RUNES = "ᚠᚢᚦᚨᚱᚲᚷᚹ";
 	/** The miniature's scale. */
-	private static final float MINI = 0.17f;
+	private static final float MINI = 0.13f;
+	/** How far an arch stone can be set from. */
+	private static final double REACH = 9;
+	/** The masons' scaffold behind the gate (gone once it opens). */
+	private final List<BlockPos> scaffold = new ArrayList<>();
 
 	private final Trials.Trial t;
 	int needed, set;
@@ -188,7 +192,7 @@ public final class PortalRepair {
 		t.repaired = false;
 		List<TrialPortal.Piece> all = t.gate.frame(t.pal);
 		int n = MISSING[Math.max(0, Math.min(4, t.tier))];
-		for (TrialPortal.Piece pc : all.subList(all.size() - n, all.size())) missing.put(pc.pos(), pc);
+		for (TrialPortal.Piece pc : pickMissing(all, n, r)) missing.put(pc.pos(), pc);
 		t.gate.buildBroken(level, t.pal, missing.keySet());
 		// the pedestal on one side of the way, the drafting table with the model on the other
 		pedestal = t.at(t.hall - 6, 3, 1);
@@ -199,17 +203,18 @@ public final class PortalRepair {
 		if (AuraConfig.RIFT_PORTAL_STONES) {
 			table = t.at(t.hall - 6, -3, 1);
 			put(level, table, Blocks.CARTOGRAPHY_TABLE);
-			t.label(level, Vec3.atBottomCenterOf(table.above()).add(0, (TrialPortal.H + 4) * MINI + 0.25, 0), Component.literal("How it stood").withStyle(s -> s.withColor(t.rgb)), 0.8f);
+			t.label(level, Vec3.atBottomCenterOf(table.above()).add(0, (t.gate.top() + 1) * MINI + 0.25, 0), Component.literal("How it stood").withStyle(s -> s.withColor(t.rgb)), 0.8f);
 			Vec3 c = Vec3.atBottomCenterOf(table.above());
-			for (TrialPortal.Piece pc : all) mini.put(pc.pos(), RuinKit.prop(t, level, c, pc.block().defaultBlockState(), miniT(pc, 1f), 0, true));
+			for (TrialPortal.Piece pc : all) mini.put(pc.pos(), shown(level, c, pc, miniT(pc, 1f)));
 			for (TrialPortal.Piece pc : missing.values()) ghost(level, pc);
+			scaffold(level);
 			List<Integer> kinds = new ArrayList<>();
 			for (TrialPortal.Piece pc : missing.values()) kinds.add(pc.kind());
 			scatter(level, r, kinds);
 		}
 		// dark runes up the posts: each Keystone lights some
 		for (int k = 0; k < 8; k++) {
-			Display.TextDisplay d = t.label(level, t.gate.point((k % 2 == 0 ? -1 : 1) * (TrialPortal.W + 1), 0.4 + (k / 2), 0.62), rune(k, false), 1.3f);
+			Display.TextDisplay d = t.label(level, runeSpot(all, k), rune(k, false), 1.3f);
 			if (d != null) runes.add(d);
 		}
 		addCaches(level, r, needed);
@@ -226,16 +231,97 @@ public final class PortalRepair {
 	/** A piece of the miniature; {@code k} = its size (missing ones breathe). */
 	private com.mojang.math.Transformation miniT(TrialPortal.Piece pc, float k) {
 		int[] sl = t.gate.slot(pc);
-		Vec3 o = t.gate.point(sl[0], sl[1] - 1, 0).subtract(t.gate.point(0, 0, 0));
+		Vec3 o = t.gate.point(sl[0], sl[1] - 1, sl[2]).subtract(t.gate.point(0, 0, 0));
 		return RuinKit.centred(new Vector3f((float) o.x * MINI, (float) o.y * MINI + MINI / 2 + 0.04f, (float) o.z * MINI), MINI * k, MINI * k, MINI * k, new Quaternionf());
 	}
 
-	/** The empty place in the arch: the stone itself on Easy and Medium, only an outline above. */
+	/** The empty place in the gate: the very block that goes there, breathing (Hard and up only while its kind is held). */
 	private void ghost(ServerLevel level, TrialPortal.Piece pc) {
-		boolean tell = t.tier <= 1;
-		float w = tell ? 0.42f : 0.3f;
-		BlockState b = tell ? pc.block().defaultBlockState() : Blocks.WHITE_STAINED_GLASS.defaultBlockState();
-		ghosts.put(pc.pos(), RuinKit.prop(t, level, Vec3.atCenterOf(pc.pos()), b, RuinKit.centred(new Vector3f(), w, w, w, new Quaternionf()), 0, true));
+		ghosts.put(pc.pos(), shown(level, Vec3.atCenterOf(pc.pos()), pc, ghostT(t.tier <= 1 ? 0.85f : 0f)));
+	}
+
+	private static com.mojang.math.Transformation ghostT(float w) {
+		return RuinKit.centred(new Vector3f(), w, w, w, new Quaternionf());
+	}
+
+	/** A piece shown as a display: its own block, in the room's light like the placed one (a full-bright one looked like another block). */
+	private Display.BlockDisplay shown(ServerLevel level, Vec3 at, TrialPortal.Piece pc, com.mojang.math.Transformation tr) {
+		Display.BlockDisplay d = RuinKit.prop(t, level, at, pc.block().defaultBlockState(), tr, 0, false);
+		((com.toast.aurapoints.mixin.DisplayAccessor) d).aurapoints$setBrightnessOverride(null);
+		return d;
+	}
+
+	/** Two broken-out chunks of the gate, {@code n} stones in all, that can be built back from what stands. */
+	private static List<TrialPortal.Piece> pickMissing(List<TrialPortal.Piece> all, int n, RandomSource r) {
+		for (int tries = 0; tries < 60; tries++) {
+			Set<TrialPortal.Piece> out = new HashSet<>();
+			for (int chunk = 0; chunk < 2; chunk++) {
+				int want = chunk == 0 ? n - n / 3 : n;
+				List<TrialPortal.Piece> grow = new ArrayList<>(List.of(all.get(all.size() / 4 + r.nextInt(all.size() - all.size() / 4))));
+				while (out.size() < want && !grow.isEmpty()) {
+					TrialPortal.Piece pc = grow.remove(r.nextInt(grow.size()));
+					if (!out.add(pc)) continue;
+					for (TrialPortal.Piece o : all) if (!out.contains(o) && touch(o, pc)) grow.add(o);
+				}
+			}
+			if (out.size() != n) continue;
+			// everything left stands on the ground through its neighbours (nothing hangs in the air)
+			Set<TrialPortal.Piece> held = new HashSet<>();
+			int floor = all.get(0).pos().getY();
+			for (TrialPortal.Piece pc : all) if (!out.contains(pc) && pc.pos().getY() == floor) held.add(pc);
+			boolean more = !held.isEmpty();
+			while (more) {
+				more = false;
+				for (TrialPortal.Piece pc : all) {
+					if (out.contains(pc) || held.contains(pc)) continue;
+					for (TrialPortal.Piece h : held) if (touch(h, pc)) {
+						held.add(pc);
+						more = true;
+						break;
+					}
+				}
+			}
+			if (held.size() + out.size() < all.size()) continue;
+			List<TrialPortal.Piece> sorted = new ArrayList<>(all);
+			sorted.retainAll(out);
+			return sorted;
+		}
+		return new ArrayList<>(all.subList(all.size() - n, all.size()));
+	}
+
+	/** The masons' scaffold behind the gate: two climbable towers and a deck near the top. */
+	private void scaffold(ServerLevel level) {
+		int hw = Math.min(4, t.gate.half()), deck = Math.max(2, t.gate.top() - 4);
+		for (int y = 1; y <= deck; y++) for (int s : new int[]{-hw, hw}) plank(level, t.gate.cell(s, y, -2), 0);
+		for (int s = hw - 1; s >= 0; s--) {
+			plank(level, t.gate.cell(s, deck, -2), hw - s);
+			if (s > 0) plank(level, t.gate.cell(-s, deck, -2), hw - s);
+		}
+	}
+
+	private void plank(ServerLevel level, BlockPos p, int distance) {
+		if (!level.getBlockState(p).isAir()) return;
+		RealmBuilder.set(level, p.getX(), p.getY(), p.getZ(), Blocks.SCAFFOLDING.defaultBlockState()
+				.setValue(net.minecraft.world.level.block.ScaffoldingBlock.DISTANCE, distance).setValue(net.minecraft.world.level.block.ScaffoldingBlock.BOTTOM, distance > 0));
+		scaffold.add(p);
+	}
+
+	private void dropScaffold(ServerLevel level) {
+		for (BlockPos p : scaffold) {
+			if (!level.getBlockState(p).is(Blocks.SCAFFOLDING)) continue;
+			put(level, p, Blocks.AIR);
+			level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.SCAFFOLDING.defaultBlockState()), p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5, 8, 0.3, 0.3, 0.3, 0.05);
+		}
+		if (!scaffold.isEmpty()) RiftSfx.play(level, t.gate.point(0, 4, -2), AuraSounds.DEEPSLATE_BREAK.value(), 1.4f, 1.3f);
+		scaffold.clear();
+	}
+
+	/** Rune {@code k}'s place: on the face of one of the gate's foremost stones, low to high. */
+	private Vec3 runeSpot(List<TrialPortal.Piece> all, int k) {
+		List<TrialPortal.Piece> face = new ArrayList<>();
+		for (TrialPortal.Piece pc : all) if (t.gate.slot(pc)[2] == 0 && pc.kind() != TrialPortal.LAMP) face.add(pc);
+		int[] sl = t.gate.slot(face.get(k * (face.size() - 1) / 7));
+		return t.gate.point(sl[0], sl[1] - 0.6, 0.62);
 	}
 
 	/** Puts stones of these kinds on the wing's floor, off the way to the portal. */
@@ -419,13 +505,14 @@ public final class PortalRepair {
 		Vec3 eye = p.getEyePosition(), dir = p.getLookAngle();
 		TrialPortal.Piece best = null;
 		double bestD = 0.8;
+		// straight behind each other: the nearer one
 		for (TrialPortal.Piece pc : missing.values()) {
 			Vec3 to = Vec3.atCenterOf(pc.pos()).subtract(eye);
 			double along = to.dot(dir);
-			if (along < 0.3 || along > 6.5) continue;
+			if (along < 0.3 || along > REACH) continue;
 			double off = to.subtract(dir.scale(along)).length();
-			if (off < bestD) {
-				bestD = off;
+			if (off < 0.8 && off + along * 0.02 < bestD) {
+				bestD = off + along * 0.02;
 				best = pc;
 			}
 		}
@@ -434,16 +521,14 @@ public final class PortalRepair {
 
 	private boolean supported(ServerLevel level, TrialPortal.Piece pc) {
 		if (t.gate.slot(pc)[1] == 1) return true;
-		if (!level.getBlockState(pc.pos().below()).isAir() && !ghostAt(pc.pos().below())) return true;
 		for (TrialPortal.Piece o : t.gate.frame(t.pal)) {
-			if (missing.containsKey(o.pos()) || o.kind() != pc.kind()) continue;
-			if (o.pos().getY() == pc.pos().getY() && o.pos().distManhattan(pc.pos()) == 1) return true;
+			if (!missing.containsKey(o.pos()) && touch(o, pc)) return true;
 		}
 		return false;
 	}
 
-	private boolean ghostAt(BlockPos p) {
-		return missing.containsKey(p);
+	private static boolean touch(TrialPortal.Piece a, TrialPortal.Piece b) {
+		return Math.max(Math.abs(a.pos().getX() - b.pos().getX()), Math.max(Math.abs(a.pos().getY() - b.pos().getY()), Math.abs(a.pos().getZ() - b.pos().getZ()))) == 1;
 	}
 
 	/** A click with one of this wing's arch stones in the hand. */
@@ -468,7 +553,7 @@ public final class PortalRepair {
 		}
 		if (!supported(level, pc)) {
 			RiftSfx.wrongStone(level, c);
-			say(p, "Nothing holds it there yet - build up from below", 0xFF8855);
+			say(p, "Nothing holds it there yet - build on from a stone that stands", 0xFF8855);
 			return true;
 		}
 		held.shrink(1);
@@ -560,6 +645,7 @@ public final class PortalRepair {
 			level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, t.pal.edge().defaultBlockState()), q.x, q.y, q.z, 6, 0.3, 0.3, 0.3, 0.02);
 			level.sendParticles(ParticleTypes.CLOUD, q.x, t.gate.base.getY() + 1.1, q.z, 2, 0.6, 0.05, 0.6, 0.01);
 		}
+		if (n == 24) dropScaffold(level);
 		if (n < 70 && n % 12 == 0) {
 			RiftSfx.play(level, mid, AuraSounds.DEEPSLATE_BREAK.value(), 1.4f, 0.5f);
 			RiftSfx.play(level, mid, AuraSounds.WARDEN_HEARTBEAT.value(), 1.6f, 0.6f + n / 120f);
@@ -620,6 +706,7 @@ public final class PortalRepair {
 
 	/** The burst: the curtain tears open. */
 	private void open(ServerLevel level) {
+		dropScaffold(level);
 		Vec3 mid = t.gate.point(0, 2.4, 0);
 		level.sendParticles(ParticleTypes.FLASH, mid.x, mid.y, mid.z, 3, 0.3, 0.6, 0.3, 0);
 		level.sendParticles(ParticleTypes.EXPLOSION, mid.x, mid.y, mid.z, 3, 0.8, 1.2, 0.8, 0);
@@ -659,6 +746,12 @@ public final class PortalRepair {
 					.append(Component.literal("Take a compass from the lodestone and find its " + needed + " Keystones." + (AuraConfig.RIFT_PORTAL_STONES
 							? " Rebuild the arch from the stones lying in this hall - the model on the table shows where each goes. Then rub the Keystones alight on the pedestal." : " Then light them on the pedestal.")).withStyle(ChatFormatting.GRAY)));
 		}
+		if (now % 10 == 0 && t.tier >= 2) {
+			// Hard and up: the preview only shows for the kind of stone someone here holds
+			Set<Integer> held = new HashSet<>();
+			for (ServerPlayer p : wing) if (mine(p.getMainHandItem(), STONE)) held.add(tag(p.getMainHandItem()).getInt("kind"));
+			for (TrialPortal.Piece pc : missing.values()) if (ghosts.get(pc.pos()) != null) Props.set(ghosts.get(pc.pos()), ghostT(held.contains(pc.kind()) ? 0.7f : 0f), 4);
+		}
 		if (now % 4 == 0) {
 			for (ServerPlayer p : wing) {
 				if (!mine(p.getMainHandItem(), STONE)) continue;
@@ -674,6 +767,8 @@ public final class PortalRepair {
 			for (TrialPortal.Piece pc : missing.values()) {
 				Display.BlockDisplay d = mini.get(pc.pos());
 				if (d != null) Props.set(d, miniT(pc, pulse ? 0.55f : 1f), 18);
+				Display.BlockDisplay g = ghosts.get(pc.pos());
+				if (g != null && t.tier <= 1) Props.set(g, ghostT(pulse ? 0.6f : 0.85f), 18);
 			}
 			for (BlockPos pos : loose.keySet()) {
 				for (ServerPlayer p : wing) level.sendParticles(p, AuraFx.dust(t.rgb, 1f), false, pos.getX() + 0.5, pos.getY() + 1.1, pos.getZ() + 0.5, 4, 0.3, 0.1, 0.3, 0);
@@ -756,6 +851,7 @@ public final class PortalRepair {
 	}
 
 	void remove() {
+		scaffold.clear();
 		for (Display.BlockDisplay d : ghosts.values()) RuinKit.drop(t, d);
 		for (Display.BlockDisplay d : mini.values()) RuinKit.drop(t, d);
 		for (Display.BlockDisplay d : flying) RuinKit.drop(t, d);
@@ -842,24 +938,61 @@ public final class PortalRepair {
 		purge(fake);
 		recoverLost(level, List.of(fake));
 		log.accept("repair: lost stones come back " + loose.size() + " (must be " + want + "), lost Keystones too " + caches.size() + " (must be 3)");
-		TrialPortal.Piece first = missing.values().iterator().next(), last = null;
-		for (TrialPortal.Piece pc : missing.values()) last = pc;
+		TrialPortal.Piece first = missing.values().iterator().next(), hung = null;
+		for (TrialPortal.Piece pc : missing.values()) if (!supported(level, pc)) hung = pc;
 		clickCd.clear();
 		devAim(fake, first);
-		log.accept("repair: aims at the slot " + (aimed(fake) == first) + " (must be true)");
-		fake.setItemInHand(InteractionHand.MAIN_HAND, makeStone((first.kind() + 1) % 4));
+		TrialPortal.Piece at = aimed(fake);
+		log.accept("repair: aims at a slot " + (at != null) + " (must be true)");
+		fake.setItemInHand(InteractionHand.MAIN_HAND, makeStone((at.kind() + 1) % 4));
 		stoneUse(level, fake);
 		log.accept("repair: wrong stone refused, still held " + isStone(fake.getMainHandItem()) + " (must be true), missing " + missing.size() + " (must be " + want + ")");
-		clickCd.clear();
-		devAim(fake, last);
-		fake.setItemInHand(InteractionHand.MAIN_HAND, makeStone(last.kind()));
-		stoneUse(level, fake);
-		log.accept("repair: no support refused, missing " + missing.size() + " (must be " + want + ")");
-		for (TrialPortal.Piece pc : new ArrayList<>(missing.values())) {
+		if (hung != null) {
 			clickCd.clear();
-			devAim(fake, pc);
-			fake.setItemInHand(InteractionHand.MAIN_HAND, makeStone(pc.kind()));
-			stoneUse(level, fake);
+			devAim(fake, hung);
+			if (aimed(fake) == hung) {
+				fake.setItemInHand(InteractionHand.MAIN_HAND, makeStone(hung.kind()));
+				stoneUse(level, fake);
+			}
+			log.accept("repair: no support refused, missing " + missing.size() + " (must be " + want + ")");
+		}
+		// every gate of every aura: buildable, and one block for model, preview, item and place
+		int stuck = 0, sameStones = 0;
+		for (Trials.Kind k : Trials.Kind.values()) {
+			List<TrialPortal.Piece> fr = new TrialPortal(t.gate.base, t.gate.nx, t.gate.nz, t.rgb, k).frame(t.pal);
+			for (int q = 0; q < 50; q++) for (int tier = 0; tier < 5; tier++) {
+				Set<TrialPortal.Piece> gone = new HashSet<>(pickMissing(fr, MISSING[tier], r));
+				boolean more = true;
+				while (more && !gone.isEmpty()) {
+					more = gone.removeIf(pc -> {
+						if (pc.pos().getY() == t.gate.base.getY() + 1) return true;
+						for (TrialPortal.Piece o : fr) if (!gone.contains(o) && touch(o, pc)) return true;
+						return false;
+					});
+				}
+				if (!gone.isEmpty()) stuck++;
+			}
+		}
+		for (TrialPortal.Piece pc : missing.values()) {
+			if (ghosts.get(pc.pos()) != null && ((com.toast.aurapoints.mixin.BlockDisplayAccessor) ghosts.get(pc.pos())).aurapoints$getBlockState().is(pc.block()) && ((com.toast.aurapoints.mixin.BlockDisplayAccessor) mini.get(pc.pos())).aurapoints$getBlockState().is(pc.block()) && makeStone(pc.kind()).getItem() == pc.block().asItem()) sameStones++;
+		}
+		log.accept("repair: gates that can't be rebuilt, 7 kinds x 5 tiers x 50 " + stuck + " (must be 0); item = block for " + sameStones + "/" + want + " (must be all)");
+		// from the deck every place is in reach
+		int far = 0, deckY = Math.max(2, t.gate.top() - 4);
+		for (TrialPortal.Piece pc : missing.values()) {
+			double ground = 1.62 - (pc.pos().getY() - t.gate.base.getY() - 1), dk = Math.abs(deckY + 1.62 - (pc.pos().getY() - t.gate.base.getY() - 0.5));
+			if (Math.hypot(ground, 3) > REACH && Math.hypot(dk, 6) > REACH) far++;
+		}
+		log.accept("repair: places out of reach " + far + " (must be 0), scaffold blocks " + scaffold.size() + " (must be over 0)");
+		for (int pass = 0; pass < 40 && !missing.isEmpty(); pass++) {
+			for (TrialPortal.Piece pc : new ArrayList<>(missing.values())) {
+				clickCd.clear();
+				devAim(fake, pc);
+				TrialPortal.Piece a = aimed(fake);
+				if (a == null) continue;
+				fake.setItemInHand(InteractionHand.MAIN_HAND, makeStone(a.kind()));
+				stoneUse(level, fake);
+			}
 		}
 		int built = 0;
 		for (TrialPortal.Piece pc : t.gate.frame(t.pal)) if (level.getBlockState(pc.pos()).is(pc.block())) built++;

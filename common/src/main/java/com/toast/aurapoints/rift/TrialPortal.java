@@ -44,9 +44,12 @@ final class TrialPortal {
 	private final Map<UUID, Long> cooldown = new HashMap<>();
 	/** Closed portals show no curtain and don't move anyone (the arena is still being built). */
 	boolean open;
+	private Trials.Kind shape;
 
-	TrialPortal(BlockPos base, int nx, int nz, int rgb) {
+	/** A portal in its trial's own kind of gate (PortalShapes). */
+	TrialPortal(BlockPos base, int nx, int nz, int rgb, Trials.Kind shape) {
 		this(base, nx, nz, rgb, W, H);
+		this.shape = shape;
 	}
 
 	/** A portal in a gate that already stands there: only the curtain, half width {@code w}, {@code h} tall. */
@@ -68,36 +71,27 @@ final class TrialPortal {
 		return nx;
 	}
 
-	/** The arch: palette edge stone, accent keystone, light blocks in the feet; the opening is cleared. */
+	/** The whole gate; the opening is cleared. */
 	void build(ServerLevel level, RealmBuilder.Palette pal) {
-		for (int s = -W - 1; s <= W + 1; s++) {
-			for (int y = 1; y <= H + 1; y++) {
-				int x = base.getX() + sx() * s, z = base.getZ() + sz() * s;
-				boolean frame = Math.abs(s) == W + 1 || y == H + 1;
-				RealmBuilder.set(level, x, base.getY() + y, z, frame ? pal.edge() : Blocks.AIR);
-			}
-			RealmBuilder.set(level, base.getX() + sx() * s, base.getY(), base.getZ() + sz() * s, pal.accent());
-		}
-		// a stepped crown and two lit feet
-		for (int s = -W; s <= W; s++) RealmBuilder.set(level, base.getX() + sx() * s, base.getY() + H + 2, base.getZ() + sz() * s, s == 0 ? pal.accent() : pal.edge());
-		RealmBuilder.set(level, base.getX(), base.getY() + H + 3, base.getZ(), pal.light());
-		for (int s : new int[]{-W - 2, W + 2}) {
-			int x = base.getX() + sx() * s, z = base.getZ() + sz() * s;
-			RealmBuilder.set(level, x, base.getY() + 1, z, pal.edge());
-			RealmBuilder.set(level, x, base.getY() + 2, z, pal.light());
-		}
+		buildBroken(level, pal, java.util.Set.of());
 	}
 
 	/** The kinds of arch stones. */
 	static final int POST = 0, LINTEL = 1, CROWN = 2, LAMP = 3;
 
-	/** One block of the arch, where it stands and which kind of stone it is. */
+	/** One block of the gate, where it stands and which kind of stone it is. Model, preview, item and block all show {@code block}. */
 	record Piece(BlockPos pos, Block block, int kind) {
 	}
 
 	/** The four stones of an aura's arch, always four different blocks. */
 	static Block[] stones(RealmBuilder.Palette pal) {
-		Block[] want = {pal.edge(), pal.base(), pal.accent(), pal.light()};
+		// where the palette's own four look alike in a dim hall, one of them gives way to something that doesn't
+		Block base = pal.base(), accent = pal.accent();
+		if (pal.accent() == Blocks.OBSIDIAN) base = Blocks.AMETHYST_BLOCK; // Shadow
+		else if (pal.edge() == Blocks.QUARTZ_PILLAR) accent = Blocks.GOLD_BLOCK; // Wind
+		else if (pal.edge() == Blocks.QUARTZ_BRICKS) base = Blocks.SMOOTH_SANDSTONE; // Light
+		else if (pal.base() == Blocks.DEEPSLATE) base = Blocks.WAXED_CUT_COPPER; // Thunder
+		Block[] want = {pal.edge(), base, accent, pal.light()};
 		Block[] spare = {pal.floor(), Blocks.CHISELED_STONE_BRICKS, Blocks.POLISHED_ANDESITE, Blocks.CHISELED_DEEPSLATE, Blocks.BRICKS};
 		List<Block> out = new ArrayList<>();
 		for (Block b : want) {
@@ -108,26 +102,30 @@ final class TrialPortal {
 		return out.toArray(new Block[0]);
 	}
 
-	private Piece piece(int s, int y, int kind, Block[] st) {
-		return new Piece(new BlockPos(base.getX() + sx() * s, base.getY() + y, base.getZ() + sz() * s), st[kind], kind);
+	BlockPos cell(int s, int y, int out) {
+		return new BlockPos(base.getX() + sx() * s + nx * out, base.getY() + y, base.getZ() + sz() * s + nz * out);
 	}
 
-	/** The arch in building order: the posts rise together, then the feet with their lamps, the lintel, the crown and its lamp. */
+	/** The gate's pieces from the floor up. */
 	List<Piece> frame(RealmBuilder.Palette pal) {
 		Block[] st = stones(pal);
 		List<Piece> out = new ArrayList<>();
-		for (int y = 1; y <= H; y++) for (int side : new int[]{-1, 1}) out.add(piece(side * (W + 1), y, POST, st));
-		for (int s : new int[]{-W - 2, W + 2}) out.add(piece(s, 1, POST, st));
-		for (int s : new int[]{-W - 2, W + 2}) out.add(piece(s, 2, LAMP, st));
-		for (int s : new int[]{-W - 1, W + 1, -W, W, 0}) out.add(piece(s, H + 1, LINTEL, st));
-		for (int s : new int[]{-W, W, 0}) out.add(piece(s, H + 2, CROWN, st));
-		out.add(piece(0, H + 3, LAMP, st));
+		for (PortalShapes.P p : PortalShapes.of(shape)) out.add(new Piece(cell(p.s(), p.y(), p.z()), st[p.kind()], p.kind()));
 		return out;
 	}
 
-	/** Where a piece sits in the arch: {along, up from the floor}. */
+	int top() {
+		return PortalShapes.top(shape);
+	}
+
+	int half() {
+		return PortalShapes.half(shape);
+	}
+
+	/** Where a piece sits in the gate: {along, up from the floor, out}. */
 	int[] slot(Piece p) {
-		return new int[]{(p.pos().getX() - base.getX()) * sx() + (p.pos().getZ() - base.getZ()) * sz(), p.pos().getY() - base.getY()};
+		int dx = p.pos().getX() - base.getX(), dz = p.pos().getZ() - base.getZ();
+		return new int[]{dx * sx() + dz * sz(), p.pos().getY() - base.getY(), dx * nx + dz * nz};
 	}
 
 	/** A world point {@code along} the opening, {@code up} from the floor's top, {@code out} in front of it. */
