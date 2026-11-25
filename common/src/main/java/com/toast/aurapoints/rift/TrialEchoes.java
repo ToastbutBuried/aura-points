@@ -291,6 +291,8 @@ final class TrialEchoes extends Trials.Trial {
 		farGate.to = gate;
 		exits.add(farGate);
 		farGate.setOpen(level, true, pal.gate());
+		// the Seer's work is done: down to the shard and the gate
+		for (ServerPlayer p : lastHere) if (onAnyPerch(p)) DigDecor.tp(p, level, DigDecor.v(this, PLINTH_F - 4, 0, 1), forwardYaw(), 0f);
 		Vec3 c = DigDecor.v(this, 51, 0, 5);
 		level.sendParticles(ParticleTypes.REVERSE_PORTAL, c.x, c.y, c.z, 160, Math.abs(lx) * 4 + 0.2, 4, Math.abs(lz) * 4 + 0.2, 0.1);
 		RiftSfx.play(level, c, AuraSounds.END_PORTAL_SPAWN.value(), 0.7f, 1.3f);
@@ -583,7 +585,7 @@ final class TrialEchoes extends Trials.Trial {
 		return stepped.contains(key(end[0], end[1])) && stepped.size() >= (int) Math.ceil(path.size() * 0.7);
 	}
 
-	private void stageCleared(ServerLevel level, List<ServerPlayer> here, long now) {
+	void stageCleared(ServerLevel level, List<ServerPlayer> here, long now) {
 		revertSeer(level);
 		revertSolo(level);
 		for (int row = STAGES[stage][0]; row <= STAGES[stage][1]; row++) for (int col = 0; col < COLS; col++) tile(level, row, col, tileBlock(row, col));
@@ -627,9 +629,19 @@ final class TrialEchoes extends Trials.Trial {
 	}
 
 	boolean onPerch(ServerPlayer p) {
+		return onPerch(p, stage);
+	}
+
+	/** On any stage's perch (nobody gets down from one on their own). */
+	private boolean onAnyPerch(ServerPlayer p) {
+		for (int s = 0; s < PERCH_F.length; s++) if (onPerch(p, s)) return true;
+		return false;
+	}
+
+	private boolean onPerch(ServerPlayer p, int s) {
 		Vec3 pos = p.position();
 		double l = al(pos);
-		return Math.abs(af(pos) - PERCH_F[stage]) <= 4 && l <= -19.5 && l >= -28 && pos.y > Rifts.FLOOR + PERCH_DY - 1;
+		return Math.abs(af(pos) - PERCH_F[s]) <= 4 && l <= -19.5 && l >= -28 && pos.y > Rifts.FLOOR + PERCH_DY - 1;
 	}
 
 	/** Picks the Seer (in stage 3 someone other than the first one), sends them up and the old one down. */
@@ -640,7 +652,7 @@ final class TrialEchoes extends Trials.Trial {
 		if (pool.isEmpty()) pool.addAll(here);
 		ServerPlayer old = find(level, seer);
 		ServerPlayer pick = pool.get(level.random.nextInt(pool.size()));
-		if (old != null && old != pick && onPerch(old)) {
+		if (old != null && old != pick && onAnyPerch(old)) {
 			Vec3 to = checkpoint(stage);
 			DigDecor.tp(old, level, to, forwardYaw(), 0f);
 		}

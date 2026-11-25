@@ -120,9 +120,28 @@ public final class RiftCheckDevTest {
 				+ ((t.hears.getOrDefault(a.getUUID(), 0) | t.hears.getOrDefault(b.getUUID(), 0)) == 15 && t.hears.getOrDefault(b.getUUID(), 0) != 0) + " (must be true)");
 	}
 
+	/** Two players: the sight passes in stage 3, then the hall is solved; nobody stays up on a perch. */
+	private static void echoes(ServerLevel rift, TrialEchoes t, ServerPlayer a, ServerPlayer b) {
+		List<ServerPlayer> both = List.of(a, b);
+		Vec3 cp = t.checkpoint(0);
+		a.moveTo(cp.x, cp.y, cp.z);
+		b.moveTo(cp.x, cp.y, cp.z);
+		t.begin(rift, both);
+		long now = rift.getGameTime();
+		t.stageCleared(rift, both, now);
+		ServerPlayer old = a.getUUID().equals(t.seer) ? a : b, walker = old == a ? b : a;
+		boolean up = t.onPerch(old);
+		t.stageCleared(rift, both, now);
+		log("echoes: the Seer stands on the stage 2 perch " + up + " (must be true), sight passed " + walker.getUUID().equals(t.seer) + " (must be true), new one on the perch "
+				+ t.onPerch(walker) + " (must be true), old one down " + (old.getY() < Rifts.FLOOR + 5) + " (must be true)");
+		t.stageCleared(rift, both, now);
+		log("echoes: solved " + t.solved + " (must be true), the Seer is down by the gate " + (walker.getY() < Rifts.FLOOR + 5 && t.af(walker.position()) > 35) + " (must be true)");
+	}
+
 	private static void keystones(MinecraftServer server, ServerLevel rift) {
 		ServerPlayer a = fake(server, rift, 1), b = fake(server, rift, 2);
 		Rifts.Run run = realm(server, AuraType.FROST, 1, List.of(Trials.Kind.DIG, Trials.Kind.ECHOES, Trials.Kind.GLYPH, Trials.Kind.BELLS), a, b);
+		echoes(rift, (TrialEchoes) run.trials[1], a, b);
 		PortalRepair rep = run.trials[0].repair;
 		Vec3 sp = run.spawn();
 		a.moveTo(sp.x, sp.y, sp.z);
