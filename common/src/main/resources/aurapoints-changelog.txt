@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.56.1
+- Rift fixes: Hardcore runs can't get stuck on a fallen player any more, knockouts no longer duplicate Keystones, Trial Wings can't give your chestplate twice, and the gate's relic shows in its curtain.
+- The Blood Warden's drain has a blue tell; in the Hall of Bells whoever comes in during the song hears it too (it starts over).
+
 == 5.56.0
 - New for datapacks: the Reaper (aurapoints:reaper), a hooded scythe figure with a rising slash and a ground slam, sized by the scale attribute. Update your game: this adds a new entity.
 
