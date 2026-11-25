@@ -508,6 +508,11 @@ public final class Rifts {
 				p.fallDistance = 0;
 			}
 		}
+		// the last one standing left, and nobody who is down comes back
+		if (!here.isEmpty() && here.stream().allMatch(p -> run.down.contains(p.getUUID()) && !run.backAt.containsKey(p.getUUID()))) {
+			end(server, run, false);
+			return;
+		}
 		if (phase == Reliquary.Phase.VOTE) {
 			Reliquary.tickVote(rift, run, up, now);
 			return;
@@ -908,6 +913,7 @@ public final class Rifts {
 		if (run != null) {
 			run.players.remove(p.getUUID());
 			run.down.remove(p.getUUID());
+			run.backAt.remove(p.getUUID());
 			if (run.bar != null) run.bar.removePlayer(p);
 		}
 		sendBack(p);
@@ -919,6 +925,7 @@ public final class Rifts {
 		if (run != null) {
 			run.players.remove(p.getUUID());
 			run.down.remove(p.getUUID());
+			run.backAt.remove(p.getUUID());
 		}
 	}
 
@@ -933,6 +940,7 @@ public final class Rifts {
 		if (run != null) {
 			run.players.remove(p.getUUID());
 			run.down.remove(p.getUUID());
+			run.backAt.remove(p.getUUID());
 			if (run.bar != null) run.bar.removePlayer(p);
 		}
 		AuraPlayerData data = AuraState.get(p.getServer()).getOrCreate(p.getUUID());
