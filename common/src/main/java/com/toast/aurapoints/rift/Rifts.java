@@ -825,6 +825,7 @@ public final class Rifts {
 		}
 		run.players.clear();
 		RUNS.remove(run);
+		if (RUNS.isEmpty()) LAST_POS.clear();
 		ServerLevel rift = level(server);
 		if (rift != null) {
 			// the big sky is cleared piece by piece while its chunks are still held, or its islands would hang about in the slot's next run
@@ -1218,6 +1219,7 @@ public final class Rifts {
 		CLOSING.clear();
 		tear = null;
 		RUNS.clear();
+		LAST_POS.clear();
 		TEST_PLAYERS.clear();
 		nextTearAt = 0;
 	}
