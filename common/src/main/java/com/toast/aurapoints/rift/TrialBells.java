@@ -547,6 +547,17 @@ final class TrialBells extends Trials.Trial {
 		if (now % 20 == 0) tickBaton(level, here, now);
 		// the playback
 		if (playAt >= 0 && now >= playAt) {
+			// nobody in the hall: the choir waits; someone came in after the first note: from the start, with bells for them too
+			ServerPlayer late = null;
+			for (ServerPlayer p : here) if (!hears.isEmpty() && !hears.containsKey(p.getUUID())) late = p;
+			if (late != null || (hears.isEmpty() && here.isEmpty())) {
+				if (late != null) actionBar(here, late.getGameProfile().getName() + " joins - the choir sings from the start", ChatFormatting.GRAY);
+				playAt = now + (dev ? 2 : 30);
+				played = -1;
+				pass = 0;
+				hears.clear();
+				return;
+			}
 			if (hears.isEmpty()) startPlayback(level, here, now);
 			List<Note> order = playback();
 			int at = (int) ((now - playAt) / gap());
