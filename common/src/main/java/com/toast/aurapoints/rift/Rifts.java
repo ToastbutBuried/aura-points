@@ -286,12 +286,12 @@ public final class Rifts {
 		long now = ow.getGameTime();
 		SkillChecks.tick();
 		if (!AuraConfig.RIFT_ENABLED) {
+			// no new gates; a run under way is played to its end
 			if (tear != null) closeTear(server, false);
-			return;
-		}
+			nextTearAt = 0;
+		} else if (nextTearAt == 0) nextTearAt = now + interval(ow);
 		// a new tear now and then
-		if (nextTearAt == 0) nextTearAt = now + interval(ow);
-		if (tear == null && now >= nextTearAt) {
+		if (AuraConfig.RIFT_ENABLED && tear == null && now >= nextTearAt) {
 			nextTearAt = now + interval(ow);
 			List<ServerPlayer> here = ow.players().stream().filter(p -> !p.isSpectator()).toList();
 			if (!here.isEmpty()) {
