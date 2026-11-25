@@ -1129,6 +1129,16 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		return staggerTicks > 0;
 	}
 
+	/** DEV ONLY: in the middle of a charge. */
+	void devCharge(Vec3 dir, int ticks) {
+		windup = -1;
+		staggerTicks = 0;
+		chargeDir = dir;
+		chargeTicks = ticks;
+		chargeHit.clear();
+		setPose(POSE_CHARGE);
+	}
+
 	public int devKneel() {
 		return kneelTicks;
 	}

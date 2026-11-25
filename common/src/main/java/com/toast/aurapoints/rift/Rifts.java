@@ -1069,6 +1069,15 @@ public final class Rifts {
 		return tear != null;
 	}
 
+	/** DEV ONLY: the open gate's relic display made it into the world. */
+	static boolean devCoreShown(MinecraftServer server) {
+		return tear != null && tear.gate != null && tear.gate.core != null && server.overworld().getEntity(tear.gate.core.getUUID()) != null;
+	}
+
+	static boolean devLabelShown(MinecraftServer server) {
+		return tear != null && tear.label != null && server.overworld().getEntity(tear.label.getUUID()) != null;
+	}
+
 	public static Vec3 devTearPos() {
 		return tear == null ? null : tear.pos;
 	}

@@ -1366,6 +1366,11 @@ final class TrialRings extends Trials.Trial {
 		done.run();
 	}
 
+	/** DEV ONLY: the wings on, as at a launch. */
+	void devLend(ServerPlayer p) {
+		lend(p);
+	}
+
 	private int devAt;
 
 	/** Dev: hangs {@code p} in front of the next ring, a bonus ring and an updraft in turn, looking at it. */

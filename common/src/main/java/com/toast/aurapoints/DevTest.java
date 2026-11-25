@@ -37,6 +37,7 @@ final class DevTest {
 		RiftDevTest.register(dispatcher);
 		com.toast.aurapoints.rift.TrialsDevTest.register(dispatcher);
 		com.toast.aurapoints.rift.TrialsDevTest.registerStep(dispatcher);
+		com.toast.aurapoints.rift.RiftCheckDevTest.register(dispatcher);
 		com.toast.aurapoints.rift.TrialsDevTest.registerWarden(dispatcher);
 		ShrineDevTest.register(dispatcher);
 		SummonDevTest.register(dispatcher);
