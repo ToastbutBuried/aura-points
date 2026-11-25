@@ -366,6 +366,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		windup = -1;
 		landing = null;
 		chargeTicks = 0;
+		if (pose() == POSE_CHARGE) setPose(POSE_NONE);
 		var speed = getAttribute(Attributes.MOVEMENT_SPEED);
 		if (speed != null) speed.setBaseValue(0.24 + 0.015 * shards.broken);
 		if (!last) {
