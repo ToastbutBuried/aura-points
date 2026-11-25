@@ -123,6 +123,18 @@ final class Trials {
 		PortalRepair.purge(p);
 	}
 
+	/** Items parked in the inventory's crafting grid, taken too (they'd come back when it closes). */
+	static boolean purgeGrid(ServerPlayer p, java.util.function.Predicate<ItemStack> what) {
+		var grid = p.inventoryMenu.getCraftSlots();
+		boolean found = false;
+		for (int i = 0; i < grid.getContainerSize(); i++) {
+			if (grid.getItem(i).isEmpty() || !what.test(grid.getItem(i))) continue;
+			grid.setItem(i, ItemStack.EMPTY);
+			found = true;
+		}
+		return found;
+	}
+
 	/** Elytra and anything else a trial lends out, taken back (Rifts.purge on the way out). */
 	static void purgeLent(ServerPlayer p) {
 		TrialRings.purgeLent(p);

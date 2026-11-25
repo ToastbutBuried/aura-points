@@ -684,6 +684,8 @@ public final class Rifts {
 			if (s.is(AuraPoints.RELIC_SHARD.get()) || s.is(AuraPoints.TUNING_FORK.get())) inv.setItem(i, ItemStack.EMPTY);
 		}
 		Trials.purgeLent(p);
+		Trials.purgeGrid(p, s -> s.is(AuraPoints.RELIC_SHARD.get()) || s.is(AuraPoints.TUNING_FORK.get()) || Trials.isKeystone(s) || PortalRepair.isStone(s)
+				|| PortalRepair.isCompass(s) || TrialBells.isBaton(s));
 		SkillChecks.forget(p.getUUID());
 		RiftCam.forget(p.getUUID());
 		ItemStack c = p.containerMenu.getCarried();

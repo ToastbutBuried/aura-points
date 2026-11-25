@@ -801,6 +801,9 @@ final class TrialRings extends Trials.Trial {
 	// Lending
 	// ---------------------------------------------------------------
 
+	/** Wings of this server run never give the chest item back themselves ({@link #ORIG} does): wings that got past a purge would give it twice. */
+	private static UUID session = UUID.randomUUID();
+
 	static boolean isLent(ItemStack s) {
 		if (s.isEmpty()) return false;
 		CustomData cd = s.get(DataComponents.CUSTOM_DATA);
@@ -811,6 +814,7 @@ final class TrialRings extends Trials.Trial {
 		CompoundTag tag = new CompoundTag();
 		tag.putString(LENT, "rings");
 		tag.putUUID("owner", p.getUUID());
+		tag.putUUID("session", session);
 		if (orig != null) tag.put("orig", orig.saveOptional(p.registryAccess()));
 		s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
 		return s;
@@ -860,6 +864,7 @@ final class TrialRings extends Trials.Trial {
 			p.containerMenu.setCarried(ItemStack.EMPTY);
 			found = true;
 		}
+		if (Trials.purgeGrid(p, TrialRings::isLent)) found = true;
 		ItemStack orig = ORIG.remove(p.getUUID());
 		if (orig == null) orig = fromWings;
 		if (found) p.stopFallFlying();
@@ -868,10 +873,17 @@ final class TrialRings extends Trials.Trial {
 		else if (!inv.add(orig)) p.drop(orig, false);
 	}
 
+	/** Server stop: from here on the wings' own data is all there is. */
+	static void forget() {
+		ORIG.clear();
+		session = UUID.randomUUID();
+	}
+
 	/** The chest item saved inside lent wings, if they are {@code p}'s own. */
 	private static ItemStack stored(ServerPlayer p, ItemStack s) {
 		if (!s.is(Items.ELYTRA)) return null;
 		CompoundTag tag = s.get(DataComponents.CUSTOM_DATA).copyTag();
+		if (tag.hasUUID("session") && tag.getUUID("session").equals(session)) return null;
 		if (!tag.hasUUID("owner") || !tag.getUUID("owner").equals(p.getUUID()) || !tag.contains("orig")) return null;
 		return ItemStack.parseOptional(p.registryAccess(), tag.getCompound("orig"));
 	}
@@ -1336,7 +1348,7 @@ final class TrialRings extends Trials.Trial {
 				+ fake.getItemBySlot(EquipmentSlot.CHEST).is(Items.DIAMOND_CHESTPLATE) + " (must be true), attempt " + attempt + " (must be false), score " + score + " (must be 0)");
 		// 2: a restart in mid-flight: the map is gone, the wings still know the chest item
 		use(level, fake, launchStone());
-		ORIG.clear();
+		forget();
 		purgeLent(fake);
 		log.accept("rings: restore from the wings' own data -> chest back " + fake.getItemBySlot(EquipmentSlot.CHEST).is(Items.DIAMOND_CHESTPLATE) + " (must be true), wings gone " + !hasLent(fake) + " (must be true)");
 		tick.run();
