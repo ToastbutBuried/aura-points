@@ -95,6 +95,11 @@ public class AuraPoints {
 			ENTITY_TYPES.register("dragon_head", () -> net.minecraft.world.entity.EntityType.Builder
 					.<com.toast.aurapoints.geo.DragonHead>of(com.toast.aurapoints.geo.DragonHead::new, net.minecraft.world.entity.MobCategory.MISC)
 					.sized(1.0f, 1.0f).fireImmune().clientTrackingRange(10).updateInterval(1).build("dragon_head"));
+	/** The Shadow reaper (geo/Reaper): saved, summonable, generic.scale works; a datapack starts its slash and slam by NBT. */
+	public static final java.util.function.Supplier<net.minecraft.world.entity.EntityType<com.toast.aurapoints.geo.Reaper>> REAPER =
+			ENTITY_TYPES.register("reaper", () -> net.minecraft.world.entity.EntityType.Builder
+					.<com.toast.aurapoints.geo.Reaper>of(com.toast.aurapoints.geo.Reaper::new, net.minecraft.world.entity.MobCategory.MISC)
+					.sized(1.0f, 2.6f).fireImmune().clientTrackingRange(10).updateInterval(1).build("reaper"));
 	/** Umbral Ambush's shadow clone, the Thorn Sentinel's tree and Maelstrom's tentacles, drawn by GeckoLib (geo/). */
 	public static final java.util.function.Supplier<net.minecraft.world.entity.EntityType<com.toast.aurapoints.geo.ShadowClone>> SHADOW_CLONE =
 			ENTITY_TYPES.register("shadow_clone", () -> net.minecraft.world.entity.EntityType.Builder
@@ -245,6 +250,7 @@ public class AuraPoints {
 			event.put(TRAINING_DUMMY.get(), com.toast.aurapoints.arena.TrainingDummy.createAttributes().build());
 			event.put(ARENA_NPC.get(), com.toast.aurapoints.arena.ArenaNpc.createAttributes().build());
 			event.put(DRAGON_HEAD.get(), com.toast.aurapoints.geo.DragonHead.createAttributes().build());
+			event.put(REAPER.get(), com.toast.aurapoints.geo.Reaper.createAttributes().build());
 			event.put(FROST_BEAR.get(), com.toast.aurapoints.geo.FrostBear.createAttributes().build());
 			event.put(RELIC_WARDEN.get(), com.toast.aurapoints.rift.RelicWarden.createAttributes().build());
 		});

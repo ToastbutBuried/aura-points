@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.56.0
+- New for datapacks: the Reaper (aurapoints:reaper), a hooded scythe figure with a rising slash and a ground slam, sized by the scale attribute. Update your game: this adds a new entity.
+
 == 5.55.0
 - Relic Warden: a new entrance, bigger and tougher, and its phases no longer stop the fight. Instead of shulkers it loses four shards, each broken its own way.
 - Reliquary trials: the Dig's pylons are rung and light up the tiles that answer, the Prism is harder again, Glyph rules never contradict, every trial has its own gate to rebuild (with scaffolding), and Shadow gates have a new portal. Clients must update.
