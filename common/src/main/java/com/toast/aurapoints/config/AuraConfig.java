@@ -1130,6 +1130,17 @@ public final class AuraConfig {
 	public static int BLOOM_RADIUS = 4;
 	public static int BLOOM_PLANTS_PER_PULSE = 2;
 
+	/** Green Thumb (passive): the chance (0.25 = 25%) that breaking a fully grown crop rolls its loot a second time. */
+	public static double GREEN_THUMB_CHANCE = 0.25;
+
+	/** Well Fed (passive): plant foods give this much more saturation (0.5 = +50% of the food's own, never above the food level). */
+	public static double WELL_FED_SATURATION_BONUS = 0.5;
+
+	/** Thornless (passive): sweet berry bush and cactus damage is cut by this much (0.5 = half)... */
+	public static double THORNLESS_DAMAGE_REDUCTION = 0.5;
+	/** ...and from this Verdant Mastery level up (1-5) they do no damage at all. 6 = never. */
+	public static int THORNLESS_IMMUNE_MASTERY = 5;
+
 	/** Virulence (passive): poisoned targets take this much more damage (0.25 = +25%) from the Verdant player's hits and abilities. */
 	public static double VIRULENCE_BONUS = 0.25;
 

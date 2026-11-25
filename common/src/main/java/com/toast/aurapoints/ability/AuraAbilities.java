@@ -97,6 +97,13 @@ public final class AuraAbilities {
 		VIRULENCE("Virulence", false, () ->
 				"Anything poisoned takes " + Math.round(AuraConfig.VIRULENCE_BONUS * 100) + "% more damage from you. Your Entanglement, bites and "
 						+ "Toxic Clouds all poison, and so does anything else that does."),
+		GREEN_THUMB("Green Thumb", false, () ->
+				"Breaking a fully grown crop has a " + Math.round(AuraConfig.GREEN_THUMB_CHANCE * 100) + "% chance to give a second harvest."),
+		WELL_FED("Well Fed", false, () ->
+				"Plant foods (not meat or fish) fill you up " + Math.round(AuraConfig.WELL_FED_SATURATION_BONUS * 100) + "% more."),
+		THORNLESS("Thornless", false, () ->
+				"Sweet berry bushes and cacti hurt " + Math.round(AuraConfig.THORNLESS_DAMAGE_REDUCTION * 100) + "% less"
+						+ (AuraConfig.THORNLESS_IMMUNE_MASTERY <= Mastery.MAX ? ", and not at all from Verdant Mastery " + Mastery.roman(AuraConfig.THORNLESS_IMMUNE_MASTERY) : "") + "."),
 		// Blue Flame branch only (ability/Branch.grants): not in the Fire aura's own list
 		SCORCH("Scorch", false, () ->
 				"Anything burning takes " + Math.round(AuraConfig.SCORCH_BONUS * 100) + "% more damage from you. Blue Flame branch."),
@@ -1713,6 +1720,7 @@ public final class AuraAbilities {
 		IceShell.tick(player, data, now);
 		AuraHalo.tick(player, data, now);
 		Bloom.tick(player, data, now);
+		Gardening.tick(player, data, now);
 		Nightstalker.tick(player, data, now);
 		Shatter.tick(player, data, now);
 		DashDive.tick(player, now); // not only with Dash: a dive cut short by losing Dash must still end

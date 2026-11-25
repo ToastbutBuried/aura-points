@@ -86,6 +86,8 @@ public final class AuraStats {
 	public static final ResourceLocation VINE_HOOK_PULLS = stat("vine_hook_pulls");
 	public static final ResourceLocation BLOOM_GROWN = stat("bloom_grown");
 	public static final ResourceLocation VIRULENCE_HITS = stat("virulence_hits");
+	public static final ResourceLocation GREEN_THUMB_EXTRA = stat("green_thumb_extra");
+	public static final ResourceLocation WELL_FED_MEALS = stat("well_fed_meals");
 	public static final ResourceLocation ENTANGLE_CATCHES = stat("entangle_catches");
 	public static final ResourceLocation VIPER_BITES = stat("viper_bites");
 	// Thunder

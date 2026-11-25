@@ -355,6 +355,7 @@ public class AuraPoints {
 			com.toast.aurapoints.arena.Arena.tick(server);
 			com.toast.aurapoints.ability.Ultimates.tickAll(server);
 			com.toast.aurapoints.ability.Earth.tickAll(server);
+			com.toast.aurapoints.ability.Gardening.tickAll(server);
 			com.toast.aurapoints.ability.Light.tickAll(server);
 			com.toast.aurapoints.ability.Blood.tickAll(server);
 			com.toast.aurapoints.ability.VoidAura.tickAll(server);
@@ -406,6 +407,8 @@ public class AuraPoints {
 				event.setCanceled(true);
 				return;
 			}
+			// Verdant Thornless: berry bushes and cacti hurt less, or not at all
+			if (com.toast.aurapoints.ability.Gardening.onIncomingDamage(event)) return;
 			// ability damage goes through protection enchantments (armor points still count)
 			boolean abilityHit = AuraAbilities.takeAbilityHit(event.getEntity());
 			// the Aura Arena: players only get hurt by their opponent in a running duel round
@@ -719,6 +722,7 @@ public class AuraPoints {
 		@SubscribeEvent
 		public static void onBlockBroken(com.toast.aurapoints.shim.neoforge.event.level.BlockEvent.BreakEvent event) {
 			com.toast.aurapoints.ability.Noise.add(event.getPlayer(), AuraConfig.NOISE_BLOCK);
+			com.toast.aurapoints.ability.Gardening.onBreak(event); // Verdant Green Thumb
 		}
 
 		@SubscribeEvent
@@ -784,6 +788,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.Blood.clearAll();
 			com.toast.aurapoints.ability.VoidAura.clearAll();
 			com.toast.aurapoints.ability.Earth.clearAll();
+			com.toast.aurapoints.ability.Gardening.clearAll();
 			com.toast.aurapoints.ability.Reactions.clearAll();
 			com.toast.aurapoints.ability.Combos.clearAll();
 			com.toast.aurapoints.ability.TouchedMobs.clearAll();
@@ -863,6 +868,7 @@ public class AuraPoints {
 				com.toast.aurapoints.shrine.Shrines.forget(player.getUUID());
 				com.toast.aurapoints.ability.Ultimates.onLogout(player);
 				com.toast.aurapoints.ability.Earth.onLogout(player);
+				com.toast.aurapoints.ability.Gardening.onLogout(player);
 				com.toast.aurapoints.ability.Light.onLogout(player);
 				com.toast.aurapoints.ability.Blood.onLogout(player);
 				com.toast.aurapoints.menu.Tutorial.onLogout(player);

@@ -26,6 +26,7 @@ final class DevTest {
 		registerMastery(dispatcher);
 		registerBloodBar(dispatcher);
 		BranchDevTest.register(dispatcher);
+		GardenDevTest.register(dispatcher);
 		CastDevTest.register(dispatcher);
 		ChainDevTest.register(dispatcher);
 		ChainStackDevTest.register(dispatcher);
