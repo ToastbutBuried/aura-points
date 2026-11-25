@@ -684,7 +684,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			ServerPlayer t = targets.get(k % targets.size());
 			int delay = k * 4;
 			AuraFx.later(level.getServer(), 8 + delay, () -> {
-				if (!isAlive() || !t.isAlive()) return;
+				if (!isAlive() || !t.isAlive() || t.isSpectator()) return;
 				Vec3 from = position().add(0, 3.2, 0).add(Vec3.directionFromRotation(0, getYRot() + (bolts.size() % 2 == 0 ? 90 : -90)).scale(1.75));
 				Vec3 vel = t.position().add(0, 1, 0).subtract(from).normalize().scale(0.55).add(0, 0.25, 0);
 				var block = RealmBuilder.palette(aura()).accent().defaultBlockState();
@@ -701,7 +701,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		for (var it = bolts.iterator(); it.hasNext(); ) {
 			Bolt b = it.next();
 			b.life--;
-			if (b.target.isAlive() && b.life > 20) {
+			if (b.target.isAlive() && !b.target.isSpectator() && b.life > 20) {
 				Vec3 want = b.target.position().add(0, 1, 0).subtract(b.pos).normalize().scale(0.7);
 				b.vel = b.vel.scale(0.88).add(want.scale(0.12));
 			}
@@ -985,7 +985,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 				// drains its target for three seconds, healing itself
 				for (int k = 0; k < 60; k += 10) {
 					AuraFx.later(level.getServer(), k, () -> {
-						if (!isAlive() || !main.isAlive() || main.distanceTo(this) > 20) return;
+						if (!isAlive() || !main.isAlive() || main.isSpectator() || main.distanceTo(this) > 20) return;
 						hit(level, main, 2f);
 						heal(4f);
 						Vec3 a = main.position().add(0, 1, 0), b = position().add(0, 2.9, 0);
