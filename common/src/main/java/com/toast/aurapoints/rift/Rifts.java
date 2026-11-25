@@ -534,14 +534,12 @@ public final class Rifts {
 			if (Reliquary.tickCollapse(rift, run, here, now)) wakeGuardian(rift, run, Math.max(1, up.size()));
 			if (now - run.flow.collapseAt >= Reliquary.ENTRANCE_END) {
 				run.flow.phase = Reliquary.Phase.BOSS;
-				Component name = run.champion != null && run.champion.getCustomName() != null ? run.champion.getCustomName() : Component.literal("Relic Warden");
 				for (ServerPlayer p : here) AuraFx.title(p, Component.literal("RELIC WARDEN").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),
 						Component.literal("it took the " + Relics.name(run.aura) + " - take it back").withStyle(ChatFormatting.GRAY));
 				if (run.champion instanceof RelicWarden w) {
 					w.awake = true;
 					w.devEntrance(false);
 				}
-				if (name == null) return;
 			}
 		}
 		if (run.bar != null && run.champion != null && now % 5 == 0) {

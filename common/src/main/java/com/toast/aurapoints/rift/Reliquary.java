@@ -19,7 +19,6 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Display;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
@@ -48,7 +47,7 @@ final class Reliquary {
 	static final int[] WING_RGB = {0x3B6FD8, 0x7BD33A, 0xF2C43A, 0xD83B3B};
 	static final ChatFormatting[] WING_FMT = {ChatFormatting.BLUE, ChatFormatting.GREEN, ChatFormatting.YELLOW, ChatFormatting.RED};
 
-	enum Phase {VOTE, TRIALS, FORGING, COLLAPSE, BOSS}
+	enum Phase {VOTE, TRIALS, COLLAPSE, BOSS}
 
 	/** Per run state of the flow. */
 	static final class State {
@@ -620,9 +619,5 @@ final class Reliquary {
 	static Vec3 cryptSpot(Rifts.Run run, net.minecraft.util.RandomSource r) {
 		List<BlockPos> spots = A().cryptSpots;
 		return at(run, spots.get(r.nextInt(spots.size())));
-	}
-
-	static ItemStack none() {
-		return ItemStack.EMPTY;
 	}
 }

@@ -66,7 +66,7 @@ import java.util.List;
  * ticks before the hit, and the window is the last PARRY_WINDOW ticks before it lands. A parry needs a full swing
  * (no hit on the Warden in the PARRY_LOCKOUT ticks before) from in front within 4.5 blocks; the first try decides.
  * Swinging early at a yellow tell is a mistimed parry: no damage, a clank, you're staggered. A parry cancels the
- * attack, staggers the Warden and leaves it Exposed (x2.5 damage for 3 s). BLUE = can't be parried, get out of the way.
+ * attack, staggers the Warden and leaves it Exposed (x1.5 damage for 3 s). BLUE = can't be parried, get out of the way.
  * Never saved (runs aren't). Death plays its own 2.5 s animation.
  */
 public class RelicWarden extends PathfinderMob implements GeoEntity {
@@ -407,12 +407,6 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 	/** DEV ONLY: how many times it hurt a player (fake players are invulnerable, so tests count hits). */
 	int devHits;
 
-	/** Stands still for {@code ticks} (a scene is playing): no animation, no attacks. */
-	void hold(int ticks) {
-		staggerTicks = Math.max(staggerTicks, ticks);
-		getNavigation().stop();
-	}
-
 	private void stagger(int ticks, Runnable then) {
 		triggerAnim("action", "stagger");
 		staggerTicks = ticks;
@@ -541,7 +535,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 
 	// ------------------------------------------------------------ combos and the slam
 
-	/** Step 0: an overhead smash (blue), 1: a backhand (yellow), 2 (Overdrive): a second smash (blue). */
+	/** Step 0: an overhead smash (yellow), 1: a backhand (blue), 2 (Overdrive): a second smash (yellow). */
 	private void combo(ServerLevel level, int step) {
 		boolean three = phase() == OVERDRIVE || phase() == LAST_STAND;
 		if (step == 0) {
