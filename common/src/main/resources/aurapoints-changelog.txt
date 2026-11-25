@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.57.0
+- Tickets now ask "when did it happen?" after you write them (type it, like "5 min ago" or "19:15", or click a button). It lets us find the problem in the server log.
+
 == 5.56.1
 - Rift fixes: Hardcore runs can't get stuck on a fallen player any more, knockouts no longer duplicate Keystones, Trial Wings can't give your chestplate twice, and the gate's relic shows in its curtain.
 - The Blood Warden's drain has a blue tell; in the Hall of Bells whoever comes in during the song hears it too (it starts over).
