@@ -983,8 +983,9 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			}
 			case BLOOD -> {
 				// drains its target for three seconds, healing itself
-				for (int k = 0; k < 60; k += 10) {
-					AuraFx.later(level.getServer(), k, () -> {
+				warn(level, main.position(), 2, 20);
+				windUp(20, false, () -> {
+					for (int k = 0; k < 60; k += 10) AuraFx.later(level.getServer(), k, () -> {
 						if (!isAlive() || !main.isAlive() || main.isSpectator() || main.distanceTo(this) > 20) return;
 						hit(level, main, 2f);
 						heal(4f);
@@ -994,7 +995,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 							level.sendParticles(AuraFx.dust(0xB0121B, 1.2f), p.x, p.y, p.z, 1, 0, 0, 0, 0);
 						}
 					});
-				}
+				});
 			}
 			default -> {
 			}
