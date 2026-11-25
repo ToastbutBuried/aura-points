@@ -877,6 +877,7 @@ public final class Rifts {
 		boolean oneLife = run.difficulty.oneLife();
 		int secs = Math.max(3, (int) Math.round(run.difficulty.knockoutSeconds * AuraConfig.RIFT_KNOCKOUT_SECONDS / 12.0));
 		if (!oneLife) run.backAt.put(p.getUUID(), rift.getGameTime() + secs * 20L);
+		else purge(p); // out for good: what they carry goes back to the realm (shards return to their plinth)
 		p.setGameMode(GameType.SPECTATOR);
 		boolean crypt = run.phase() == Reliquary.Phase.BOSS || run.phase() == Reliquary.Phase.COLLAPSE;
 		Vec3 c = crypt ? Reliquary.cryptCenter(run).add(0, 14, 16) : run.nave().add(0, 9, 0);
