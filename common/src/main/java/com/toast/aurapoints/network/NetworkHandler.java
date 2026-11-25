@@ -401,6 +401,7 @@ public final class NetworkHandler {
 		for (AuraAbilities.Ability ability : AuraAbilities.KEY_ORDER) {
 			setKeyFlag(server, player, ability, false);
 		}
+		com.toast.aurapoints.ability.Summons.press(player, false);
 		com.toast.aurapoints.AuraHooks.clearItemKeys(player);
 		HELD_SLOTS.remove(player.getUUID());
 	}

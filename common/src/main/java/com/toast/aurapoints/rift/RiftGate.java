@@ -147,8 +147,12 @@ final class RiftGate {
 		d.load(t);
 		d.moveTo(center.x, center.y, center.z, 0, 0);
 		d.addTag(Rifts.TEAR_TAG);
-		level.addFreshEntity(d);
 		return d;
+	}
+
+	/** The relic into the world, once Rifts knows this gate (an unknown tear display counts as a leftover, Rifts.isLeftover). */
+	void show() {
+		if (core != null) level.addFreshEntity(core);
 	}
 
 	private static ListTag floats(float... v) {
@@ -208,9 +212,8 @@ final class RiftGate {
 			float s = 1.1f * ease((age - 40) / 30f) * shut;
 			float bob = (float) Math.sin(age * 0.05) * 0.12f;
 			var acc = (com.toast.aurapoints.mixin.DisplayAccessor) core;
-			// a little in front of the curtain, or the portal strips hide it
-			Vec3 f = normal.scale(0.35);
-			acc.aurapoints$setTransformation(new Transformation(new Vector3f((float) f.x, bob, (float) f.z), null, new Vector3f(s, s, s), null));
+			// toward whoever looks (a billboard's own z), or the curtain hides it
+			acc.aurapoints$setTransformation(new Transformation(new Vector3f(0, bob, 0.5f), null, new Vector3f(s, s, s), null));
 			acc.aurapoints$setInterpolationDuration(20);
 			core.getEntityData().set(com.toast.aurapoints.mixin.DisplayAccessor.aurapoints$startDelta(), 0, true);
 		}

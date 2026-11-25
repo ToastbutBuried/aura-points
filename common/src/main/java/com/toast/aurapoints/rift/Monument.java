@@ -400,9 +400,4 @@ public final class Monument {
 			}
 		}
 	}
-
-	/** The pre-5.47 island realm and anything else in the slot outside the monument's tiles. */
-	static void clearOld(ServerLevel level, int slot) {
-		RealmBuilder.clear(level, slot * 1024);
-	}
 }

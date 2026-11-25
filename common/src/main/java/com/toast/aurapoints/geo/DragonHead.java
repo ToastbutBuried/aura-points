@@ -3,18 +3,11 @@ package com.toast.aurapoints.geo;
 import com.toast.aurapoints.AuraTags;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.NonNullList;
-import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
-import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -25,12 +18,9 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.Scoreboard;
-import software.bernie.geckolib.animatable.GeoEntity;
-import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animation.AnimatableManager;
 import software.bernie.geckolib.animation.AnimationController;
 import software.bernie.geckolib.animation.RawAnimation;
-import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
  * The shadow eastern dragon's head: a real, saved entity a datapack drives with its Motion and Rotation tags (and
@@ -51,7 +41,7 @@ import software.bernie.geckolib.util.GeckoLibUtil;
  * <li>/kill and the void remove it; nothing else hurts it.</li>
  * </ul>
  */
-public class DragonHead extends LivingEntity implements GeoEntity {
+public class DragonHead extends DatapackPuppet {
 
 	public static final String COLLISION_OBJECTIVE = "pluxshadowserpentcollision";
 	/** The seat in blocks at scale 1, relative to the entity's position: above the skull, a little behind its center. Keep in sync with dragon/gen.py SEAT. */
@@ -59,17 +49,8 @@ public class DragonHead extends LivingEntity implements GeoEntity {
 
 	private static final RawAnimation IDLE = RawAnimation.begin().thenLoop("animation.dragon_head.idle");
 
-	private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
-	private final NonNullList<ItemStack> noArmor = NonNullList.withSize(4, ItemStack.EMPTY);
-
 	public DragonHead(EntityType<? extends DragonHead> type, Level level) {
 		super(type, level);
-		noPhysics = true;
-		setNoGravity(true);
-	}
-
-	public static AttributeSupplier.Builder createAttributes() {
-		return LivingEntity.createLivingAttributes();
 	}
 
 	@Override
@@ -78,15 +59,9 @@ public class DragonHead extends LivingEntity implements GeoEntity {
 	}
 
 	@Override
-	public AnimatableInstanceCache getAnimatableInstanceCache() {
-		return cache;
-	}
-
-	@Override
 	public void tick() {
 		// the Motion the datapack wrote for this tick, before vanilla drag shrinks it: the best guess for the next tick
 		Vec3 motion = getDeltaMovement();
-		noPhysics = true;
 		super.tick();
 		if (level().isClientSide) return;
 		updateCollisionScore(motion);
@@ -144,99 +119,11 @@ public class DragonHead extends LivingEntity implements GeoEntity {
 		return !state.isAir() && !state.is(AuraTags.DRAGON_PASSABLE) && !state.getCollisionShape(level, pos, context).isEmpty();
 	}
 
-	// ------------------------------------------------------------ no interaction, no damage, no physics side effects
-
-	@Override
-	public boolean hurt(DamageSource source, float amount) {
-		if (!level().isClientSide && source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) discard(); // /kill, the void
-		return false;
-	}
-
-	/** Never falls, whatever NoGravity a summon or /data writes. */
-	@Override
-	public boolean isNoGravity() {
-		return true;
-	}
-
-	@Override
-	public boolean isPickable() {
-		return false;
-	}
-
-	@Override
-	public boolean isPushable() {
-		return false;
-	}
-
-	@Override
-	protected void pushEntities() {
-	}
-
-	@Override
-	public boolean isAttackable() {
-		return false;
-	}
-
-	@Override
-	public boolean isAffectedByPotions() {
-		return false;
-	}
-
-	@Override
-	protected boolean isAffectedByFluids() {
-		return false;
-	}
-
-	@Override
-	public boolean isPushedByFluid() {
-		return false;
-	}
-
-	@Override
-	public boolean causeFallDamage(float distance, float multiplier, DamageSource source) {
-		return false;
-	}
-
-	@Override
-	public boolean fireImmune() {
-		return true;
-	}
-
-	@Override
-	public boolean canBeSeenAsEnemy() {
-		return false;
-	}
-
-	@Override
-	public Iterable<ItemStack> getArmorSlots() {
-		return noArmor;
-	}
-
-	@Override
-	public ItemStack getItemBySlot(EquipmentSlot slot) {
-		return ItemStack.EMPTY;
-	}
-
-	@Override
-	public void setItemSlot(EquipmentSlot slot, ItemStack stack) {
-	}
-
-	@Override
-	public HumanoidArm getMainArm() {
-		return HumanoidArm.RIGHT;
-	}
-
 	// ------------------------------------------------------------ rider
 
 	@Override
 	protected boolean canAddPassenger(Entity passenger) {
 		return getPassengers().isEmpty();
-	}
-
-	/** Not steered by its rider: the datapack moves it. */
-	@Override
-	public LivingEntity getControllingPassenger() {
-		return null;
 	}
 
 	@Override

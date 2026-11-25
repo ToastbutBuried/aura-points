@@ -66,7 +66,7 @@ import java.util.List;
  * ticks before the hit, and the window is the last PARRY_WINDOW ticks before it lands. A parry needs a full swing
  * (no hit on the Warden in the PARRY_LOCKOUT ticks before) from in front within 4.5 blocks; the first try decides.
  * Swinging early at a yellow tell is a mistimed parry: no damage, a clank, you're staggered. A parry cancels the
- * attack, staggers the Warden and leaves it Exposed (x2.5 damage for 3 s). BLUE = can't be parried, get out of the way.
+ * attack, staggers the Warden and leaves it Exposed (x1.5 damage for 3 s). BLUE = can't be parried, get out of the way.
  * Never saved (runs aren't). Death plays its own 2.5 s animation.
  */
 public class RelicWarden extends PathfinderMob implements GeoEntity {
@@ -366,6 +366,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		windup = -1;
 		landing = null;
 		chargeTicks = 0;
+		if (pose() == POSE_CHARGE) setPose(POSE_NONE);
 		var speed = getAttribute(Attributes.MOVEMENT_SPEED);
 		if (speed != null) speed.setBaseValue(0.24 + 0.015 * shards.broken);
 		if (!last) {
@@ -405,12 +406,6 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 
 	/** DEV ONLY: how many times it hurt a player (fake players are invulnerable, so tests count hits). */
 	int devHits;
-
-	/** Stands still for {@code ticks} (a scene is playing): no animation, no attacks. */
-	void hold(int ticks) {
-		staggerTicks = Math.max(staggerTicks, ticks);
-		getNavigation().stop();
-	}
 
 	private void stagger(int ticks, Runnable then) {
 		triggerAnim("action", "stagger");
@@ -540,7 +535,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 
 	// ------------------------------------------------------------ combos and the slam
 
-	/** Step 0: an overhead smash (blue), 1: a backhand (yellow), 2 (Overdrive): a second smash (blue). */
+	/** Step 0: an overhead smash (yellow), 1: a backhand (blue), 2 (Overdrive): a second smash (yellow). */
 	private void combo(ServerLevel level, int step) {
 		boolean three = phase() == OVERDRIVE || phase() == LAST_STAND;
 		if (step == 0) {
@@ -548,7 +543,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			windUp(13, true, () -> {
 				Vec3 at = front(2.7);
 				smash(level, at, 3.0, 10f);
-				combo(level, 1);
+				if (staggerTicks == 0) combo(level, 1); // not when that broke a shard
 			});
 		} else if (step == 1) {
 			triggerAnim("action", "sweep");
@@ -639,6 +634,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			level.sendParticles(AuraFx.dust(aura().rgb, 2f), getX(), getY() + 1, getZ(), 6, 0.6, 0.8, 0.6, 0);
 		}
 		shards.blow(level, position(), 2.0);
+		if (staggerTicks > 0) return; // that broke a shard: the charge is over
 		for (ServerPlayer p : playersNear(level, position(), 2.8)) {
 			if (!chargeHit.add(p.getUUID())) continue;
 			hit(level, p, 12f);
@@ -651,7 +647,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			setPose(POSE_NONE);
 			smash(level, position(), 3, 6f);
 			// a wall or the edge: it stuns itself for a moment (an opening)
-			if (blocked) stagger(20, null);
+			if (blocked && staggerTicks == 0) stagger(20, null);
 		}
 	}
 
@@ -682,7 +678,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			ServerPlayer t = targets.get(k % targets.size());
 			int delay = k * 4;
 			AuraFx.later(level.getServer(), 8 + delay, () -> {
-				if (!isAlive() || !t.isAlive()) return;
+				if (!isAlive() || !t.isAlive() || t.isSpectator()) return;
 				Vec3 from = position().add(0, 3.2, 0).add(Vec3.directionFromRotation(0, getYRot() + (bolts.size() % 2 == 0 ? 90 : -90)).scale(1.75));
 				Vec3 vel = t.position().add(0, 1, 0).subtract(from).normalize().scale(0.55).add(0, 0.25, 0);
 				var block = RealmBuilder.palette(aura()).accent().defaultBlockState();
@@ -699,7 +695,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 		for (var it = bolts.iterator(); it.hasNext(); ) {
 			Bolt b = it.next();
 			b.life--;
-			if (b.target.isAlive() && b.life > 20) {
+			if (b.target.isAlive() && !b.target.isSpectator() && b.life > 20) {
 				Vec3 want = b.target.position().add(0, 1, 0).subtract(b.pos).normalize().scale(0.7);
 				b.vel = b.vel.scale(0.88).add(want.scale(0.12));
 			}
@@ -981,9 +977,10 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			}
 			case BLOOD -> {
 				// drains its target for three seconds, healing itself
-				for (int k = 0; k < 60; k += 10) {
-					AuraFx.later(level.getServer(), k, () -> {
-						if (!isAlive() || !main.isAlive() || main.distanceTo(this) > 20) return;
+				warn(level, main.position(), 2, 20);
+				windUp(20, false, () -> {
+					for (int k = 0; k < 60; k += 10) AuraFx.later(level.getServer(), k, () -> {
+						if (!isAlive() || !main.isAlive() || main.isSpectator() || main.distanceTo(this) > 20) return;
 						hit(level, main, 2f);
 						heal(4f);
 						Vec3 a = main.position().add(0, 1, 0), b = position().add(0, 2.9, 0);
@@ -992,7 +989,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 							level.sendParticles(AuraFx.dust(0xB0121B, 1.2f), p.x, p.y, p.z, 1, 0, 0, 0, 0);
 						}
 					});
-				}
+				});
 			}
 			default -> {
 			}
@@ -1127,6 +1124,16 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 
 	public boolean devStaggered() {
 		return staggerTicks > 0;
+	}
+
+	/** DEV ONLY: in the middle of a charge. */
+	void devCharge(Vec3 dir, int ticks) {
+		windup = -1;
+		staggerTicks = 0;
+		chargeDir = dir;
+		chargeTicks = ticks;
+		chargeHit.clear();
+		setPose(POSE_CHARGE);
 	}
 
 	public int devKneel() {

@@ -226,6 +226,7 @@ public final class Rifts {
 		ServerPlayer facing = near != null ? near : ow.getNearestPlayer(pos.x, pos.y, pos.z, 64, false) instanceof ServerPlayer sp ? sp : null;
 		Vec3 face = facing == null ? Vec3.directionFromRotation(0, ow.random.nextFloat() * 360f) : facing.position().subtract(ground);
 		tear.gate = new RiftGate(ow, aura, ground, face);
+		tear.gate.show();
 		tear.label = (Display.TextDisplay) com.toast.aurapoints.arena.Holograms.makePublic(ow, tear.gate.center.add(0, RiftGate.B + 2.0, 0), label(aura, AuraConfig.RIFT_OPEN_SECONDS), 0.8f, 0x40000000);
 		if (tear.label != null) {
 			tear.label.addTag(TEAR_TAG);
@@ -285,12 +286,12 @@ public final class Rifts {
 		long now = ow.getGameTime();
 		SkillChecks.tick();
 		if (!AuraConfig.RIFT_ENABLED) {
+			// no new gates; a run under way is played to its end
 			if (tear != null) closeTear(server, false);
-			return;
-		}
+			nextTearAt = 0;
+		} else if (nextTearAt == 0) nextTearAt = now + interval(ow);
 		// a new tear now and then
-		if (nextTearAt == 0) nextTearAt = now + interval(ow);
-		if (tear == null && now >= nextTearAt) {
+		if (AuraConfig.RIFT_ENABLED && tear == null && now >= nextTearAt) {
 			nextTearAt = now + interval(ow);
 			List<ServerPlayer> here = ow.players().stream().filter(p -> !p.isSpectator()).toList();
 			if (!here.isEmpty()) {
@@ -508,6 +509,11 @@ public final class Rifts {
 				p.fallDistance = 0;
 			}
 		}
+		// the last one standing left, and nobody who is down comes back
+		if (!here.isEmpty() && here.stream().allMatch(p -> run.down.contains(p.getUUID()) && !run.backAt.containsKey(p.getUUID()))) {
+			end(server, run, false);
+			return;
+		}
 		if (phase == Reliquary.Phase.VOTE) {
 			Reliquary.tickVote(rift, run, up, now);
 			return;
@@ -517,6 +523,7 @@ public final class Rifts {
 			if (!t.built && run.trialRandom != null && now >= run.startedAt + 10L * (t.index + 1) && (t.chunksReady(rift) || now >= run.startedAt + 600))
 				t.buildAll(rift, run.trialRandom);
 			t.tickAll(rift, up, now);
+			if (run.done) return; // a knockout in there ended it
 		}
 		if (phase == Reliquary.Phase.TRIALS) {
 			if (now % 40 == 0) keepShards(rift, run);
@@ -527,14 +534,12 @@ public final class Rifts {
 			if (Reliquary.tickCollapse(rift, run, here, now)) wakeGuardian(rift, run, Math.max(1, up.size()));
 			if (now - run.flow.collapseAt >= Reliquary.ENTRANCE_END) {
 				run.flow.phase = Reliquary.Phase.BOSS;
-				Component name = run.champion != null && run.champion.getCustomName() != null ? run.champion.getCustomName() : Component.literal("Relic Warden");
 				for (ServerPlayer p : here) AuraFx.title(p, Component.literal("RELIC WARDEN").withStyle(s -> s.withColor(TextColor.fromRgb(run.aura.rgb)).withBold(true)),
 						Component.literal("it took the " + Relics.name(run.aura) + " - take it back").withStyle(ChatFormatting.GRAY));
 				if (run.champion instanceof RelicWarden w) {
 					w.awake = true;
 					w.devEntrance(false);
 				}
-				if (name == null) return;
 			}
 		}
 		if (run.bar != null && run.champion != null && now % 5 == 0) {
@@ -684,6 +689,8 @@ public final class Rifts {
 			if (s.is(AuraPoints.RELIC_SHARD.get()) || s.is(AuraPoints.TUNING_FORK.get())) inv.setItem(i, ItemStack.EMPTY);
 		}
 		Trials.purgeLent(p);
+		Trials.purgeGrid(p, s -> s.is(AuraPoints.RELIC_SHARD.get()) || s.is(AuraPoints.TUNING_FORK.get()) || Trials.isKeystone(s) || PortalRepair.isStone(s)
+				|| PortalRepair.isCompass(s) || TrialBells.isBaton(s));
 		SkillChecks.forget(p.getUUID());
 		RiftCam.forget(p.getUUID());
 		ItemStack c = p.containerMenu.getCarried();
@@ -816,6 +823,7 @@ public final class Rifts {
 		}
 		run.players.clear();
 		RUNS.remove(run);
+		if (RUNS.isEmpty()) LAST_POS.clear();
 		ServerLevel rift = level(server);
 		if (rift != null) {
 			// the big sky is cleared piece by piece while its chunks are still held, or its islands would hang about in the slot's next run
@@ -875,6 +883,7 @@ public final class Rifts {
 		boolean oneLife = run.difficulty.oneLife();
 		int secs = Math.max(3, (int) Math.round(run.difficulty.knockoutSeconds * AuraConfig.RIFT_KNOCKOUT_SECONDS / 12.0));
 		if (!oneLife) run.backAt.put(p.getUUID(), rift.getGameTime() + secs * 20L);
+		else purge(p); // out for good: what they carry goes back to the realm (shards return to their plinth)
 		p.setGameMode(GameType.SPECTATOR);
 		boolean crypt = run.phase() == Reliquary.Phase.BOSS || run.phase() == Reliquary.Phase.COLLAPSE;
 		Vec3 c = crypt ? Reliquary.cryptCenter(run).add(0, 14, 16) : run.nave().add(0, 9, 0);
@@ -905,6 +914,7 @@ public final class Rifts {
 		if (run != null) {
 			run.players.remove(p.getUUID());
 			run.down.remove(p.getUUID());
+			run.backAt.remove(p.getUUID());
 			if (run.bar != null) run.bar.removePlayer(p);
 		}
 		sendBack(p);
@@ -916,6 +926,7 @@ public final class Rifts {
 		if (run != null) {
 			run.players.remove(p.getUUID());
 			run.down.remove(p.getUUID());
+			run.backAt.remove(p.getUUID());
 		}
 	}
 
@@ -930,6 +941,7 @@ public final class Rifts {
 		if (run != null) {
 			run.players.remove(p.getUUID());
 			run.down.remove(p.getUUID());
+			run.backAt.remove(p.getUUID());
 			if (run.bar != null) run.bar.removePlayer(p);
 		}
 		AuraPlayerData data = AuraState.get(p.getServer()).getOrCreate(p.getUUID());
@@ -1069,6 +1081,15 @@ public final class Rifts {
 		return tear != null;
 	}
 
+	/** DEV ONLY: the open gate's relic display made it into the world. */
+	static boolean devCoreShown(MinecraftServer server) {
+		return tear != null && tear.gate != null && tear.gate.core != null && server.overworld().getEntity(tear.gate.core.getUUID()) != null;
+	}
+
+	static boolean devLabelShown(MinecraftServer server) {
+		return tear != null && tear.label != null && server.overworld().getEntity(tear.label.getUUID()) != null;
+	}
+
 	public static Vec3 devTearPos() {
 		return tear == null ? null : tear.pos;
 	}
@@ -1190,11 +1211,13 @@ public final class Rifts {
 		Trials.forgetPreloads();
 		SkillChecks.clear();
 		RiftCam.forget();
+		TrialRings.forget();
 		if (tear != null && tear.gate != null) tear.gate.remove();
 		for (RiftGate g : CLOSING) g.remove();
 		CLOSING.clear();
 		tear = null;
 		RUNS.clear();
+		LAST_POS.clear();
 		TEST_PLAYERS.clear();
 		nextTearAt = 0;
 	}
