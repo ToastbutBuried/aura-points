@@ -523,6 +523,7 @@ public final class Rifts {
 			if (!t.built && run.trialRandom != null && now >= run.startedAt + 10L * (t.index + 1) && (t.chunksReady(rift) || now >= run.startedAt + 600))
 				t.buildAll(rift, run.trialRandom);
 			t.tickAll(rift, up, now);
+			if (run.done) return; // a knockout in there ended it
 		}
 		if (phase == Reliquary.Phase.TRIALS) {
 			if (now % 40 == 0) keepShards(rift, run);
