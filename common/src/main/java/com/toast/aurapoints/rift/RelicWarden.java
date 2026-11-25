@@ -549,7 +549,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			windUp(13, true, () -> {
 				Vec3 at = front(2.7);
 				smash(level, at, 3.0, 10f);
-				combo(level, 1);
+				if (staggerTicks == 0) combo(level, 1); // not when that broke a shard
 			});
 		} else if (step == 1) {
 			triggerAnim("action", "sweep");
