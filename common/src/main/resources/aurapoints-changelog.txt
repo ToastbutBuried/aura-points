@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.58.0
+- Trial portals reworked: one opaque rippling plane per aura that also looks right under shader packs (checked in Photon, Bliss, Complementary Reimagined and Unbound), and the Hall of Echoes' way out too.
+- The Shadow veil no longer has half-transparent pixels or full-bright glow, so shader packs show it properly.
+
 == 5.57.1
 - The Reaper looks the part: no more eyes, a slowly turning crown of violet spikes, shoulder horns, a glowing blade edge, and a faint aura of motes and mist around it.
 - Its moves flow better: it breathes and hovers while ready, coils before a slam and settles after it. A slam ordered at summon first rises out of the ground (datapacks: Playing stays "slam", PlayingTicks run 14 higher, impact at 31).
