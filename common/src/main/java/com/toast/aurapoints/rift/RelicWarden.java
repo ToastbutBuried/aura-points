@@ -639,6 +639,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			level.sendParticles(AuraFx.dust(aura().rgb, 2f), getX(), getY() + 1, getZ(), 6, 0.6, 0.8, 0.6, 0);
 		}
 		shards.blow(level, position(), 2.0);
+		if (staggerTicks > 0) return; // that broke a shard: the charge is over
 		for (ServerPlayer p : playersNear(level, position(), 2.8)) {
 			if (!chargeHit.add(p.getUUID())) continue;
 			hit(level, p, 12f);
@@ -651,7 +652,7 @@ public class RelicWarden extends PathfinderMob implements GeoEntity {
 			setPose(POSE_NONE);
 			smash(level, position(), 3, 6f);
 			// a wall or the edge: it stuns itself for a moment (an opening)
-			if (blocked) stagger(20, null);
+			if (blocked && staggerTicks == 0) stagger(20, null);
 		}
 	}
 
