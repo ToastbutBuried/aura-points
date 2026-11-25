@@ -785,7 +785,7 @@ public final class PortalRepair {
 				}
 			}
 		}
-		if (now % 200 == 100) recoverLost(level, up);
+		if (now % 200 == 100) recoverLost(level, Rifts.online(level.getServer(), t.run)); // knocked out players still carry theirs
 	}
 
 	private void compassTick(ServerLevel level, ServerPlayer p) {
