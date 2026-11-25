@@ -2163,14 +2163,14 @@
  "ui.kill": {
   "sounds": [
    {
-    "name": "note/bell",
-    "pitch": 1.2,
-    "volume": 0.45
-   },
+    "name": "aurapoints:ui/kill"
+   }
+  ]
+ },
+ "ui.kill_big": {
+  "sounds": [
    {
-    "name": "note/bell",
-    "pitch": 1.3,
-    "volume": 0.45
+    "name": "aurapoints:ui/kill_big"
    }
   ]
  },

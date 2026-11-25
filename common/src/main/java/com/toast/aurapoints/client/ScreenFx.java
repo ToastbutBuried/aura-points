@@ -64,6 +64,7 @@ public final class ScreenFx {
 			// drain what came in while there was no player, and start fresh next time
 			while (ClientAuraState.pollFx() != null) ;
 			stunts.clear();
+			streak = 0;
 			reel = null;
 			warnedFor = null;
 			itemKeysChecked = false;
@@ -72,6 +73,7 @@ public final class ScreenFx {
 		FxPacket p;
 		while ((p = ClientAuraState.pollFx()) != null) handle(mc, p);
 		checkKeybinds(mc);
+		devDemo(mc);
 	}
 
 	private static void handle(Minecraft mc, FxPacket p) {
@@ -80,13 +82,21 @@ public final class ScreenFx {
 			case FxPacket.HIT -> {
 				if (!AuraClientConfig.HIT_CONFIRM.get()) return;
 				boolean kill = (p.value() & 1) != 0;
+				// hits close together build a streak: it grows the crosshair ticks, and a kill that ends a streak of
+				// three or more hits rings the bigger bell (ui.kill_big)
+				streak = now - hitAt < STREAK_MILLIS ? Math.min(streak + 1, 12) : 0;
+				boolean big = kill && streak >= 3;
 				hitAt = now;
-				if (kill) killAt = now;
+				if (kill) {
+					killAt = now;
+					killBig = big;
+				}
 				if (AuraClientConfig.HIT_SOUND.get()) {
-					if (kill) ClientSounds.ui(AuraSounds.UI_KILL.value(), 1.0f, 1.0f);
+					if (kill) ClientSounds.ui(big ? AuraSounds.UI_KILL_BIG.value() : AuraSounds.UI_KILL.value(), 1.0f, 1.0f);
 					else if (now - lastHitSound > 70) ClientSounds.ui(AuraSounds.UI_HIT.value(), 1.0f, 1.0f);
 					lastHitSound = now;
 				}
+				if (kill) streak = 0;
 			}
 			case FxPacket.STUNT -> {
 				if (!AuraClientConfig.STUNT_POPUPS.get()) return;
@@ -147,6 +157,9 @@ public final class ScreenFx {
 	// ---------------------------------------------------------------
 
 	private static long hitAt = 0, killAt = 0, lastHitSound = 0;
+	private static boolean killBig = false;
+	private static int streak = 0;
+	private static final long STREAK_MILLIS = 1500;
 
 	private static void renderHit(GuiGraphics g, DeltaTracker delta) {
 		Minecraft mc = Minecraft.getInstance();
@@ -154,14 +167,64 @@ public final class ScreenFx {
 		long now = System.currentTimeMillis();
 		int cx = g.guiWidth() / 2, cy = g.guiHeight() / 2;
 		long sinceKill = now - killAt, sinceHit = now - hitAt;
-		if (sinceKill < 450) {
-			float t = sinceKill / 450f;
-			float r0 = 4 + 3 * easeOut(Math.min(1f, t * 3)), len = 5;
-			ticks(g, cx, cy, r0, len, HudColors.argb(1 - t, t < 0.15f ? 0xFFFFFF : HudColors.denied()), 2);
+		if (sinceKill < KILL_MILLIS) {
+			killBell(g, cx, cy, sinceKill, 0, 1f);
+			// a kill after a streak rings twice, like the bigger bell's stacked tones
+			if (killBig && sinceKill > 80) killBell(g, cx, cy, sinceKill - 80, 1, .8f);
 		} else if (sinceHit < 240) {
 			float t = sinceHit / 240f;
 			int rgb = ClientAuraState.aura == null ? 0xFFFFFF : HudColors.mix(HudColors.of(ClientAuraState.aura), 0xFFFFFF, 0.4f);
-			ticks(g, cx, cy, 3 + 2 * easeOut(Math.min(1f, t * 2.5f)), 3, HudColors.argb(1 - t, rgb), 1);
+			int hot = Math.min(streak, 5);
+			ticks(g, cx, cy, 3 + (2 + hot * 0.6f) * easeOut(Math.min(1f, t * 2.5f)), 3 + hot * 0.8f, HudColors.argb(1 - t, rgb), hot >= 4 ? 2 : 1);
+		}
+	}
+
+	private static final long KILL_MILLIS = 750;
+
+	/**
+	 * One ring of the kill bell: a thin ring spreading from the crosshair (white at the strike, then the aura's colour)
+	 * with four-point glints riding on it. {@code seed} turns the glints so a second ring does not sit on the first.
+	 * Calm mode keeps the ring still and only fades it.
+	 */
+	private static void killBell(GuiGraphics g, int cx, int cy, long age, int seed, float strength) {
+		float t = Math.min(1f, age / (float) KILL_MILLIS);
+		boolean calm = AuraClientConfig.calm();
+		float r = calm ? 14 : 4 + 20 * easeOut(Math.min(1f, t * 1.6f));
+		float fade = (1 - t) * (1 - t) * strength;
+		int aura = ClientAuraState.aura == null ? 0xFFFFFF : HudColors.mix(HudColors.of(ClientAuraState.aura), 0xFFFFFF, 0.35f);
+		int rgb = HudColors.mix(0xFFFFFF, aura, Math.min(1f, t * 3f));
+		int dots = Math.max(24, (int) (r * 5));
+		int thick = t < .2f ? 2 : 1;
+		for (int i = 0; i < dots; i++) {
+			double a = i * Math.PI * 2 / dots;
+			int px = (int) Math.round(cx + Math.cos(a) * r), py = (int) Math.round(cy + Math.sin(a) * r);
+			g.fill(px, py, px + thick, py + thick, HudColors.argb(fade, rgb));
+		}
+		// glints: little four-point stars that pop big, then shrink, as the ring spreads
+		int stars = killBig ? 8 : 4;
+		float pop = t < .15f ? t / .15f : Math.max(0f, 1 - (t - .15f) / .6f);
+		int len = Math.round(1 + 3 * pop);
+		for (int i = 0; i < stars; i++) {
+			double a = (i + .5 * seed) * Math.PI * 2 / stars + .4;
+			int sx = (int) Math.round(cx + Math.cos(a) * (r + 3)), sy = (int) Math.round(cy + Math.sin(a) * (r + 3));
+			int col = HudColors.argb(Math.min(1f, pop * strength), 0xFFFFFF);
+			g.fill(sx - len, sy, sx + len + 1, sy + 1, col);
+			g.fill(sx, sy - len, sx + 1, sy + len + 1, col);
+		}
+	}
+
+	// Dev hook (-Paurapoints.hitdemo=1): replays a fixed hit sequence on the client, no server needed:
+	// one plain hit, a plain kill, then a five-hit streak ending in a kill. Used for playtest recordings.
+	private static int demoTick = -1;
+	private static final int[][] DEMO = {{40, 0}, {110, 1}, {190, 0}, {196, 0}, {202, 0}, {208, 0}, {214, 0}, {222, 1}};
+
+	private static void devDemo(Minecraft mc) {
+		if (!Boolean.getBoolean("aurapoints.hitdemo")) return;
+		if (demoTick < 0) demoTick = 0;
+		demoTick++;
+		for (int[] d : DEMO) if (demoTick == 200 + d[0]) {
+			com.toast.aurapoints.AuraPoints.LOGGER.info("[hitdemo] tick {} hit kind {}", demoTick, d[1]);
+			handle(mc, new FxPacket(FxPacket.HIT, d[1], ""));
 		}
 	}
 

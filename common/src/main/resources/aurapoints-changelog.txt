@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.60.0
+- Kills now ring a soft glass bell, and a ring with little glints spreads from your crosshair in your aura's colour. Land a streak of hits and the kill rings a bigger bell with two rings; the hit marks grow with the streak. Everyone must update the mod.
+
 == 5.59.0
 - Verdant gets three farming perks: Green Thumb (a 25% chance of a second harvest from fully grown crops), Well Fed (plant foods fill you up 50% more) and Thornless (berry bushes and cacti hurt half as much, and not at all from Mastery V). Everyone must update the mod.
 

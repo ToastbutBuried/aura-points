@@ -255,6 +255,7 @@ public final class AuraSounds {
 	public static final DeferredHolder<SoundEvent, SoundEvent> UI_ALMOST_READY = register("ui.almost_ready");
 	public static final DeferredHolder<SoundEvent, SoundEvent> UI_HIT = register("ui.hit");
 	public static final DeferredHolder<SoundEvent, SoundEvent> UI_KILL = register("ui.kill");
+	public static final DeferredHolder<SoundEvent, SoundEvent> UI_KILL_BIG = register("ui.kill_big");
 	public static final DeferredHolder<SoundEvent, SoundEvent> UI_ROLL_TICK = register("ui.roll_tick");
 	public static final DeferredHolder<SoundEvent, SoundEvent> UI_ROLL_LAND = register("ui.roll_land");
 	public static final DeferredHolder<SoundEvent, SoundEvent> UI_STUNT = register("ui.stunt");
