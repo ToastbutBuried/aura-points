@@ -160,7 +160,8 @@ public final class StormFx {
 			current = type;
 			storm = found;
 		}
-		shown += (target - shown) * 0.05f;
+		// out of the Overworld the storm is gone at once, not faded out over the Nether
+		shown = mc.level == null || mc.level.dimension() != Level.OVERWORLD ? 0f : shown + (target - shown) * 0.05f;
 		if (shown < 0.005f && target == 0f) {
 			shown = 0f;
 			current = null;
