@@ -1201,6 +1201,7 @@ public final class Rifts {
 		Trials.forgetPreloads();
 		SkillChecks.clear();
 		RiftCam.forget();
+		TrialRings.forget();
 		if (tear != null && tear.gate != null) tear.gate.remove();
 		for (RiftGate g : CLOSING) g.remove();
 		CLOSING.clear();
