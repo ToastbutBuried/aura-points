@@ -45,6 +45,8 @@ import java.util.UUID;
  *
  * /aura ticket <title> <message>  - send a ticket right away (title: one word or "a quoted title")
  * /aura ticket <title>            - ticket mode: your next chat message is the ticket (nobody else sees it)
+ * (then the ticket asks "when did it happen?": your next chat message or a button, see TicketLogs.parseWhen;
+ *  the server log around that time is saved with the ticket)
  * /aura ticket cancel             - leave ticket mode
  * /aura ticket status             - your tickets and where they are
  * /aura tickets ...               - reviewers (config list) and the console: list, view, vote, wip/done/reopen
@@ -97,6 +99,12 @@ public final class Tickets {
 		State state = State.OPEN;
 		long created;
 		String pos;
+		/** When it happened, as the author said it (0 on tickets from before the question was asked). */
+		long eventAt;
+		/** Server-log snapshot around eventAt: its file name in logs/, or null. */
+		String log;
+		/** Short result of the snapshot, for reviewers. */
+		String logNote;
 		/** Reviewer key (lowercase name or uuid, as listed in the config) -> vote; only while OPEN. */
 		Map<String, Vote> votes = new LinkedHashMap<>();
 		List<Change> history = new ArrayList<>();
@@ -128,6 +136,14 @@ public final class Tickets {
 	private static Config config;
 	/** Players in ticket mode -> the title they gave. No timeout. */
 	private static final Map<UUID, String> pendingTitle = new HashMap<>();
+
+	/** A written ticket waiting for its "when did it happen" answer. */
+	private record Draft(String title, String body) {
+	}
+
+	private static final Map<UUID, Draft> pendingTime = new HashMap<>();
+	private static final DateTimeFormatter CLOCK = DateTimeFormatter.ofPattern("HH:mm z", Locale.ENGLISH).withZone(ZoneId.systemDefault());
+	private static final long LOG_KEEP_DAYS_MS = 30L * 86_400_000L;
 
 	private static Path dir() {
 		return FMLPaths.CONFIGDIR.get().resolve("aurapoints-tickets");
@@ -238,6 +254,27 @@ public final class Tickets {
 		store = null;
 		store();
 		reloadConfig();
+		pruneLogs();
+	}
+
+	/** Log snapshots of tickets closed (DONE/DECLINED) for 30 days are deleted; the ticket keeps a note. */
+	private static void pruneLogs() {
+		long cutoff = System.currentTimeMillis() - LOG_KEEP_DAYS_MS;
+		boolean changed = false;
+		for (Ticket t : store().tickets) {
+			if (t.log == null || (t.state != State.DONE && t.state != State.DECLINED)) continue;
+			long closed = t.history.isEmpty() ? t.created : t.history.get(t.history.size() - 1).at;
+			if (closed > cutoff) continue;
+			try {
+				Files.deleteIfExists(dir().resolve("logs").resolve(t.id + ".log"));
+			} catch (IOException e) {
+				continue;
+			}
+			t.log = null;
+			t.logNote = "log deleted 30 days after the ticket was closed";
+			changed = true;
+		}
+		if (changed) save();
 	}
 
 	private static void save() {
@@ -266,6 +303,12 @@ public final class Tickets {
 			sb.append("    by ").append(t.author).append(", ").append(TIME.format(Instant.ofEpochMilli(t.created)));
 			if (t.pos != null) sb.append(" (").append(t.pos).append(')');
 			sb.append('\n');
+			if (t.eventAt > 0) {
+				sb.append("    happened ").append(TIME.format(Instant.ofEpochMilli(t.eventAt)));
+				sb.append(t.log != null ? "  |  log: aurapoints-tickets/logs/" + t.log : "  |  no log");
+				if (t.logNote != null) sb.append(" (").append(t.logNote).append(')');
+				sb.append('\n');
+			}
 			for (Change c : t.history) {
 				sb.append("    ").append(verb(c.state)).append(" by ").append(c.by).append(' ').append(TIME.format(Instant.ofEpochMilli(c.at)));
 				if (c.note != null && !c.note.isBlank()) sb.append(": \"").append(c.note).append('"');
@@ -318,6 +361,8 @@ public final class Tickets {
 						.executes(Tickets::usage)
 						.then(Commands.literal("cancel").executes(Tickets::cancel))
 						.then(Commands.literal("status").executes(Tickets::status))
+						.then(Commands.literal("when")
+								.then(Commands.argument("time", StringArgumentType.greedyString()).executes(Tickets::when)))
 						.then(Commands.argument("title", StringArgumentType.string())
 								.executes(ctx -> startTicketMode(ctx, StringArgumentType.getString(ctx, "title")))
 								.then(Commands.argument("message", StringArgumentType.greedyString())
@@ -373,7 +418,7 @@ public final class Tickets {
 		CommandSourceStack src = ctx.getSource();
 		src.sendSystemMessage(Component.literal("Tickets - ask for changes to the mod:").withStyle(ChatFormatting.GOLD));
 		src.sendSystemMessage(Component.literal("  /aura ticket <title> <message>").withStyle(ChatFormatting.YELLOW)
-				.append(Component.literal(" - send it right away").withStyle(ChatFormatting.GRAY)));
+				.append(Component.literal(" - send it (you're then asked when it happened)").withStyle(ChatFormatting.GRAY)));
 		src.sendSystemMessage(Component.literal("  /aura ticket <title>").withStyle(ChatFormatting.YELLOW)
 				.append(Component.literal(" - then type the ticket as your next chat message").withStyle(ChatFormatting.GRAY)));
 		src.sendSystemMessage(Component.literal("  /aura ticket status").withStyle(ChatFormatting.YELLOW)
@@ -419,6 +464,7 @@ public final class Tickets {
 			ctx.getSource().sendFailure(Component.literal(problem));
 			return 0;
 		}
+		pendingTime.remove(player.getUUID());
 		pendingTitle.put(player.getUUID(), title.strip());
 		player.sendSystemMessage(Component.literal("Ticket \"" + title.strip() + "\": type it in chat now. Nobody else will see it. ")
 				.withStyle(ChatFormatting.GOLD)
@@ -430,7 +476,9 @@ public final class Tickets {
 
 	private static int cancel(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
 		ServerPlayer player = ctx.getSource().getPlayerOrException();
-		if (pendingTitle.remove(player.getUUID()) != null) {
+		boolean was = pendingTitle.remove(player.getUUID()) != null;
+		was |= pendingTime.remove(player.getUUID()) != null;
+		if (was) {
 			player.sendSystemMessage(Component.literal("Ticket cancelled, chat is normal again.").withStyle(ChatFormatting.GRAY));
 			return 1;
 		}
@@ -438,7 +486,7 @@ public final class Tickets {
 		return 0;
 	}
 
-	/** Saves a new ticket. False (and a message) if it was refused. */
+	/** Checks a written ticket, then asks when it happened; it is saved with that answer. False (and a message) if it was refused. */
 	private static boolean submit(ServerPlayer player, String title, String body) {
 		title = title.strip();
 		body = body.strip();
@@ -447,6 +495,56 @@ public final class Tickets {
 		if (problem == null && body.isEmpty()) problem = "The ticket is empty.";
 		if (problem == null && body.length() > config().maxLength)
 			problem = "Too long: " + body.length() + "/" + config().maxLength + " characters. Shorten it a bit.";
+		if (problem != null) {
+			player.sendSystemMessage(Component.literal(problem).withStyle(ChatFormatting.RED));
+			return false;
+		}
+		pendingTitle.remove(player.getUUID());
+		pendingTime.put(player.getUUID(), new Draft(title, body));
+		askWhen(player, title);
+		return true;
+	}
+
+	/** "When did it happen?" with the server clock, the accepted ways to write it and quick buttons. */
+	private static void askWhen(ServerPlayer player, String title) {
+		long now = System.currentTimeMillis();
+		player.sendSystemMessage(Component.literal("Almost sent: \"" + title + "\". When did it happen? ").withStyle(ChatFormatting.GOLD)
+				.append(Component.literal("(server time now: " + CLOCK.format(Instant.ofEpochMilli(now)) + ")").withStyle(ChatFormatting.GRAY)));
+		player.sendSystemMessage(Component.literal("Type it in chat: now, 5 min ago, 2 hours ago, or a time like "
+				+ CLOCK.format(Instant.ofEpochMilli(now - 10 * 60_000L)).substring(0, 5) + ". It lets us find it in the server log.").withStyle(ChatFormatting.YELLOW));
+		MutableComponent row = Component.literal("  ");
+		String[][] quick = {{"[just now]", "now"}, {"[2 min ago]", "2 min ago"}, {"[5 min ago]", "5 min ago"},
+				{"[15 min ago]", "15 min ago"}, {"[1 hour ago]", "1 hour ago"}};
+		for (String[] q : quick) row.append(button(q[0], ChatFormatting.AQUA, "/aura ticket when " + q[1], "It happened " + q[1])).append(Component.literal(" "));
+		row.append(button("[Cancel]", ChatFormatting.RED, "/aura ticket cancel", "Throw the ticket away"));
+		player.sendSystemMessage(row);
+	}
+
+	/** The answer to askWhen (chat message or /aura ticket when). Wrong answers keep the draft and ask again. */
+	private static boolean answerWhen(ServerPlayer player, String text) {
+		Draft d = pendingTime.get(player.getUUID());
+		if (d == null) return false;
+		TicketLogs.When when = TicketLogs.parseWhen(text, System.currentTimeMillis(), ZoneId.systemDefault());
+		if (when.error() != null) {
+			player.sendSystemMessage(Component.literal(when.error() + " (or /aura ticket cancel)").withStyle(ChatFormatting.RED));
+			return false;
+		}
+		pendingTime.remove(player.getUUID());
+		return save(player, d.title(), d.body(), when.at());
+	}
+
+	private static int when(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		ServerPlayer player = ctx.getSource().getPlayerOrException();
+		if (!pendingTime.containsKey(player.getUUID())) {
+			ctx.getSource().sendFailure(Component.literal("You're not sending a ticket right now."));
+			return 0;
+		}
+		return answerWhen(player, StringArgumentType.getString(ctx, "time")) ? 1 : 0;
+	}
+
+	/** Saves the ticket with the time it happened and the log around it. False (and a message) if it was refused now. */
+	private static boolean save(ServerPlayer player, String title, String body, long eventAt) {
+		String problem = refusal(player);
 		if (problem != null) {
 			player.sendSystemMessage(Component.literal(problem).withStyle(ChatFormatting.RED));
 			return false;
@@ -460,9 +558,11 @@ public final class Tickets {
 		t.body = body;
 		t.created = System.currentTimeMillis();
 		t.pos = player.level().dimension().location().getPath() + " " + player.getBlockX() + " " + player.getBlockY() + " " + player.getBlockZ();
+		t.eventAt = eventAt;
+		snapshotLog(t);
 		s.tickets.add(t);
 		save();
-		AuraPoints.LOGGER.info("Ticket #{} from {}: {}", t.id, t.author, t.title);
+		AuraPoints.LOGGER.info("Ticket #{} from {}: {} (happened {})", t.id, t.author, t.title, TIME.format(Instant.ofEpochMilli(eventAt)));
 		player.sendSystemMessage(Component.literal("Ticket #" + t.id + " \"" + t.title + "\" sent, thanks! ").withStyle(ChatFormatting.GREEN)
 				.append(Component.literal("Check on it with /aura ticket status.").withStyle(ChatFormatting.GRAY)));
 		MinecraftServer server = player.getServer();
@@ -475,9 +575,28 @@ public final class Tickets {
 		return true;
 	}
 
-	/** Ticket mode: the next chat message is the ticket and never reaches chat. */
+	/** Copies the server log around when it happened next to the tickets (logs/<id>.log). A log problem never loses the ticket. */
+	private static void snapshotLog(Ticket t) {
+		ZoneId zone = ZoneId.systemDefault();
+		long now = System.currentTimeMillis();
+		String header = "Ticket #" + t.id + " \"" + t.title + "\" from " + t.author + "\nhappened "
+				+ CLOCK.format(Instant.ofEpochMilli(t.eventAt)) + " on " + TIME.format(Instant.ofEpochMilli(t.eventAt)).substring(0, 10)
+				+ " (server time), log from " + CLOCK.format(Instant.ofEpochMilli(t.eventAt - TicketLogs.BEFORE_MS))
+				+ " to " + CLOCK.format(Instant.ofEpochMilli(Math.min(now, t.eventAt + TicketLogs.AFTER_MS)));
+		Path source = FMLPaths.CONFIGDIR.get().resolveSibling("logs").resolve("latest.log");
+		TicketLogs.Captured c = TicketLogs.capture(source, dir().resolve("logs").resolve(t.id + ".log"), t.eventAt, now, t.author, header, zone);
+		t.log = c.lines() > 0 ? t.id + ".log" : null;
+		t.logNote = c.note();
+	}
+
+	/** Ticket mode: the next chat message is the ticket (or, after it, the answer to "when did it happen") and never reaches chat. */
 	public static void onChat(ServerChatEvent event) {
 		ServerPlayer player = event.getPlayer();
+		if (pendingTime.containsKey(player.getUUID())) {
+			event.setCanceled(true);
+			answerWhen(player, event.getRawText());
+			return;
+		}
 		String title = pendingTitle.get(player.getUUID());
 		if (title == null) return;
 		event.setCanceled(true);
@@ -751,6 +870,11 @@ public final class Tickets {
 				.append(Component.literal("\nby " + t.author + ", " + TIME.format(Instant.ofEpochMilli(t.created))
 						+ (forReviewer && t.pos != null ? " (" + t.pos + ")" : "")).withStyle(ChatFormatting.DARK_GRAY))
 				.append(Component.literal("\n" + t.body).withStyle(ChatFormatting.WHITE));
+		if (t.eventAt > 0) {
+			c.append(Component.literal("\nhappened " + TIME.format(Instant.ofEpochMilli(t.eventAt))
+					+ (forReviewer ? (t.log != null ? ", log: logs/" + t.log : ", no log") + (t.logNote != null ? " (" + t.logNote + ")" : "") : ""))
+					.withStyle(ChatFormatting.DARK_GRAY));
+		}
 		for (Change ch : t.history) {
 			c.append(Component.literal("\n" + verb(ch.state) + " by " + ch.by + ", " + TIME.format(Instant.ofEpochMilli(ch.at))
 					+ (ch.note != null && !ch.note.isBlank() ? ": \"" + ch.note + "\"" : "")).withStyle(ch.state.color));
@@ -802,5 +926,6 @@ public final class Tickets {
 
 	public static void onLogout(ServerPlayer player) {
 		pendingTitle.remove(player.getUUID());
+		pendingTime.remove(player.getUUID());
 	}
 }
