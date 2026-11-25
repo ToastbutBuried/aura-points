@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.57.1
+- The Reaper looks the part: no more eyes, a slowly turning crown of violet spikes, shoulder horns, a glowing blade edge, and a faint aura of motes and mist around it.
+- Its moves flow better: it breathes and hovers while ready, coils before a slam and settles after it. A slam ordered at summon first rises out of the ground (datapacks: Playing stays "slam", PlayingTicks run 14 higher, impact at 31).
+
 == 5.57.0
 - Tickets now ask "when did it happen?" after you write them (type it, like "5 min ago" or "19:15", or click a button). It lets us find the problem in the server log.
 
