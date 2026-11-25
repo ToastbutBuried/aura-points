@@ -566,13 +566,21 @@ public final class StormFx {
 	/** An Iris shader pack is on: shader packs draw plain coloured geometry wrong (black), so no wall then. */
 	private static boolean shaderPack() {
 		try {
-			Class<?> api = Class.forName("net.irisshaders.iris.api.v0.IrisApi");
-			Object inst = api.getMethod("getInstance").invoke(null);
-			return (Boolean) api.getMethod("isShaderPackInUse").invoke(inst);
+			if (!irisLooked) {
+				irisLooked = true;
+				Class<?> api = Class.forName("net.irisshaders.iris.api.v0.IrisApi");
+				iris = api.getMethod("getInstance").invoke(null);
+				irisInUse = api.getMethod("isShaderPackInUse");
+			}
+			return irisInUse != null && (Boolean) irisInUse.invoke(iris);
 		} catch (Throwable e) {
 			return false;
 		}
 	}
+
+	private static boolean irisLooked;
+	private static Object iris;
+	private static java.lang.reflect.Method irisInUse;
 
 	@SubscribeEvent
 	public static void onRenderLevel(RenderLevelStageEvent event) {
