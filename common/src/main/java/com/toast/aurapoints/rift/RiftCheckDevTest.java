@@ -78,6 +78,14 @@ public final class RiftCheckDevTest {
 			TrialRings.purgeLent(a);
 			log("wings kept through the landing, then taken: chestplates " + chests(a) + " (must be 1)");
 			a.getInventory().clearContent();
+			bells(rift, (TrialBells) run.trials[3], a, b);
+			// the crafting grid
+			r.devLend(a);
+			a.inventoryMenu.getCraftSlots().setItem(0, a.getItemBySlot(EquipmentSlot.CHEST).copy());
+			a.setItemSlot(EquipmentSlot.CHEST, ItemStack.EMPTY);
+			TrialRings.purgeLent(a);
+			log("wings in the crafting grid: left there " + !a.inventoryMenu.getCraftSlots().isEmpty() + " (must be false)");
+			a.getInventory().clearContent();
 			// Hardcore: the fallen one holds a shard
 			Rifts.devSolve(a, 1);
 			for (var it : rift.getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class, new net.minecraft.world.phys.AABB(Vec3.atCenterOf(run.hub()), Vec3.atCenterOf(run.hub())).inflate(500), e -> e.getTags().contains(Rifts.SHARD_TAG))) it.discard();
@@ -98,6 +106,18 @@ public final class RiftCheckDevTest {
 			});
 			return 1;
 		})));
+	}
+
+	/** Someone comes into the hall in the middle of the song. */
+	private static void bells(ServerLevel rift, TrialBells t, ServerPlayer a, ServerPlayer b) {
+		t.dev = true;
+		t.begin(rift, List.of(a));
+		long now = rift.getGameTime() + 5;
+		for (int k = 0; k < 4; k++) t.tick(rift, List.of(a), now++);
+		boolean alone = t.hears.getOrDefault(a.getUUID(), 0) == 15;
+		for (int k = 0; k < 6; k++) t.tick(rift, List.of(a, b), now++);
+		log("bells: alone hears all " + alone + " (must be true), then both, all four between them "
+				+ ((t.hears.getOrDefault(a.getUUID(), 0) | t.hears.getOrDefault(b.getUUID(), 0)) == 15 && t.hears.getOrDefault(b.getUUID(), 0) != 0) + " (must be true)");
 	}
 
 	private static void keystones(MinecraftServer server, ServerLevel rift) {
