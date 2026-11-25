@@ -147,8 +147,12 @@ final class RiftGate {
 		d.load(t);
 		d.moveTo(center.x, center.y, center.z, 0, 0);
 		d.addTag(Rifts.TEAR_TAG);
-		level.addFreshEntity(d);
 		return d;
+	}
+
+	/** The relic into the world, once Rifts knows this gate (an unknown tear display counts as a leftover, Rifts.isLeftover). */
+	void show() {
+		if (core != null) level.addFreshEntity(core);
 	}
 
 	private static ListTag floats(float... v) {

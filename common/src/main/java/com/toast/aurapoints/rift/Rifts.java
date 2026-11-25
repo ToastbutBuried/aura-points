@@ -226,6 +226,7 @@ public final class Rifts {
 		ServerPlayer facing = near != null ? near : ow.getNearestPlayer(pos.x, pos.y, pos.z, 64, false) instanceof ServerPlayer sp ? sp : null;
 		Vec3 face = facing == null ? Vec3.directionFromRotation(0, ow.random.nextFloat() * 360f) : facing.position().subtract(ground);
 		tear.gate = new RiftGate(ow, aura, ground, face);
+		tear.gate.show();
 		tear.label = (Display.TextDisplay) com.toast.aurapoints.arena.Holograms.makePublic(ow, tear.gate.center.add(0, RiftGate.B + 2.0, 0), label(aura, AuraConfig.RIFT_OPEN_SECONDS), 0.8f, 0x40000000);
 		if (tear.label != null) {
 			tear.label.addTag(TEAR_TAG);
