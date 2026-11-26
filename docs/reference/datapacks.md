@@ -37,6 +37,7 @@ execute if score @s aura_branch matches 2 run say Magma fireball!
 | `#aurapoints:bosses` | killing one unlocks the PvP skill tree (and pays Aura). Default: Wither, Ender Dragon, Warden, Elder Guardian |
 | `#aurapoints:stunt_bosses` | boss versions of the stunt advancements |
 | `#aurapoints:easy_mobs` | common monsters (zombies, skeletons, spiders, creepers ...): abilities deal `EASY_MOB_DAMAGE_MULTIPLIER` times their damage to them |
+| `#aurapoints:boss` | skipped by the PvE ability damage buff (`ABILITY_PVE_DAMAGE_MULTIPLIER`, default 1.25). Empty by default |
 | `#aurapoints:dragon_passable` (block) | blocks the Shadow dragon head flies through (default: leaves) |
 
 ## Loot conditions
