@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.61.0
+- Floating damage numbers over everything you hit: gold on monsters and animals, red on players, bigger on a kill (toggle: Damage numbers). Every ability now hits monsters and champions 25% harder; entities in the new #aurapoints:boss tag are left out. Everyone must update the mod.
+
 == 5.60.0
 - Kills now ring a soft glass bell, and a ring with little glints spreads from your crosshair in your aura's colour. Land a streak of hits and the kill rings a bigger bell with two rings; the hit marks grow with the streak. Everyone must update the mod.
 

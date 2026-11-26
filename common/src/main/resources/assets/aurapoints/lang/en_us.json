@@ -147,6 +147,8 @@
   "aurapoints.configuration.feedback": "Feedback",
   "aurapoints.configuration.feedback.tooltip": "Hit marks, popups, screen edges and camera feel.",
   "aurapoints.configuration.hitConfirm": "Hit marks",
+  "aurapoints.configuration.damageNumbers": "Damage numbers",
+  "aurapoints.configuration.damageNumbers.tooltip": "Floating damage numbers over what you hit: gold for monsters and animals, red for players, bigger on a kill.",
   "aurapoints.configuration.hitConfirm.tooltip": "A mark on the crosshair when one of your abilities hits, bigger on a kill.",
   "aurapoints.configuration.stuntPopups": "Stunt popups",
   "aurapoints.configuration.stuntPopups.tooltip": "Show a stunt's name on screen when you pull one off.",

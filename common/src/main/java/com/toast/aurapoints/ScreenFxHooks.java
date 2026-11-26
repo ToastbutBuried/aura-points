@@ -58,6 +58,9 @@ public final class ScreenFxHooks {
 		if (damage <= 0 || victim == attacker) return;
 		boolean ability = abilityVictim == victim && abilityTick == victim.level().getGameTime();
 		if (ability) abilityVictim = null;
+		// the floating number: every hit of yours, PvE and PvP styled apart on the client
+		NetworkHandler.sendFx(attacker, FxPacket.DAMAGE, Math.round(damage * 10f),
+				victim.getId() + ";" + ((victim instanceof Player ? 1 : 0) | (victim.isDeadOrDying() ? 2 : 0) | (ability ? 4 : 0)));
 		Entity direct = source.getDirectEntity();
 		boolean projectile = direct != null && direct != attacker && !(direct instanceof AbstractArrow);
 		if (!ability && !projectile) return;

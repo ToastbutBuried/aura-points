@@ -316,6 +316,11 @@ public final class AuraConfig {
 	 */
 	public static float EASY_MOB_DAMAGE_MULTIPLIER = 1.5f;
 	/**
+	 * Every ability's own damage against non-player targets (monsters, animals, arena and rift champions) is
+	 * multiplied by this, on top of EASY_MOB_DAMAGE_MULTIPLIER, except entities in #aurapoints:boss. 1.0 = no buff.
+	 */
+	public static float ABILITY_PVE_DAMAGE_MULTIPLIER = 1.25f;
+	/**
 	 * Every aura's look on its holder (ability/AuraHalo): a halo above the head that drips the aura's
 	 * particles, and specks circling the body. Redrawn every INTERVAL_TICKS; HALO_POINTS specks in a
 	 * ring of HALO_RADIUS blocks; DROP_MULTIPLIER scales how often it drips (0 = never). The holder

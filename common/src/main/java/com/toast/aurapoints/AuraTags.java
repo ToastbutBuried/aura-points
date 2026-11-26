@@ -33,6 +33,10 @@ public final class AuraTags {
 	public static final TagKey<EntityType<?>> EASY_MOBS =
 			TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("aurapoints", "easy_mobs"));
 
+	/** Entities that ABILITY_PVE_DAMAGE_MULTIPLIER skips (the PvE buff). Empty by default; a datapack adds the ids. */
+	public static final TagKey<EntityType<?>> BOSS =
+			TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("aurapoints", "boss"));
+
 	public static final TagKey<EntityType<?>> STUNT_BOSSES =
 			TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.fromNamespaceAndPath("aurapoints", "stunt_bosses"));
 

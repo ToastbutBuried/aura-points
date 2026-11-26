@@ -987,7 +987,7 @@ public final class AuraAbilities {
 
 	/**
 	 * An ability's damage against {@code target}: EASY_MOB_DAMAGE_MULTIPLIER times as much on the easy
-	 * monsters, ABILITY_PLAYER_DAMAGE_MULTIPLIER times as much on players. Every ability's damage goes through here.
+	 * monsters, ABILITY_PVE_DAMAGE_MULTIPLIER times as much on anything but a #aurapoints:boss, ABILITY_PLAYER_DAMAGE_MULTIPLIER times as much on players. Every ability's damage goes through here.
 	 */
 	public static float vsMob(net.minecraft.world.entity.Entity target, float damage) {
 		// the hurt() this damage is about to go into is an ability's: see isAbilityHit
@@ -999,7 +999,9 @@ public final class AuraAbilities {
 	/** vsMob's multipliers without marking the hit (for a bonus added onto a melee hit already under way). */
 	public static float scaled(net.minecraft.world.entity.Entity target, float damage) {
 		if (target instanceof net.minecraft.world.entity.player.Player) return damage * Math.max(0f, AuraConfig.ABILITY_PLAYER_DAMAGE_MULTIPLIER);
-		return target.getType().is(com.toast.aurapoints.AuraTags.EASY_MOBS) ? damage * AuraConfig.EASY_MOB_DAMAGE_MULTIPLIER : damage;
+		if (target.getType().is(com.toast.aurapoints.AuraTags.EASY_MOBS)) damage *= AuraConfig.EASY_MOB_DAMAGE_MULTIPLIER;
+		if (!target.getType().is(com.toast.aurapoints.AuraTags.BOSS)) damage *= Math.max(0f, AuraConfig.ABILITY_PVE_DAMAGE_MULTIPLIER);
+		return damage;
 	}
 
 	/** The entity an ability's hurt() is aimed at right now (set by vsMob, just before the hurt call), and when. */

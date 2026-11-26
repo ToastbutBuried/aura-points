@@ -49,6 +49,9 @@ public record FxPacket(byte kind, int value, String text) implements CustomPacke
 	 */
 	public static final byte RIFT_MUSIC = 14;
 
+	/** A floating damage number (5.61, client/DamageNumbers): value = tenths of a health point, text = "entity id;flags" (flags bit 1 = a player, bit 2 = a kill, bit 4 = an ability hit). */
+	public static final byte DAMAGE = 15;
+
 	public static final Type<FxPacket> TYPE =
 			new Type<>(ResourceLocation.fromNamespaceAndPath("aurapoints", "fx"));
 

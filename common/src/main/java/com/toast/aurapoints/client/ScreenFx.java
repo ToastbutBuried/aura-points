@@ -98,6 +98,7 @@ public final class ScreenFx {
 				}
 				if (kill) streak = 0;
 			}
+			case FxPacket.DAMAGE -> DamageNumbers.add(mc, p.value(), p.text());
 			case FxPacket.STUNT -> {
 				if (!AuraClientConfig.STUNT_POPUPS.get()) return;
 				stunts.add(new Stunt(title(p.text()), p.value() == 1, now));

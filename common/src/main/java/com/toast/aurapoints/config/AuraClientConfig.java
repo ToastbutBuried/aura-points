@@ -34,7 +34,7 @@ public final class AuraClientConfig {
 	public static final ModConfigSpec.DoubleValue CHARGE_SCALE;
 
 	// feedback
-	public static final ModConfigSpec.BooleanValue HIT_CONFIRM, STUNT_POPUPS, POINTS_TOAST, ROLL_REEL, STATUS_OVERLAYS, KEYBIND_WARNING;
+	public static final ModConfigSpec.BooleanValue HIT_CONFIRM, DAMAGE_NUMBERS, STUNT_POPUPS, POINTS_TOAST, ROLL_REEL, STATUS_OVERLAYS, KEYBIND_WARNING;
 	public static final ModConfigSpec.DoubleValue OVERLAY_STRENGTH, CAMERA_SHAKE, DRAGON_TRANSPARENCY;
 	public static final ModConfigSpec.BooleanValue DRAGON_SHADER_SUPPORT, DRAGON_HIDE_FIRST_PERSON;
 	public static final ModConfigSpec.BooleanValue FOV_KICK, REDUCED_MOTION;
@@ -232,6 +232,9 @@ public final class AuraClientConfig {
 		HIT_CONFIRM = b.comment("A mark on the crosshair when one of your abilities hits (bigger on a kill).")
 				.translation("aurapoints.configuration.hitConfirm")
 				.define("hitConfirm", true);
+		DAMAGE_NUMBERS = b.comment("Floating damage numbers over what you hit: one colour for players, another for everything else.")
+				.translation("aurapoints.configuration.damageNumbers")
+				.define("damageNumbers", true);
 		STUNT_POPUPS = b.comment("Show a stunt's name on screen when you pull one off.")
 				.translation("aurapoints.configuration.stuntPopups")
 				.define("stuntPopups", true);
