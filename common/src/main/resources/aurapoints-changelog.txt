@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.61.1
+- The Reaper moves smoothly now: no more twisting arms, and its overhead slam winds the scythe far back over its head and hammers it down hard (same timing as before).
+
 == 5.61.0
 - Floating damage numbers over everything you hit: gold on monsters and animals, red on players, bigger on a kill (toggle: Damage numbers). Every ability now hits monsters and champions 25% harder; entities in the new #aurapoints:boss tag are left out. Everyone must update the mod.
 
