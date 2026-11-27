@@ -120,6 +120,9 @@ public final class ClientAuraHud {
 		List<Ability> out = new ArrayList<>();
 		for (Ability a : aura.abilities(aura == ClientAuraState.aura ? ClientAuraState.branch : null)) {
 			// Ice Shell is a passive, but it has a rebuild timer worth showing
+			// only what a key casts (Ice Shell: its rebuild timer). Arcane Bolt went from a key to the staff's right-click in 5.63.0,
+			// so a player who bought it before still "owns" it: it must not take a slot
+			if (!a.active && a != Ability.ICE_SHELL) continue;
 			if (ICON_ORDER.contains(a) && !ClientAuraState.isDisabled(a) && (ClientAuraState.isOwned(a) || a == Ability.ICE_SHELL)) out.add(a);
 		}
 		// an awakened aura's Ultimate (the server lists it with the owned abilities)
