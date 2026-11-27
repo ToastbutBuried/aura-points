@@ -113,6 +113,13 @@ public final class ClientCooldowns {
 	}
 
 	/** An Ability key went down (ClientKeyHandler): punch the slot, or shake it if it's still cooling down. */
+	/** When a Mage spell was last refused for lack of mana (the mana bar flashes). */
+	private static Long lastManaDenied = null;
+
+	public static Long lastDenied() {
+		return lastManaDenied;
+	}
+
 	public static void onKeyPressed(int index) {
 		AuraType aura = ClientAuraState.aura;
 		Minecraft mc = Minecraft.getInstance();
@@ -126,6 +133,7 @@ public final class ClientCooldowns {
 		boolean starved = ClientAuraState.mana >= 0 && ClientAuraState.manaCost(ability) > ClientAuraState.mana + 1.0e-3f;
 		if (cd != null && now < cd[1] || starved) {
 			DENIED_AT.put(ability, now);
+			if (starved) lastManaDenied = now;
 			if (AuraClientConfig.NOT_READY_SOUND.get()) ClientSounds.ui(AuraSounds.UI_NOT_READY.value(), 1.0f, 1.0f);
 		} else {
 			PRESSED_AT.put(ability, now);

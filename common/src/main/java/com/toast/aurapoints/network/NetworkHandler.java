@@ -567,8 +567,8 @@ public final class NetworkHandler {
 					com.toast.aurapoints.ability.Resonance.graspRelease(player, now);
 				} else if (ability == AuraAbilities.Ability.PRISM_BEAM) {
 					com.toast.aurapoints.ability.Light.beamRelease(player, now);
-				} else if (ability == AuraAbilities.Ability.ARCANE_BOLT) {
-					com.toast.aurapoints.ability.Mage.boltRelease(player, now);
+				} else if (ability == AuraAbilities.Ability.ARCANE_RAY) {
+					com.toast.aurapoints.ability.Mage.rayRelease(player, now);
 				} else if (ability == AuraAbilities.Ability.ARCANE_ORB) {
 					com.toast.aurapoints.ability.Mage.orbRelease(player, now);
 				}

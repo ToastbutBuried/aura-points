@@ -203,7 +203,7 @@ public class AuraPoints {
 	/** Not obtainable: the HUD's ability icons, one per custom_model_data (network/ClientAuraHud.icon). */
 	public static final DeferredItem<Item> ABILITY_ICON = ITEMS.registerSimpleItem("ability_icon");
 	/** Mage (5.62.0): the wand Arcane Bolt, Barrier and Orb are cast with, and the spell looks (orb, wisp, prism) by custom_model_data. */
-	public static final DeferredItem<Item> APPRENTICE_WAND = ITEMS.registerItem("apprentice_wand", Item::new,
+	public static final DeferredItem<Item> APPRENTICE_WAND = ITEMS.registerItem("apprentice_wand", com.toast.aurapoints.item.ApprenticeStaffItem::new,
 			new Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.UNCOMMON));
 	public static final DeferredItem<Item> MAGE_FX = ITEMS.registerSimpleItem("mage_fx");
 

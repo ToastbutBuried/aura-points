@@ -304,6 +304,12 @@ public class BendingAnimation implements IAnimation {
 		float time = (player.tickCount + tickDelta);
 
 		float x, y, z;
+		// the Mage's staff in the other arm (off-hand, or a left-handed main hand): its moves mirrored onto that arm
+		boolean mirror = mageMirrored();
+		if (mirror) {
+			right = !right;
+			headYaw = -headYaw;
+		}
 		float aimX = -HALF_PI + pitch;
 		// a leaning or turned body takes the arms with it: aim against it, so throws still go at the crosshair
 		if (body != null) {
@@ -313,6 +319,7 @@ public class BendingAnimation implements IAnimation {
 		if (gestureTick >= 0 || fading == BendingAnimPacket.GESTURE) {
 			float t = fading == BendingAnimPacket.GESTURE ? gestureFadeT : gestureTick + tickDelta;
 			Vec3f g = Gestures.pose(gestureKind, gestureVariant, right, t, aimX, headYaw, value0);
+			if (mirror) g = new Vec3f(g.getX(), -g.getY(), -g.getZ());
 			return new Vec3f(Mth.lerp(w, value0.getX(), g.getX()), Mth.lerp(w, value0.getY(), g.getY()), Mth.lerp(w, value0.getZ(), g.getZ()));
 		}
 		if (slamTick >= 0 || fading == BendingAnimPacket.SLAM) {
@@ -475,6 +482,10 @@ public class BendingAnimation implements IAnimation {
 				z = side * 0.15f;
 			}
 			float hw = w * heldBlend();
+			if (mirror) {
+				y = -y;
+				z = -z;
+			}
 			return new Vec3f(Mth.lerp(hw, value0.getX(), x), Mth.lerp(hw, value0.getY(), y), Mth.lerp(hw, value0.getZ(), z));
 		}
 		if (throwTick >= 0 || fading == BendingAnimPacket.THROW) {
@@ -635,7 +646,35 @@ public class BendingAnimation implements IAnimation {
 	 * The body for this frame, {lean, twist, tilt, drop, stride, spread, plant} (see Gestures.body), already
 	 * blended in like the arms. Null when it stays as it is.
 	 */
+	/**
+	 * True while a Mage move (wand poses, GESTURE_MAGE) plays and the staff is in the LEFT arm: the off-hand of a right-handed
+	 * player, or the main hand of a left-handed one. Those moves are keyed for the right arm, so they get mirrored.
+	 */
+	private boolean mageMirrored() {
+		boolean mageMove = (gestureTick >= 0 || fading == BendingAnimPacket.GESTURE) ? gestureKind == BendingAnimPacket.GESTURE_MAGE
+				: heldShown() == BendingAnimPacket.WAND_POINT || heldShown() == BendingAnimPacket.WAND_RAISE;
+		if (!mageMove) return false;
+		boolean inMain = player.getMainHandItem().getItem() instanceof com.toast.aurapoints.item.ApprenticeStaffItem;
+		boolean inOff = player.getOffhandItem().getItem() instanceof com.toast.aurapoints.item.ApprenticeStaffItem;
+		if (!inMain && !inOff) return false;
+		boolean rightHanded = player.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT;
+		// the arm that holds it: main hand = the main arm, else the other one
+		boolean staffRight = inMain ? rightHanded : !rightHanded;
+		return !staffRight;
+	}
+
 	private float[] bodyPose(float tickDelta) {
+		float[] b = bodyPoseRaw(tickDelta);
+		// mirrored Mage moves turn and tilt the other way
+		if (b != null && mageMirrored()) {
+			b = b.clone();
+			b[1] = -b[1];
+			b[2] = -b[2];
+		}
+		return b;
+	}
+
+	private float[] bodyPoseRaw(float tickDelta) {
 		float w = Mth.lerp(tickDelta, weightO, weight);
 		if (w <= 0) return null;
 		w = w * w * (3 - 2 * w);

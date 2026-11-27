@@ -41,7 +41,7 @@ public enum AuraType {
 			Ability.HEMORRHAGE, Ability.BLOOD_TETHER, Ability.CRIMSON_SACRIFICE, Ability.BLOODLUST, Ability.THIN_BLOOD),
 	// 5.62.0: the mana aura (ability/Mage): no cooldowns, its spells spend mana; Focus = the mana passive, sneak to focus
 	MAGE("Mage", ChatFormatting.BLUE, 0x7A6CFF,
-			Ability.ARCANE_BOLT, Ability.ARCANE_BARRIER, Ability.ARCANE_ORB, Ability.FOCUS);
+			Ability.ARCANE_RAY, Ability.ARCANE_BARRIER, Ability.ARCANE_ORB, Ability.FOCUS, Ability.ARCANE_BOLT);
 	// Void was an aura until 5.10.0: it is Shadow's Dark branch now (ability/Branch.DARK); old saves are migrated on load
 
 	/** Abilities every aura has. */
@@ -105,7 +105,7 @@ public enum AuraType {
 			case EARTH -> java.util.List.of(Ability.PILLAR_LIFT, Ability.BOULDER_TOSS, Ability.QUAKE);
 			case LIGHT -> java.util.List.of(Ability.RADIANT_PULSE, Ability.SOLAR_FLASH, Ability.PRISM_BEAM);
 			case BLOOD -> java.util.List.of(Ability.HEMORRHAGE, Ability.BLOOD_TETHER, Ability.CRIMSON_SACRIFICE);
-			case MAGE -> java.util.List.of(Ability.ARCANE_BOLT, Ability.ARCANE_BARRIER, Ability.ARCANE_ORB);
+			case MAGE -> java.util.List.of(Ability.ARCANE_RAY, Ability.ARCANE_BARRIER, Ability.ARCANE_ORB);
 		};
 	}
 

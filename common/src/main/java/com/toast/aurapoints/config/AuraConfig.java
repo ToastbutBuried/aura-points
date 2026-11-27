@@ -644,9 +644,9 @@ public final class AuraConfig {
 	public static int EARTH_BULWARK_QUAKE_ABSORB_TICKS = 20 * 8;
 	public static double EARTH_BULWARK_ATTACK_FACTOR = 0.75;
 	/** Earth - Tectonic: harder Pillar Lift, Boulder Toss and Quake; weaker Stone Skin and Grounded. */
-	public static float EARTH_TECTONIC_PILLAR_DAMAGE = 6.0f;
+	public static float EARTH_TECTONIC_PILLAR_DAMAGE = 5.0f;
 	public static double EARTH_TECTONIC_PILLAR_LAUNCH = 1.35;
-	public static float EARTH_TECTONIC_BOULDER_DAMAGE = 11.0f;
+	public static float EARTH_TECTONIC_BOULDER_DAMAGE = 9.0f;
 	public static float EARTH_TECTONIC_BOULDER_SPLASH = 5.5f;
 	public static double EARTH_TECTONIC_QUAKE_RADIUS = 9.0;
 	public static float EARTH_TECTONIC_QUAKE_DAMAGE = 6.0f;
@@ -701,7 +701,7 @@ public final class AuraConfig {
 	public static double WATER_LEVIATHAN_SHOCKWAVE_FACTOR = 0.75;
 
 	/** Thunder - Surge: faster Thunderbolt and Chidori, Static Charge every STATIC_HITS-th hit arcing to fewer targets; a weaker Wrath and slower Chidori. */
-	public static int THUNDER_SURGE_THUNDERBOLT_COOLDOWN_TICKS = 20 * 14;
+	public static int THUNDER_SURGE_THUNDERBOLT_COOLDOWN_TICKS = 360;
 	public static int THUNDER_SURGE_CHIDORI_CHARGE_TICKS = 20;
 	public static int THUNDER_SURGE_STATIC_HITS = 3;
 	public static int THUNDER_SURGE_STATIC_ARC_TARGETS = 1;
@@ -748,7 +748,7 @@ public final class AuraConfig {
 	/** Fireborn: how far you see while in lava, in blocks (vanilla: about 1, with Fire Resistance 5; 0 = like vanilla). */
 	public static float FIREBORN_LAVA_SIGHT = 16f;
 	/** Fireball damage on a hit - the same however far it flew. */
-	public static float FIREBALL_DAMAGE = 5.0f;
+	public static float FIREBALL_DAMAGE = 6.0f;
 	/** Fireball impact: up to FIREBALL_FIRES fire blocks at random spots within FIREBALL_FIRE_RADIUS blocks (0 = none). */
 	public static int FIREBALL_FIRES = 3;
 	/** Ticks from the key press until the fireball leaves the hand, matching the throw animation (0 = at once). */
@@ -792,7 +792,7 @@ public final class AuraConfig {
 	public static double FIRE_BENDING_SPEED_READY = 2.5;
 	public static double FIRE_BENDING_SPEED_FULL = 5.0;
 	/** Shot damage: CLOSE point-blank, falling off evenly to FAR at full range (at full charge). */
-	public static float FIRE_BENDING_DAMAGE_CLOSE = 12.0f;
+	public static float FIRE_BENDING_DAMAGE_CLOSE = 13.0f;
 	public static float FIRE_BENDING_DAMAGE_FAR = 4.0f;
 	/** Shot damage multiplier at READY_DEGREES (rises evenly to 1.0 at FULL_DEGREES). */
 	public static float FIRE_BENDING_READY_DAMAGE_FACTOR = 0.6f;
@@ -842,7 +842,7 @@ public final class AuraConfig {
 
 	/** Heat Wave: radius, damage, burn time, knockback and cooldown. */
 	public static double HEAT_WAVE_RADIUS = 4.0;
-	public static float HEAT_WAVE_DAMAGE = 2.0f;
+	public static float HEAT_WAVE_DAMAGE = 4.0f;
 	public static float HEAT_WAVE_BURN_SECONDS = 4.0f;
 	public static double HEAT_WAVE_KNOCKBACK = 0.8;
 	public static int HEAT_WAVE_COOLDOWN_TICKS = 20 * 30;
@@ -1021,7 +1021,7 @@ public final class AuraConfig {
 	public static int VINE_HOOK_COOLDOWN_TICKS = 20 * 12;
 	public static double VINE_HOOK_RANGE = 22.0;
 	public static double VINE_HOOK_HITBOX = 0.2;
-	public static float VINE_HOOK_DAMAGE = 2.0f;
+	public static float VINE_HOOK_DAMAGE = 3.0f;
 	/** Where the two roots burst out: SIDE blocks left and right of you, FORWARD blocks in front (negative = behind). */
 	public static double VINE_HOOK_ROOT_SIDE = 1.2;
 	public static double VINE_HOOK_ROOT_FORWARD = 0.0;
@@ -2061,6 +2061,8 @@ public final class AuraConfig {
 	public static double MAGE_FOCUS_REGEN_FACTOR = 2.0;
 	public static int MAGE_FOCUS_DELAY_TICKS = 20;
 	public static double MAGE_FOCUS_XP_PER_SECOND = 0.5;
+	/** The Apprentice Staff lights up around whoever holds it (0 = off, 14 = a torch). */
+	public static int MAGE_STAFF_LIGHT = 14;
 	/** The shortest gap between two Mage casts (no cooldowns, but no double fire either). */
 	public static int MAGE_CAST_DELAY_TICKS = 6;
 	/** Arcane Bolt: tap = a quick locked-on shock. Held at least HOLD_TICKS = the charged bolt; mana DRAIN every tick it is held (from the first), up to MAX_HOLD_TICKS. */
@@ -2077,6 +2079,20 @@ public final class AuraConfig {
 	public static double MAGE_BOLT_LONE_FACTOR = 1.3;
 	public static double MAGE_BOLT_CHAIN_RADIUS = 3.5;
 	public static int MAGE_BOLT_CHAIN_TARGETS = 3;
+	/**
+	 * Arcane Ray (key 1, 5.63.0): tap = a beam from the sky onto what you aim at (DAMAGE). Hold at least HOLD_TICKS: a ritual circle
+	 * marks the spot and grows (DRAIN mana per tick, up to MAX_HOLD_TICKS); release: a bigger beam hits everything inside it, damage
+	 * and radius from the tap's up to CHARGED_DAMAGE / RADIUS_MAX.
+	 */
+	public static double MAGE_RAY_COST = 10.0;
+	public static float MAGE_RAY_DAMAGE = 4.0f;
+	public static double MAGE_RAY_RANGE = 32.0;
+	public static int MAGE_RAY_HOLD_TICKS = 8;
+	public static int MAGE_RAY_MAX_HOLD_TICKS = 50;
+	public static double MAGE_RAY_DRAIN = 0.6;
+	public static float MAGE_RAY_CHARGED_DAMAGE = 11.0f;
+	public static double MAGE_RAY_RADIUS_MIN = 1.2;
+	public static double MAGE_RAY_RADIUS_MAX = 3.0;
 	/** Arcane Barrier: ABSORB hit points of shield on you for TICKS. */
 	public static double MAGE_BARRIER_COST = 25.0;
 	public static float MAGE_BARRIER_ABSORB = 6.0f;

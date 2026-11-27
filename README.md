@@ -22,7 +22,7 @@ Ten auras can be rolled (Resonance is retired). Every one has its own keys, pass
 | | [Earth](docs/auras/earth.md) | tank, terrain | Pillar Lift, Boulder Toss, Quake | Tectonic Rift |
 | | [Light](docs/auras/light.md) | healer, blinder | Radiant Pulse, Solar Flash, Prism Beam | Sunburst |
 | | [Blood](docs/auras/blood.md) | duelist | Hemorrhage, Blood Tether, Crimson Sacrifice | Blood Moon |
-| | [Mage](docs/auras/mage.md) *(new, not rollable yet)* | spellcaster: mana instead of cooldowns | Arcane Bolt, Arcane Barrier, Arcane Orb | Last Prism |
+| | [Mage](docs/auras/mage.md) *(new, not rollable yet)* | spellcaster: mana instead of cooldowns | Arcane Ray, Arcane Barrier, Arcane Orb | Last Prism |
 
 At Mastery V an aura picks one of two [branches](docs/features/mastery-and-branches.md) that bend its kit (Fire: Blue Flame or Magma, Shadow: Phantom or Dark, and so on).
 > *"Frost is patience made into a weapon."* Each aura page opens with the Keeper's story of its pillar.

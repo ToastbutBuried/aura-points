@@ -78,6 +78,8 @@ public final class ClientAuraHud {
 				ResourceLocation.fromNamespaceAndPath("aurapoints", "ability_cooldowns"), ClientAuraHud::render);
 		event.registerAbove(VanillaGuiLayers.HOTBAR,
 				ResourceLocation.fromNamespaceAndPath("aurapoints", "fire_bending_charge"), ClientAuraHud::renderFireCharge);
+		event.registerAbove(VanillaGuiLayers.HOTBAR,
+				ResourceLocation.fromNamespaceAndPath("aurapoints", "mana_bar"), ClientAuraHud::renderManaBar);
 		event.registerAbove(VanillaGuiLayers.CROSSHAIR,
 				ResourceLocation.fromNamespaceAndPath("aurapoints", "bubble_stability"), ClientAuraHud::renderBubbleStability);
 		event.registerAbove(VanillaGuiLayers.CROSSHAIR,
@@ -261,25 +263,100 @@ public final class ClientAuraHud {
 			int slotRgb = flight ? FLIGHT_RGB : com.toast.aurapoints.ability.Ultimates.auraOf(ability) != null ? ULTIMATE_RGB : rgb;
 			drawSlot(g, mc, font, aura, ability, flight, sx, sy, slotRgb, now, frameFx);
 		}
-		if (frameFx && ClientAuraState.mana >= 0) drawMana(g, font, PAD, PAD + SLOT, width - PAD * 2, now);
+		if (frameFx && ClientAuraState.mana >= 0) drawManaXp(g, PAD, PAD + SLOT + 1, width - PAD * 2);
 		g.pose().popPose();
 	}
 
-	/**
-	 * The Mage's mana bar along the bottom of the panel (in the padding under the slots): blue fill with a bright
-	 * edge, and the progress to the next mana level as a thin pale line under it.
-	 */
-	private static void drawMana(GuiGraphics g, Font font, int x, int y, int w, long now) {
-		float frac = Mth.clamp(ClientAuraState.mana / Math.max(1, ClientAuraState.manaMax), 0f, 1f);
-		int fill = Math.round(w * frac);
-		g.fill(x, y, x + w, y + 2, 0xC0101030);
-		if (fill > 0) g.fillGradient(x, y, x + fill, y + 2, 0xFF6FE7FF, 0xFF4A5CFF);
-		if (fill > 0 && fill < w && !calm()) {
-			double pulse = 0.6 + 0.4 * Math.sin(now / 140.0);
-			g.fill(x + fill - 1, y, x + fill, y + 2, ((int) (pulse * 255) << 24) | 0xFFFFFF);
-		}
+	/** The progress to the next mana level: a thin pale line in the panel's padding under the slots. */
+	private static void drawManaXp(GuiGraphics g, int x, int y, int w) {
+		g.fill(x, y, x + w, y + 1, 0x60101030);
 		int xp = Math.round(w * ClientAuraState.manaXp);
-		if (xp > 0) g.fill(x, y + 2, x + xp, y + 3, 0xB0D9D2FF);
+		if (xp > 0) g.fill(x, y, x + xp, y + 1, 0xC0D9D2FF);
+	}
+
+	/** The mana shown, easing toward the real value so spends and refills slide. */
+	private static float shownMana = -1;
+
+	/**
+	 * The Mage's mana bar (client config manaBar: LEFT/RIGHT edge standing up, HOTBAR lying above the hearts, OFF):
+	 * a blue fill with a bright edge, and how much mana exactly ("42" over "/60" on the sides, "42 / 60" on the hotbar).
+	 * Flashes red when a spell was too dear.
+	 */
+	private static void renderManaBar(GuiGraphics g, DeltaTracker delta) {
+		Minecraft mc = Minecraft.getInstance();
+		AuraClientConfig.ManaBarPlace place = AuraClientConfig.MANA_BAR.get();
+		if (ClientAuraState.mana < 0 || place == AuraClientConfig.ManaBarPlace.OFF || mc.player == null || mc.options.hideGui || mc.player.isSpectator()) {
+			shownMana = -1;
+			return;
+		}
+		float target = ClientAuraState.mana;
+		shownMana = shownMana < 0 || calm() ? target : shownMana + (target - shownMana) * 0.3f;
+		int max = Math.max(1, ClientAuraState.manaMax);
+		float frac = Mth.clamp(shownMana / max, 0f, 1f);
+		long now = System.currentTimeMillis();
+		Long denied = ClientCooldowns.lastDenied();
+		float deny = denied == null || now - denied > DENY_MILLIS ? 0f : 1f - (now - denied) / (float) DENY_MILLIS;
+		Font font = mc.font;
+		float s = (float) (double) AuraClientConfig.MANA_SCALE.get();
+		String have = ClientAuraState.manaInfinite ? "∞" : String.valueOf((int) Math.floor(target)), of = ClientAuraState.manaInfinite ? "free" : "/" + max;
+		boolean upright = place != AuraClientConfig.ManaBarPlace.HOTBAR;
+		int bw = upright ? 5 : 81, bh = upright ? 52 : 4;
+		int gw = g.guiWidth(), gh = g.guiHeight();
+		float x, y;
+		if (place == AuraClientConfig.ManaBarPlace.LEFT) {
+			x = 8;
+			y = gh / 2f - bh * s / 2f + 20;
+		} else if (place == AuraClientConfig.ManaBarPlace.RIGHT) {
+			x = gw - 8 - bw * s;
+			y = gh / 2f - bh * s / 2f + 20;
+		} else {
+			// above the hearts and armor, over the middle of the hotbar
+			x = gw / 2f - bw * s / 2f;
+			y = gh - 60 - bh * s;
+		}
+		x = Mth.clamp(x + AuraClientConfig.MANA_OFFSET_X.get(), 2, gw - 2 - bw * s);
+		y = Mth.clamp(y + AuraClientConfig.MANA_OFFSET_Y.get(), 12 * s, gh - 12 * s - bh * s);
+		g.pose().pushPose();
+		g.pose().translate(x, y, 0);
+		g.pose().scale(s, s, 1);
+		// frame and well
+		int edge = deny > 0 ? HudColors.argb(0.6f + 0.4f * deny, HudColors.denied()) : 0xFF3A3A60;
+		g.fill(-1, -1, bw + 1, bh + 1, edge);
+		g.fill(0, 0, bw, bh, 0xE0101028);
+		if (upright) {
+			int fill = Math.round(bh * frac);
+			if (fill > 0) g.fillGradient(0, bh - fill, bw, bh, 0xFF6FE7FF, 0xFF4A5CFF);
+			if (fill > 0 && fill < bh && !calm()) {
+				double pulse = 0.6 + 0.4 * Math.sin(now / 140.0);
+				g.fill(0, bh - fill, bw, bh - fill + 1, ((int) (pulse * 255) << 24) | 0xFFFFFF);
+			}
+			// tick marks every quarter
+			for (int k = 1; k < 4; k++) g.fill(0, bh * k / 4, 1, bh * k / 4 + 1, 0x80FFFFFF);
+			// the numbers: the mana above, the pool below, centred on the bar
+			g.pose().pushPose();
+			g.pose().translate(bw / 2f, -10, 0);
+			g.drawString(font, have, -font.width(have) / 2, 0, 0xFFB8F2FF, true);
+			g.pose().popPose();
+			g.pose().pushPose();
+			g.pose().translate(bw / 2f, bh + 3, 0);
+			g.pose().scale(0.75f, 0.75f, 1);
+			g.drawString(font, of, -font.width(of) / 2, 0, 0xFF9AA0C8, true);
+			g.pose().popPose();
+		} else {
+			int fill = Math.round(bw * frac);
+			if (fill > 0) g.fillGradient(0, 0, fill, bh, 0xFF6FE7FF, 0xFF4A5CFF);
+			if (fill > 0 && fill < bw && !calm()) {
+				double pulse = 0.6 + 0.4 * Math.sin(now / 140.0);
+				g.fill(fill - 1, 0, fill, bh, ((int) (pulse * 255) << 24) | 0xFFFFFF);
+			}
+			String text = ClientAuraState.manaInfinite ? "∞ mana" : have + " / " + max;
+			g.pose().pushPose();
+			g.pose().translate(bw / 2f, -8, 0);
+			g.pose().scale(0.75f, 0.75f, 1);
+			g.drawString(font, text, -font.width(text) / 2, 0, 0xFFB8F2FF, true);
+			g.pose().popPose();
+		}
+		g.pose().popPose();
 	}
 
 	/** The panel body: dark gradient, aura-colored frame, a bright accent line and little corner gems. */
@@ -880,7 +957,8 @@ public final class ClientAuraHud {
 			Ability.ARCANE_BOLT,
 			Ability.ARCANE_BARRIER,
 			Ability.ARCANE_ORB,
-			Ability.LAST_PRISM);
+			Ability.LAST_PRISM,
+			Ability.ARCANE_RAY);
 	private static final Map<Ability, ItemStack> ICONS = new EnumMap<>(Ability.class);
 	/** Wind's Dash (5.46.0): Dash is shared with Shadow, whose purple icon it used to show. Model data after ICON_ORDER. */
 	private static final int WIND_DASH_ICON = 44;

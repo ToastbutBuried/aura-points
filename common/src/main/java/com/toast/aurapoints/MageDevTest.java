@@ -111,6 +111,25 @@ final class MageDevTest {
 			Mage.orbRelease(p, now + 20);
 			log("orb released: holding " + Mage.holdingOrb(p) + " (must be false)");
 
+			// ---- the Arcane Ray: a tap, then a hold that drains
+			Mage.devSetMana(p, max);
+			Mage.devReady(p);
+			boolean ray = AuraAbilities.tryActivate(p, Ability.ARCANE_RAY, now);
+			Mage.rayRelease(p, now);
+			log("tapped ray fired " + ray + ", spent " + fmt(max - Mage.mana(p)) + ", held " + Mage.holdingRay(p) + " (must be true, "
+					+ fmt(AuraConfig.MAGE_RAY_COST) + ", false)");
+			Mage.devSetMana(p, max);
+			Mage.devReady(p);
+			AuraAbilities.tryActivate(p, Ability.ARCANE_RAY, now);
+			int rayHeld = AuraConfig.MAGE_RAY_HOLD_TICKS + 10;
+			for (int i = 1; i <= rayHeld; i++) Mage.devTick(p, now + i);
+			log("held ray after " + rayHeld + " ticks: holding " + Mage.holdingRay(p) + ", drained " + fmt(max - AuraConfig.MAGE_RAY_COST - Mage.mana(p))
+					+ " (must be true, " + fmt(AuraConfig.MAGE_RAY_DRAIN * (rayHeld - AuraConfig.MAGE_RAY_HOLD_TICKS + 1)) + ")");
+			Mage.rayRelease(p, now + rayHeld);
+			log("ray released: holding " + Mage.holdingRay(p) + " (must be false)");
+			log("Arcane Bolt is the staff's right-click: key slots " + AuraType.MAGE.keySlots() + " (must be [ARCANE_RAY, ARCANE_BARRIER, ARCANE_ORB]), bolt owned free "
+					+ AuraAbilities.hasAbility(data, Ability.ARCANE_BOLT) + " (must be true)");
+
 			// ---- no wand, no spell
 			p.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
 			Mage.devReady(p);

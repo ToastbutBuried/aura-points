@@ -1,8 +1,12 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.63.0
+- Mage: new Ability 1 Arcane Ray (a beam from the sky; hold for a ritual circle and a bigger strike), Arcane Bolt is now the staff's right-click, the wand is a tall Apprentice Staff, the Arcane Orb a real glowing ball, and the mana bar shows your exact mana at the left edge (client config: left, right, hotbar or off). Cooldowns off = infinite mana.
+- Balance: Fire hits harder (Fireball 6, Heat Wave 4, Fire Bending 13), Vine Hook 3; Surge's Thunderbolt cooldown 18 s, Tectonic Boulder 9 and Pillar 5.
+
 == 5.62.0
-- New aura: Mage (not rollable yet). No cooldowns: spells spend mana. Arcane Bolt, Arcane Barrier, Arcane Orb with the Apprentice Wand, Last Prism as its Ultimate. Sneak to focus, train your mana level, collect mana wisps from mobs.
+- New aura: Mage (not rollable yet). No cooldowns: spells spend mana. Arcane Bolt, Arcane Barrier, Arcane Orb with the Apprentice Staff, Last Prism as its Ultimate. Sneak to focus, train your mana level, collect mana wisps from mobs.
 - Everyone must update the mod.
 
 == 5.61.2

@@ -291,6 +291,12 @@
     "custom_model_data": 48
    },
    "model": "aurapoints:item/ability_icon/last_prism"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 49
+   },
+   "model": "aurapoints:item/ability_icon/arcane_ray"
   }
  ]
 }

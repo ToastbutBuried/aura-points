@@ -446,8 +446,8 @@ public final class Chains {
 		add(json, "light", "radiant_pulse", "solar_flash", "Afterglow", 0.25, "heal", 2);
 		add(json, "blood", "crimson_sacrifice", "hemorrhage", "Blood Price", 0.40, "lifesteal", 0.20);
 		add(json, "blood", "hemorrhage", "blood_tether", "Open Vein", 0.25, "weaken", 3);
-		add(json, "mage", "arcane_bolt", "arcane_orb", "Overload", 0.30, "slow", 2);
-		add(json, "mage", "arcane_barrier", "arcane_bolt", "Retort", 0.25, "weaken", 3);
+		add(json, "mage", "arcane_ray", "arcane_orb", "Overload", 0.30, "slow", 2);
+		add(json, "mage", "arcane_barrier", "arcane_ray", "Retort", 0.25, "weaken", 3);
 		return json;
 	}
 

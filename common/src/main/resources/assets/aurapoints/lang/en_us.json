@@ -144,6 +144,14 @@
   "aurapoints.configuration.chargeOffsetY.tooltip": "Moves the charge bar down (negative: up), in GUI pixels.",
   "aurapoints.configuration.chargeScale": "Charge bar size",
   "aurapoints.configuration.chargeScale.tooltip": "1.0 = normal.",
+  "aurapoints.configuration.manaBar": "Mana bar position",
+  "aurapoints.configuration.manaBar.tooltip": "Mage: LEFT or RIGHT screen edge, above the HOTBAR, or OFF.",
+  "aurapoints.configuration.manaOffsetX": "Mana bar offset X",
+  "aurapoints.configuration.manaOffsetX.tooltip": "Moves it right (negative: left), in GUI pixels.",
+  "aurapoints.configuration.manaOffsetY": "Mana bar offset Y",
+  "aurapoints.configuration.manaOffsetY.tooltip": "Moves it down (negative: up), in GUI pixels.",
+  "aurapoints.configuration.manaScale": "Mana bar size",
+  "aurapoints.configuration.manaScale.tooltip": "1.0 = normal.",
   "aurapoints.configuration.feedback": "Feedback",
   "aurapoints.configuration.feedback.tooltip": "Hit marks, popups, screen edges and camera feel.",
   "aurapoints.configuration.hitConfirm": "Hit marks",
@@ -241,6 +249,6 @@
   "item.aurapoints.relic_shard": "Relic Shard",
   "item.aurapoints.tuning_fork": "Tuning Fork",
   "entity.aurapoints.relic_warden": "Relic Warden",
-  "item.aurapoints.apprentice_wand": "Apprentice Wand",
+  "item.aurapoints.apprentice_wand": "Apprentice Staff",
   "item.aurapoints.mage_fx": "Mage Spell"
 }

@@ -97,6 +97,7 @@ public final class CastDevTest {
 							if (ability == Ability.PRISM_BEAM) com.toast.aurapoints.ability.Light.beamRelease(fake, server.getTickCount());
 							if (aura == AuraType.BLOOD) com.toast.aurapoints.ability.Blood.onLogout(fake);
 							if (ability == Ability.ARCANE_BOLT) com.toast.aurapoints.ability.Mage.boltRelease(fake, server.getTickCount());
+							if (ability == Ability.ARCANE_RAY) com.toast.aurapoints.ability.Mage.rayRelease(fake, server.getTickCount());
 							if (ability == Ability.ARCANE_ORB) com.toast.aurapoints.ability.Mage.orbRelease(fake, server.getTickCount());
 						}
 					}

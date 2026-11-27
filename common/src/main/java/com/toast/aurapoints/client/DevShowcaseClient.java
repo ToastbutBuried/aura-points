@@ -176,7 +176,14 @@ public final class DevShowcaseClient {
 			for (String step : plan.split(",")) {
 				String[] f = step.split(":");
 				if (f.length != 3) continue;
-				int k = Integer.parseInt(f[0].trim()), down = Integer.parseInt(f[1].trim()), up = Integer.parseInt(f[2].trim());
+				int down = Integer.parseInt(f[1].trim()), up = Integer.parseInt(f[2].trim());
+				// "use" = the right mouse button (a held item's use, e.g. the Mage staff's bolt)
+				if (f[0].trim().equals("use")) {
+					if (ticksIn == down) mc.options.keyUse.setDown(true);
+					if (ticksIn == up) mc.options.keyUse.setDown(false);
+					continue;
+				}
+				int k = Integer.parseInt(f[0].trim());
 				if (k < 0 || k >= com.toast.aurapoints.network.ClientKeyHandler.KEYS.length) continue;
 				if (ticksIn == down) {
 					com.toast.aurapoints.AuraPoints.LOGGER.info("[clientcmd] key {} down", k);

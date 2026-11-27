@@ -61,7 +61,7 @@ import java.util.UUID;
  * ({@link AuraPlayerData#mageLevel}); hits, kills, spent mana, focusing and wisps give mana XP.</li>
  * <li>Focus (the passive, every branch): sneaking refills mana {@code MAGE_FOCUS_REGEN_FACTOR} times as fast, at once.</li>
  * <li>Arcane Bolt (tap shock / held chain), Arcane Barrier (absorption around yourself), Arcane Orb (held, grows, fired
- * on release): need the Apprentice Wand in the main hand.</li>
+ * on release): need the Apprentice Staff in the main hand.</li>
  * <li>Last Prism (Ultimate, held): the wand is put away (its model hidden through custom_model_data 1), six beams
  * converge into one.</li>
  * <li>Mana wisps: item displays dropped by mobs killed near a Mage, drifting into the nearest Mage.</li>
@@ -225,21 +225,23 @@ public final class Mage {
 	/** Tells the player's HUD their pool, level and progress (only what changed, unless {@code force}). */
 	public static void sync(ServerPlayer p, AuraPlayerData data, boolean force) {
 		boolean mage = data.aura == AuraType.MAGE;
-		double mana = data.mageMana < 0 ? maxMana(data) : data.mageMana;
+		// cooldowns off (/aura cooldowns off, the Training Hall): infinite mana, the bar says so
+		boolean infinite = mage && p.getServer() != null && free(p);
+		double mana = infinite ? maxMana(data) : data.mageMana < 0 ? maxMana(data) : data.mageMana;
 		int lvl = level(data);
 		double xp = lvl >= AuraConfig.MAGE_LEVEL_MAX ? 1.0 : data.mageXp / xpFor(lvl);
 		float turn = PRISMS.containsKey(p.getUUID()) ? (float) Mth.clamp(AuraConfig.MAGE_PRISM_TURN_FACTOR, 0.05, 1.0) : 1f;
-		int[] now = {mage ? (int) Math.floor(mana * 10) : -1, maxMana(data), lvl, (int) Math.floor(xp * 100), Math.round(turn * 100)};
+		int[] now = {mage ? (int) Math.floor(mana * 10) : -1, maxMana(data), lvl, (int) Math.floor(xp * 100), Math.round(turn * 100), infinite ? 1 : 0};
 		int[] was = SENT.get(p.getUUID());
 		if (!force && was != null && java.util.Arrays.equals(was, now)) return;
 		SENT.put(p.getUUID(), now);
-		NetworkHandler.sendMana(p, mage ? (float) mana : -1f, maxMana(data), lvl, (float) xp, turn, costs());
+		NetworkHandler.sendMana(p, mage ? (float) mana : -1f, maxMana(data), lvl, (float) xp, turn, infinite ? "inf" : costs());
 	}
 
-	/** The spells' mana costs for the HUD: bolt, barrier, orb, prism. */
+	/** The spells' mana costs for the HUD: bolt, barrier, orb, prism, ray. */
 	private static String costs() {
 		return Math.round(AuraConfig.MAGE_BOLT_COST) + "," + Math.round(AuraConfig.MAGE_BARRIER_COST) + ","
-				+ Math.round(AuraConfig.MAGE_ORB_COST) + "," + Math.round(AuraConfig.MAGE_PRISM_COST);
+				+ Math.round(AuraConfig.MAGE_ORB_COST) + "," + Math.round(AuraConfig.MAGE_PRISM_COST) + "," + Math.round(AuraConfig.MAGE_RAY_COST);
 	}
 
 	/** Every server tick for every player: regen, Focus, the wand back after the Prism. */
@@ -250,7 +252,7 @@ public final class Mage {
 		}
 		if (!data.mageWandGiven && p.isAlive()) giveWand(p, data);
 		UUID id = p.getUUID();
-		boolean channeling = BOLTS.containsKey(id) || ORBS.containsKey(id) || PRISMS.containsKey(id);
+		boolean channeling = BOLTS.containsKey(id) || ORBS.containsKey(id) || PRISMS.containsKey(id) || RAYS.containsKey(id);
 		boolean focus = p.isShiftKeyDown() && p.isAlive() && !p.isSpectator() && !channeling;
 		double max = maxMana(data), mana = data.mageMana < 0 ? max : data.mageMana;
 		if (!channeling && mana < max) {
@@ -292,10 +294,15 @@ public final class Mage {
 		return !stack.isEmpty() && stack.is(com.toast.aurapoints.AuraPoints.APPRENTICE_WAND.get());
 	}
 
-	/** True with the wand in the main hand; otherwise tells the player. */
+	/** The staff in either hand (5.63.0: the off-hand counts too). */
+	public static boolean holdsStaff(ServerPlayer p) {
+		return isWand(p.getMainHandItem()) || isWand(p.getOffhandItem());
+	}
+
+	/** True with the staff in a hand; otherwise tells the player. */
 	private static boolean wandReady(ServerPlayer p) {
-		if (isWand(p.getMainHandItem())) return true;
-		p.displayClientMessage(Component.literal("Hold your Apprentice Wand to cast that (lost it? /aura wand)").withStyle(ChatFormatting.BLUE), true);
+		if (holdsStaff(p)) return true;
+		p.displayClientMessage(Component.literal("Hold your Apprentice Staff (either hand) to cast that (lost it? /aura wand)").withStyle(ChatFormatting.BLUE), true);
 		return false;
 	}
 
@@ -306,7 +313,7 @@ public final class Mage {
 		if (hasWand(p)) return;
 		ItemStack wand = new ItemStack(com.toast.aurapoints.AuraPoints.APPRENTICE_WAND.get());
 		if (!p.getInventory().add(wand)) p.drop(wand, false);
-		p.sendSystemMessage(Component.literal("You got an Apprentice Wand: Arcane Bolt, Barrier and Orb are cast with it in hand.")
+		p.sendSystemMessage(Component.literal("You got an Apprentice Staff: right-click for Arcane Bolt; your Mage keys need it in either hand.")
 				.withStyle(ChatFormatting.BLUE));
 	}
 
@@ -319,13 +326,13 @@ public final class Mage {
 	/** /aura wand: a new wand if the Mage has none. Returns what to tell them. */
 	public static String wandCommand(ServerPlayer p) {
 		AuraPlayerData data = data(p);
-		if (data.aura != AuraType.MAGE) return "Only a Mage can carry an Apprentice Wand.";
-		if (hasWand(p)) return "You already carry an Apprentice Wand.";
+		if (data.aura != AuraType.MAGE) return "Only a Mage can carry an Apprentice Staff.";
+		if (hasWand(p)) return "You already carry an Apprentice Staff.";
 		ItemStack wand = new ItemStack(com.toast.aurapoints.AuraPoints.APPRENTICE_WAND.get());
 		if (!p.getInventory().add(wand)) p.drop(wand, false);
 		data.mageWandGiven = true;
 		AuraState.get(p.getServer()).markDirty();
-		return "Here is a new Apprentice Wand.";
+		return "Here is a new Apprentice Staff.";
 	}
 
 	/** The wand's look back after the Last Prism (any wand in the inventory still marked as put away). */
@@ -337,9 +344,27 @@ public final class Mage {
 		}
 	}
 
-	/** Where the wand's crystal is with the arm pointed at the aim (bolt, the fired orb). */
+	/** How far the staff's head sits beyond the hand, in blocks (the held model's length above the grip). */
+	private static final double STAFF_TIP = 1.1;
+
+	/** +1 when the staff is in the right arm, -1 in the left (off-hand of a right-handed player, or a left-handed main hand). */
+	private static double staffSide(ServerPlayer p) {
+		boolean inMain = isWand(p.getMainHandItem());
+		boolean rightHanded = p.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT;
+		return (inMain ? rightHanded : !rightHanded) ? 1 : -1;
+	}
+
+	/** The hand at the end of the staff arm pointed where the player looks (Light.pointingHand, on the staff's side). */
+	private static Vec3 staffHand(ServerPlayer p) {
+		float yaw = p.getYRot() * Mth.DEG_TO_RAD;
+		Vec3 right = new Vec3(-Math.cos(yaw), 0, -Math.sin(yaw));
+		Vec3 shoulder = p.position().add(0, p.isShiftKeyDown() ? 1.15 : 1.37, 0).add(right.scale(0.31 * staffSide(p)));
+		return shoulder.add(p.getLookAngle().scale(0.72));
+	}
+
+	/** Where the staff's crystal is with the arm pointed at the aim (bolt, the fired orb). */
 	private static Vec3 tipPointed(ServerPlayer p) {
-		return Light.pointingHand(p).add(p.getLookAngle().scale(0.65));
+		return staffHand(p).add(p.getLookAngle().scale(STAFF_TIP));
 	}
 
 	/** The look tipped up by {@code degrees}. */
@@ -352,9 +377,10 @@ public final class Mage {
 	private static Vec3 orbSpot(ServerPlayer p, double size) {
 		float yaw = p.getYRot() * Mth.DEG_TO_RAD;
 		Vec3 right = new Vec3(-Math.cos(yaw), 0, -Math.sin(yaw));
-		Vec3 shoulder = p.position().add(0, p.isShiftKeyDown() ? 1.15 : 1.37, 0).add(right.scale(0.31));
+		Vec3 shoulder = p.position().add(0, p.isShiftKeyDown() ? 1.15 : 1.37, 0).add(right.scale(0.31 * staffSide(p)));
+		// the arm raised 25 degrees above the aim, the staff along it: the orb grows just past its head
 		Vec3 up = raised(p, 25);
-		return shoulder.add(up.scale(0.72 + 0.45)).add(0, 0.05 + size * 0.3, 0);
+		return shoulder.add(up.scale(0.72 + STAFF_TIP + 0.1 + size * 0.25));
 	}
 
 	// ---------------------------------------------------------------
@@ -430,8 +456,14 @@ public final class Mage {
 
 	private static final Map<UUID, Bolt> BOLTS = new HashMap<>();
 
-	static boolean boltPress(ServerPlayer p, long now) {
+	/** The staff's right-click (item/ApprenticeStaffItem): the same holds as an ability key, then the bolt. */
+	public static boolean boltPress(ServerPlayer p, long now) {
 		if (BOLTS.containsKey(p.getUUID()) || busy(p)) return false;
+		if (p.getServer() == null || !AuraAbilities.hasAbility(data(p), Ability.ARCANE_BOLT)) {
+			p.displayClientMessage(Component.literal("Only a Mage can cast with the Apprentice Staff.").withStyle(ChatFormatting.BLUE), true);
+			return false;
+		}
+		if (IceSpike.isFrozen(p) || Stun.isBusy(p) || Entanglement.isEntangled(p) || VoidAura.isNulled(p) || com.toast.aurapoints.arena.Duel.holdsStill(p)) return false;
 		if (!castReady(p, now) || !wandReady(p) || !spend(p, AuraConfig.MAGE_BOLT_COST)) return false;
 		casted(p, now);
 		BOLTS.put(p.getUUID(), new Bolt(now));
@@ -446,7 +478,7 @@ public final class Mage {
 
 	/** Returns false once the bolt is fired or dropped. */
 	private static boolean tickBolt(ServerPlayer p, Bolt b, long now) {
-		if (!p.isAlive() || !isWand(p.getMainHandItem()) || !AuraAbilities.hasAbility(data(p), Ability.ARCANE_BOLT)) {
+		if (!p.isAlive() || !holdsStaff(p) || !AuraAbilities.hasAbility(data(p), Ability.ARCANE_BOLT)) {
 			NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
 			return false;
 		}
@@ -534,6 +566,154 @@ public final class Mage {
 		NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_MAGE, charged ? 1 : 0);
 		AuraAbilities.markUsed(p, Ability.ARCANE_BOLT, now);
+	}
+
+	// ---------------------------------------------------------------
+	// Arcane Ray (key 1): tap = a beam from the sky onto the target; hold = a ritual circle on the ground, then a big beam
+	// ---------------------------------------------------------------
+
+	private static final class Ray {
+		int t;
+		Vec3 spot;
+	}
+
+	private static final Map<UUID, Ray> RAYS = new HashMap<>();
+
+	static boolean rayPress(ServerPlayer p, long now) {
+		if (RAYS.containsKey(p.getUUID()) || busy(p)) return false;
+		if (!castReady(p, now) || !wandReady(p) || !spend(p, AuraConfig.MAGE_RAY_COST)) return false;
+		casted(p, now);
+		Ray r = new Ray();
+		r.spot = raySpot(p);
+		RAYS.put(p.getUUID(), r);
+		return true;
+	}
+
+	public static void rayRelease(ServerPlayer p, long now) {
+		Ray r = RAYS.remove(p.getUUID());
+		if (r != null) fireRay(p, r, now);
+	}
+
+	/** 0 (a tap) .. 1 (held as long as it gets). */
+	private static double rayCharge(Ray r) {
+		int min = Math.max(1, AuraConfig.MAGE_RAY_HOLD_TICKS), max = Math.max(min + 1, AuraConfig.MAGE_RAY_MAX_HOLD_TICKS);
+		return r.t < min ? 0 : Mth.clamp((r.t - min) / (double) (max - min), 0, 1);
+	}
+
+	/** Where the ray lands: the feet of the enemy you aim at (locked on), else the ground under the crosshair. */
+	private static Vec3 raySpot(ServerPlayer p) {
+		double range = Math.max(4, AuraConfig.MAGE_RAY_RANGE);
+		LivingEntity target = lockOn(p, range);
+		if (target != null) return target.position();
+		Vec3 eye = p.getEyePosition();
+		HitResult hit = p.level().clip(new ClipContext(eye, eye.add(p.getLookAngle().scale(range)), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+		Vec3 at = hit.getLocation();
+		// in the air: straight down to the ground under that point (up to 8 blocks)
+		HitResult down = p.level().clip(new ClipContext(at, at.add(0, -8, 0), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+		return down.getType() == HitResult.Type.MISS ? at : down.getLocation();
+	}
+
+	/** Returns false once the ray was cast or dropped. */
+	private static boolean tickRay(ServerPlayer p, Ray r, long now) {
+		if (!p.isAlive() || !holdsStaff(p) || !AuraAbilities.hasAbility(data(p), Ability.ARCANE_RAY)) {
+			NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
+			return false;
+		}
+		r.t++;
+		int min = Math.max(1, AuraConfig.MAGE_RAY_HOLD_TICKS);
+		if (r.t < min) return true;
+		if (r.t == min) {
+			// held: the staff goes up to the sky and the circle appears where it will strike
+			NetworkHandler.sendBendAnim(p, BendingAnimPacket.WAND_RAISE);
+			sound(p.serverLevel(), p.position(), AuraSounds.EVOKER_PREPARE_ATTACK.value(), 0.8f, 1.3f);
+		}
+		boolean growing = r.t < Math.max(min + 1, AuraConfig.MAGE_RAY_MAX_HOLD_TICKS);
+		if (growing && !drain(p, AuraConfig.MAGE_RAY_DRAIN)) {
+			fireRay(p, r, now);
+			return false;
+		}
+		r.spot = raySpot(p);
+		if (r.t % 2 == 0) ritualCircle(p.serverLevel(), r.spot, rayRadius(rayCharge(r)), r.t);
+		if (r.t % 12 == 0) sound(p.serverLevel(), r.spot, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 1.2f, 0.8f + (float) rayCharge(r) * 0.6f);
+		return true;
+	}
+
+	private static double rayRadius(double c) {
+		return Mth.lerp(c, AuraConfig.MAGE_RAY_RADIUS_MIN, AuraConfig.MAGE_RAY_RADIUS_MAX);
+	}
+
+	/** The ritual circle on the ground: two rings, turning spokes and runes rising off it. */
+	private static void ritualCircle(ServerLevel level, Vec3 c, double r, int t) {
+		double y = c.y + 0.06;
+		AuraFx.ring(level, c.x, y, c.z, r, AuraFx.dust(VIOLET, 0.9f), (int) (r * 14) + 8);
+		AuraFx.ring(level, c.x, y, c.z, r * 0.62, AuraFx.dust(CYAN, 0.7f), (int) (r * 9) + 6);
+		double turn = t * 0.09;
+		for (int k = 0; k < 6; k++) {
+			double a = turn + k * Math.PI / 3;
+			// a spoke from the inner ring to the outer one, and a triangle point between them
+			for (int i = 0; i <= 3; i++) {
+				double d = r * (0.62 + 0.38 * i / 3.0);
+				AuraFx.particles(level, AuraFx.dust(PALE, 0.5f), c.x + Math.cos(a) * d, y, c.z + Math.sin(a) * d, 1, 0, 0, 0, 0);
+			}
+			double b = -turn * 1.5 + k * Math.PI / 3 + Math.PI / 6;
+			AuraFx.particles(level, AuraFx.dust(CYAN, 0.6f), c.x + Math.cos(b) * r * 0.31, y, c.z + Math.sin(b) * r * 0.31, 1, 0, 0, 0, 0);
+		}
+		if (t % 4 == 0) AuraFx.particles(level, ParticleTypes.ENCHANT, c.x, y + 0.3, c.z, (int) (r * 4), r * 0.5, 0.05, r * 0.5, 0.2);
+	}
+
+	private static void fireRay(ServerPlayer p, Ray r, long now) {
+		ServerLevel level = p.serverLevel();
+		double c = rayCharge(r);
+		boolean charged = r.t >= Math.max(1, AuraConfig.MAGE_RAY_HOLD_TICKS);
+		Vec3 spot = charged ? r.spot : raySpot(p);
+		double radius = rayRadius(c);
+		float damage = charged ? (float) Mth.lerp(c, AuraConfig.MAGE_RAY_DAMAGE, AuraConfig.MAGE_RAY_CHARGED_DAMAGE) : AuraConfig.MAGE_RAY_DAMAGE;
+		float boost = AuraFx.boost;
+		AuraFx.boost = Mastery.particleBoost(p);
+		try {
+			// the beam: a column of white light from high above down onto the spot, swelling and then thinning out
+			float w = (float) (charged ? 0.5 + radius * 0.35 : 0.45);
+			double height = 22;
+			// anchored on the ground and reaching up: a display is culled by its own position, so one placed up in the sky
+			// would vanish whenever the camera looks below it
+			Vec3 up = new Vec3(0, 1, 0);
+			Display.BlockDisplay core = Props.spawn(level, spot, Blocks.WHITE_CONCRETE.defaultBlockState(), Props.along(Vec3.ZERO, up, 0.05f, (float) height), 14, 1);
+			Props.glow(core);
+			Props.set(core, Props.along(Vec3.ZERO, up, w, (float) height), 2);
+			Props.setLater(core, 4, Props.along(Vec3.ZERO, up, 0.02f, (float) height), 8);
+			Display.BlockDisplay halo = Props.spawn(level, spot, Blocks.LIGHT_BLUE_CONCRETE.defaultBlockState(), Props.along(Vec3.ZERO, up, 0.05f, 0.6f), 14, 1);
+			Props.glow(halo);
+			Props.set(halo, Props.along(Vec3.ZERO, up, (float) (radius * 1.6), 0.08f), 3);
+			Props.setLater(halo, 5, Props.along(Vec3.ZERO, up, 0.02f, 0.02f), 8);
+			// light falling along it, and the strike on the ground
+			for (int i = 0; i < 10; i++) {
+				double y = spot.y + level.getRandom().nextDouble() * height;
+				AuraFx.particles(level, ParticleTypes.END_ROD, spot.x, y, spot.z, 0, 0, -1, 0, 0.6);
+			}
+			AuraFx.particles(level, ParticleTypes.FLASH, spot.x, spot.y + 0.3, spot.z, 1, 0, 0, 0, 0);
+			AuraFx.ring(level, spot.x, spot.y + 0.1, spot.z, radius, AuraFx.dust(PALE, 1.3f), (int) (radius * 16) + 10);
+			AuraFx.burst(level, spot.x, spot.y + 0.4, spot.z, AuraFx.dust(CYAN, 1.2f), (int) (12 + radius * 10), radius * 0.4, 0);
+			AuraFx.particles(level, ParticleTypes.END_ROD, spot.x, spot.y + 0.3, spot.z, (int) (8 + radius * 6), 0.1, 0.1, 0.1, 0.15);
+			// who it hits: inside the circle (a tap: the locked target and anyone right at its feet)
+			double hitR = charged ? radius : 1.0;
+			for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, new AABB(spot, spot).inflate(hitR, 3, hitR),
+					e -> Handhelds.enemy(p, e) && horizontal(e.position(), spot) <= hitR + e.getBbWidth() / 2)) {
+				hit(p, e, damage);
+			}
+		} finally {
+			AuraFx.boost = boost;
+		}
+		sound(level, spot, AuraSounds.BEACON_DEACTIVATE.value(), 1.4f, 1.7f);
+		sound(level, spot, AuraSounds.LIGHTNING_BOLT_IMPACT.value(), charged ? 0.8f : 0.45f, charged ? 1.3f : 1.8f);
+		sound(level, spot, AuraSounds.AMETHYST_CLUSTER_BREAK.value(), 1.4f, 1.0f);
+		NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
+		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_MAGE, charged ? 1 : 0);
+		AuraAbilities.markUsed(p, Ability.ARCANE_RAY, now);
+	}
+
+	private static double horizontal(Vec3 a, Vec3 b) {
+		double dx = a.x - b.x, dz = a.z - b.z;
+		return Math.sqrt(dx * dx + dz * dz);
 	}
 
 	// ---------------------------------------------------------------
@@ -635,6 +815,7 @@ public final class Mage {
 		final Vec3 dir;
 		final double size;
 		double flown;
+		int spinT;
 
 		Shot(UUID owner, ServerLevel level, Display.ItemDisplay ball, Vec3 pos, Vec3 dir, double size) {
 			this.owner = owner;
@@ -660,7 +841,7 @@ public final class Mage {
 		acc.aurapoints$setPosRotInterpolationDuration(1);
 		acc.aurapoints$setViewRange(2.0f);
 		acc.aurapoints$setBrightnessOverride(new Brightness(15, 15));
-		if (model != FX_PRISM) acc.aurapoints$setBillboardConstraints(Display.BillboardConstraints.CENTER);
+		if (model == FX_WISP) acc.aurapoints$setBillboardConstraints(Display.BillboardConstraints.CENTER);
 		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(scale), null));
 		d.addTag(TAG);
 		LIVE.add(d.getUUID());
@@ -669,8 +850,13 @@ public final class Mage {
 	}
 
 	private static void scale(Display.ItemDisplay d, float scale, int ticks) {
+		scale(d, scale, ticks, new Quaternionf());
+	}
+
+	/** Size and turn (the orb spins as it grows and flies). */
+	private static void scale(Display.ItemDisplay d, float scale, int ticks, Quaternionf turn) {
 		DisplayAccessor acc = (DisplayAccessor) d;
-		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(scale), null));
+		acc.aurapoints$setTransformation(new Transformation(new Vector3f(), turn, new Vector3f(scale), null));
 		acc.aurapoints$setInterpolationDuration(ticks);
 		d.getEntityData().set(DisplayAccessor.aurapoints$startDelta(), 0, true);
 	}
@@ -681,13 +867,18 @@ public final class Mage {
 		d.discard();
 	}
 
+	/** The orb's slow tumble: turning about Y, with a little wobble about X. */
+	private static Quaternionf spin(int t) {
+		return new Quaternionf().rotationY(t * 0.12f).rotateX(0.35f * Mth.sin(t * 0.05f));
+	}
+
 	/** 0..1 of the orb's growth. */
 	private static double orbGrowth(Orb o) {
 		return Mth.clamp(o.t / (double) Math.max(1, AuraConfig.MAGE_ORB_MAX_HOLD_TICKS), 0, 1);
 	}
 
 	private static float orbScale(double growth) {
-		return (float) (0.18 + 0.5 * growth);
+		return (float) (0.25 + 0.55 * growth);
 	}
 
 	static boolean orbPress(ServerPlayer p, long now) {
@@ -719,7 +910,7 @@ public final class Mage {
 
 	/** Returns false once the orb left the hand (fired or dropped). */
 	private static boolean tickOrb(ServerPlayer p, Orb o, long now) {
-		if (!p.isAlive() || p.level() != o.level || !isWand(p.getMainHandItem()) || !AuraAbilities.hasAbility(data(p), Ability.ARCANE_ORB)) {
+		if (!p.isAlive() || p.level() != o.level || !holdsStaff(p) || !AuraAbilities.hasAbility(data(p), Ability.ARCANE_ORB)) {
 			dropOrb(p, o);
 			return false;
 		}
@@ -734,7 +925,7 @@ public final class Mage {
 		o.size = g;
 		Vec3 at = orbSpot(p, orbScale(g));
 		o.ball.setPos(at.x, at.y, at.z);
-		if (o.t % 2 == 0) scale(o.ball, orbScale(g) * (1f + 0.06f * Mth.sin(o.t * 0.7f)), 2);
+		if (o.t % 2 == 0) scale(o.ball, orbScale(g) * (1f + 0.06f * Mth.sin(o.t * 0.7f)), 2, spin(o.t));
 		ServerLevel level = o.level;
 		// motes appear around it and fall into it, more and from further out as it grows; full = they swirl
 		var r = level.getRandom();
@@ -811,6 +1002,8 @@ public final class Mage {
 		}
 		s.pos = end;
 		s.ball.setPos(end.x, end.y, end.z);
+		s.spinT += 2;
+		if (s.spinT % 2 == 0) scale(s.ball, orbScale(s.size), 2, spin(s.spinT));
 		AuraFx.particles(level, AuraFx.dust(VIOLET, 0.6f + (float) s.size * 0.5f), end.x, end.y, end.z, 2, 0.08, 0.08, 0.08, 0);
 		if (s.flown % 2 < speed) AuraFx.particles(level, ParticleTypes.END_ROD, end.x, end.y, end.z, 1, 0.05, 0.05, 0.05, 0.01);
 		return true;
@@ -886,7 +1079,7 @@ public final class Mage {
 		dropHeld(p);
 		ServerLevel level = p.serverLevel();
 		// the wand is put away: its model goes empty while the Prism is out
-		ItemStack hand = p.getMainHandItem();
+		ItemStack hand = isWand(p.getMainHandItem()) ? p.getMainHandItem() : p.getOffhandItem();
 		if (isWand(hand)) hand.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(WAND_STOWED));
 		Prism pr = new Prism(p.getUUID(), level, fx(level, prismSpot(p), FX_PRISM, 0.32f));
 		var zero = Props.along(Vec3.ZERO, p.getLookAngle(), 0.001f, 0.001f);
@@ -1144,21 +1337,69 @@ public final class Mage {
 	/** Any Mage hold running (no other spell starts meanwhile). */
 	private static boolean busy(ServerPlayer p) {
 		UUID id = p.getUUID();
-		return BOLTS.containsKey(id) || ORBS.containsKey(id) || PRISMS.containsKey(id);
+		return BOLTS.containsKey(id) || ORBS.containsKey(id) || PRISMS.containsKey(id) || RAYS.containsKey(id);
 	}
 
 	/** Frozen, stunned, dead or logged out: whatever the Mage held falls apart (the bolt fizzles, the orb pops, the Prism ends). */
 	public static void dropHeld(ServerPlayer p) {
 		if (BOLTS.remove(p.getUUID()) != null) NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
+		if (RAYS.remove(p.getUUID()) != null) NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
 		Orb o = ORBS.remove(p.getUUID());
 		if (o != null) dropOrb(p, o);
 		Prism pr = PRISMS.remove(p.getUUID());
 		if (pr != null) endPrism(p, pr);
 	}
 
+	// ---------------------------------------------------------------
+	// The staff's light: a vanilla light block (level MAGE_STAFF_LIGHT) at the holder's head, moved as they walk
+	// ---------------------------------------------------------------
+
+	/** player -> the light block placed for them (level and position). */
+	private static final Map<UUID, Object[]> LIGHTS = new HashMap<>();
+
+	private static void tickLights(MinecraftServer server) {
+		int level = Mth.clamp(AuraConfig.MAGE_STAFF_LIGHT, 0, 15);
+		for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+			boolean lit = level > 0 && p.isAlive() && !p.isSpectator() && holdsStaff(p);
+			Object[] had = LIGHTS.get(p.getUUID());
+			net.minecraft.core.BlockPos want = lit ? net.minecraft.core.BlockPos.containing(p.getEyePosition()) : null;
+			if (had != null && (want == null || had[0] != p.serverLevel() || !had[1].equals(want))) {
+				clearLight((ServerLevel) had[0], (net.minecraft.core.BlockPos) had[1]);
+				LIGHTS.remove(p.getUUID());
+				had = null;
+			}
+			if (want == null || had != null) continue;
+			ServerLevel lv = p.serverLevel();
+			// only into air: never replace a block, water or someone else's light
+			if (!lv.isLoaded(want) || !lv.getBlockState(want).isAir()) continue;
+			lv.setBlock(want, Blocks.LIGHT.defaultBlockState().setValue(net.minecraft.world.level.block.LightBlock.LEVEL, level), 2);
+			LIGHTS.put(p.getUUID(), new Object[]{lv, want});
+		}
+		if (!LIGHTS.isEmpty()) {
+			// holders who logged out
+			LIGHTS.entrySet().removeIf(e -> {
+				if (server.getPlayerList().getPlayer(e.getKey()) != null) return false;
+				clearLight((ServerLevel) e.getValue()[0], (net.minecraft.core.BlockPos) e.getValue()[1]);
+				return true;
+			});
+		}
+	}
+
+	/** Takes our light block away again (only if it is still a light block). */
+	private static void clearLight(ServerLevel level, net.minecraft.core.BlockPos pos) {
+		if (level.isLoaded(pos) && level.getBlockState(pos).is(Blocks.LIGHT)) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2);
+	}
+
 	public static void tickAll(MinecraftServer server) {
 		long now = server.getTickCount();
+		tickLights(server);
 		tickBarriers(server, now);
+		if (!RAYS.isEmpty()) {
+			for (var e : new ArrayList<>(RAYS.entrySet())) {
+				ServerPlayer p = server.getPlayerList().getPlayer(e.getKey());
+				if (p == null || !tickRay(p, e.getValue(), now)) RAYS.remove(e.getKey());
+			}
+		}
 		if (!BOLTS.isEmpty()) {
 			for (var e : new ArrayList<>(BOLTS.entrySet())) {
 				ServerPlayer p = server.getPlayerList().getPlayer(e.getKey());
@@ -1208,6 +1449,8 @@ public final class Mage {
 
 	public static void onLogout(ServerPlayer p) {
 		dropHeld(p);
+		Object[] light = LIGHTS.remove(p.getUUID());
+		if (light != null) clearLight((ServerLevel) light[0], (net.minecraft.core.BlockPos) light[1]);
 		BARRIERS.remove(p.getUUID());
 		LAST_SPEND.remove(p.getUUID());
 		LAST_CAST.remove(p.getUUID());
@@ -1223,11 +1466,14 @@ public final class Mage {
 
 	/** Server stop: nothing carries into the next world. */
 	public static void clearAll() {
+		for (Object[] light : LIGHTS.values()) clearLight((ServerLevel) light[0], (net.minecraft.core.BlockPos) light[1]);
+		LIGHTS.clear();
 		for (Orb o : ORBS.values()) removeFx(o.ball);
 		for (Shot s : SHOTS) removeFx(s.ball);
 		for (Prism pr : PRISMS.values()) endPrism(null, pr);
 		for (Wisp w : WISPS) removeFx(w.d);
 		BOLTS.clear();
+		RAYS.clear();
 		ORBS.clear();
 		SHOTS.clear();
 		PRISMS.clear();
@@ -1249,6 +1495,10 @@ public final class Mage {
 
 	public static boolean holdingOrb(ServerPlayer p) {
 		return ORBS.containsKey(p.getUUID());
+	}
+
+	public static boolean holdingRay(ServerPlayer p) {
+		return RAYS.containsKey(p.getUUID());
 	}
 
 	public static boolean holdingBolt(ServerPlayer p) {
@@ -1279,6 +1529,8 @@ public final class Mage {
 	public static void devTick(ServerPlayer p, long now) {
 		Bolt b = BOLTS.get(p.getUUID());
 		if (b != null && !tickBolt(p, b, now)) BOLTS.remove(p.getUUID());
+		Ray r = RAYS.get(p.getUUID());
+		if (r != null && !tickRay(p, r, now)) RAYS.remove(p.getUUID());
 		Orb o = ORBS.get(p.getUUID());
 		if (o != null && !tickOrb(p, o, now)) ORBS.remove(p.getUUID());
 	}

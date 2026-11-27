@@ -14,7 +14,7 @@ Ten auras can be rolled. Each has a Keeper's story told at the [Awakening Altar]
 | [Earth](earth.md) | tank, terrain | Pillar Lift, Boulder Toss, Quake | Tectonic Rift | Bulwark / Tectonic |
 | [Light](light.md) | healer, blinder | Radiant Pulse, Solar Flash, Prism Beam | Sunburst | Radiant / Prismatic |
 | [Blood](blood.md) | duelist | Hemorrhage, Blood Tether, Crimson Sacrifice | Blood Moon | Sanguine / Sacrificial |
-| [Mage](mage.md) *(not rollable yet)* | spellcaster, mana instead of cooldowns | Arcane Bolt, Arcane Barrier, Arcane Orb | Last Prism | one per update |
+| [Mage](mage.md) *(not rollable yet)* | spellcaster, mana instead of cooldowns | Arcane Ray, Arcane Barrier, Arcane Orb | Last Prism | one per update |
 | [Resonance](resonance.md) *(retired)* | sound hunter | Abyssal Grasp, Listening Tree, Sonic Blossom | none | Dirge / Chorus |
 
 Every aura also has **Vein of Aura**: you heal a share of the damage you deal to mobs (not players).

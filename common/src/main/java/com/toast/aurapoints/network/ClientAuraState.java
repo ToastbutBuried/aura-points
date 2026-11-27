@@ -46,7 +46,9 @@ public final class ClientAuraState {
 	/** Mage (5.62.0): the mana pool (-1 = not a Mage), level, 0..1 toward the next level, the aim's turn factor and the spells' costs. */
 	public static volatile float mana = -1, manaXp = 0, manaTurn = 1f;
 	public static volatile int manaMax = 100, manaLevel = 1;
-	public static volatile int[] manaCosts = {0, 0, 0, 0};
+	public static volatile int[] manaCosts = {0, 0, 0, 0, 0};
+	/** Cooldowns are off on the server: spells are free (the bar shows infinity). */
+	public static volatile boolean manaInfinite = false;
 
 	public static void setMana(float value, int max, int level, float xp, float turn, String costs) {
 		mana = value;
@@ -54,9 +56,10 @@ public final class ClientAuraState {
 		manaLevel = Math.max(1, level);
 		manaXp = Math.max(0f, Math.min(1f, xp));
 		manaTurn = Math.max(0.05f, Math.min(1f, turn));
-		int[] c = {0, 0, 0, 0};
-		String[] parts = costs.split(",");
-		for (int i = 0; i < Math.min(4, parts.length); i++) {
+		manaInfinite = costs.equals("inf");
+		int[] c = {0, 0, 0, 0, 0};
+		String[] parts = manaInfinite ? new String[0] : costs.split(",");
+		for (int i = 0; i < Math.min(5, parts.length); i++) {
 			try {
 				c[i] = Integer.parseInt(parts[i].trim());
 			} catch (NumberFormatException ignored) {
@@ -73,6 +76,7 @@ public final class ClientAuraState {
 			case ARCANE_BARRIER -> c[1];
 			case ARCANE_ORB -> c[2];
 			case LAST_PRISM -> c[3];
+			case ARCANE_RAY -> c[4];
 			default -> 0;
 		};
 	}

@@ -1,6 +1,346 @@
 {
- "parent": "minecraft:item/generated",
+ "texture_size": [
+  16,
+  16
+ ],
+ "render_type": "minecraft:cutout",
+ "gui_light": "front",
  "textures": {
-  "layer0": "aurapoints:item/mage_orb"
+  "0": "aurapoints:item/mage_orb_3d",
+  "particle": "aurapoints:item/mage_orb_3d"
+ },
+ "elements": [
+  {
+   "name": "slab_0",
+   "from": [
+    4,
+    5,
+    5
+   ],
+   "to": [
+    12,
+    11,
+    11
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "down": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    }
+   },
+   "neoforge_data": {
+    "block_light": 15,
+    "sky_light": 15
+   }
+  },
+  {
+   "name": "slab_1",
+   "from": [
+    5,
+    4,
+    5
+   ],
+   "to": [
+    11,
+    12,
+    11
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "down": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    }
+   },
+   "neoforge_data": {
+    "block_light": 15,
+    "sky_light": 15
+   }
+  },
+  {
+   "name": "slab_2",
+   "from": [
+    5,
+    5,
+    4
+   ],
+   "to": [
+    11,
+    11,
+    12
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "down": {
+     "uv": [
+      0.5,
+      0.5,
+      7.5,
+      15.5
+     ],
+     "texture": "#0"
+    }
+   },
+   "neoforge_data": {
+    "block_light": 15,
+    "sky_light": 15
+   }
+  },
+  {
+   "name": "turn_y",
+   "from": [
+    4.7,
+    4.7,
+    4.7
+   ],
+   "to": [
+    11.3,
+    11.3,
+    11.3
+   ],
+   "rotation": {
+    "angle": 45,
+    "axis": "y",
+    "origin": [
+     8,
+     8,
+     8
+    ]
+   },
+   "faces": {
+    "north": {
+     "uv": [
+      8.5,
+      0.5,
+      15.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "south": {
+     "uv": [
+      8.5,
+      0.5,
+      15.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "east": {
+     "uv": [
+      8.5,
+      0.5,
+      15.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "west": {
+     "uv": [
+      8.5,
+      0.5,
+      15.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "up": {
+     "uv": [
+      8.5,
+      0.5,
+      15.5,
+      15.5
+     ],
+     "texture": "#0"
+    },
+    "down": {
+     "uv": [
+      8.5,
+      0.5,
+      15.5,
+      15.5
+     ],
+     "texture": "#0"
+    }
+   },
+   "neoforge_data": {
+    "block_light": 15,
+    "sky_light": 15
+   }
+  }
+ ],
+ "display": {
+  "fixed": {
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "translation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  },
+  "gui": {
+   "rotation": [
+    30,
+    45,
+    0
+   ],
+   "scale": [
+    0.8,
+    0.8,
+    0.8
+   ]
+  }
  }
 }

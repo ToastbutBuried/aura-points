@@ -32,6 +32,9 @@ public final class AuraClientConfig {
 	public static final ModConfigSpec.EnumValue<BarPlace> CHARGE_BAR;
 	public static final ModConfigSpec.IntValue CHARGE_OFFSET_X, CHARGE_OFFSET_Y;
 	public static final ModConfigSpec.DoubleValue CHARGE_SCALE;
+	public static final ModConfigSpec.EnumValue<ManaBarPlace> MANA_BAR;
+	public static final ModConfigSpec.IntValue MANA_OFFSET_X, MANA_OFFSET_Y;
+	public static final ModConfigSpec.DoubleValue MANA_SCALE;
 
 	// feedback
 	public static final ModConfigSpec.BooleanValue HIT_CONFIRM, DAMAGE_NUMBERS, STUNT_POPUPS, POINTS_TOAST, ROLL_REEL, STATUS_OVERLAYS, KEYBIND_WARNING;
@@ -90,6 +93,18 @@ public final class AuraClientConfig {
 		BLUE_YELLOW,
 		/** strong, bright colors on a near-black panel */
 		HIGH_CONTRAST
+	}
+
+	/** The Mage's mana bar (5.62.1). */
+	public enum ManaBarPlace {
+		/** standing up at the left screen edge, a little below the middle */
+		LEFT,
+		/** standing up at the right screen edge */
+		RIGHT,
+		/** lying across the top of the hotbar, above the hearts */
+		HOTBAR,
+		/** no bar (the ability slots still show when a spell is too dear) */
+		OFF
 	}
 
 	public enum BarPlace {
@@ -226,6 +241,18 @@ public final class AuraClientConfig {
 		CHARGE_SCALE = b.comment("Size of the charge bar (1.0 = normal).")
 				.translation("aurapoints.configuration.chargeScale")
 				.defineInRange("chargeScale", 1.0, 0.5, 2.0);
+		MANA_BAR = b.comment("Mage: where the mana bar goes: LEFT or RIGHT screen edge, HOTBAR (above the hearts), or OFF.")
+				.translation("aurapoints.configuration.manaBar")
+				.defineEnum("manaBar", ManaBarPlace.LEFT);
+		MANA_OFFSET_X = b.comment("Moves the mana bar right (negative: left), in GUI pixels.")
+				.translation("aurapoints.configuration.manaOffsetX")
+				.defineInRange("manaOffsetX", 0, -4000, 4000);
+		MANA_OFFSET_Y = b.comment("Moves the mana bar down (negative: up), in GUI pixels.")
+				.translation("aurapoints.configuration.manaOffsetY")
+				.defineInRange("manaOffsetY", 0, -4000, 4000);
+		MANA_SCALE = b.comment("Size of the mana bar (1.0 = normal).")
+				.translation("aurapoints.configuration.manaScale")
+				.defineInRange("manaScale", 1.0, 0.5, 2.0);
 		b.pop();
 
 		b.comment("Screen feedback.").translation("aurapoints.configuration.feedback").push("feedback");
