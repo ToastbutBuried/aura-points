@@ -33,17 +33,21 @@ import software.bernie.geckolib.animation.RawAnimation;
  * <li>Seat: the passenger sits at a fixed point above the skull computed from the position, the YAW and the scale only.
  * The renderer pitches the model around that very point (the root bone's pivot), so the skull surface under the rider
  * never moves and the head can't swallow them when it looks up.</li>
- * <li>Scoreboard: the head's own score in the objective {@value #COLLISION_OBJECTIVE} is 1 while its box, swept along
- * this tick's Motion (where that Motion takes it next tick), overlaps a block (or a solid entity) or a living entity
- * that isn't its rider, else 0: the datapack learns about a hit one tick before it happens. Ignored blocks: water and
+ * <li>Scoreboards: the head's own score in the objective {@value #COLLISION_OBJECTIVE} is 1 while its box, swept along
+ * this tick's Motion (where that Motion takes it next tick), overlaps a block, else 0: the datapack learns about a hit
+ * one tick before it happens. {@value #ENTITY_COLLISION_OBJECTIVE} is the same for entities: a solid entity (boat,
+ * shulker) or a living entity that isn't its rider. Each is skipped when its objective doesn't exist. Ignored blocks: water and
  * anything else without a collision shape, #aurapoints:dragon_passable (leaves by default), and thin blocks (1 block
- * wide along any axis, see {@link #hitsBlock}). Skipped when the objective doesn't exist.</li>
+ * wide along any axis, see {@link #hitsBlock}).</li>
  * <li>/kill and the void remove it; nothing else hurts it.</li>
  * </ul>
  */
 public class DragonHead extends DatapackPuppet {
 
+	/** Blocks only (entities stopped counting in 5.61.2, ticket #19). */
 	public static final String COLLISION_OBJECTIVE = "pluxshadowserpentcollision";
+	/** Entities only: solid entities and living entities other than its rider. */
+	public static final String ENTITY_COLLISION_OBJECTIVE = "pluxshadowserpententitycollision";
 	/** The seat in blocks at scale 1, relative to the entity's position: above the skull, a little behind its center. Keep in sync with dragon/gen.py SEAT. */
 	public static final double SEAT_UP = 0.875, SEAT_BACK = 0.125;
 
@@ -64,20 +68,23 @@ public class DragonHead extends DatapackPuppet {
 		Vec3 motion = getDeltaMovement();
 		super.tick();
 		if (level().isClientSide) return;
-		updateCollisionScore(motion);
+		Scoreboard board = level().getScoreboard();
+		Objective blocks = board.getObjective(COLLISION_OBJECTIVE);
+		Objective entities = board.getObjective(ENTITY_COLLISION_OBJECTIVE);
+		if (blocks == null && entities == null) return;
+		AABB box = getBoundingBox().expandTowards(motion);
+		if (blocks != null) setScore(board, blocks, hitsBlock(box));
+		if (entities != null) setScore(board, entities, hitsEntity(box));
 	}
 
-	private void updateCollisionScore(Vec3 motion) {
-		Scoreboard board = level().getScoreboard();
-		Objective objective = board.getObjective(COLLISION_OBJECTIVE);
-		if (objective == null) return;
-		int want = colliding(getBoundingBox().expandTowards(motion)) ? 1 : 0;
+	private void setScore(Scoreboard board, Objective objective, boolean hit) {
+		int want = hit ? 1 : 0;
 		var info = board.getPlayerScoreInfo(this, objective);
 		if (info == null || info.value() != want) board.getOrCreatePlayerScore(this, objective).set(want);
 	}
 
-	private boolean colliding(AABB box) {
-		if (hitsBlock(box) || !level().getEntityCollisions(this, box).isEmpty()) return true;
+	private boolean hitsEntity(AABB box) {
+		if (!level().getEntityCollisions(this, box).isEmpty()) return true;
 		return !level().getEntities(this, box, e -> e instanceof LivingEntity && !e.isSpectator() && e.isAlive()
 				&& !e.isPassengerOfSameVehicle(this) && !hasIndirectPassenger(e)).isEmpty();
 	}

@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.61.2
+- Shadow Serpent datapacks: the collision score now only reacts to blocks; hitting entities has its own score (pluxshadowserpententitycollision).
+- Small Reaper animation polish.
+
 == 5.61.1
 - The Reaper moves smoothly now: no more twisting arms, and its overhead slam winds the scythe far back over its head and hammers it down hard (same timing as before).
 
