@@ -1,8 +1,8 @@
 {
-  "version": "5.62.0",
-  "file": "aura-points-fabric-5.62.0.jar",
-  "url": "https://github.com/ToastbutBuried/aura-points/releases/download/v5.62.0/aura-points-fabric-5.62.0.jar",
-  "sha256": "df1371b30844f24c9aa36068d0a8ccb40d42e32f8738393bde86e7985a006b34",
+  "version": "5.63.0",
+  "file": "aura-points-fabric-5.63.0.jar",
+  "url": "https://github.com/ToastbutBuried/aura-points/releases/download/v5.63.0/aura-points-fabric-5.63.0.jar",
+  "sha256": "cd94a217809faea411666c628609870210bc6af2a91f9d84e932ced5cefad697",
   "loader": "fabric",
   "minecraft": "1.21.1",
   "loader_version": "0.20.1",
