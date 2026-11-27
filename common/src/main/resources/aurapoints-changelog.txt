@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.64.0
+- Mage: bolts fly from the staff's crystal, Arcane Barrier pops a spell book open in your hands and snaps it shut, the Last Prism hits everything its beams sweep over, and Arcane Ray always strikes the ground (even aimed at the sky) as a tall round beam from the clouds.
+- New client option: split the ability panel, half left and half right of the hotbar.
+
 == 5.63.1
 - Mage: Arcane Bolt no longer takes a slot on the ability panel (it's the staff's right-click now), so the panel fits next to the hotbar again.
 

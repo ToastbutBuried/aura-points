@@ -1,0 +1,69 @@
+{
+ "texture_size": [
+  32,
+  32
+ ],
+ "render_type": "minecraft:cutout",
+ "textures": {
+  "0": "aurapoints:item/ray_disc",
+  "particle": "aurapoints:item/ray_disc"
+ },
+ "elements": [
+  {
+   "name": "disc_glow",
+   "from": [
+    0,
+    8,
+    0
+   ],
+   "to": [
+    16,
+    8.05,
+    16
+   ],
+   "faces": {
+    "up": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#0"
+    },
+    "down": {
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "texture": "#0"
+    }
+   },
+   "neoforge_data": {
+    "block_light": 15,
+    "sky_light": 15
+   }
+  }
+ ],
+ "display": {
+  "fixed": {
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "translation": [
+    0,
+    0,
+    0
+   ],
+   "scale": [
+    1,
+    1,
+    1
+   ]
+  }
+ }
+}

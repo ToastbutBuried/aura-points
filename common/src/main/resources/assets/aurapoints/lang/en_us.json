@@ -152,6 +152,8 @@
   "aurapoints.configuration.manaOffsetY.tooltip": "Moves it down (negative: up), in GUI pixels.",
   "aurapoints.configuration.manaScale": "Mana bar size",
   "aurapoints.configuration.manaScale.tooltip": "1.0 = normal.",
+  "aurapoints.configuration.hudSplit": "Split the ability panel",
+  "aurapoints.configuration.hudSplit.tooltip": "Half the slots left of the hotbar, half right of it (with the panel at the hotbar).",
   "aurapoints.configuration.feedback": "Feedback",
   "aurapoints.configuration.feedback.tooltip": "Hit marks, popups, screen edges and camera feel.",
   "aurapoints.configuration.hitConfirm": "Hit marks",

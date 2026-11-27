@@ -85,10 +85,9 @@ final class AuraGestures {
 				case 1 -> new Key[][]{
 						{rest(0), k(2, -2.4f, 0.2f, 0.25f), aim(4, 0.05f, 0, 0), aim(9, 0, 0, 0), rest(14)},
 						{rest(0), k(2, -0.9f, 0.3f, 0.1f), k(5, 0.35f, 0, -0.2f), rest(14)}};
-				// Arcane Barrier: the wand raised overhead, swept round in a circle and brought down to the chest
-				case 2 -> new Key[][]{
-						{rest(0), k(3, -2.9f, 0, 0.15f), k(6, -2.4f, -0.6f, 0.6f), k(9, -1.3f, -0.8f, 0.2f), k(13, -1.25f, -0.75f, 0.2f), rest(19)},
-						{rest(0), k(3, -1.0f, 0, 0.6f), k(9, -1.1f, -0.3f, 0.25f), rest(19)}};
+				// Arcane Barrier: both forearms forward at once holding the open book (no lead-in), the hands snap together as it
+				// shuts, then down
+				case 2 -> both(k(0, -1.05f, -0.3f, 0.05f), k(6, -1.08f, -0.3f, 0.05f), k(8, -1.2f, -0.55f, 0.02f), k(12, -1.15f, -0.5f, 0.02f), rest(18));
 				default -> null;
 			};
 		}
@@ -100,7 +99,7 @@ final class AuraGestures {
 			return switch (variant) {
 				case 0 -> new B[]{brest(0), b(2, 0.05f, 0.1f, 0, 0.2f, 0), brest(11)};
 				case 1 -> new B[]{brest(0), b(2, -0.12f, -0.25f, 0, 0, 0), b(4, 0.2f, 0.2f, 0.03f, 0.35f, 0), b(9, 0.15f, 0.15f, 0.02f, 0.35f, 0), brest(14)};
-				case 2 -> new B[]{brest(0), b(3, -0.1f, 0, 0, 0, 0.08f), b(9, 0.08f, 0, 0.03f, 0, 0.12f), brest(19)};
+				case 2 -> new B[]{b(0, 0.06f, 0, 0, 0, 0.05f), b(8, 0.1f, 0, 0.02f, 0, 0.05f), brest(18)};
 				default -> null;
 			};
 		}

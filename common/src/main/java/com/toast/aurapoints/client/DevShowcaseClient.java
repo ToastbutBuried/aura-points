@@ -168,6 +168,8 @@ public final class DevShowcaseClient {
 				});
 			}
 		}
+		// -Daurapoints.hidechat=true: no chat on screen (clean frames)
+		if (ticksIn == 61 && Boolean.getBoolean("aurapoints.hidechat")) mc.options.chatVisibility().set(net.minecraft.world.entity.player.ChatVisiblity.HIDDEN);
 		// -Daurapoints.cameraback=true: third person from behind at tick 61 (see the hands and what flies off them)
 		if (ticksIn == 61 && Boolean.getBoolean("aurapoints.cameraback")) mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
 		// -Daurapoints.keyplan=key:downTick:upTick,... : ability keys held for a while (holds, charges, channels; 5.62.0)

@@ -22,6 +22,7 @@ public final class AuraClientConfig {
 
 	// HUD
 	public static final ModConfigSpec.EnumValue<Anchor> HUD_ANCHOR;
+	public static final ModConfigSpec.BooleanValue HUD_SPLIT;
 	public static final ModConfigSpec.IntValue HUD_OFFSET_X, HUD_OFFSET_Y;
 	public static final ModConfigSpec.DoubleValue HUD_SCALE, HUD_OPACITY, TITLE_SIZE;
 	public static final ModConfigSpec.BooleanValue HUD_LABEL, HUD_KEYBINDS, HUD_EFFECTS;
@@ -196,6 +197,9 @@ public final class AuraClientConfig {
 				.comment("Where the ability panel sits: HOTBAR (next to the hotbar), or a screen corner / the top middle.")
 				.translation("aurapoints.configuration.hudAnchor")
 				.defineEnum("anchor", Anchor.HOTBAR);
+		HUD_SPLIT = b.comment("With the panel at the HOTBAR: split the ability slots evenly, half left of the hotbar and half right of it.")
+				.translation("aurapoints.configuration.hudSplit")
+				.define("splitPanel", false);
 		HUD_OFFSET_X = b.comment("Moves the panel right (negative: left), in GUI pixels.")
 				.translation("aurapoints.configuration.hudOffsetX")
 				.defineInRange("offsetX", 0, -4000, 4000);

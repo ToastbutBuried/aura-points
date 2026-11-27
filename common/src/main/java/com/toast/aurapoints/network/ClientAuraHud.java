@@ -166,17 +166,34 @@ public final class ClientAuraHud {
 		RenderSystem.setShaderColor(1f, 1f, 1f, alpha);
 		try {
 			int mainRight = -1, mainTop = 0;
+			boolean splitShown = false;
 			List<Ability> abilities = shownAbilities(aura);
 			if (!abilities.isEmpty()) {
 				// Gliding with an elytra: Dash and Double Jump show their flight set and its cooldowns.
 				boolean flying = mc.player.isFallFlying() && abilities.stream().anyMatch(ClientAuraState::hasFlightVersion);
 				String label = "✦ " + aura.displayName + (flying ? " · Flight" : "")
 						+ (ClientAuraState.mana >= 0 ? " · Lv " + ClientAuraState.manaLevel : "") + " ✦";
-				int w = width(mc, label, abilities.size()), h = height();
+				boolean split = AuraClientConfig.HUD_SPLIT.get() && AuraClientConfig.HUD_ANCHOR.get() == AuraClientConfig.Anchor.HOTBAR && abilities.size() > 1;
+				List<Ability> leftSlots = split ? abilities.subList(0, (abilities.size() + 1) / 2) : abilities;
+				int w = width(mc, label, leftSlots.size()), h = height();
 				int[] at = HudLayout.panel(mc, g.guiWidth(), g.guiHeight(), w, h);
-				panel(g, mc, aura, label, abilities, flying, rgb, at[0], at[1] + slideY, w, now, alpha, true);
+				panel(g, mc, aura, label, leftSlots, flying, rgb, at[0], at[1] + slideY, w, now, alpha, true);
 				mainRight = at[0] + Math.round(w * HudLayout.scale());
 				mainTop = at[1];
+				if (split) {
+					// the other half right of the hotbar (past the offhand slot or the attack indicator), at the same height
+					List<Ability> rightSlots = abilities.subList(leftSlots.size(), abilities.size());
+					int rw = width(mc, "", rightSlots.size());
+					boolean offhandLeft = mc.player.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT;
+					int rx = g.guiWidth() / 2 + 91 + 6;
+					if (!offhandLeft) rx += 29;
+					else if (mc.options.attackIndicator().get() == net.minecraft.client.AttackIndicatorStatus.HOTBAR) rx += 24;
+					int[] rat = HudLayout.clampPanel(g.guiWidth(), g.guiHeight(), rw, h, rx - AuraClientConfig.HUD_OFFSET_X.get(), at[1]);
+					splitShown = true;
+					panel(g, mc, aura, "", rightSlots, flying, rgb, rat[0], rat[1] + slideY, rw, now, alpha, false);
+					mainRight = rat[0] + Math.round(rw * HudLayout.scale());
+					mainTop = rat[1];
+				}
 			}
 
 			// the handheld weapon: its own panel right of the hotbar (past the offhand slot or the attack indicator),
@@ -186,7 +203,7 @@ public final class ClientAuraHud {
 				String label = "⚔ " + mc.player.getMainHandItem().getHoverName().getString();
 				int w = width(mc, label, 1), h = height();
 				int x, y;
-				if (AuraClientConfig.HUD_ANCHOR.get() == AuraClientConfig.Anchor.HOTBAR && AuraClientConfig.HUD_OFFSET_X.get() == 0
+				if (!splitShown && AuraClientConfig.HUD_ANCHOR.get() == AuraClientConfig.Anchor.HOTBAR && AuraClientConfig.HUD_OFFSET_X.get() == 0
 						&& AuraClientConfig.HUD_OFFSET_Y.get() == 0) {
 					boolean offhandLeft = mc.player.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT;
 					x = g.guiWidth() / 2 + 91 + 6;

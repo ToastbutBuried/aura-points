@@ -78,7 +78,7 @@ public final class Mage {
 	/** The wand's custom_model_data while the Last Prism is out: an empty model (the wand is "put away"). */
 	public static final int WAND_STOWED = 1;
 	/** custom_model_data of the mage_fx item: the orb, the wisp, the prism. */
-	public static final int FX_ORB = 1, FX_WISP = 2, FX_PRISM = 3;
+	public static final int FX_ORB = 1, FX_WISP = 2, FX_PRISM = 3, FX_BOOK_OPEN = 4, FX_BOOK_CLOSED = 5, FX_RAY_DISC = 6, FX_RAY_COLUMN = 7;
 
 	private static final ResourceLocation PRISM_SLOW = ResourceLocation.fromNamespaceAndPath("aurapoints", "mage_prism");
 	private static final ResourceLocation ORB_SLOW = ResourceLocation.fromNamespaceAndPath("aurapoints", "mage_orb");
@@ -362,9 +362,12 @@ public final class Mage {
 		return shoulder.add(p.getLookAngle().scale(0.72));
 	}
 
-	/** Where the staff's crystal is with the arm pointed at the aim (bolt, the fired orb). */
+	/**
+	 * The staff's crystal with the arm pointed at the aim (where the bolt leaves from): the held staff stays upright in the
+	 * pointing hand (seen in a client, 5.63.2), so the crystal sits a little over the hand, at about head height.
+	 */
 	private static Vec3 tipPointed(ServerPlayer p) {
-		return staffHand(p).add(p.getLookAngle().scale(STAFF_TIP));
+		return staffHand(p).add(0, 0.6, 0).add(p.getLookAngle().scale(0.1));
 	}
 
 	/** The look tipped up by {@code degrees}. */
@@ -608,9 +611,12 @@ public final class Mage {
 		Vec3 eye = p.getEyePosition();
 		HitResult hit = p.level().clip(new ClipContext(eye, eye.add(p.getLookAngle().scale(range)), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
 		Vec3 at = hit.getLocation();
-		// in the air: straight down to the ground under that point (up to 8 blocks)
-		HitResult down = p.level().clip(new ClipContext(at, at.add(0, -8, 0), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
-		return down.getType() == HitResult.Type.MISS ? at : down.getLocation();
+		// aimed into the air or the sky: it still lands on the ground, straight under that point
+		HitResult down = p.level().clip(new ClipContext(at, at.add(0, -160, 0), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+		if (down.getType() != HitResult.Type.MISS) return down.getLocation();
+		// nothing under it (the void, a sky island's edge): the ground under the player instead
+		HitResult mine = p.level().clip(new ClipContext(p.position(), p.position().add(0, -160, 0), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+		return mine.getType() != HitResult.Type.MISS ? mine.getLocation() : p.position();
 	}
 
 	/** Returns false once the ray was cast or dropped. */
@@ -672,19 +678,24 @@ public final class Mage {
 		AuraFx.boost = Mastery.particleBoost(p);
 		try {
 			// the beam: a column of white light from high above down onto the spot, swelling and then thinning out
-			float w = (float) (charged ? 0.5 + radius * 0.35 : 0.45);
-			double height = 22;
+			float w = (float) (charged ? 0.8 + radius * 0.45 : 0.7);
+			// a column from high up in the sky (or the ceiling, indoors) down to the ground
+			HitResult roof = level.clip(new ClipContext(spot.add(0, 0.5, 0), spot.add(0, 96, 0), ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+			double height = Math.max(3, roof.getLocation().y - spot.y);
 			// anchored on the ground and reaching up: a display is culled by its own position, so one placed up in the sky
 			// would vanish whenever the camera looks below it
-			Vec3 up = new Vec3(0, 1, 0);
-			Display.BlockDisplay core = Props.spawn(level, spot, Blocks.WHITE_CONCRETE.defaultBlockState(), Props.along(Vec3.ZERO, up, 0.05f, (float) height), 14, 1);
-			Props.glow(core);
-			Props.set(core, Props.along(Vec3.ZERO, up, w, (float) height), 2);
-			Props.setLater(core, 4, Props.along(Vec3.ZERO, up, 0.02f, (float) height), 8);
-			Display.BlockDisplay halo = Props.spawn(level, spot, Blocks.LIGHT_BLUE_CONCRETE.defaultBlockState(), Props.along(Vec3.ZERO, up, 0.05f, 0.6f), 14, 1);
-			Props.glow(halo);
-			Props.set(halo, Props.along(Vec3.ZERO, up, (float) (radius * 1.6), 0.08f), 3);
-			Props.setLater(halo, 5, Props.along(Vec3.ZERO, up, 0.02f, 0.02f), 8);
+			// a round (eight-sided) column: the model is 0.25 wide and 1 tall, centred, so it is scaled and lifted by half its height
+			Display.ItemDisplay column = fx(level, spot, FX_RAY_COLUMN, 0.01f);
+			DisplayAccessor cacc = (DisplayAccessor) column;
+			cacc.aurapoints$setWidth(Math.max(2f, w * 2));
+			cacc.aurapoints$setHeight((float) height + 1);
+			column(column, 0.05f, (float) height, 0);
+			column(column, w, (float) height, 2);
+			COLUMNS.put(column, new float[]{14, w, (float) height});
+			// a round flash of light on the ground where it strikes: a flat glowing disc that spreads and fades
+			Display.ItemDisplay disc = fx(level, spot.add(0, 0.04, 0), FX_RAY_DISC, 0.2f);
+			scale(disc, (float) (radius * 2), 3);
+			DISCS.put(disc, 14);
 			// light falling along it, and the strike on the ground
 			for (int i = 0; i < 10; i++) {
 				double y = spot.y + level.getRandom().nextDouble() * height;
@@ -709,6 +720,51 @@ public final class Mage {
 		NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_MAGE, charged ? 1 : 0);
 		AuraAbilities.markUsed(p, Ability.ARCANE_RAY, now);
+	}
+
+	/** Shapes the ray's column: {@code width} across, {@code height} up from the display's own spot (the ground). */
+	private static void column(Display.ItemDisplay d, float width, float height, int ticks) {
+		DisplayAccessor acc = (DisplayAccessor) d;
+		float across = width / 0.25f;
+		acc.aurapoints$setTransformation(new Transformation(new Vector3f(0, height / 2f, 0), new Quaternionf(), new Vector3f(across, height, across), null));
+		acc.aurapoints$setInterpolationDuration(ticks);
+		d.getEntityData().set(DisplayAccessor.aurapoints$startDelta(), 0, true);
+	}
+
+	/** The ray's columns: display -> {ticks left, width, height} (they thin out over the last 8). */
+	private static final Map<Display.ItemDisplay, float[]> COLUMNS = new HashMap<>();
+
+	/** The ray's ground discs: display -> ticks left (they shrink away over the last 6). */
+	private static final Map<Display.ItemDisplay, Integer> DISCS = new HashMap<>();
+
+	private static void tickDiscs() {
+		if (!COLUMNS.isEmpty()) {
+			var cit = COLUMNS.entrySet().iterator();
+			while (cit.hasNext()) {
+				var e = cit.next();
+				float[] c = e.getValue();
+				c[0]--;
+				if (c[0] <= 0 || e.getKey().isRemoved()) {
+					removeFx(e.getKey());
+					cit.remove();
+				} else if (c[0] == 8) {
+					column(e.getKey(), 0.02f, c[2], 8);
+				}
+			}
+		}
+		if (DISCS.isEmpty()) return;
+		var it = DISCS.entrySet().iterator();
+		while (it.hasNext()) {
+			var e = it.next();
+			int left = e.getValue() - 1;
+			if (left <= 0 || e.getKey().isRemoved()) {
+				removeFx(e.getKey());
+				it.remove();
+				continue;
+			}
+			if (left == 6) scale(e.getKey(), 0.05f, 6);
+			e.setValue(left);
+		}
 	}
 
 	private static double horizontal(Vec3 a, Vec3 b) {
@@ -737,6 +793,11 @@ public final class Mage {
 		p.setAbsorptionAmount(Math.max(before, amount));
 		BARRIERS.put(p.getUUID(), now + ticks);
 		ServerLevel level = p.serverLevel();
+		// a spell book appears open in the hands (no fade-in), snaps shut a moment later, then is gone
+		Book old = BOOKS.remove(p.getUUID());
+		if (old != null) removeFx(old.d);
+		BOOKS.put(p.getUUID(), new Book(fx(level, bookSpot(p), FX_BOOK_OPEN, 0.8f)));
+		sound(level, p.position(), AuraSounds.BOOK_PAGE_TURN.value(), 1.0f, 1.2f);
 		float boost = AuraFx.boost;
 		AuraFx.boost = Mastery.particleBoost(p);
 		try {
@@ -758,6 +819,59 @@ public final class Mage {
 		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_MAGE, 2);
 		AuraAbilities.markUsed(p, Ability.ARCANE_BARRIER, now);
 		return true;
+	}
+
+	/** The barrier's spell book: open in the hands, shut at CLOSE_AT, gone at GONE_AT. */
+	private static final class Book {
+		final Display.ItemDisplay d;
+		int t;
+
+		Book(Display.ItemDisplay d) {
+			this.d = d;
+		}
+	}
+
+	private static final int BOOK_CLOSE_AT = 7, BOOK_GONE_AT = 12;
+	private static final Map<UUID, Book> BOOKS = new HashMap<>();
+
+	/** In front of the chest, between the hands (both forearms come forward for it). */
+	private static Vec3 bookSpot(ServerPlayer p) {
+		float yaw = p.getYRot() * Mth.DEG_TO_RAD;
+		Vec3 flat = new Vec3(-Mth.sin(yaw), 0, Mth.cos(yaw));
+		return p.position().add(0, p.isShiftKeyDown() ? 1.0 : 1.2, 0).add(flat.scale(0.62));
+	}
+
+	private static void tickBooks(MinecraftServer server) {
+		if (BOOKS.isEmpty()) return;
+		var it = BOOKS.entrySet().iterator();
+		while (it.hasNext()) {
+			var e = it.next();
+			Book b = e.getValue();
+			ServerPlayer p = server.getPlayerList().getPlayer(e.getKey());
+			if (p == null || !p.isAlive() || ++b.t >= BOOK_GONE_AT || b.d.isRemoved()) {
+				if (p != null && !b.d.isRemoved()) {
+					Vec3 at = b.d.position();
+					AuraFx.particles(p.serverLevel(), AuraFx.dust(PALE, 0.7f), at.x, at.y, at.z, 8, 0.15, 0.1, 0.15, 0);
+				}
+				removeFx(b.d);
+				it.remove();
+				continue;
+			}
+			Vec3 at = bookSpot(p);
+			b.d.setPos(at.x, at.y, at.z);
+			// facing the reader, tipped up toward them
+			b.d.setYRot(p.getYRot() + 180);
+			b.d.setXRot(-35);
+			if (b.t == BOOK_CLOSE_AT) {
+				ItemStack closed = new ItemStack(com.toast.aurapoints.AuraPoints.MAGE_FX.get());
+				closed.set(DataComponents.CUSTOM_MODEL_DATA, new CustomModelData(FX_BOOK_CLOSED));
+				((ItemDisplayAccessor) b.d).aurapoints$setItemStack(closed);
+				ServerLevel level = p.serverLevel();
+				sound(level, at, AuraSounds.BOOK_PAGE_TURN.value(), 1.2f, 0.7f);
+				sound(level, at, AuraSounds.AMETHYST_BLOCK_HIT.value(), 1.2f, 1.6f);
+				AuraFx.particles(level, ParticleTypes.ENCHANT, at.x, at.y + 0.1, at.z, 12, 0.15, 0.1, 0.15, 0.4);
+			}
+		}
 	}
 
 	private static void tickBarriers(MinecraftServer server, long now) {
@@ -1058,6 +1172,8 @@ public final class Mage {
 		Display.BlockDisplay core, glow;
 		int t;
 		double spin;
+		/** entity id -> the channel tick it was last hit (each at most once per hit window) */
+		final Map<Integer, Integer> lastHit = new HashMap<>();
 
 		Prism(UUID owner, ServerLevel level, Display.ItemDisplay prism) {
 			this.owner = owner;
@@ -1159,7 +1275,6 @@ public final class Mage {
 		pr.prism.setYRot(p.getYRot());
 		pr.prism.setXRot(p.getXRot());
 		double range = Math.max(4, AuraConfig.MAGE_PRISM_RANGE);
-		boolean hitTick = pr.t % Math.max(1, AuraConfig.MAGE_PRISM_HIT_TICKS) == 0;
 		// the spin speeds up as the beams close in, like the Terraria original
 		pr.spin += 0.08 + 0.32 * c;
 		if (c < 1) {
@@ -1173,8 +1288,7 @@ public final class Mage {
 				double phi = pr.spin + i * Math.PI / 3;
 				Vec3 off = side.scale(Math.cos(phi)).add(up.scale(Math.sin(phi)));
 				Vec3 dir = look.scale(Math.cos(spread)).add(off.scale(Math.sin(spread))).normalize();
-				LivingEntity target = beam(p, pr.beams[i], from, dir, range, 0.12f + 0.06f * (float) c, RAINBOW_RGB[i]);
-				if (target != null && hitTick) hit(p, target, AuraConfig.MAGE_PRISM_DAMAGE);
+				prismHit(p, pr, beam(p, pr.beams[i], from, dir, range, 0.12f + 0.06f * (float) c, RAINBOW_RGB[i]), AuraConfig.MAGE_PRISM_DAMAGE);
 			}
 			if (pr.t % 20 == 1) sound(level, from, AuraSounds.BEACON_AMBIENT.value(), 1.0f, 1.2f + (float) c * 0.8f);
 		} else {
@@ -1193,7 +1307,7 @@ public final class Mage {
 			}
 			float pulse = 1f + 0.12f * Mth.sin(pr.t * 0.9f);
 			// the white core runs a hair ahead of a thinner pink sheath behind it, so both show (no see-through glass)
-			LivingEntity target = beam(p, pr.core, from, look, range, 0.22f * pulse, 0xFFFFFF);
+			List<LivingEntity> touched = beam(p, pr.core, from, look, range, 0.22f * pulse, 0xFFFFFF);
 			beam(p, pr.glow, from.subtract(look.scale(0.05)), look, range, 0.14f, RAINBOW_RGB[(pr.t / 3) % 6]);
 			// rainbow motes spiralling round the beam
 			for (int k = 0; k < 3; k++) {
@@ -1206,26 +1320,45 @@ public final class Mage {
 				Vec3 at = from.add(look.scale(along)).add(side.scale(Math.cos(a) * 0.35)).add(up.scale(Math.sin(a) * 0.35));
 				AuraFx.particles(level, AuraFx.dust(RAINBOW_RGB[(pr.t + k * 2) % 6], 0.8f), at.x, at.y, at.z, 1, 0, 0, 0, 0);
 			}
-			if (target != null && hitTick) hit(p, target, (float) (AuraConfig.MAGE_PRISM_DAMAGE * Math.max(1.0, AuraConfig.MAGE_PRISM_FULL_FACTOR)));
+			prismHit(p, pr, touched, (float) (AuraConfig.MAGE_PRISM_DAMAGE * Math.max(1.0, AuraConfig.MAGE_PRISM_FULL_FACTOR)));
 			if (pr.t % 16 == 0) sound(level, from, AuraSounds.BEACON_AMBIENT.value(), 1.4f, 2.0f);
 		}
 		return true;
 	}
 
-	/** Aims one beam display from {@code from} along {@code dir}: stops at walls and at the first enemy, which it returns. */
-	private static LivingEntity beam(ServerPlayer p, Display.BlockDisplay d, Vec3 from, Vec3 dir, double range, float width, int rgb) {
+	/**
+	 * Aims one beam display from {@code from} along {@code dir} up to the first wall, and returns every enemy it passes
+	 * through (the beam pierces: a sweep across a crowd touches them all).
+	 */
+	private static List<LivingEntity> beam(ServerPlayer p, Display.BlockDisplay d, Vec3 from, Vec3 dir, double range, float width, int rgb) {
 		ServerLevel level = p.serverLevel();
 		Vec3 end = from.add(dir.scale(range));
 		HitResult wall = level.clip(new ClipContext(from, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
 		end = wall.getLocation();
-		var entityHit = ProjectileUtil.getEntityHitResult(level, p, from, end, new AABB(from, end).inflate(0.6), e -> Handhelds.enemy(p, e), 0.25f);
-		LivingEntity target = entityHit != null && entityHit.getEntity() instanceof LivingEntity l ? l : null;
-		if (target != null) end = entityHit.getLocation();
 		float len = (float) from.distanceTo(end);
 		Props.move(d, from);
 		Props.set(d, Props.along(Vec3.ZERO, dir, width, len), 1);
 		AuraFx.particles(level, AuraFx.dust(rgb, 1.1f), end.x, end.y, end.z, 2, 0.12, 0.12, 0.12, 0);
-		return target;
+		List<LivingEntity> out = new ArrayList<>();
+		double reach = width / 2 + 0.35;
+		final Vec3 a = from, b = end;
+		for (Entity e : level.getEntities(p, new AABB(from, end).inflate(reach + 1), e -> Handhelds.enemy(p, e))) {
+			if (!(e instanceof LivingEntity l)) continue;
+			AABB box = e.getBoundingBox().inflate(reach);
+			if (box.contains(a) || box.clip(a, b).isPresent()) out.add(l);
+		}
+		return out;
+	}
+
+	/** Hits each one at most once per MAGE_PRISM_HIT_TICKS, however many beams cross it. */
+	private static void prismHit(ServerPlayer p, Prism pr, List<LivingEntity> touched, float damage) {
+		int every = Math.max(1, AuraConfig.MAGE_PRISM_HIT_TICKS);
+		for (LivingEntity e : touched) {
+			Integer last = pr.lastHit.get(e.getId());
+			if (last != null && pr.t - last < every) continue;
+			pr.lastHit.put(e.getId(), pr.t);
+			hit(p, e, damage);
+		}
 	}
 
 	// ---------------------------------------------------------------
@@ -1393,6 +1526,8 @@ public final class Mage {
 	public static void tickAll(MinecraftServer server) {
 		long now = server.getTickCount();
 		tickLights(server);
+		tickBooks(server);
+		tickDiscs();
 		tickBarriers(server, now);
 		if (!RAYS.isEmpty()) {
 			for (var e : new ArrayList<>(RAYS.entrySet())) {
@@ -1472,6 +1607,12 @@ public final class Mage {
 		for (Shot s : SHOTS) removeFx(s.ball);
 		for (Prism pr : PRISMS.values()) endPrism(null, pr);
 		for (Wisp w : WISPS) removeFx(w.d);
+		for (Book b : BOOKS.values()) removeFx(b.d);
+		BOOKS.clear();
+		for (Display.ItemDisplay d : DISCS.keySet()) removeFx(d);
+		DISCS.clear();
+		for (Display.ItemDisplay d : COLUMNS.keySet()) removeFx(d);
+		COLUMNS.clear();
 		BOLTS.clear();
 		RAYS.clear();
 		ORBS.clear();
