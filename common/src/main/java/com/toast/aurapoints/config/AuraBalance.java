@@ -47,7 +47,7 @@ public final class AuraBalance {
 	private static final String LEGACY = "aurapoints-balance.json";
 
 	/** The five files, in order: general first, then one per aura. */
-	private static final List<String> SECTIONS = List.of("general", "shadow", "water", "fire", "wind", "frost", "verdant", "thunder", "resonance", "earth", "light", "blood", "void", "handhelds", "arena", "ultimates", "reactions", "combos", "touched", "weekly", "weather");
+	private static final List<String> SECTIONS = List.of("general", "shadow", "water", "fire", "wind", "frost", "verdant", "thunder", "resonance", "earth", "light", "blood", "mage", "void", "handhelds", "arena", "ultimates", "reactions", "combos", "touched", "weekly", "weather");
 
 	/** Field name prefix -> section. Anything not listed is general. */
 	private static final Map<String, String> PREFIXES = new LinkedHashMap<>();
@@ -68,6 +68,7 @@ public final class AuraBalance {
 		PREFIXES.put("EARTH_", "earth");
 		PREFIXES.put("LIGHT_", "light");
 		PREFIXES.put("BLOOD_", "blood");
+		PREFIXES.put("MAGE_", "mage");
 		PREFIXES.put("VOID_", "void");
 		for (String p : List.of("ULT_", "ULTIMATE_")) PREFIXES.put(p, "ultimates");
 		PREFIXES.put("REACTION_", "reactions");
@@ -178,6 +179,7 @@ public final class AuraBalance {
 			"EARTH_PILLAR_", "EARTH_BOULDER_", "EARTH_QUAKE_", "EARTH_STONE_SKIN_", "EARTH_GROUNDED_", "EARTH_RIFT_",
 			"LIGHT_PULSE_", "LIGHT_FLASH_", "LIGHT_BEAM_", "LIGHT_HALO_", "LIGHT_LUMINOUS_", "LIGHT_SUN_", "LIGHT_UNDEAD_",
 			"BLOOD_HEMO_", "BLOOD_BLEED_", "BLOOD_TETHER_", "BLOOD_SACRIFICE_", "BLOOD_LUST_", "BLOOD_THIN_", "BLOOD_MOON_",
+			"MAGE_MANA_", "MAGE_REGEN_", "MAGE_XP_", "MAGE_FOCUS_", "MAGE_BOLT_", "MAGE_BARRIER_", "MAGE_ORB_", "MAGE_PRISM_", "MAGE_WISP_",
 			"VOID_PULL_", "VOID_RIFT_", "VOID_ORB_", "VOID_HORIZON_", "VOID_ENTROPY_", "VOID_HOLE_",
 			"ULT_ECLIPSE_", "ULT_TIDAL_", "ULT_PHOENIX_", "ULT_TEMPEST_", "ULT_PERMAFROST_", "ULT_OVERGROWTH_", "ULT_JUDGEMENT_",
 			"REACTION_FREEZE_", "REACTION_CONDUCT_", "REACTION_FIRESTORM_", "REACTION_TOXIC_", "REACTION_STEAM_", "REACTION_MELT_",
@@ -195,6 +197,8 @@ public final class AuraBalance {
 			Map.entry("HALO", "LIGHT_HALO_"), Map.entry("LUMINOUS", "LIGHT_LUMINOUS_"), Map.entry("SUNBURST", "LIGHT_SUN_"),
 			Map.entry("HEMORRHAGE", "BLOOD_HEMO_"), Map.entry("CRIMSON_SACRIFICE", "BLOOD_SACRIFICE_"), Map.entry("BLOODLUST", "BLOOD_LUST_"),
 			Map.entry("THIN_BLOOD", "BLOOD_THIN_"), Map.entry("BLOOD_MOON", "BLOOD_MOON_"),
+			Map.entry("ARCANE_BOLT", "MAGE_BOLT_"), Map.entry("ARCANE_BARRIER", "MAGE_BARRIER_"), Map.entry("ARCANE_ORB", "MAGE_ORB_"),
+			Map.entry("FOCUS", "MAGE_FOCUS_"), Map.entry("LAST_PRISM", "MAGE_PRISM_"),
 			Map.entry("RIFT_STEP", "VOID_RIFT_"), Map.entry("NULL_ORB", "VOID_ORB_"), Map.entry("EVENT_HORIZON", "VOID_HORIZON_"),
 			Map.entry("ENTROPY", "VOID_ENTROPY_"), Map.entry("SINGULARITY", "VOID_HOLE_"),
 			Map.entry("ECLIPSE", "ULT_ECLIPSE_"), Map.entry("TIDAL_ASCENSION", "ULT_TIDAL_"), Map.entry("PHOENIX", "ULT_PHOENIX_"),
@@ -214,10 +218,11 @@ public final class AuraBalance {
 			Map.entry("COMBO_SHOCK_", "Electrified Bubble (Bubble + Thunder)"), Map.entry("COMBO_GALE_", "Toxic Gale (Poison cloud + Wind)"),
 			Map.entry("COMBO_GLACIER_", "Glacier (Bubble + Frost)"), Map.entry("COMBO_MAGMA_", "Magma Field (Fire + Earth)"),
 			Map.entry("COMBO_BOIL_", "Boiling Bubble (Bubble + Fire)"), Map.entry("COMBO_PRISM_", "Prism Burst (Bubble + Light)"),
-			Map.entry("WEEKLY_", "Weekly Challenges"), Map.entry("COSMETIC", "Cosmetics"), Map.entry("BRANCH_", "Branches (all auras)"));
+			Map.entry("WEEKLY_", "Weekly Challenges"), Map.entry("MAGE_MANA_", "Mana Pool"), Map.entry("MAGE_REGEN_", "Mana Regen"),
+			Map.entry("MAGE_XP_", "Mana Levels (XP)"), Map.entry("MAGE_WISP_", "Mana Wisps"), Map.entry("COSMETIC", "Cosmetics"), Map.entry("BRANCH_", "Branches (all auras)"));
 
 	/** The Ultimates kept in their aura's file: shown on the Ultimates page anyway. */
-	private static final java.util.Set<String> ULTIMATE_GROUPS = java.util.Set.of("EARTH_RIFT_", "LIGHT_SUN_", "BLOOD_MOON_", "VOID_HOLE_");
+	private static final java.util.Set<String> ULTIMATE_GROUPS = java.util.Set.of("EARTH_RIFT_", "LIGHT_SUN_", "BLOOD_MOON_", "VOID_HOLE_", "MAGE_PRISM_");
 
 	private static String pageOf(String section, String group) {
 		return ULTIMATE_GROUPS.contains(group) ? "ultimates" : section;
@@ -351,7 +356,7 @@ public final class AuraBalance {
 		AuraType ultOf = com.toast.aurapoints.ability.Ultimates.auraOf(ability);
 		// Singularity (the Dark branch's Ultimate) stays in the file it always had
 		if (ability == AuraAbilities.Ability.SINGULARITY) return "void";
-		if (ultOf != null) return java.util.EnumSet.of(AuraType.EARTH, AuraType.LIGHT, AuraType.BLOOD).contains(ultOf) ? ultOf.id() : "ultimates";
+		if (ultOf != null) return java.util.EnumSet.of(AuraType.EARTH, AuraType.LIGHT, AuraType.BLOOD, AuraType.MAGE).contains(ultOf) ? ultOf.id() : "ultimates";
 		// the Dark branch's own abilities (the former Void aura) stay in the void file
 		if (com.toast.aurapoints.ability.Branch.DARK.abilities().contains(ability) && !AuraType.SHADOW.abilities.contains(ability)) return "void";
 		AuraType only = null;

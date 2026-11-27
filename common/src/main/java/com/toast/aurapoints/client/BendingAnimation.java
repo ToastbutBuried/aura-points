@@ -357,6 +357,32 @@ public class BendingAnimation implements IAnimation {
 					y = 0;
 					z = -0.2f;
 				}
+			} else if (held == BendingAnimPacket.WAND_POINT) {
+				// Mage: the wand pointed straight at the aim, crackling a little; the left hand hangs back loose
+				float quiver = 0.008f * Mth.sin(time * 3.3f);
+				if (right) {
+					x = aimX + quiver;
+					y = headYaw;
+					z = 0.02f;
+				} else {
+					x = 0.15f;
+					y = 0;
+					z = -0.12f;
+				}
+			} else if (held == BendingAnimPacket.WAND_RAISE) {
+				// Mage's Arcane Orb: the wand raised a little above the aim, crystal up, the orb forming over it; the left
+				// palm open beneath, feeding it, both trembling more as it grows
+				float secs = (System.currentTimeMillis() - heldSince) / 1000f;
+				float tremble = Math.min(0.04f, 0.01f + 0.01f * secs) * Mth.sin(time * 2.4f + side);
+				if (right) {
+					x = aimX - 0.7f + tremble;
+					y = headYaw - 0.05f;
+					z = 0.04f;
+				} else {
+					x = aimX + 0.35f - tremble;
+					y = headYaw + 0.55f;
+					z = 0;
+				}
 			} else if (held == BendingAnimPacket.PRISM_AIM) {
 				// Prism Beam: the right arm stretched out at the aim, quivering with the beam; the left hand grips its forearm
 				float quiver = 0.012f * Mth.sin(time * 4.1f);
@@ -558,7 +584,7 @@ public class BendingAnimation implements IAnimation {
 		return state == BendingAnimPacket.BUBBLE_HOLD || state == BendingAnimPacket.GLIDE || state == BendingAnimPacket.DIVE
 				|| state == BendingAnimPacket.ICE_AIM || state == BendingAnimPacket.CHIDORI_HOLD || state == BendingAnimPacket.MJOLNIR_SPIN
 				|| state == BendingAnimPacket.MJOLNIR_FLY || state == BendingAnimPacket.VIPER_STEER || state == BendingAnimPacket.BOULDER_HOLD
-				|| state == BendingAnimPacket.PRISM_AIM;
+				|| state == BendingAnimPacket.PRISM_AIM || state == BendingAnimPacket.WAND_POINT || state == BendingAnimPacket.WAND_RAISE;
 	}
 
 	/** The held pose drawn now: the current one, or the one fading out (NONE if an orb pose or nothing). */
@@ -654,6 +680,8 @@ public class BendingAnimation implements IAnimation {
 					case BendingAnimPacket.VIPER_STEER -> new float[]{0.12f, 0.1f, 0, 0, 0.25f, 0, 1};
 					case BendingAnimPacket.BOULDER_HOLD -> new float[]{-0.08f, 0, 0, 0.05f, 0, 0.32f, 1};
 					case BendingAnimPacket.PRISM_AIM -> new float[]{0.08f, 0.15f, 0, 0.03f, 0.3f, 0, 1};
+					case BendingAnimPacket.WAND_POINT -> new float[]{0.05f, 0.12f, 0, 0, 0.25f, 0, 1};
+					case BendingAnimPacket.WAND_RAISE -> new float[]{-0.06f, 0.1f, 0, 0.02f, 0.2f, 0.05f, 1};
 					default -> null;
 				};
 				if (b != null) {

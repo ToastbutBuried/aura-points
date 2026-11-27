@@ -2037,6 +2037,84 @@ public final class AuraConfig {
 	public static double BLOOD_SACRIFICE_MAX_REDUCTION = 0.75;
 
 	// ---------------------------------------------------------------
+	// Mage: aurapoints-mage.json (5.62.0). No cooldowns: every cast spends mana.
+	// ---------------------------------------------------------------
+
+	/** Whether /aura roll can land on Mage (off until it is finished). */
+	public static boolean MAGE_ROLLABLE = false;
+	/** The mana pool: BASE at mana level 1, PER_LEVEL more each level up to LEVEL_MAX. */
+	public static int MAGE_MANA_BASE = 60;
+	public static int MAGE_MANA_PER_LEVEL = 10;
+	public static int MAGE_LEVEL_MAX = 20;
+	/** Mana back per second (PER_LEVEL more each level), starting REGEN_DELAY_TICKS after the last spend. */
+	public static double MAGE_REGEN_PER_SECOND = 3.0;
+	public static double MAGE_REGEN_PER_LEVEL = 0.15;
+	public static int MAGE_REGEN_DELAY_TICKS = 40;
+	/** Mana XP for the next level: XP_BASE at level 1, times XP_GROWTH per level. */
+	public static double MAGE_XP_BASE = 40.0;
+	public static double MAGE_XP_GROWTH = 1.3;
+	/** XP from a Mage cast hitting something, from killing with one, and per mana spent. */
+	public static double MAGE_XP_PER_HIT = 1.0;
+	public static double MAGE_XP_PER_KILL = 4.0;
+	public static double MAGE_XP_PER_MANA = 0.05;
+	/** Focus (sneak): regen times REGEN_FACTOR after only DELAY_TICKS since the last spend (not the full regen delay), and XP_PER_SECOND while the pool isn't full. */
+	public static double MAGE_FOCUS_REGEN_FACTOR = 2.0;
+	public static int MAGE_FOCUS_DELAY_TICKS = 20;
+	public static double MAGE_FOCUS_XP_PER_SECOND = 0.5;
+	/** The shortest gap between two Mage casts (no cooldowns, but no double fire either). */
+	public static int MAGE_CAST_DELAY_TICKS = 6;
+	/** Arcane Bolt: tap = a quick locked-on shock. Held at least HOLD_TICKS = the charged bolt; mana DRAIN every tick it is held (from the first), up to MAX_HOLD_TICKS. */
+	public static double MAGE_BOLT_COST = 8.0;
+	public static float MAGE_BOLT_DAMAGE = 3.0f;
+	public static double MAGE_BOLT_RANGE = 24.0;
+	/** How far off the crosshair (degrees) the bolt still locks on. */
+	public static double MAGE_BOLT_LOCK_DEGREES = 8.0;
+	public static int MAGE_BOLT_HOLD_TICKS = 12;
+	public static int MAGE_BOLT_MAX_HOLD_TICKS = 40;
+	public static double MAGE_BOLT_DRAIN = 1.0;
+	/** The charged bolt's damage: a lone target takes LONE_FACTOR of it; with others within CHAIN_RADIUS it jumps to up to CHAIN_TARGETS more and the damage is split evenly. */
+	public static float MAGE_BOLT_CHARGED_DAMAGE = 7.0f;
+	public static double MAGE_BOLT_LONE_FACTOR = 1.3;
+	public static double MAGE_BOLT_CHAIN_RADIUS = 3.5;
+	public static int MAGE_BOLT_CHAIN_TARGETS = 3;
+	/** Arcane Barrier: ABSORB hit points of shield on you for TICKS. */
+	public static double MAGE_BARRIER_COST = 25.0;
+	public static float MAGE_BARRIER_ABSORB = 6.0f;
+	public static int MAGE_BARRIER_TICKS = 120;
+	/** Arcane Orb: COST to start, DRAIN per tick while it grows (up to MAX_HOLD_TICKS), then fired: damage and blast radius grow from MIN to MAX. */
+	public static double MAGE_ORB_COST = 8.0;
+	public static double MAGE_ORB_DRAIN = 0.5;
+	public static int MAGE_ORB_MAX_HOLD_TICKS = 60;
+	public static float MAGE_ORB_MIN_DAMAGE = 3.0f;
+	public static float MAGE_ORB_MAX_DAMAGE = 10.0f;
+	public static double MAGE_ORB_MIN_RADIUS = 1.0;
+	public static double MAGE_ORB_MAX_RADIUS = 3.0;
+	public static double MAGE_ORB_SPEED = 1.1;
+	public static double MAGE_ORB_RANGE = 40.0;
+	/** Last Prism (Ultimate): COST to start, then six beams converge over CONVERGE_TICKS; drain per tick from DRAIN_START to DRAIN_FULL. */
+	public static double MAGE_PRISM_COST = 20.0;
+	public static double MAGE_PRISM_DRAIN_START = 0.25;
+	public static double MAGE_PRISM_DRAIN_FULL = 0.9;
+	public static int MAGE_PRISM_CONVERGE_TICKS = 67;
+	public static int MAGE_PRISM_HIT_TICKS = 10;
+	/** Damage per beam hit before convergence; the converged beam hits for FULL_FACTOR of it. */
+	public static float MAGE_PRISM_DAMAGE = 1.8f;
+	public static double MAGE_PRISM_FULL_FACTOR = 2.5;
+	public static double MAGE_PRISM_RANGE = 32.0;
+	/** Your aim turns this much slower while channeling (0.3 = 30% of normal). */
+	public static double MAGE_PRISM_TURN_FACTOR = 0.3;
+	public static int MAGE_PRISM_MAX_TICKS = 20 * 20;
+	/** Mana wisps: a mob killed near a Mage drops one with CHANCE (bosses BOSS_COUNT); it gives MANA and XP, drifts to a Mage within PULL_RADIUS, lasts TICKS. */
+	public static double MAGE_WISP_CHANCE = 0.4;
+	public static int MAGE_WISP_BOSS_COUNT = 6;
+	public static double MAGE_WISP_MANA = 8.0;
+	public static double MAGE_WISP_XP = 1.0;
+	public static double MAGE_WISP_PULL_RADIUS = 6.0;
+	public static int MAGE_WISP_TICKS = 400;
+	/** Only drop wisps when a Mage is this close to the kill. */
+	public static double MAGE_WISP_DROP_RANGE = 32.0;
+
+	// ---------------------------------------------------------------
 	// Void: aurapoints-void.json
 	// ---------------------------------------------------------------
 

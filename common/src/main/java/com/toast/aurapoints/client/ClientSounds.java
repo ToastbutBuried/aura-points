@@ -57,6 +57,7 @@ public final class ClientSounds {
 			case EARTH -> AuraSounds.BASALT_PLACE.value();
 			case LIGHT -> AuraSounds.AMETHYST_BLOCK_CHIME.value();
 			case BLOOD -> AuraSounds.WARDEN_HEARTBEAT.value();
+			case MAGE -> AuraSounds.AMETHYST_BLOCK_RESONATE.value();
 		};
 		if (voice != null) ui(voice, 1.0f, 1.0f);
 	}

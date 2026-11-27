@@ -45,7 +45,7 @@ public final class CastDevTest {
 			try {
 				int i = 0;
 				for (AuraType aura : new AuraType[]{AuraType.FIRE, AuraType.WATER, AuraType.SHADOW, AuraType.WIND, AuraType.FROST, AuraType.THUNDER, AuraType.VERDANT,
-						AuraType.EARTH, AuraType.LIGHT, AuraType.BLOOD}) {
+						AuraType.EARTH, AuraType.LIGHT, AuraType.BLOOD, AuraType.MAGE}) {
 					ServerPlayer fake = FakePlayerFactory.get(level, new GameProfile(UUID.fromString("5d1e3c1a-0000-4000-8000-00000000c0" + (10 + i++)), "Cast" + aura.displayName));
 					var spawn = level.getSharedSpawnPos();
 					// looking a little down: the root casts want ground under the crosshair
@@ -55,12 +55,15 @@ public final class CastDevTest {
 					data.rolled.add(aura);
 					data.owned.addAll(aura.abilities);
 					Ability first = aura.slot(0);
+					// the Mage casts need the wand in hand
+					if (aura == AuraType.MAGE) fake.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND,
+							new net.minecraft.world.item.ItemStack(com.toast.aurapoints.AuraPoints.APPRENTICE_WAND.get()));
 					// the Mastery gates
 					data.mastery.put(aura, 1);
 					log(aura + " at Mastery I: sneak unlocked " + CastMode.unlocked(fake, first, CastMode.SNEAK) + " (must be false)");
 					data.mastery.put(aura, AuraConfig.CAST_SNEAK_MASTERY);
 					log(aura + " at Mastery " + AuraConfig.CAST_SNEAK_MASTERY + ": sneak " + CastMode.unlocked(fake, first, CastMode.SNEAK)
-							+ " charged " + CastMode.unlocked(fake, first, CastMode.CHARGED) + " (must be true false)");
+							+ " charged " + CastMode.unlocked(fake, first, CastMode.CHARGED) + " (must be " + CastMode.has(first, CastMode.SNEAK) + " false)");
 					data.mastery.put(aura, 5);
 					log(aura + " at Mastery V: charged " + CastMode.unlocked(fake, first, CastMode.CHARGED) + " (must be " + CastMode.has(first, CastMode.CHARGED) + ")");
 					// Chidori refuses while a Thunderbolt combo runs, so it goes first
@@ -80,6 +83,7 @@ public final class CastDevTest {
 							// the Transfusion and Lifeline need a bleeding enemy / an ally in sight: refused here, which is the right answer
 							boolean needsOther = aura == AuraType.BLOOD && mode == CastMode.SNEAK && ability != Ability.CRIMSON_SACRIFICE
 									|| ability == Ability.BLOOD_TETHER || ability == Ability.PRISM_BEAM && mode == CastMode.SNEAK;
+							if (aura == AuraType.MAGE) com.toast.aurapoints.ability.Mage.devReady(fake);
 							boolean fired = AuraAbilities.tryActivate(fake, ability, server.getTickCount(), mode);
 							log(aura + " " + ability + " " + mode + " fired=" + fired + (needsOther ? " (must be false: nobody to target)" : " (must be true)"));
 							if (ability == Ability.BOULDER_TOSS && mode == CastMode.SNEAK) {
@@ -92,6 +96,8 @@ public final class CastDevTest {
 							if (ability == Ability.CHIDORI) com.toast.aurapoints.ability.Chidori.release(fake, server.getTickCount());
 							if (ability == Ability.PRISM_BEAM) com.toast.aurapoints.ability.Light.beamRelease(fake, server.getTickCount());
 							if (aura == AuraType.BLOOD) com.toast.aurapoints.ability.Blood.onLogout(fake);
+							if (ability == Ability.ARCANE_BOLT) com.toast.aurapoints.ability.Mage.boltRelease(fake, server.getTickCount());
+							if (ability == Ability.ARCANE_ORB) com.toast.aurapoints.ability.Mage.orbRelease(fake, server.getTickCount());
 						}
 					}
 					if (FireBending.isHolding(fake)) FireBending.onLogout(fake);

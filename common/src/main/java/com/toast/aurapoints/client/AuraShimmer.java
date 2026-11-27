@@ -97,6 +97,7 @@ public final class AuraShimmer {
 			case EARTH -> ParticleTypes.MYCELIUM;
 			case LIGHT -> ParticleTypes.END_ROD;
 			case BLOOD -> ParticleTypes.DAMAGE_INDICATOR;
+			case MAGE -> ParticleTypes.ENCHANT;
 		};
 	}
 }

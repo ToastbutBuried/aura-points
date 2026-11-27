@@ -168,6 +168,26 @@ public final class DevShowcaseClient {
 				});
 			}
 		}
+		// -Daurapoints.cameraback=true: third person from behind at tick 61 (see the hands and what flies off them)
+		if (ticksIn == 61 && Boolean.getBoolean("aurapoints.cameraback")) mc.options.setCameraType(net.minecraft.client.CameraType.THIRD_PERSON_BACK);
+		// -Daurapoints.keyplan=key:downTick:upTick,... : ability keys held for a while (holds, charges, channels; 5.62.0)
+		String plan = System.getProperty("aurapoints.keyplan", "");
+		if (!plan.isEmpty()) {
+			for (String step : plan.split(",")) {
+				String[] f = step.split(":");
+				if (f.length != 3) continue;
+				int k = Integer.parseInt(f[0].trim()), down = Integer.parseInt(f[1].trim()), up = Integer.parseInt(f[2].trim());
+				if (k < 0 || k >= com.toast.aurapoints.network.ClientKeyHandler.KEYS.length) continue;
+				if (ticksIn == down) {
+					com.toast.aurapoints.AuraPoints.LOGGER.info("[clientcmd] key {} down", k);
+					com.toast.aurapoints.network.ClientKeyHandler.KEYS[k].setDown(true);
+				}
+				if (ticksIn == up) {
+					com.toast.aurapoints.AuraPoints.LOGGER.info("[clientcmd] key {} up", k);
+					com.toast.aurapoints.network.ClientKeyHandler.KEYS[k].setDown(false);
+				}
+			}
+		}
 		if (!cmds[0].isEmpty()) return;
 		if (com.toast.aurapoints.DevIdleGallery.on()) {
 			// the idle gallery: watched from the front, four shots of each idle

@@ -223,7 +223,7 @@ public final class Gestures {
 				return IdleGestures.arms(variant);
 			case BendingAnimPacket.GESTURE_ULTIMATE:
 				return UltimateGestures.arms(variant);
-			case BendingAnimPacket.GESTURE_EARTH, BendingAnimPacket.GESTURE_LIGHT, BendingAnimPacket.GESTURE_BLOOD, BendingAnimPacket.GESTURE_VOID:
+			case BendingAnimPacket.GESTURE_EARTH, BendingAnimPacket.GESTURE_LIGHT, BendingAnimPacket.GESTURE_BLOOD, BendingAnimPacket.GESTURE_VOID, BendingAnimPacket.GESTURE_MAGE:
 				return AuraGestures.arms(kind, variant);
 			default:
 				return null;
@@ -431,7 +431,7 @@ public final class Gestures {
 				return IdleGestures.body(variant);
 			case BendingAnimPacket.GESTURE_ULTIMATE:
 				return UltimateGestures.body(variant);
-			case BendingAnimPacket.GESTURE_EARTH, BendingAnimPacket.GESTURE_LIGHT, BendingAnimPacket.GESTURE_BLOOD, BendingAnimPacket.GESTURE_VOID:
+			case BendingAnimPacket.GESTURE_EARTH, BendingAnimPacket.GESTURE_LIGHT, BendingAnimPacket.GESTURE_BLOOD, BendingAnimPacket.GESTURE_VOID, BendingAnimPacket.GESTURE_MAGE:
 				return AuraGestures.body(kind, variant);
 			default:
 				return null;

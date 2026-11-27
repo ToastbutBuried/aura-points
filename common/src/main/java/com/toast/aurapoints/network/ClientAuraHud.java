@@ -165,7 +165,8 @@ public final class ClientAuraHud {
 			if (!abilities.isEmpty()) {
 				// Gliding with an elytra: Dash and Double Jump show their flight set and its cooldowns.
 				boolean flying = mc.player.isFallFlying() && abilities.stream().anyMatch(ClientAuraState::hasFlightVersion);
-				String label = "✦ " + aura.displayName + (flying ? " · Flight" : "") + " ✦";
+				String label = "✦ " + aura.displayName + (flying ? " · Flight" : "")
+						+ (ClientAuraState.mana >= 0 ? " · Lv " + ClientAuraState.manaLevel : "") + " ✦";
 				int w = width(mc, label, abilities.size()), h = height();
 				int[] at = HudLayout.panel(mc, g.guiWidth(), g.guiHeight(), w, h);
 				panel(g, mc, aura, label, abilities, flying, rgb, at[0], at[1] + slideY, w, now, alpha, true);
@@ -260,7 +261,25 @@ public final class ClientAuraHud {
 			int slotRgb = flight ? FLIGHT_RGB : com.toast.aurapoints.ability.Ultimates.auraOf(ability) != null ? ULTIMATE_RGB : rgb;
 			drawSlot(g, mc, font, aura, ability, flight, sx, sy, slotRgb, now, frameFx);
 		}
+		if (frameFx && ClientAuraState.mana >= 0) drawMana(g, font, PAD, PAD + SLOT, width - PAD * 2, now);
 		g.pose().popPose();
+	}
+
+	/**
+	 * The Mage's mana bar along the bottom of the panel (in the padding under the slots): blue fill with a bright
+	 * edge, and the progress to the next mana level as a thin pale line under it.
+	 */
+	private static void drawMana(GuiGraphics g, Font font, int x, int y, int w, long now) {
+		float frac = Mth.clamp(ClientAuraState.mana / Math.max(1, ClientAuraState.manaMax), 0f, 1f);
+		int fill = Math.round(w * frac);
+		g.fill(x, y, x + w, y + 2, 0xC0101030);
+		if (fill > 0) g.fillGradient(x, y, x + fill, y + 2, 0xFF6FE7FF, 0xFF4A5CFF);
+		if (fill > 0 && fill < w && !calm()) {
+			double pulse = 0.6 + 0.4 * Math.sin(now / 140.0);
+			g.fill(x + fill - 1, y, x + fill, y + 2, ((int) (pulse * 255) << 24) | 0xFFFFFF);
+		}
+		int xp = Math.round(w * ClientAuraState.manaXp);
+		if (xp > 0) g.fill(x, y + 2, x + xp, y + 3, 0xB0D9D2FF);
 	}
 
 	/** The panel body: dark gradient, aura-colored frame, a bright accent line and little corner gems. */
@@ -304,6 +323,10 @@ public final class ClientAuraHud {
 		boolean cooling = cd != null && now < cd[1];
 		// Blood Moon also waits on the blood bar: until it is full the slot isn't ready (no pop, ring or glint)
 		float blood = ability == Ability.BLOOD_MOON ? ClientAuraState.bloodMoonFill() : 1f;
+		// a Mage spell waits on mana the same way: the slot fills blue up to its cost
+		int cost = ClientAuraState.mana >= 0 ? ClientAuraState.manaCost(ability) : 0;
+		if (cost > 0) blood = Math.min(1f, ClientAuraState.mana / cost);
+		boolean manaSlot = cost > 0;
 		boolean thirsty = blood < 1f;
 
 		// how the slot moves: the ready pop, the press punch, the too-early shake
@@ -355,8 +378,8 @@ public final class ClientAuraHud {
 		if (thirsty) {
 			// the blood bar: crimson rising from the bottom of the slot
 			int inner = SLOT - 2, h = Math.round(inner * blood);
-			if (h > 0) g.fill(x0 + 1, y0 + 1 + inner - h, x0 + SLOT - 1, y0 + SLOT - 1, 0x908B0A14);
-			if (h > 0 && h < inner) g.fill(x0 + 1, y0 + 1 + inner - h, x0 + SLOT - 1, y0 + 2 + inner - h, 0xD0E0202E);
+			if (h > 0) g.fill(x0 + 1, y0 + 1 + inner - h, x0 + SLOT - 1, y0 + SLOT - 1, manaSlot ? 0x90202A8B : 0x908B0A14);
+			if (h > 0 && h < inner) g.fill(x0 + 1, y0 + 1 + inner - h, x0 + SLOT - 1, y0 + 2 + inner - h, manaSlot ? 0xD06FE7FF : 0xD0E0202E);
 		}
 		if (cooling) {
 			float frac = (cd[1] - now) / (float) Math.max(1, cd[1] - cd[0]);
@@ -381,12 +404,13 @@ public final class ClientAuraHud {
 			g.renderOutline(x0, y0, SLOT, SLOT, 0xFF3A3A48);
 		} else if (thirsty) {
 			// off cooldown but not enough blood: a dim frame and how full the bar is
-			g.renderOutline(x0, y0, SLOT, SLOT, 0xFF4A2A30);
-			String text = Math.round(blood * 100) + "%";
+			g.renderOutline(x0, y0, SLOT, SLOT, manaSlot ? 0xFF2A304A : 0xFF4A2A30);
+			// mana: how much the spell costs; blood: how full the bar is
+			String text = manaSlot ? String.valueOf(cost) : Math.round(blood * 100) + "%";
 			g.pose().pushPose();
 			g.pose().translate(x0 + SLOT / 2f, y0 + SLOT / 2f, 0);
 			g.pose().scale(0.6f, 0.6f, 1);
-			g.drawString(font, text, -font.width(text) / 2, -4, 0xFFFF9090, true);
+			g.drawString(font, text, -font.width(text) / 2, -4, manaSlot ? 0xFF9FB4FF : 0xFFFF9090, true);
 			g.pose().popPose();
 		} else {
 			// Ready: a pulsing border in the aura color, plus a fading white flash right after the cooldown ends.
@@ -850,7 +874,13 @@ public final class ClientAuraHud {
 			Ability.CHIDORI,
 			Ability.SONIC_BLOSSOM,
 			Ability.LISTENING_TREE,
-			Ability.ABYSSAL_GRASP);
+			Ability.ABYSSAL_GRASP,
+			// index 43 = custom_model_data 44 is Wind's Dash (WIND_DASH_ICON): a placeholder keeps the numbers after it free
+			Ability.DASH,
+			Ability.ARCANE_BOLT,
+			Ability.ARCANE_BARRIER,
+			Ability.ARCANE_ORB,
+			Ability.LAST_PRISM);
 	private static final Map<Ability, ItemStack> ICONS = new EnumMap<>(Ability.class);
 	/** Wind's Dash (5.46.0): Dash is shared with Shadow, whose purple icon it used to show. Model data after ICON_ORDER. */
 	private static final int WIND_DASH_ICON = 44;

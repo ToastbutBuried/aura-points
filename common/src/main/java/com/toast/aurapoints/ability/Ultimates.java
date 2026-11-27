@@ -58,7 +58,7 @@ public final class Ultimates {
 
 	/** In gesture-variant order (BendingAnimPacket.GESTURE_ULTIMATE). */
 	public static final Ability[] ORDER = {Ability.ECLIPSE, Ability.TIDAL_ASCENSION, Ability.PHOENIX, Ability.TEMPEST,
-			Ability.PERMAFROST, Ability.OVERGROWTH, Ability.JUDGEMENT, Ability.TECTONIC_RIFT, Ability.SUNBURST, Ability.BLOOD_MOON, Ability.SINGULARITY};
+			Ability.PERMAFROST, Ability.OVERGROWTH, Ability.JUDGEMENT, Ability.TECTONIC_RIFT, Ability.SUNBURST, Ability.BLOOD_MOON, Ability.SINGULARITY, Ability.LAST_PRISM};
 
 	public static Ability of(AuraType aura) {
 		if (aura == null) return null;
@@ -73,6 +73,7 @@ public final class Ultimates {
 			case EARTH -> Ability.TECTONIC_RIFT;
 			case LIGHT -> Ability.SUNBURST;
 			case BLOOD -> Ability.BLOOD_MOON;
+			case MAGE -> Ability.LAST_PRISM;
 			default -> null;
 		};
 	}
@@ -150,6 +151,14 @@ public final class Ultimates {
 		if (player.isSpectator() || IceSpike.isFrozen(player) || Stun.isBusy(player) || Entanglement.isEntangled(player) || VoidAura.isNulled(player)
 				|| com.toast.aurapoints.arena.Duel.holdsStill(player)) return;
 		if (!AuraAbilities.checkCooldown(player, ult, ult.cooldownTicks(), now)) return;
+		// the Mage's Last Prism is a held channel paid in mana (Mage), not a timed Run
+		if (ult == Ability.LAST_PRISM) {
+			if (Mage.prismPress(player, now)) {
+				com.toast.aurapoints.arena.AuraTrial.onPressed(player, ult, CastMode.TAP);
+				com.toast.aurapoints.arena.ComboTrainer.onCast(player, ult, CastMode.TAP);
+			}
+			return;
+		}
 		// Blood Moon also needs a (full) blood bar
 		if (ult == Ability.BLOOD_MOON && !AuraAbilities.cooldownsDisabled(player) && !Blood.moonReady(player)) return;
 		float boost = AuraFx.boost;

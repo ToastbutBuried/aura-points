@@ -75,10 +75,35 @@ final class AuraGestures {
 				default -> null;
 			};
 		}
+		if (kind == BendingAnimPacket.GESTURE_MAGE) {
+			return switch (variant) {
+				// Arcane Bolt: a quick flick of the wand at the aim
+				case 0 -> new Key[][]{
+						{rest(0), aim(2, -0.25f, 0, 0), aim(4, 0.02f, 0, 0), aim(7, 0, 0, 0), rest(11)},
+						{rest(0), k(3, 0.3f, 0, -0.15f), rest(11)}};
+				// charged bolt: the wand drawn back past the ear, then thrust hard at the aim
+				case 1 -> new Key[][]{
+						{rest(0), k(2, -2.4f, 0.2f, 0.25f), aim(4, 0.05f, 0, 0), aim(9, 0, 0, 0), rest(14)},
+						{rest(0), k(2, -0.9f, 0.3f, 0.1f), k(5, 0.35f, 0, -0.2f), rest(14)}};
+				// Arcane Barrier: the wand raised overhead, swept round in a circle and brought down to the chest
+				case 2 -> new Key[][]{
+						{rest(0), k(3, -2.9f, 0, 0.15f), k(6, -2.4f, -0.6f, 0.6f), k(9, -1.3f, -0.8f, 0.2f), k(13, -1.25f, -0.75f, 0.2f), rest(19)},
+						{rest(0), k(3, -1.0f, 0, 0.6f), k(9, -1.1f, -0.3f, 0.25f), rest(19)}};
+				default -> null;
+			};
+		}
 		return null;
 	}
 
 	static B[] body(int kind, int variant) {
+		if (kind == BendingAnimPacket.GESTURE_MAGE) {
+			return switch (variant) {
+				case 0 -> new B[]{brest(0), b(2, 0.05f, 0.1f, 0, 0.2f, 0), brest(11)};
+				case 1 -> new B[]{brest(0), b(2, -0.12f, -0.25f, 0, 0, 0), b(4, 0.2f, 0.2f, 0.03f, 0.35f, 0), b(9, 0.15f, 0.15f, 0.02f, 0.35f, 0), brest(14)};
+				case 2 -> new B[]{brest(0), b(3, -0.1f, 0, 0, 0, 0.08f), b(9, 0.08f, 0, 0.03f, 0, 0.12f), brest(19)};
+				default -> null;
+			};
+		}
 		if (kind == BendingAnimPacket.GESTURE_EARTH) {
 			return switch (variant) {
 				case 0 -> new B[]{brest(0), b(3, 0.3f, -0.2f, 0.1f, 0.3f, 0.15f), b(6, -0.15f, 0.15f, 0, 0.2f, 0.15f), b(12, -0.1f, 0.1f, 0, 0.2f, 0.15f), brest(18)};

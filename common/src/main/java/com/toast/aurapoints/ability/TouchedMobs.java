@@ -273,6 +273,13 @@ public final class TouchedMobs {
 				AuraFx.line(level, tc, c, AuraFx.dust(0xB0121B, 1.0f), (int) (dist * 4));
 				AuraFx.sound(level, mob, AuraSounds.WARDEN_HEARTBEAT.value(), 1.0f, 1.2f);
 			}
+			case MAGE -> { // Hex: a bolt of arcane light that leaves the target weak
+				if (dist > 12) return false;
+				t.hurt(src, dmg);
+				t.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 60, 0), mob);
+				AuraFx.line(level, c, tc, AuraFx.dust(0x7A6CFF, 1.0f), (int) (dist * 4));
+				AuraFx.sound(level, mob, AuraSounds.ILLUSIONER_CAST_SPELL.value(), 1.0f, 1.3f);
+			}
 		}
 		return true;
 	}

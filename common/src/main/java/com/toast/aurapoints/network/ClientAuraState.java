@@ -43,6 +43,40 @@ public final class ClientAuraState {
 		bloodBar = blood;
 	}
 
+	/** Mage (5.62.0): the mana pool (-1 = not a Mage), level, 0..1 toward the next level, the aim's turn factor and the spells' costs. */
+	public static volatile float mana = -1, manaXp = 0, manaTurn = 1f;
+	public static volatile int manaMax = 100, manaLevel = 1;
+	public static volatile int[] manaCosts = {0, 0, 0, 0};
+
+	public static void setMana(float value, int max, int level, float xp, float turn, String costs) {
+		mana = value;
+		manaMax = Math.max(1, max);
+		manaLevel = Math.max(1, level);
+		manaXp = Math.max(0f, Math.min(1f, xp));
+		manaTurn = Math.max(0.05f, Math.min(1f, turn));
+		int[] c = {0, 0, 0, 0};
+		String[] parts = costs.split(",");
+		for (int i = 0; i < Math.min(4, parts.length); i++) {
+			try {
+				c[i] = Integer.parseInt(parts[i].trim());
+			} catch (NumberFormatException ignored) {
+			}
+		}
+		manaCosts = c;
+	}
+
+	/** The mana a Mage spell costs to start (0 for anything else). */
+	public static int manaCost(com.toast.aurapoints.ability.AuraAbilities.Ability a) {
+		int[] c = manaCosts;
+		return switch (a) {
+			case ARCANE_BOLT -> c[0];
+			case ARCANE_BARRIER -> c[1];
+			case ARCANE_ORB -> c[2];
+			case LAST_PRISM -> c[3];
+			default -> 0;
+		};
+	}
+
 	/** 0..1 of what Blood Moon needs (1 = it can be cast once its cooldown is over). */
 	public static float bloodMoonFill() {
 		return bloodMoonCost <= 0 ? 1f : Math.min(1f, bloodBar / (float) bloodMoonCost);
@@ -384,6 +418,8 @@ public final class ClientAuraState {
 		setFireBending(false, 0, 0.5f);
 		clearBendStates();
 		bloodBar = 0;
+		mana = -1;
+		manaTurn = 1f;
 		bubble = null;
 		bubblePull = null;
 		bubblePullAt = 0;

@@ -186,6 +186,9 @@ public final class HudParticles {
 			// drops of blood running down off the bottom edge
 			case BLOOD -> add(ex, bottom, 0, 8 + RANDOM.nextFloat() * 8, 0.9f + RANDOM.nextFloat() * 0.5f, 1 + RANDOM.nextInt(2),
 					RANDOM.nextBoolean() ? 0x6A0410 : rgb, 0);
+			// runes of mana drifting up off the frame
+			case MAGE -> add(ex, bottom, (RANDOM.nextFloat() - 0.5f) * 4, -8 - RANDOM.nextFloat() * 8, 0.8f + RANDOM.nextFloat() * 0.6f, 1,
+					RANDOM.nextBoolean() ? 0x6FE7FF : rgb, 0);
 		}
 	}
 

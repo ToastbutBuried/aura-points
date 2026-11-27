@@ -47,6 +47,9 @@ public final class AuraHalo {
 					AuraFx.dust(0xFFD966, 0.65f), 0.15);
 			case BLOOD -> new Style(0xB0121B, 0x4A0008, null, Blood.DROPS, 0.2,
 					AuraFx.dust(0x8B0A14, 0.7f), 0.08);
+			// Mage: a violet-blue halo that sheds runes (enchant glyphs), pale motes circling
+			case MAGE -> new Style(0x7A6CFF, 0x6FE7FF, null, ParticleTypes.ENCHANT, 0.3,
+					AuraFx.dust(0xD9D2FF, 0.55f), 0.14);
 		};
 	}
 

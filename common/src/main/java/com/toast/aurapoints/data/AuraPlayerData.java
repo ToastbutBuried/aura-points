@@ -122,6 +122,11 @@ public class AuraPlayerData {
 	public boolean bookGiven = false;
 	/** Blood aura's blood bar (see Blood.addBlood). */
 	public int bloodBar = 0;
+	/** Mage (ability/Mage): the mana pool (-1 = full, never set), mana level (1+) and XP toward the next, the free wand handed out. */
+	public double mageMana = -1;
+	public int mageLevel = 1;
+	public double mageXp = 0;
+	public boolean mageWandGiven = false;
 
 	public CompoundTag writeNbt() {
 		CompoundTag nbt = new CompoundTag();
@@ -144,6 +149,10 @@ public class AuraPlayerData {
 		nbt.putInt("tutorialStep", tutorialStep);
 		nbt.putBoolean("bookGiven", bookGiven);
 		if (bloodBar > 0) nbt.putInt("bloodBar", bloodBar);
+		if (mageMana >= 0) nbt.putDouble("mageMana", mageMana);
+		if (mageLevel > 1) nbt.putInt("mageLevel", mageLevel);
+		if (mageXp > 0) nbt.putDouble("mageXp", mageXp);
+		if (mageWandGiven) nbt.putBoolean("mageWandGiven", true);
 		if (!arenaReturnDim.isEmpty()) {
 			CompoundTag back = new CompoundTag();
 			back.putString("dim", arenaReturnDim);
@@ -246,6 +255,10 @@ public class AuraPlayerData {
 		data.tutorialStep = nbt.getInt("tutorialStep");
 		data.bookGiven = nbt.getBoolean("bookGiven");
 		data.bloodBar = nbt.getInt("bloodBar");
+		data.mageMana = nbt.contains("mageMana") ? nbt.getDouble("mageMana") : -1;
+		data.mageLevel = Math.max(1, nbt.getInt("mageLevel"));
+		data.mageXp = nbt.getDouble("mageXp");
+		data.mageWandGiven = nbt.getBoolean("mageWandGiven");
 		data.shopSpent = nbt.getInt("shopSpent");
 		data.shopMigrated = nbt.getBoolean("shopMigrated");
 		data.changelogSeen = nbt.getString("changelogSeen");

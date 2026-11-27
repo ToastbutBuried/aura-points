@@ -3,7 +3,7 @@
 ## The auras
 Start at the [overview and matchups](auras/overview.md), or read one directly. Every page has the Keeper's lore from the Awakening Altar, the abilities, casts, chains, Ultimate and branches.
 
-[Shadow](auras/shadow.md) · [Water](auras/water.md) · [Fire](auras/fire.md) · [Wind](auras/wind.md) · [Frost](auras/frost.md) · [Verdant](auras/verdant.md) · [Thunder](auras/thunder.md) · [Earth](auras/earth.md) · [Light](auras/light.md) · [Blood](auras/blood.md) · [Resonance (retired)](auras/resonance.md)
+[Shadow](auras/shadow.md) · [Water](auras/water.md) · [Fire](auras/fire.md) · [Wind](auras/wind.md) · [Frost](auras/frost.md) · [Verdant](auras/verdant.md) · [Thunder](auras/thunder.md) · [Earth](auras/earth.md) · [Light](auras/light.md) · [Blood](auras/blood.md) · [Mage](auras/mage.md) (new, not rollable yet) · [Resonance (retired)](auras/resonance.md)
 
 ## Features
 | | |

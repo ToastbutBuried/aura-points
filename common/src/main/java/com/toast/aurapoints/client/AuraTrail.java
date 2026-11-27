@@ -101,6 +101,10 @@ public final class AuraTrail {
 				level.addParticle(BLOOD, x, y, z, 0, 0, 0);
 				if (r.nextInt(4) == 0) level.addParticle(ParticleTypes.DRIPPING_DRIPSTONE_LAVA, x, y + 0.3, z, 0, 0, 0);
 			}
+			case MAGE -> {
+				level.addParticle(ParticleTypes.ENCHANT, x, y + 0.4, z, 0, -0.3, 0);
+				if (r.nextInt(3) == 0) level.addParticle(ParticleTypes.SOUL_FIRE_FLAME, x, y + 0.05, z, 0, 0.005, 0);
+			}
 		}
 	}
 }

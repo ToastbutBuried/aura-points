@@ -414,7 +414,38 @@ public final class AuraAbilities {
 		SINGULARITY("Singularity", true, () ->
 				"A black hole opens where you aim: for " + fmt(AuraConfig.VOID_HOLE_TICKS / 20f) + "s it drags in every enemy within " + Math.round(AuraConfig.VOID_HOLE_RADIUS)
 						+ " blocks and grinds them near its heart - then it collapses: " + fmt(AuraConfig.VOID_HOLE_BLAST_DAMAGE) + " damage and everyone flung away. "
-						+ AuraConfig.ULTIMATE_COOLDOWN_SECONDS + "s cooldown.");
+						+ AuraConfig.ULTIMATE_COOLDOWN_SECONDS + "s cooldown."),
+		// ---- Mage (5.62.0, ability/Mage): no cooldowns, every cast spends mana; Focus is the aura's passive ----
+		FOCUS("Focus", false, () ->
+				"Mage casts cost mana instead of cooldowns. Your pool starts at " + AuraConfig.MAGE_MANA_BASE + " and grows by "
+						+ AuraConfig.MAGE_MANA_PER_LEVEL + " with every mana level (up to level " + AuraConfig.MAGE_LEVEL_MAX + "): hits and kills with your spells, "
+						+ "spending mana and focusing train it. Mana flows back " + fmt((float) AuraConfig.MAGE_REGEN_PER_SECOND) + " a second, "
+						+ fmt(AuraConfig.MAGE_REGEN_DELAY_TICKS / 20f) + "s after your last spell. Sneak to focus: mana flows back "
+						+ fmt((float) AuraConfig.MAGE_FOCUS_REGEN_FACTOR) + "x as fast, only " + fmt(AuraConfig.MAGE_FOCUS_DELAY_TICKS / 20f) + "s after your last spell. Mobs killed near you may leave a mana wisp: "
+						+ "walk close and it flies into you (" + fmt((float) AuraConfig.MAGE_WISP_MANA) + " mana)."),
+		ARCANE_BOLT("Arcane Bolt", true, () ->
+				"Point your wand: tap your Arcane Bolt key for a quick shock that locks onto what you look at, up to "
+						+ Math.round(AuraConfig.MAGE_BOLT_RANGE) + " blocks (" + fmt(AuraConfig.MAGE_BOLT_DAMAGE) + " damage, "
+						+ fmt((float) AuraConfig.MAGE_BOLT_COST) + " mana). Hold it to charge the bolt (mana drains while you hold): on a lone target it hits for "
+						+ fmt((float) (AuraConfig.MAGE_BOLT_CHARGED_DAMAGE * AuraConfig.MAGE_BOLT_LONE_FACTOR)) + "; with others within "
+						+ fmt((float) AuraConfig.MAGE_BOLT_CHAIN_RADIUS) + " blocks it chains to up to " + AuraConfig.MAGE_BOLT_CHAIN_TARGETS
+						+ " of them and " + fmt(AuraConfig.MAGE_BOLT_CHARGED_DAMAGE) + " damage is split evenly. Needs your Apprentice Wand in hand."),
+		ARCANE_BARRIER("Arcane Barrier", true, () ->
+				"Runes close around you: a shield of " + fmt(AuraConfig.MAGE_BARRIER_ABSORB / 2f) + " hearts for "
+						+ fmt(AuraConfig.MAGE_BARRIER_TICKS / 20f) + "s, or until it breaks. " + fmt((float) AuraConfig.MAGE_BARRIER_COST)
+						+ " mana. Needs your Apprentice Wand in hand."),
+		ARCANE_ORB("Arcane Orb", true, () ->
+				"Hold your Arcane Orb key: you raise your wand and an orb forms over its crystal, drawing motes of light into itself and growing "
+						+ "for up to " + fmt(AuraConfig.MAGE_ORB_MAX_HOLD_TICKS / 20f) + "s (mana drains while it grows). Let go to fire it where you point: "
+						+ fmt(AuraConfig.MAGE_ORB_MIN_DAMAGE) + " to " + fmt(AuraConfig.MAGE_ORB_MAX_DAMAGE) + " damage in a burst of "
+						+ fmt((float) AuraConfig.MAGE_ORB_MIN_RADIUS) + " to " + fmt((float) AuraConfig.MAGE_ORB_MAX_RADIUS) + " blocks. "
+						+ fmt((float) AuraConfig.MAGE_ORB_COST) + " mana to start. Needs your Apprentice Wand in hand."),
+		LAST_PRISM("Last Prism", true, () ->
+				"Hold your Ultimate key: you put the wand away and raise the Last Prism. Six rainbow beams fan out and spiral inward, "
+						+ "merging over " + fmt(AuraConfig.MAGE_PRISM_CONVERGE_TICKS / 20f) + "s into one thick beam that hits "
+						+ fmt((float) AuraConfig.MAGE_PRISM_FULL_FACTOR) + "x as hard. Every beam hits " + fmt(AuraConfig.MAGE_PRISM_DAMAGE)
+						+ " " + fmt(20f / Math.max(1, AuraConfig.MAGE_PRISM_HIT_TICKS)) + " times a second. Your aim turns slowly while you channel, and the mana it eats "
+						+ "rises as the beams close in; it ends when you let go or run dry. No cooldown.");
 
 		public final String displayName;
 		public final boolean active;
@@ -472,6 +503,8 @@ public final class AuraAbilities {
 				case VOID_PULL -> AuraConfig.VOID_PULL_COOLDOWN_TICKS;
 				case RIFT_STEP -> AuraConfig.VOID_RIFT_COOLDOWN_TICKS;
 				case NULL_ORB -> AuraConfig.VOID_ORB_COOLDOWN_TICKS;
+				// Mage spells have no cooldown: Mage gates them with mana and MAGE_CAST_DELAY_TICKS
+				case ARCANE_BOLT, ARCANE_BARRIER, ARCANE_ORB, LAST_PRISM -> 0;
 				case ECLIPSE, TIDAL_ASCENSION, PHOENIX, TEMPEST, PERMAFROST, OVERGROWTH, JUDGEMENT, TECTONIC_RIFT, SUNBURST, BLOOD_MOON, SINGULARITY ->
 						AuraConfig.ULTIMATE_COOLDOWN_SECONDS * 20;
 				default -> 0;
@@ -502,7 +535,8 @@ public final class AuraAbilities {
 					Ability.ICE_SPIKE, Ability.VINE_HOOK, Ability.ENTANGLEMENT, Ability.VERDANT_VIPER,
 					Ability.THUNDERBOLT, Ability.CHIDORI, Ability.SONIC_BLOSSOM, Ability.LISTENING_TREE, Ability.ABYSSAL_GRASP,
 					Ability.PILLAR_LIFT, Ability.BOULDER_TOSS, Ability.QUAKE, Ability.RADIANT_PULSE, Ability.SOLAR_FLASH, Ability.PRISM_BEAM,
-					Ability.HEMORRHAGE, Ability.BLOOD_TETHER, Ability.CRIMSON_SACRIFICE, Ability.VOID_PULL, Ability.RIFT_STEP, Ability.NULL_ORB);
+					Ability.HEMORRHAGE, Ability.BLOOD_TETHER, Ability.CRIMSON_SACRIFICE, Ability.VOID_PULL, Ability.RIFT_STEP, Ability.NULL_ORB,
+					Ability.ARCANE_BOLT, Ability.ARCANE_BARRIER, Ability.ARCANE_ORB);
 
 	/** /aura lock all is on (mirror of AuraState.allLocked, set on server start and by the command). */
 	public static boolean allLocked = false;
@@ -765,6 +799,9 @@ public final class AuraAbilities {
 			case HEMORRHAGE -> Blood.hemorrhage(player, now);
 			case BLOOD_TETHER -> Blood.tether(player, now);
 			case CRIMSON_SACRIFICE -> Blood.sacrifice(player, now);
+			case ARCANE_BOLT -> Mage.boltPress(player, now);
+			case ARCANE_BARRIER -> Mage.barrier(player, now);
+			case ARCANE_ORB -> Mage.orbPress(player, now);
 			case VOID_PULL -> VoidAura.pull(player, now);
 			case RIFT_STEP -> VoidAura.riftStep(player, now);
 			case NULL_ORB -> VoidAura.nullOrb(player, now);

@@ -82,6 +82,8 @@ public final class AuraReset {
 				data.freeRollUsed = false;
 				data.rolled.clear();
 				data.bloodBar = 0;
+				data.mageMana = -1;
+				data.mageWandGiven = false;
 				AuraAbilities.refreshBerserkerModifier(player, false);
 				return "aura cleared, " + refund + " Aura refunded";
 			}
@@ -99,6 +101,8 @@ public final class AuraReset {
 			case MASTERY -> {
 				data.mastery.clear();
 				data.branches.clear();
+				data.mageLevel = 1;
+				data.mageXp = 0;
 				for (AuraType t : AuraType.values()) {
 					var stat = AuraStats.mastery(t);
 					if (stat != null) player.getStats().setValue(player, Stats.CUSTOM.get(stat), 0);
@@ -192,6 +196,10 @@ public final class AuraReset {
 		data.riftAuras.clear();
 		data.mastery.clear();
 		data.branches.clear();
+		data.mageMana = -1;
+		data.mageLevel = 1;
+		data.mageXp = 0;
+		data.mageWandGiven = false;
 		reset(player, data, Part.COSMETICS);
 		reset(player, data, Part.WEEKLIES);
 		AuraAbilities.refreshBerserkerModifier(player, false);

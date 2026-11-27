@@ -189,6 +189,7 @@ public final class AuraBook {
 			case EARTH -> Items.MOSSY_COBBLESTONE;
 			case LIGHT -> Items.GLOWSTONE_DUST;
 			case BLOOD -> Items.REDSTONE;
+			case MAGE -> Items.AMETHYST_SHARD;
 		};
 	}
 

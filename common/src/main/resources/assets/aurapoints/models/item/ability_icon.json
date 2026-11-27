@@ -267,6 +267,30 @@
     "custom_model_data": 44
    },
    "model": "aurapoints:item/ability_icon/wind_dash"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 45
+   },
+   "model": "aurapoints:item/ability_icon/arcane_bolt"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 46
+   },
+   "model": "aurapoints:item/ability_icon/arcane_barrier"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 47
+   },
+   "model": "aurapoints:item/ability_icon/arcane_orb"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 48
+   },
+   "model": "aurapoints:item/ability_icon/last_prism"
   }
  ]
 }

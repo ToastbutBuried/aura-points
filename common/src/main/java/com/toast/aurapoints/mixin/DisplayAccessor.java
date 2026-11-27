@@ -34,6 +34,9 @@ public interface DisplayAccessor {
 	@Invoker("setBrightnessOverride")
 	void aurapoints$setBrightnessOverride(net.minecraft.util.Brightness brightness);
 
+	@Invoker("setBillboardConstraints")
+	void aurapoints$setBillboardConstraints(net.minecraft.world.entity.Display.BillboardConstraints constraints);
+
 	/** Set (forced) every update, so each new transformation interpolates from where the last one was. */
 	@Accessor("DATA_TRANSFORMATION_INTERPOLATION_START_DELTA_TICKS_ID")
 	static EntityDataAccessor<Integer> aurapoints$startDelta() {

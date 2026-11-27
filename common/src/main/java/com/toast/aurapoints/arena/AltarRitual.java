@@ -487,6 +487,7 @@ public final class AltarRitual {
 			case LIGHT -> ParticleTypes.END_ROD;
 			case BLOOD -> ParticleTypes.DAMAGE_INDICATOR;
 			case SHADOW -> ParticleTypes.SQUID_INK;
+			case MAGE -> ParticleTypes.ENCHANT;
 			default -> ParticleTypes.ENCHANT;
 		};
 	}
@@ -503,6 +504,7 @@ public final class AltarRitual {
 			case LIGHT -> AuraSounds.AMETHYST_BLOCK_RESONATE.value();
 			case BLOOD -> AuraSounds.WARDEN_HEARTBEAT.value();
 			case SHADOW -> AuraSounds.ENDERMAN_STARE.value();
+			case MAGE -> AuraSounds.ILLUSIONER_CAST_SPELL.value();
 			default -> AuraSounds.BEACON_AMBIENT.value();
 		};
 	}
@@ -699,6 +701,9 @@ public final class AltarRitual {
 		LORE.put(AuraType.BLOOD, new String[]{"Every aura costs something. Blood just says so out loud.",
 				"Its pillar was the price of the hall; the keepers do not say whose.",
 				"The awakened know exactly what they can spare - and spend it."});
+		LORE.put(AuraType.MAGE, new String[]{"Magic was never a gift. It is a muscle, and the mage trains it every day.",
+				"Its pillar was carved by apprentices, one rune per lesson, until it glowed on its own.",
+				"The awakened hold a prism that splits light like a scholar splits hairs."});
 	}
 
 	/** /aura altar lore [aura]: the keeper's story of a pillar (the aura you hold without an argument). */
@@ -779,6 +784,7 @@ public final class AltarRitual {
 			case LIGHT -> AuraSounds.AMETHYST_BLOCK_CHIME.value();
 			case BLOOD -> AuraSounds.WARDEN_HEARTBEAT.value();
 			case SHADOW -> AuraSounds.SCULK_CLICKING.value();
+			case MAGE -> AuraSounds.AMETHYST_BLOCK_RESONATE.value();
 			default -> AuraSounds.AMETHYST_BLOCK_CHIME.value();
 		};
 	}

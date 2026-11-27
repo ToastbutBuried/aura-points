@@ -1,0 +1,26 @@
+{
+ "parent": "minecraft:item/generated",
+ "textures": {
+  "layer0": "aurapoints:item/mage_orb"
+ },
+ "overrides": [
+  {
+   "predicate": {
+    "custom_model_data": 1
+   },
+   "model": "aurapoints:item/mage_orb"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 2
+   },
+   "model": "aurapoints:item/mage_wisp"
+  },
+  {
+   "predicate": {
+    "custom_model_data": 3
+   },
+   "model": "aurapoints:item/last_prism"
+  }
+ ]
+}

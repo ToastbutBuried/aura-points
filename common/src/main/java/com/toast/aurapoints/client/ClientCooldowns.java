@@ -122,7 +122,9 @@ public final class ClientCooldowns {
 		boolean flight = mc.player.isFallFlying() && ClientAuraState.hasFlightVersion(ability);
 		long[] cd = ClientAuraState.cooldown(ability, flight ? AuraAbilities.Slot.FLIGHT : null);
 		long now = System.currentTimeMillis();
-		if (cd != null && now < cd[1]) {
+		// a Mage spell they can't pay for (the server says so too)
+		boolean starved = ClientAuraState.mana >= 0 && ClientAuraState.manaCost(ability) > ClientAuraState.mana + 1.0e-3f;
+		if (cd != null && now < cd[1] || starved) {
 			DENIED_AT.put(ability, now);
 			if (AuraClientConfig.NOT_READY_SOUND.get()) ClientSounds.ui(AuraSounds.UI_NOT_READY.value(), 1.0f, 1.0f);
 		} else {

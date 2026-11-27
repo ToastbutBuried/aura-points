@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.62.0
+- New aura: Mage (not rollable yet). No cooldowns: spells spend mana. Arcane Bolt, Arcane Barrier, Arcane Orb with the Apprentice Wand, Last Prism as its Ultimate. Sneak to focus, train your mana level, collect mana wisps from mobs.
+- Everyone must update the mod.
+
 == 5.61.2
 - Shadow Serpent datapacks: the collision score now only reacts to blocks; hitting entities has its own score (pluxshadowserpententitycollision).
 - Small Reaper animation polish.

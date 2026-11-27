@@ -429,6 +429,7 @@ public final class BalanceEditor {
 			case "earth" -> Items.COBBLESTONE;
 			case "light" -> Items.GLOWSTONE_DUST;
 			case "blood" -> Items.REDSTONE;
+			case "mage" -> Items.AMETHYST_SHARD;
 			case "void" -> Items.CRYING_OBSIDIAN;
 			case "handhelds" -> Items.TRIDENT;
 			case "arena" -> Items.TARGET;

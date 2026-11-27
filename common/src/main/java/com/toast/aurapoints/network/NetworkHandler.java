@@ -28,7 +28,7 @@ public final class NetworkHandler {
 
 	@SubscribeEvent
 	public static void register(RegisterPayloadHandlersEvent event) {
-		PayloadRegistrar registrar = event.registrar("50");
+		PayloadRegistrar registrar = event.registrar("51");
 		registrar.playToServer(
 				AbilityKeyPacket.TYPE,
 				AbilityKeyPacket.STREAM_CODEC,
@@ -113,6 +113,11 @@ public final class NetworkHandler {
 				FireBendingPacket.TYPE,
 				FireBendingPacket.STREAM_CODEC,
 				(packet, context) -> context.enqueueWork(() -> ClientAuraState.setFireBending(packet.active(), packet.charge(), packet.readyAt()))
+		);
+		registrar.playToClient(
+				ManaPacket.TYPE,
+				ManaPacket.STREAM_CODEC,
+				(packet, context) -> context.enqueueWork(() -> ClientAuraState.setMana(packet.mana(), packet.max(), packet.level(), packet.xp(), packet.turn(), packet.costs()))
 		);
 		registrar.playToClient(
 				BloodBarPacket.TYPE,
@@ -221,6 +226,7 @@ public final class NetworkHandler {
 				+ com.toast.aurapoints.ability.Loadouts.wire(data)));
 		com.toast.aurapoints.AuraHooks.syncAura(player, data);
 		sendBloodBar(player, data.bloodBar);
+		com.toast.aurapoints.ability.Mage.sync(player, data, true);
 		// and the label over their name, for them and everyone who sees them
 		PacketDistributor.sendToPlayersTrackingEntityAndSelf(player, new PlayerAuraPacket(player.getId(), labelOf(data)));
 	}
@@ -303,6 +309,11 @@ public final class NetworkHandler {
 	/** Updates the Fire Bending charge bar (active=false hides it). */
 	public static void sendFireBending(ServerPlayer player, boolean active, float charge, float readyAt) {
 		PacketDistributor.sendToPlayer(player, new FireBendingPacket(active, charge, readyAt));
+	}
+
+	/** The Mage's mana for the player's own client (mana -1 hides the bar). */
+	public static void sendMana(ServerPlayer player, float mana, int max, int level, float xp, float turn, String costs) {
+		PacketDistributor.sendToPlayer(player, new ManaPacket(mana, max, level, xp, turn, costs));
 	}
 
 	/** The Blood aura's blood bar for the player's own client. */
@@ -436,6 +447,7 @@ public final class NetworkHandler {
 			// the Ultimate key: a press is all it takes
 			if (packet.key() == AbilityKeyPacket.ULTIMATE) {
 				if (packet.down()) com.toast.aurapoints.ability.Ultimates.press(player, server.getTickCount());
+				else com.toast.aurapoints.ability.Mage.prismRelease(player, server.getTickCount());
 				return;
 			}
 			// Mjölnir (owner only): its own swing key spins it; the attack button's held state keeps the flight going
@@ -555,6 +567,10 @@ public final class NetworkHandler {
 					com.toast.aurapoints.ability.Resonance.graspRelease(player, now);
 				} else if (ability == AuraAbilities.Ability.PRISM_BEAM) {
 					com.toast.aurapoints.ability.Light.beamRelease(player, now);
+				} else if (ability == AuraAbilities.Ability.ARCANE_BOLT) {
+					com.toast.aurapoints.ability.Mage.boltRelease(player, now);
+				} else if (ability == AuraAbilities.Ability.ARCANE_ORB) {
+					com.toast.aurapoints.ability.Mage.orbRelease(player, now);
 				}
 			}
 		});

@@ -38,6 +38,7 @@ public final class HudColors {
 				case EARTH -> 0xA6761D;
 				case LIGHT -> 0xFFF3C4;
 				case BLOOD -> 0xD55E00;
+				case MAGE -> 0x7A88FF;
 			};
 			// no blue-against-yellow pairs (tritanopia)
 			case BLUE_YELLOW -> switch (aura) {
@@ -52,6 +53,7 @@ public final class HudColors {
 				case EARTH -> 0xA6761D;
 				case LIGHT -> 0xFFF0B0;
 				case BLOOD -> 0xE31A1C;
+				case MAGE -> 0x9F7AFF;
 			};
 			case HIGH_CONTRAST -> switch (aura) {
 				case SHADOW -> 0xC040FF;
@@ -65,6 +67,7 @@ public final class HudColors {
 				case EARTH -> 0xFFB060;
 				case LIGHT -> 0xFFFFC0;
 				case BLOOD -> 0xFF2020;
+				case MAGE -> 0x8080FF;
 			};
 		};
 	}

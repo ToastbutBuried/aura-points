@@ -14,6 +14,7 @@ Ten auras can be rolled. Each has a Keeper's story told at the [Awakening Altar]
 | [Earth](earth.md) | tank, terrain | Pillar Lift, Boulder Toss, Quake | Tectonic Rift | Bulwark / Tectonic |
 | [Light](light.md) | healer, blinder | Radiant Pulse, Solar Flash, Prism Beam | Sunburst | Radiant / Prismatic |
 | [Blood](blood.md) | duelist | Hemorrhage, Blood Tether, Crimson Sacrifice | Blood Moon | Sanguine / Sacrificial |
+| [Mage](mage.md) *(not rollable yet)* | spellcaster, mana instead of cooldowns | Arcane Bolt, Arcane Barrier, Arcane Orb | Last Prism | one per update |
 | [Resonance](resonance.md) *(retired)* | sound hunter | Abyssal Grasp, Listening Tree, Sonic Blossom | none | Dirge / Chorus |
 
 Every aura also has **Vein of Aura**: you heal a share of the damage you deal to mobs (not players).
@@ -39,6 +40,6 @@ The multiplier is `AURA_EFFECTIVE_MULTIPLIER` in `aurapoints-general.json`.
 Water, Fire, Frost, Verdant and Thunder leave a *mark* on what they hit (Wet, Burning, Chilled, Poisoned, Charged); the next hit of the right element sets off a [reaction](../features/reactions.md). Wind leaves no mark but sets off reactions.
 
 ## Aura IDs
-For commands and scoreboards: `shadow water fire wind frost verdant thunder resonance earth light blood`. The scoreboard `aura_type` is 1 + the place in that list. See [datapack reference](../reference/datapacks.md).
+For commands and scoreboards: `shadow water fire wind frost verdant thunder resonance earth light blood mage`. The scoreboard `aura_type` is 1 + the place in that list, except Mage = 13 (12 was Void's). See [datapack reference](../reference/datapacks.md).
 
 [← back to the docs index](../README.md)

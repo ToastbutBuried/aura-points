@@ -15,7 +15,7 @@ final class DuelLines {
 	private DuelLines() {
 	}
 
-	enum Kind { FIRE, FROST, WATER, WIND, SHADOW, VERDANT, THUNDER, RESONANCE, EARTH, LIGHT, BLOOD, VOID, MELEE, BOW, ENVIRONMENT, SELF, GENERIC }
+	enum Kind { FIRE, FROST, WATER, WIND, SHADOW, VERDANT, THUNDER, RESONANCE, EARTH, LIGHT, BLOOD, MAGE, VOID, MELEE, BOW, ENVIRONMENT, SELF, GENERIC }
 
 	private static final Map<Kind, List<String>> LINES = Map.ofEntries(
 			Map.entry(Kind.FIRE, List.of(
@@ -76,6 +76,11 @@ final class DuelLines {
 					"%v saw the light. %k sent it.",
 					"%k turned %v's lights out",
 					"%v should have brought sunglasses (%k)")),
+			Map.entry(Kind.MAGE, List.of(
+					"%k ran %v out of hit points before running out of mana",
+					"%v was a lesson in %k's spellbook",
+					"%k turned %v into a footnote",
+					"%v learned the hard way that %k had mana left")),
 			Map.entry(Kind.BLOOD, List.of(
 					"%k drained %v dry",
 					"%v donated a little too much blood to %k",
@@ -123,6 +128,7 @@ final class DuelLines {
 			case EARTH -> Kind.EARTH;
 			case LIGHT -> Kind.LIGHT;
 			case BLOOD -> Kind.BLOOD;
+			case MAGE -> Kind.MAGE;
 		};
 	}
 

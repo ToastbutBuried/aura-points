@@ -78,6 +78,7 @@ public final class Stun {
 		Light.beamRelease(player, now);
 		Earth.dropBoulder(player);
 		Resonance.dropGrasp(player);
+		Mage.dropHeld(player);
 	}
 
 	private static void modifiers(ServerPlayer player, boolean on) {

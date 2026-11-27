@@ -202,6 +202,10 @@ public class AuraPoints {
 	public static final DeferredItem<Item> THORN_SEED = ITEMS.registerSimpleItem("thorn_seed");
 	/** Not obtainable: the HUD's ability icons, one per custom_model_data (network/ClientAuraHud.icon). */
 	public static final DeferredItem<Item> ABILITY_ICON = ITEMS.registerSimpleItem("ability_icon");
+	/** Mage (5.62.0): the wand Arcane Bolt, Barrier and Orb are cast with, and the spell looks (orb, wisp, prism) by custom_model_data. */
+	public static final DeferredItem<Item> APPRENTICE_WAND = ITEMS.registerItem("apprentice_wand", Item::new,
+			new Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.UNCOMMON));
+	public static final DeferredItem<Item> MAGE_FX = ITEMS.registerSimpleItem("mage_fx");
 
 	/** Test phase, owner only (/aura mjolnir). */
 	public static final DeferredItem<Item> MJOLNIR_ITEM = ITEMS.registerItem(
@@ -358,6 +362,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.Gardening.tickAll(server);
 			com.toast.aurapoints.ability.Light.tickAll(server);
 			com.toast.aurapoints.ability.Blood.tickAll(server);
+			com.toast.aurapoints.ability.Mage.tickAll(server);
 			com.toast.aurapoints.ability.VoidAura.tickAll(server);
 			com.toast.aurapoints.ability.Reactions.tickAll(server);
 			com.toast.aurapoints.weather.Storms.tickAll(server);
@@ -379,6 +384,7 @@ public class AuraPoints {
 				com.toast.aurapoints.ability.Relics.tick(player, server.getTickCount());
 				com.toast.aurapoints.ability.Light.tickPassives(player, data, server.getTickCount());
 				com.toast.aurapoints.ability.Blood.tickPassives(player, data, server.getTickCount());
+				com.toast.aurapoints.ability.Mage.tickPassives(player, data, server.getTickCount());
 				com.toast.aurapoints.ability.VoidAura.tickPassives(player, data, server.getTickCount());
 				AuraHooks.syncCooldowns(player, server.getTickCount());
 				com.toast.aurapoints.ability.IdleAnimations.tick(player, data, server.getTickCount());
@@ -744,7 +750,8 @@ public class AuraPoints {
 					|| com.toast.aurapoints.arena.AltarRitual.isLeftover(event.getEntity())
 					|| com.toast.aurapoints.arena.ComboTrainer.isLeftover(event.getEntity())
 					|| com.toast.aurapoints.ability.Ultimates.isLeftover(event.getEntity())
-					|| com.toast.aurapoints.ability.Earth.isLeftover(event.getEntity()))) event.setCanceled(true);
+					|| com.toast.aurapoints.ability.Earth.isLeftover(event.getEntity())
+					|| com.toast.aurapoints.ability.Mage.isLeftover(event.getEntity()))) event.setCanceled(true);
 		}
 
 		/** The shadow dragon's body (item displays holding its segments) is drawn from further away. */
@@ -785,6 +792,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.IdleAnimations.clearAll();
 			com.toast.aurapoints.ability.Ultimates.clearAll(event.getServer());
 			com.toast.aurapoints.ability.Light.clearAll();
+			com.toast.aurapoints.ability.Mage.clearAll();
 			com.toast.aurapoints.ability.Blood.clearAll();
 			com.toast.aurapoints.ability.VoidAura.clearAll();
 			com.toast.aurapoints.ability.Earth.clearAll();
@@ -851,6 +859,7 @@ public class AuraPoints {
 			com.toast.aurapoints.ability.Blood.onDeath(player);
 			// dying also breaks the Ice Shell: the new life gets a whole one
 			com.toast.aurapoints.ability.IceShell.onDeath(player);
+			com.toast.aurapoints.ability.Mage.onRespawn(player);
 		}
 
 		@SubscribeEvent
@@ -871,6 +880,7 @@ public class AuraPoints {
 				com.toast.aurapoints.ability.Gardening.onLogout(player);
 				com.toast.aurapoints.ability.Light.onLogout(player);
 				com.toast.aurapoints.ability.Blood.onLogout(player);
+				com.toast.aurapoints.ability.Mage.onLogout(player);
 				com.toast.aurapoints.menu.Tutorial.onLogout(player);
 				com.toast.aurapoints.ability.VoidAura.onLogout(player);
 				ShadowCloak.onLogout(player);
@@ -1118,6 +1128,8 @@ public class AuraPoints {
 			if (event.getSource().getEntity() instanceof ServerPlayer fxKiller && fxKiller != dead && dead instanceof net.minecraft.world.entity.LivingEntity fxDead) {
 				com.toast.aurapoints.cosmetic.Cosmetics.onKill(fxKiller, fxDead);
 			}
+			// a mob killed near a Mage may leave mana wisps
+			if (dead instanceof net.minecraft.world.entity.LivingEntity wispDead) com.toast.aurapoints.ability.Mage.onDeath(wispDead);
 			// an aura-touched mob pays its killer
 			if (dead instanceof net.minecraft.world.entity.LivingEntity deadMob) com.toast.aurapoints.ability.TouchedMobs.onDeath(deadMob, event.getSource());
 			// Bloodlust: any kill

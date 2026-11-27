@@ -6,7 +6,7 @@ Everything below is created by the mod on server start and can be used **without
 | Objective | Value |
 |---|---|
 | `aura_points` | the currency. Read and write freely (`scoreboard players add @s aura_points 50`) |
-| `aura_type` | the player's aura: 0 none, 1 Shadow, 2 Water, 3 Fire, 4 Wind, 5 Frost, 6 Verdant, 7 Thunder, 8 Resonance, 9 Earth, 10 Light, 11 Blood (12 Void is legacy: Dark is now Shadow + a branch) |
+| `aura_type` | the player's aura: 0 none, 1 Shadow, 2 Water, 3 Fire, 4 Wind, 5 Frost, 6 Verdant, 7 Thunder, 8 Resonance, 9 Earth, 10 Light, 11 Blood, 13 Mage (12 Void is legacy: Dark is now Shadow + a branch) |
 | `aura_branch` | branch in force for the held aura: 0 none, else its place (1 or 2) among that aura's branches: Shadow 1 Phantom / 2 Dark, Water 1 Tidecaller / 2 Leviathan, Fire 1 Blue Flame / 2 Magma, Wind 1 Skyrunner / 2 Cyclone, Frost 1 Glacial / 2 Frostbite, Verdant 1 Venomweaver / 2 Grove Warden, Thunder 1 Surge / 2 Conductor, Earth 1 Bulwark / 2 Tectonic, Light 1 Radiant / 2 Prismatic, Blood 1 Sanguine / 2 Sacrificial |
 | `aura_mastery` | Mastery level (0-5) of the aura held now. Written by the mod: change levels with `/aura mastery set` |
 | `aura_mastery_<aura>` | Mastery level per aura (`aura_mastery_fire`) |

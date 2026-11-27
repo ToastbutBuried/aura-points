@@ -48,6 +48,10 @@ public record BendingAnimPacket(int entityId, byte state, int windup, int hold) 
 	public static final byte BOULDER_HOLD = 16;
 	/** Light's Prism Beam held: the right arm pointed at the aim, the left hand gripping its forearm. */
 	public static final byte PRISM_AIM = 17;
+	/** Mage (5.62.0): the wand pointed straight at the aim (Arcane Bolt held, the orb just fired). */
+	public static final byte WAND_POINT = 18;
+	/** Mage: the wand raised a little in front, crystal up, the orb forming over it; the left hand open below it. */
+	public static final byte WAND_RAISE = 19;
 
 	private static final int ANGLE_SPAN = 2_000_000;
 
@@ -124,7 +128,7 @@ public record BendingAnimPacket(int entityId, byte state, int windup, int hold) 
 
 	/** True for the poses that are held until replaced (the orb poses and the ones above). */
 	public static boolean isHeld(byte state) {
-		return (state >= CHARGING && state <= READY_SIDE) || (state >= BUBBLE_HOLD && state <= PRISM_AIM);
+		return (state >= CHARGING && state <= READY_SIDE) || (state >= BUBBLE_HOLD && state <= WAND_RAISE);
 	}
 
 	/** Gesture kinds and their variants (shared with the server, which picks them). */
@@ -163,6 +167,8 @@ public record BendingAnimPacket(int entityId, byte state, int windup, int hold) 
 	public static final int GESTURE_BLOOD = 28;
 	/** Void: 0 Void Pull (an open hand out, clenched and yanked back), 1 Rift Step (arms crossed, torn apart), 2 Null Orb (cupped hands pushed out) */
 	public static final int GESTURE_VOID = 29;
+	/** Mage: 0 Arcane Bolt (a wand flick at the aim), 1 charged bolt (a harder thrust), 2 Arcane Barrier (the wand raised, swept round and down) */
+	public static final int GESTURE_MAGE = 30;
 
 	/**
 	 * The idle animations: whose they are (null = anyone's) and how many ticks they last (client/IdleGestures

@@ -192,6 +192,11 @@ public final class AuraCommand {
 				}))
 				.then(Commands.literal("book").executes(AuraCommand::giveAuraBook))
 				.then(Commands.literal("selfhide").executes(AuraCommand::toggleSelfHide))
+				.then(Commands.literal("wand").executes(ctx -> {
+					ServerPlayer wandPlayer = ctx.getSource().getPlayerOrException();
+					wandPlayer.sendSystemMessage(Component.literal(com.toast.aurapoints.ability.Mage.wandCommand(wandPlayer)).withStyle(ChatFormatting.BLUE));
+					return 1;
+				}))
 				.then(Commands.literal("bloom").executes(AuraCommand::toggleBloom))
 				.then(Commands.literal("branch")
 						.executes(AuraCommand::showBranches)
@@ -462,6 +467,7 @@ public final class AuraCommand {
 			case EARTH -> "Immovable: raise pillars, tear boulders out of the ground and make it heave under your enemies.";
 			case LIGHT -> "Radiance: heal everyone around you, blind your enemies and burn them with a beam of pure light.";
 			case BLOOD -> "Hunger: cut them open, drain them dry, and spend your own blood for the hits that count.";
+			case MAGE -> "Spellcraft: no cooldowns, only mana. Train your pool with every spell, focus to refill it, and pick a path of magic later.";
 		};
 	}
 
@@ -1369,7 +1375,7 @@ public final class AuraCommand {
 			case FROST -> com.toast.aurapoints.AuraPoints.ABSOLUTE_ZERO;
 			case VERDANT -> com.toast.aurapoints.AuraPoints.WORLD_TREE_BOW;
 			case THUNDER -> com.toast.aurapoints.AuraPoints.ZEUS_GAUNTLETS;
-			case RESONANCE, EARTH, LIGHT, BLOOD -> null;
+			case RESONANCE, EARTH, LIGHT, BLOOD, MAGE -> null;
 		});
 	}
 
