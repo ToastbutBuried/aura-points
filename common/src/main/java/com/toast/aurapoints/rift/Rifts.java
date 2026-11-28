@@ -922,8 +922,11 @@ public final class Rifts {
 	}
 
 	public static void onLogout(ServerPlayer p) {
+		SkillChecks.forget(p.getUUID());
 		Run run = runOf(p);
 		if (run != null) {
+			// the trials' per-player state (bells picked, probes, immunity, lent wings) goes now: tickAll can't find them later
+			for (Trials.Trial t : run.trials) if (t.inside.remove(p.getUUID())) t.release(p);
 			run.players.remove(p.getUUID());
 			run.down.remove(p.getUUID());
 			run.backAt.remove(p.getUUID());
