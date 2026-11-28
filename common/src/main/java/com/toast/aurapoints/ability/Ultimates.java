@@ -307,6 +307,9 @@ public final class Ultimates {
 	// Shadow - Eclipse
 	// ---------------------------------------------------------------
 
+	/** Eclipse casters whose own invisibility was already running at the start (Eclipse leaves it on). */
+	private static final java.util.Set<java.util.UUID> ECLIPSE_KEEP_INVIS = new java.util.HashSet<>();
+
 	private static void startEclipse(ServerPlayer p, Run run) {
 		ServerLevel level = p.serverLevel();
 		double range = Math.max(1, AuraConfig.ULT_ECLIPSE_RANGE);
@@ -315,7 +318,13 @@ public final class Ultimates {
 				other.addEffect(new MobEffectInstance(MobEffects.DARKNESS, Math.max(20, AuraConfig.ULT_ECLIPSE_DARKNESS_TICKS), 0, false, false, true));
 			}
 		}
-		p.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, 60, 0, false, false, false));
+		// a longer invisibility already running (Vanish, a potion) is kept and not taken away at the end
+		MobEffectInstance had = p.getEffect(MobEffects.INVISIBILITY);
+		if (had != null && (had.isInfiniteDuration() || had.getDuration() > 60)) ECLIPSE_KEEP_INVIS.add(p.getUUID());
+		else {
+			ECLIPSE_KEEP_INVIS.remove(p.getUUID());
+			p.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, 60, 0, false, false, false));
+		}
 		List<LivingEntity> enemies = Handhelds.enemies(p, level, AuraFx.chest(p), range);
 		enemies.sort((a, b) -> Double.compare(a.distanceToSqr(p), b.distanceToSqr(p)));
 		for (int i = 0; i < Math.min(Math.max(1, AuraConfig.ULT_ECLIPSE_TARGETS), enemies.size()); i++) run.targets.add(enemies.get(i));
@@ -360,7 +369,7 @@ public final class Ultimates {
 		if (run.struck >= run.targets.size() && run.t % 6 == 4) {
 			Vec3 c = AuraFx.chest(p);
 			AuraFx.burst(level, c.x, c.y, c.z, ParticleTypes.SMOKE, 12, 0.4, 0.03);
-			p.removeEffect(MobEffects.INVISIBILITY);
+			if (!ECLIPSE_KEEP_INVIS.remove(p.getUUID())) p.removeEffect(MobEffects.INVISIBILITY);
 			return true;
 		}
 		return run.t > 60;
