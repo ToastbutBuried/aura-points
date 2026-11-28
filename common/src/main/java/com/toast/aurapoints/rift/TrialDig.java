@@ -728,9 +728,14 @@ final class TrialDig extends Trials.Trial {
 		if (tier >= 1) addMob(level, EntityType.HUSK, c);
 	}
 
+	/** A pit mob: counts as a hazard (the trial mob cap, and gone with the layout on a reset). */
 	private void addMob(ServerLevel level, EntityType<? extends Mob> type, Vec3 at) {
+		hazards.removeIf(m -> !m.isAlive());
+		if (hazards.size() >= Math.max(1, Math.min(12, com.toast.aurapoints.config.AuraConfig.RIFT_TRIAL_MOB_CAP))) return;
 		Mob m = Rifts.spawnMob(level, run, type, at, 1);
-		if (m != null) run.mobs.add(m);
+		if (m == null) return;
+		run.mobs.add(m);
+		hazards.add(m);
 	}
 
 	private void hints(ServerLevel level, List<ServerPlayer> here) {
