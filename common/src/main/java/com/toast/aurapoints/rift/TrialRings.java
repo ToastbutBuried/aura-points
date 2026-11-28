@@ -870,7 +870,12 @@ final class TrialRings extends Trials.Trial {
 		if (found) p.stopFallFlying();
 		if (orig == null || orig.isEmpty()) return;
 		if (p.getItemBySlot(EquipmentSlot.CHEST).isEmpty()) p.setItemSlot(EquipmentSlot.CHEST, orig);
-		else if (!inv.add(orig)) p.drop(orig, false);
+		else if (!inv.add(orig)) {
+			// a full bag: the ender chest before the floor (a drop here would stay behind in the rift)
+			ItemStack left = p.getEnderChestInventory().addItem(orig);
+			if (left.isEmpty()) p.sendSystemMessage(net.minecraft.network.chat.Component.literal("✦ Your inventory was full: your chest item went to your ender chest.").withStyle(net.minecraft.ChatFormatting.GOLD));
+			else p.drop(left, false);
+		}
 	}
 
 	/** Server stop: from here on the wings' own data is all there is. */
