@@ -181,6 +181,7 @@ public final class VoidAura {
 			AuraFx.particles(level, AuraFx.dust(DEEP, 1.5f), c.x, c.y, c.z, 12, 0.3, 0.5, 0.3, 0);
 			sound(level, c, AuraSounds.RESPAWN_ANCHOR_SET_SPAWN.value(), 0.8f, 0.6f);
 			p.displayClientMessage(Component.literal("✦ Rift Anchor set - sneak + key again to return ✦").withStyle(ChatFormatting.DARK_PURPLE), true);
+			AuraAbilities.markOnly = true;
 			return true;
 		}
 		if (!AuraAbilities.checkCooldown(p, Ability.RIFT_STEP, AuraConfig.VOID_RIFT_COOLDOWN_TICKS, now)) return false;

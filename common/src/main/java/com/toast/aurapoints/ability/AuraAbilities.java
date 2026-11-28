@@ -760,8 +760,11 @@ public final class AuraAbilities {
 		CastMode chainMode = Chains.castMode;
 		Chains.castMode = mode != CastMode.TAP && CastMode.has(ability, mode) ? mode : CastMode.TAP;
 		try {
+			markOnly = false;
 			boolean fired = activate(player, ability, now, mode);
-			if (fired) {
+			boolean cast = fired && !markOnly;
+			markOnly = false;
+			if (cast) {
 				Chains.onPressed(player, ability, Chains.castMode);
 				com.toast.aurapoints.arena.AuraTrial.onPressed(player, ability, Chains.castMode);
 				com.toast.aurapoints.arena.ComboTrainer.onCast(player, ability, Chains.castMode);
@@ -772,6 +775,9 @@ public final class AuraAbilities {
 			Chains.castMode = chainMode;
 		}
 	}
+
+	/** Set by a press that worked but is no cast (Rift Anchor's mark): no chain, Aura Trial or Combo Trainer step. */
+	static boolean markOnly;
 
 	private static boolean activate(ServerPlayer player, Ability ability, long now, CastMode mode) {
 		if (mode != CastMode.TAP && CastMode.has(ability, mode)) return Casts.activate(player, ability, now, mode);
@@ -1184,6 +1190,8 @@ public final class AuraAbilities {
 
 		long until = now + duration;
 		VANISH_UNTIL.put(player.getUUID(), until);
+		if (mode == CastMode.CHARGED) DEEP_VANISH.add(player.getUUID());
+		else DEEP_VANISH.remove(player.getUUID());
 		scheduleReappear(player, until, now);
 
 		AuraStats.add(player, AuraStats.VANISH_USES, 1);
@@ -1193,6 +1201,8 @@ public final class AuraAbilities {
 
 	/** Server tick each player's current Vanish ends on; Vanish Step pushes it back. */
 	private static final Map<UUID, Long> VANISH_UNTIL = new HashMap<>();
+	/** Players whose running vanish is a Deep Vanish (no Speed; Vanish Step keeps it that way). */
+	private static final java.util.Set<UUID> DEEP_VANISH = new java.util.HashSet<>();
 
 	/** A softer puff where the player reappears - skipped if Vanish Step extended the vanish since. */
 	private static void scheduleReappear(ServerPlayer player, long until, long now) {
@@ -1210,13 +1220,14 @@ public final class AuraAbilities {
 	public static boolean tryVanishStep(ServerPlayer player) {
 		long now = player.getServer().getTickCount();
 		Long until = VANISH_UNTIL.get(player.getUUID());
-		// the speed check catches a vanish cut short (death, milk) before its end tick
-		if (until == null || now >= until || !player.hasEffect(MobEffects.MOVEMENT_SPEED)) return false;
+		// the invisibility check catches a vanish cut short (death, milk) before its end tick; Deep Vanish has no Speed
+		if (until == null || now >= until || !player.hasEffect(MobEffects.INVISIBILITY)) return false;
+		boolean fast = !DEEP_VANISH.contains(player.getUUID());
 
 		long newUntil = until + AuraConfig.VANISH_STEP_EXTEND_TICKS + (Branch.is(player, Branch.PHANTOM) ? AuraConfig.PHANTOM_VANISH_STEP_BONUS_TICKS : 0);
 		int ticks = (int) (newUntil - now);
 		player.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, ticks, 0, false, false, true));
-		player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, ticks, AuraConfig.VANISH_SPEED_AMPLIFIER, false, false, true));
+		if (fast) player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, ticks, AuraConfig.VANISH_SPEED_AMPLIFIER, false, false, true));
 		VANISH_UNTIL.put(player.getUUID(), newUntil);
 		scheduleReappear(player, newUntil, now);
 
@@ -1230,6 +1241,7 @@ public final class AuraAbilities {
 
 	public static void forgetVanish(ServerPlayer player) {
 		VANISH_UNTIL.remove(player.getUUID());
+		DEEP_VANISH.remove(player.getUUID());
 	}
 
 	public static boolean tryDash(ServerPlayer player, long now) {
