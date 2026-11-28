@@ -323,6 +323,8 @@ final class TrialBells extends Trials.Trial {
 		}
 		int fakes = tier >= 3 ? 1 + (tier - 3) + round / 2 : 0;
 		for (int k = 0; k < fakes; k++) song.add(1 + r.nextInt(song.size()), new Note(r.nextInt(4), -1, true, false));
+		// a ghost still alive from the last round keeps its note in the new song
+		if (ghost != null && ghost.isAlive() && !ghost.isRemoved()) song.add(new Note(r.nextInt(4), -1, false, true));
 		step = 0;
 		pending = 0;
 		listening = false;
