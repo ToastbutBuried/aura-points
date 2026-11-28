@@ -631,7 +631,14 @@ final class TrialStatues extends Trials.Trial {
 
 	@Override
 	void tick(ServerLevel level, List<ServerPlayer> here, long now) {
-		if (solved) return;
+		if (solved) {
+			// solved in the dark: the candles come back on
+			if (flickerUntil != 0) {
+				candles(level, true);
+				flickerUntil = 0;
+			}
+			return;
+		}
 		tickSigils(level, here, now);
 		if (now >= moveFrom && now % 5 == 0) tickDread(level, here, now);
 		if (tier >= 3) tickFlicker(level, here, now);
@@ -931,7 +938,7 @@ final class TrialStatues extends Trials.Trial {
 
 	/** Extreme+: the candles gutter out for two seconds now and then; in the dark the statues move whoever looks. */
 	private void tickFlicker(ServerLevel level, List<ServerPlayer> here, long now) {
-		if (flickerUntil != 0 && now == flickerUntil) {
+		if (flickerUntil != 0 && now >= flickerUntil) {
 			candles(level, true);
 			flickerUntil = 0;
 		}
