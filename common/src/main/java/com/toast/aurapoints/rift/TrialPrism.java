@@ -90,6 +90,8 @@ final class TrialPrism extends Trials.Trial {
 		final int i, j, rgb;
 		boolean lit;
 		int charge;
+		/** Whether the charge so far came from the right beam (a switch starts it again). */
+		boolean chargeGood;
 		Display.TextDisplay tag;
 		String shown = "";
 		/** Why it is overloading right now (null = it isn't). */
@@ -1006,6 +1008,16 @@ final class TrialPrism extends Trials.Trial {
 	@Override
 	void tick(ServerLevel level, List<ServerPlayer> here, long now) {
 		if (solved || receivers.isEmpty()) return;
+		if (here.isEmpty()) {
+			// nobody in the room: nothing charges, overloads or drifts unseen
+			crossCharge = 0;
+			lastTrace = 0;
+			for (Receiver rc : receivers) {
+				rc.charge = 0;
+				rc.why = null;
+			}
+			return;
+		}
 		if (dirty || now % 3 == 0) {
 			dirty = false;
 			if (retrace(level, here, now)) return;
@@ -1055,8 +1067,12 @@ final class TrialPrism extends Trials.Trial {
 			Receiver rc = receivers.get(b.recv);
 			if (rc.lit) continue;
 			touched[b.recv] = true;
-			rc.charge += (int) dt;
 			boolean good = b.recv == step && b.col == rc.rgb;
+			if (good != rc.chargeGood) {
+				rc.chargeGood = good;
+				rc.charge = 0;
+			}
+			rc.charge += (int) dt;
 			Vec3 at = node(rc.i, rc.j);
 			if (good) {
 				level.sendParticles(ParticleTypes.END_ROD, at.x, at.y + 0.6, at.z, 2 + rc.charge / 10, 0.25, 0.4, 0.25, 0.01);
