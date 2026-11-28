@@ -3,6 +3,7 @@ package com.toast.aurapoints.network;
 import com.toast.aurapoints.ability.AuraAbilities.Ability;
 import com.toast.aurapoints.ability.AuraType;
 import com.toast.aurapoints.ability.CastMode;
+import com.toast.aurapoints.client.ClientCooldowns;
 import com.toast.aurapoints.client.HudColors;
 import com.toast.aurapoints.config.AuraClientConfig;
 import com.toast.aurapoints.config.AuraConfig;
@@ -224,6 +225,69 @@ public final class CleanExtras {
 	}
 
 	private static Ability lastChained = null;
+
+	// ---------------------------------------------------------------
+	// The crosshair pips (Clean): thin arc segments under the crosshair
+	// ---------------------------------------------------------------
+
+	/**
+	 * One short curved segment per ability on an arc under the crosshair (outside the charge ring): a dim track that
+	 * fills along its length while cooling down (brighter in the last 20 %), a full bright segment when ready that
+	 * flashes white and pops out a pixel as it comes back. The Ultimate is gold; a Mage spell short of mana fills blue.
+	 */
+	static void pips(GuiGraphics g, List<Ability> abilities, boolean flying, int rgb, long now) {
+		boolean calm = CleanHud.calm();
+		float cx = g.guiWidth() / 2f, cy = g.guiHeight() / 2f;
+		int n = abilities.size();
+		double span = Math.toRadians(18), gap = Math.toRadians(6);
+		double total = n * span + (n - 1) * gap, start = Math.PI / 2 + total / 2;
+		for (int i = 0; i < n; i++) {
+			Ability a = abilities.get(i);
+			boolean flight = flying && ClientAuraState.hasFlightVersion(a);
+			boolean ult = com.toast.aurapoints.ability.Ultimates.auraOf(a) != null;
+			int col = ult ? GOLD : rgb;
+			long[] cd = ClientAuraState.cooldown(a, flight ? com.toast.aurapoints.ability.AuraAbilities.Slot.FLIGHT : null);
+			boolean cooling = cd != null && now < cd[1];
+			float fill = a == Ability.BLOOD_MOON ? ClientAuraState.bloodMoonFill() : 1f;
+			int cost = ClientAuraState.mana >= 0 ? ClientAuraState.manaCost(a) : 0;
+			if (cost > 0) fill = Math.min(1f, ClientAuraState.mana / cost);
+			// the segment runs right to left under the crosshair (slot 1 on the left, as on the HUD)
+			double from = start - i * (span + gap), to = from - span;
+			float r = 13f;
+			if (cooling || fill < 1f) {
+				float done = cooling ? 1f - (cd[1] - now) / (float) Math.max(1, cd[1] - cd[0]) : fill;
+				float ramp = cooling && done > 0.8f ? (done - 0.8f) / 0.2f : 0f;
+				int lit = cooling ? HudColors.argb(0.5f + 0.4f * ramp, HudColors.mix(col, 0xFFFFFF, 0.2f + 0.4f * ramp))
+						: HudColors.argb(0.7f, cost > 0 ? 0x5A78FF : 0xC01020);
+				segment(g, cx, cy, r, from, to, 1f, 0x40A0A0B0);
+				segment(g, cx, cy, r, from, to, done, lit);
+			} else {
+				Long readyAt = ClientCooldowns.readyAt(a, flight);
+				float flare = readyAt == null || calm ? 0f : Math.max(0f, 1f - (now - readyAt) / 450f);
+				float pop = flare > 0 ? (float) Math.sin(flare * Math.PI) : 0f;
+				int c = HudColors.argb(0.95f, HudColors.mix(col, 0xFFFFFF, flare * 0.8f));
+				segment(g, cx, cy, r + pop, from, to, 1f, c);
+				if (flare > 0.3f) segment(g, cx, cy, r + 1 + pop, from, to, 1f, HudColors.argb(flare * 0.6f, 0xFFFFFF));
+			}
+		}
+	}
+
+	/** Pixels along an arc of radius {@code r} from angle {@code from} toward {@code to}, the first {@code frac} of it. */
+	private static void segment(GuiGraphics g, float cx, float cy, float r, double from, double to, float frac, int color) {
+		if (frac <= 0) return;
+		double len = Math.abs(to - from) * r;
+		int steps = Math.max(2, (int) Math.ceil(len * 2));
+		int n = Math.round(steps * Math.min(1f, frac));
+		int lastX = Integer.MIN_VALUE, lastY = Integer.MIN_VALUE;
+		for (int k = 0; k <= n && k <= steps; k++) {
+			double a = from + (to - from) * k / steps;
+			int px = (int) Math.floor(cx + Math.cos(a) * r), py = (int) Math.floor(cy + Math.sin(a) * r);
+			if (px == lastX && py == lastY) continue;
+			lastX = px;
+			lastY = py;
+			g.fill(px, py, px + 1, py + 1, color);
+		}
+	}
 
 	// ---------------------------------------------------------------
 	// The charge ring round the crosshair

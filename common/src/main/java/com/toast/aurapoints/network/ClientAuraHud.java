@@ -810,6 +810,10 @@ public final class ClientAuraHud {
 		long now = System.currentTimeMillis();
 		int rgb = HudColors.of(aura);
 		boolean flying = mc.player.isFallFlying();
+		if (AuraClientConfig.clean()) {
+			CleanExtras.pips(g, abilities, flying, rgb, now);
+			return;
+		}
 		int cx = g.guiWidth() / 2, cy = g.guiHeight() / 2;
 		int n = abilities.size();
 		for (int i = 0; i < n; i++) {

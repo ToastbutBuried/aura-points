@@ -69,6 +69,7 @@ public final class BlueBell {
 		Display.ItemDisplay bell = canvas.item(new ItemStack(AuraPoints.BLUE_BELL.get()), at);
 		FLIGHTS.add(new Flight(player.getUUID(), level, canvas, bell, at));
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), AuraSounds.BELL_BLOCK.value(), SoundSource.PLAYERS, 1.5f, 1.2f);
+		com.toast.aurapoints.network.NetworkHandler.sendGesture(player, com.toast.aurapoints.network.BendingAnimPacket.GESTURE_WIND_CHARGE, 0);
 		return true;
 	}
 

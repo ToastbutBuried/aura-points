@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.67.0
+- Mage: the Arcane Orb no longer freezes when fully charged - it swells, spins faster, beats, crackles and hums with a rune ring round it. Arcane Ray, the orb's throw and Last Prism have their own moves now.
+- More moves: Flame Cloak, Diver's Bubble, Frost Path, Mending Beam, Vanish Step, Elytra Dash and Lift, Blue Bell. A fully charged Ice Spike and any held charged cast keep pulsing. Clean HUD: the crosshair marks are thin arcs now.
+
 == 5.66.0
 - New Clean HUD (now the default): floating ability icons that pop when ready, a living mana bar (number only, cost preview while you hold a spell key), a gold glow on the ability that chains next, a charge ring round the crosshair, a hit streak counter and a small buff ribbon. The old look is still there: client config > HUD > HUD style > LEGACY.
 - New client option "Ready chime per slot": each slot rings at its own pitch.

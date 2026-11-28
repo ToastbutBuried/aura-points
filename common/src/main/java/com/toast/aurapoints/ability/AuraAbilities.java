@@ -1235,6 +1235,7 @@ public final class AuraAbilities {
 		AuraFx.burst(level, player.getX(), player.getY() + 0.5, player.getZ(), AuraFx.dust(AuraType.SHADOW.rgb, 1.4f), 18, 0.6, 0.0);
 		AuraFx.burst(level, player.getX(), player.getY() + 0.5, player.getZ(), ParticleTypes.SQUID_INK, 8, 0.4, 0.04);
 		AuraFx.sound(level, player, AuraSounds.ILLUSIONER_MIRROR_MOVE.value(), 0.8f, 1.6f);
+		com.toast.aurapoints.network.NetworkHandler.sendGesture(player, com.toast.aurapoints.network.BendingAnimPacket.GESTURE_VANISH, 1);
 		AuraStats.add(player, AuraStats.VANISH_STEPS, 1);
 		return true;
 	}
@@ -1306,6 +1307,7 @@ public final class AuraAbilities {
 		AuraFx.trail(player, AuraFx.dust(AuraType.WIND.rgb, 1.2f), 3, 6);
 
 		AuraStats.add(player, AuraStats.DASH_USES, 1);
+		com.toast.aurapoints.network.NetworkHandler.sendGesture(player, com.toast.aurapoints.network.BendingAnimPacket.GESTURE_DASH, 1);
 		startCooldown(player, Ability.DASH, Slot.FLIGHT, AuraConfig.DASH_ELYTRA_COOLDOWN_TICKS, now);
 		return true;
 	}
@@ -1428,6 +1430,7 @@ public final class AuraAbilities {
 		world.playSound(null, player.blockPosition(), AuraSounds.BREEZE_JUMP.value(), SoundSource.PLAYERS, 0.7f, 1.4f);
 
 		AuraStats.add(player, AuraStats.DOUBLE_JUMPS, 1);
+		com.toast.aurapoints.network.NetworkHandler.sendGesture(player, com.toast.aurapoints.network.BendingAnimPacket.GESTURE_DOUBLE_JUMP, 0);
 		startCooldown(player, Ability.DOUBLE_JUMP, Slot.FLIGHT, AuraConfig.DOUBLE_JUMP_ELYTRA_COOLDOWN_TICKS, now);
 		return true;
 	}

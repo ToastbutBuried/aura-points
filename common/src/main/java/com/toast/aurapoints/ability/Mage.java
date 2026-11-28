@@ -718,7 +718,8 @@ public final class Mage {
 		sound(level, spot, AuraSounds.LIGHTNING_BOLT_IMPACT.value(), charged ? 0.8f : 0.45f, charged ? 1.3f : 1.8f);
 		sound(level, spot, AuraSounds.AMETHYST_CLUSTER_BREAK.value(), 1.4f, 1.0f);
 		NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
-		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_MAGE, charged ? 1 : 0);
+		// its own move (5.67.0): the staff held high, then swept down at the strike
+		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_MAGE, 3);
 		AuraAbilities.markUsed(p, Ability.ARCANE_RAY, now);
 	}
 
@@ -911,7 +912,11 @@ public final class Mage {
 		final UUID owner;
 		final ServerLevel level;
 		final Display.ItemDisplay ball;
+		/** Growth ticks (stops at MAGE_ORB_MAX_HOLD_TICKS). */
 		int t;
+		/** Ticks held: the animation clock, never stops (5.67.0: the orb froze at full when t drove both). */
+		int age;
+		boolean full;
 		double size;
 
 		Orb(UUID owner, ServerLevel level, Display.ItemDisplay ball) {
@@ -942,6 +947,17 @@ public final class Mage {
 	}
 
 	private static final Map<UUID, Orb> ORBS = new HashMap<>();
+
+	/** The held pose of a Mage spell now (Poses.current: players coming into view see it). */
+	public static byte heldPose(ServerPlayer p) {
+		UUID id = p.getUUID();
+		if (PRISMS.containsKey(id)) return BendingAnimPacket.PRISM_AIM;
+		if (ORBS.containsKey(id)) return BendingAnimPacket.WAND_RAISE;
+		Ray r = RAYS.get(id);
+		if (r != null && r.t >= Math.max(1, AuraConfig.MAGE_RAY_HOLD_TICKS)) return BendingAnimPacket.WAND_RAISE;
+		if (BOLTS.containsKey(id)) return BendingAnimPacket.WAND_POINT;
+		return BendingAnimPacket.NONE;
+	}
 	private static final List<Shot> SHOTS = new ArrayList<>();
 
 	private static Display.ItemDisplay fx(ServerLevel level, Vec3 at, int model, float scale) {
@@ -991,8 +1007,9 @@ public final class Mage {
 		return Mth.clamp(o.t / (double) Math.max(1, AuraConfig.MAGE_ORB_MAX_HOLD_TICKS), 0, 1);
 	}
 
+	/** The orb's size; a fully grown one jumps a size bigger (it flies that big too). */
 	private static float orbScale(double growth) {
-		return (float) (0.25 + 0.55 * growth);
+		return (float) (0.25 + 0.55 * growth + (growth >= 0.999 ? 0.2 : 0));
 	}
 
 	static boolean orbPress(ServerPlayer p, long now) {
@@ -1035,29 +1052,58 @@ public final class Mage {
 			return false;
 		}
 		if (grow) o.t++;
+		o.age++;
 		double g = orbGrowth(o);
 		o.size = g;
 		Vec3 at = orbSpot(p, orbScale(g));
 		o.ball.setPos(at.x, at.y, at.z);
-		if (o.t % 2 == 0) scale(o.ball, orbScale(g) * (1f + 0.06f * Mth.sin(o.t * 0.7f)), 2, spin(o.t));
 		ServerLevel level = o.level;
-		// motes appear around it and fall into it, more and from further out as it grows; full = they swirl
-		var r = level.getRandom();
-		int motes = grow ? 1 + (int) (g * 3) : 2;
-		for (int i = 0; i < motes; i++) {
-			double dist = 0.7 + g * 1.1 + r.nextDouble() * 0.5;
-			Vec3 off = new Vec3(r.nextDouble() - 0.5, r.nextDouble() - 0.5, r.nextDouble() - 0.5).normalize().scale(dist);
-			Vec3 from = at.add(off);
-			AuraFx.particles(level, AuraFx.dust(i % 2 == 0 ? CYAN : PALE, 0.4f + (float) g * 0.3f), from.x, from.y, from.z, 1, 0, 0, 0, 0);
-			Vec3 in = off.scale(-1).normalize();
-			AuraFx.particles(level, ParticleTypes.ENCHANT, from.x, from.y, from.z, 0, in.x, in.y, in.z, dist * 0.5);
+		boolean full = !grow || o.t >= Math.max(1, AuraConfig.MAGE_ORB_MAX_HOLD_TICKS);
+		if (full && !o.full) {
+			// fully grown: it swells, flashes and rings
+			o.full = true;
+			sound(level, at, AuraSounds.CHARGE_READY.value(), 1.0f, 1.0f);
+			sound(level, at, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 1.0f, 0.7f);
+			AuraFx.particles(level, AuraFx.dust(PALE, 1.2f), at.x, at.y, at.z, 16, 0.3, 0.3, 0.3, 0);
+			AuraFx.particles(level, ParticleTypes.FLASH, at.x, at.y, at.z, 1, 0, 0, 0, 0);
 		}
-		if (o.t % 10 == 0 && grow) sound(level, at, AuraSounds.AMETHYST_BLOCK_CHIME.value(), 0.6f + (float) g * 0.6f, 0.8f + (float) g * 0.8f);
-		if (!grow && o.t % 20 == 0) sound(level, at, AuraSounds.CHARGE_READY.value(), 0.5f, 1.2f);
-		if (o.t == Math.max(1, AuraConfig.MAGE_ORB_MAX_HOLD_TICKS)) {
-			o.t++;
-			sound(level, at, AuraSounds.CHARGE_READY.value(), 0.9f, 1.0f);
-			AuraFx.particles(level, AuraFx.dust(PALE, 1.0f), at.x, at.y, at.z, 10, 0.25, 0.25, 0.25, 0);
+		// the animation runs on age, so it never stops: full = faster turn, a stronger beat
+		if (o.age % 2 == 0) {
+			float beat = full ? 1f + 0.12f * Mth.sin(o.age * 1.1f) : 1f + 0.06f * Mth.sin(o.age * 0.7f);
+			scale(o.ball, orbScale(g) * beat, 2, spin(full ? o.age * 2 : o.age));
+		}
+		var r = level.getRandom();
+		if (!full) {
+			// growing: motes appear around it and fall in, more and from further out as it grows
+			int motes = 1 + (int) (g * 3);
+			for (int i = 0; i < motes; i++) {
+				double dist = 0.7 + g * 1.1 + r.nextDouble() * 0.5;
+				Vec3 off = new Vec3(r.nextDouble() - 0.5, r.nextDouble() - 0.5, r.nextDouble() - 0.5).normalize().scale(dist);
+				Vec3 from = at.add(off);
+				AuraFx.particles(level, AuraFx.dust(i % 2 == 0 ? CYAN : PALE, 0.4f + (float) g * 0.3f), from.x, from.y, from.z, 1, 0, 0, 0, 0);
+				Vec3 in = off.scale(-1).normalize();
+				AuraFx.particles(level, ParticleTypes.ENCHANT, from.x, from.y, from.z, 0, in.x, in.y, in.z, dist * 0.5);
+			}
+			if (o.t % 10 == 0) sound(level, at, AuraSounds.AMETHYST_BLOCK_CHIME.value(), 0.6f + (float) g * 0.6f, 0.8f + (float) g * 0.8f);
+		} else {
+			// full: a rune ring turning round it, motes swirling in, a crackle now and then, a low hum
+			double rr = orbScale(g) * 0.9 + 0.35;
+			for (int k = 0; k < 6; k++) {
+				double a = o.age * 0.25 + k * Math.PI / 3;
+				Vec3 ring = at.add(Math.cos(a) * rr, Math.sin(o.age * 0.1 + k) * 0.12, Math.sin(a) * rr);
+				AuraFx.particles(level, AuraFx.dust(k % 2 == 0 ? PALE : VIOLET, 0.55f), ring.x, ring.y, ring.z, 1, 0, 0, 0, 0);
+			}
+			for (int i = 0; i < 3; i++) {
+				double a = o.age * 0.45 + i * 2.1, d = 1.3 + 0.3 * Math.sin(o.age * 0.2 + i);
+				Vec3 from = at.add(Math.cos(a) * d, 0.25 * Math.sin(a * 1.7), Math.sin(a) * d);
+				Vec3 in = at.subtract(from).normalize();
+				AuraFx.particles(level, ParticleTypes.ENCHANT, from.x, from.y, from.z, 0, in.x, in.y, in.z, 0.8);
+			}
+			if (o.age % 10 == 0) {
+				AuraFx.particles(level, ParticleTypes.ELECTRIC_SPARK, at.x, at.y, at.z, 6, 0.25, 0.25, 0.25, 0.08);
+				sound(level, at, AuraSounds.AMETHYST_CLUSTER_BREAK.value(), 0.35f, 1.6f + r.nextFloat() * 0.3f);
+			}
+			if (o.age % 20 == 0) sound(level, at, AuraSounds.BEACON_AMBIENT.value(), 0.7f, 1.4f);
 		}
 		return true;
 	}
@@ -1087,10 +1133,9 @@ public final class Mage {
 		SHOTS.add(new Shot(p.getUUID(), o.level, o.ball, start, dir, g));
 		sound(o.level, start, AuraSounds.BREEZE_SHOOT.value(), 0.9f, 1.3f);
 		sound(o.level, start, AuraSounds.ILLUSIONER_CAST_SPELL.value(), 1.0f, 1.2f);
-		NetworkHandler.sendBendAnim(p, BendingAnimPacket.WAND_POINT);
-		AuraFx.later(p.getServer(), 6, () -> {
-			if (!ORBS.containsKey(p.getUUID()) && !BOLTS.containsKey(p.getUUID())) NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
-		});
+		// the release (5.67.0): an overhand hurl from the raised staff
+		NetworkHandler.sendBendAnim(p, BendingAnimPacket.NONE);
+		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_MAGE, 4);
 		AuraAbilities.markUsed(p, Ability.ARCANE_ORB, now);
 	}
 
@@ -1209,7 +1254,11 @@ public final class Mage {
 			speed.removeModifier(PRISM_SLOW);
 			speed.addTransientModifier(new AttributeModifier(PRISM_SLOW, -0.45, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
 		}
-		NetworkHandler.sendBendAnim(p, BendingAnimPacket.PRISM_AIM);
+		// the Ultimate's opening (5.67.0): both hands lift the staff, then bring it down at the aim; then the aim pose
+		NetworkHandler.sendGesture(p, BendingAnimPacket.GESTURE_MAGE, 5);
+		AuraFx.later(p.getServer(), 10, () -> {
+			if (PRISMS.containsKey(p.getUUID())) NetworkHandler.sendBendAnim(p, BendingAnimPacket.PRISM_AIM);
+		});
 		sync(p, data(p), true);
 		sound(level, p.position(), AuraSounds.BEACON_ACTIVATE.value(), 1.2f, 1.5f);
 		sound(level, p.position(), AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 1.6f, 0.7f);

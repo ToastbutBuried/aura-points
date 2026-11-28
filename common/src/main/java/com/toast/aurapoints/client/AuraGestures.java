@@ -88,6 +88,16 @@ final class AuraGestures {
 				// Arcane Barrier: both forearms forward at once holding the open book (no lead-in), the hands snap together as it
 				// shuts, then down
 				case 2 -> both(k(0, -1.05f, -0.3f, 0.05f), k(6, -1.08f, -0.3f, 0.05f), k(8, -1.2f, -0.55f, 0.02f), k(12, -1.15f, -0.5f, 0.02f), rest(18));
+				// Arcane Ray (5.67): the staff thrust straight up at the sky, held a beat, then swept down at the strike
+				case 3 -> new Key[][]{
+						{rest(0), k(3, -2.95f, 0.05f, -0.1f), k(6, -3.05f, 0.05f, -0.1f), aim(9, 0.1f, 0, 0), aim(13, 0, 0, 0), rest(18)},
+						{rest(0), k(3, -0.45f, 0, 0.35f), k(9, 0.3f, 0, 0.2f), rest(18)}};
+				// Arcane Orb release (5.67): from the raised staff, cocked back an inch, then hurled overhand at the aim
+				case 4 -> new Key[][]{
+						{k(0, -2.9f, 0.1f, 0.2f), k(2, -3.15f, 0.1f, 0.25f), aim(5, 0.1f, 0, 0), aim(9, 0, 0, 0), rest(14)},
+						{k(0, -0.6f, 0, 0.3f), k(4, 0.4f, 0, -0.2f), rest(14)}};
+				// Last Prism (5.67): both hands lift the staff overhead, then bring it down level at the aim (the aim pose follows)
+				case 5 -> both(rest(0), k(3, -2.9f, -0.2f, 0.25f), k(6, -3.05f, -0.2f, 0.3f), aim(9, 0, -0.1f, 0), aim(12, 0, -0.08f, 0));
 				default -> null;
 			};
 		}
@@ -100,6 +110,9 @@ final class AuraGestures {
 				case 0 -> new B[]{brest(0), b(2, 0.05f, 0.1f, 0, 0.2f, 0), brest(11)};
 				case 1 -> new B[]{brest(0), b(2, -0.12f, -0.25f, 0, 0, 0), b(4, 0.2f, 0.2f, 0.03f, 0.35f, 0), b(9, 0.15f, 0.15f, 0.02f, 0.35f, 0), brest(14)};
 				case 2 -> new B[]{b(0, 0.06f, 0, 0, 0, 0.05f), b(8, 0.1f, 0, 0.02f, 0, 0.05f), brest(18)};
+				case 3 -> new B[]{brest(0), b(3, -0.15f, 0, 0, 0, 0.1f), b(6, -0.18f, 0, 0, 0, 0.1f), b(9, 0.25f, 0.1f, 0.05f, 0.3f, 0), b(13, 0.2f, 0.1f, 0.04f, 0.3f, 0), brest(18)};
+				case 4 -> new B[]{b(0, -0.1f, 0, 0, 0, 0.05f), b(2, -0.15f, -0.2f, 0, 0, 0.05f), b(5, 0.25f, 0.2f, 0.04f, 0.35f, 0), b(9, 0.2f, 0.15f, 0.03f, 0.35f, 0), brest(14)};
+				case 5 -> new B[]{brest(0), b(3, -0.15f, 0, 0, 0, 0.12f), b(6, -0.2f, 0, 0, 0, 0.12f), b(9, 0.15f, 0, 0.03f, 0.3f, 0), b(12, 0.12f, 0, 0.02f, 0.3f, 0)};
 				default -> null;
 			};
 		}

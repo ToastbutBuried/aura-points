@@ -151,6 +151,11 @@ public final class Casts {
 				Vec3 hand = p.getEyePosition().add(p.getLookAngle().scale(0.5)).add(0, -0.3, 0);
 				boolean ready = held > AuraConfig.CAST_CHARGE_TICKS;
 				AuraFx.particles(level, AuraFx.dust(rgb, ready ? 1.3f : 0.7f), hand.x, hand.y, hand.z, ready ? 3 : 1, 0.12, 0.12, 0.12, 0.0);
+				// charged and held: it keeps beating (a ring at the feet, a soft hum), it never goes still
+				if (ready && (held - AuraConfig.CAST_CHARGE_TICKS) % 10 == 0) {
+					AuraFx.ring(level, p.getX(), p.getY() + 0.1, p.getZ(), 0.8 + 0.2 * Math.sin(held * 0.3), AuraFx.dust(rgb, 1.0f), 14);
+					if ((held - AuraConfig.CAST_CHARGE_TICKS) % 20 == 0) AuraFx.sound(level, p, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 0.4f, 1.5f);
+				}
 			}
 		}
 	}
@@ -306,6 +311,7 @@ public final class Casts {
 		AuraFx.sound(level, player, AuraSounds.BLAZE_AMBIENT.value(), 0.8f, 1.2f);
 		AuraFx.sound(level, player, AuraSounds.FIRECHARGE_USE.value(), 0.9f, 1.0f);
 		player.displayClientMessage(Component.literal("✦ Flame Cloak ✦").withStyle(ChatFormatting.GOLD), true);
+		com.toast.aurapoints.network.NetworkHandler.sendGesture(player, com.toast.aurapoints.network.BendingAnimPacket.GESTURE_HEAT_WAVE, 1);
 		used(player, Ability.FIRE_BENDING, now, CastMode.SNEAK);
 		return true;
 	}
@@ -393,6 +399,7 @@ public final class Casts {
 		AuraFx.sound(level, player, AuraSounds.BUBBLE_COLUMN_UPWARDS_AMBIENT.value(), 0.8f, 1.3f);
 		player.displayClientMessage(Component.literal("✦ Diver's Bubble ✦").withStyle(ChatFormatting.DARK_AQUA), true);
 		AuraStats.add(player, AuraStats.ABYSSAL_BUBBLE_USES, 1);
+		com.toast.aurapoints.network.NetworkHandler.sendGesture(player, com.toast.aurapoints.network.BendingAnimPacket.GESTURE_HEALING_TIDE, 0);
 		used(player, Ability.ABYSSAL_BUBBLE, now, AuraConfig.BUBBLE_SELF_COOLDOWN_FACTOR);
 		return true;
 	}
@@ -521,6 +528,7 @@ public final class Casts {
 		AuraFx.sound(level, player, AuraSounds.POWDER_SNOW_STEP.value(), 1.0f, 0.7f);
 		AuraFx.sound(level, player, AuraSounds.AMETHYST_BLOCK_RESONATE.value(), 0.6f, 1.8f);
 		player.displayClientMessage(Component.literal("✦ Frost Path ✦").withStyle(ChatFormatting.AQUA), true);
+		com.toast.aurapoints.network.NetworkHandler.sendGesture(player, com.toast.aurapoints.network.BendingAnimPacket.GESTURE_PLANT, 0);
 		used(player, Ability.ICE_SPIKE, now, AuraConfig.FROST_PATH_COOLDOWN_FACTOR);
 		return true;
 	}
@@ -970,6 +978,7 @@ public final class Casts {
 		AuraFx.sound(level, player, AuraSounds.AMETHYST_BLOCK_CHIME.value(), 1.2f, 1.5f);
 		AuraFx.sound(level, player, AuraSounds.BEACON_POWER_SELECT.value(), 0.8f, 1.6f);
 		player.displayClientMessage(Component.literal("✦ Mending Beam: " + ally.getName().getString() + " ✦").withStyle(ChatFormatting.YELLOW), true);
+		com.toast.aurapoints.network.NetworkHandler.sendGesture(player, com.toast.aurapoints.network.BendingAnimPacket.GESTURE_HEALING_TIDE, 1);
 		used(player, Ability.PRISM_BEAM, now, AuraConfig.LIGHT_MEND_COOLDOWN_FACTOR);
 		return true;
 	}

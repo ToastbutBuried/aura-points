@@ -39,6 +39,8 @@ public final class Poses {
 		if (VerdantViper.isSteering(player)) return BendingAnimPacket.VIPER_STEER;
 		if (Earth.isHolding(player)) return BendingAnimPacket.BOULDER_HOLD;
 		if (Light.isBeaming(player)) return BendingAnimPacket.PRISM_AIM;
+		orb = Mage.heldPose(player);
+		if (orb != BendingAnimPacket.NONE) return orb;
 		if (GLIDING.containsKey(player.getUUID())) return BendingAnimPacket.GLIDE;
 		return BendingAnimPacket.NONE;
 	}

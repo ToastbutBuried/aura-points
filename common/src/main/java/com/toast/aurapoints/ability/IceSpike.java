@@ -277,9 +277,14 @@ public final class IceSpike {
 		Vec3 look = player.getLookAngle();
 		double length = shardLength(charge);
 		Display.ItemDisplay shard = HELD.get(player.getUUID());
-		if (shard != null) poseShard(shard, h.add(look.scale(0.15 * length)), look, (float) length);
-		if (now % 3 == 0) AuraFx.particles(level, ParticleTypes.SNOWFLAKE, h.x, h.y, h.z, 1, 0.25, 0.25, 0.25, 0.0);
-		if (full && now % 4 == 0) AuraFx.particles(level, ParticleTypes.END_ROD, h.x, h.y, h.z, 1, 0.1, 0.1, 0.1, 0.0);
+		// full: the shard strains in the hand (it never sits still), frost rings off it and it hums
+		double strain = full ? 1.0 + 0.05 * Math.sin(now * 1.3) : 1.0;
+		if (shard != null) poseShard(shard, h.add(look.scale(0.15 * length)), look, (float) (length * strain));
+		if (now % 3 == 0) AuraFx.particles(level, ParticleTypes.SNOWFLAKE, h.x, h.y, h.z, full ? 3 : 1, 0.25, 0.25, 0.25, 0.0);
+		if (full && now % 2 == 0) AuraFx.particles(level, ParticleTypes.END_ROD, h.x, h.y, h.z, 1, 0.1, 0.1, 0.1, 0.0);
+		if (full && now % 10 == 0) AuraFx.ring(level, h.x, h.y, h.z, 0.45, AuraFx.dust(FLAKE_WHITE, 0.7f), 10);
+		if (full && (now - since) > AuraConfig.ICE_SPIKE_FULL_CHARGE_TICKS && (now - since) % 20 == 0)
+			level.playSound(null, player.getX(), player.getY(), player.getZ(), AuraSounds.AMETHYST_BLOCK_RESONATE.value(), SoundSource.PLAYERS, 0.5f, 1.7f);
 		long held = now - since;
 		if (held == AuraConfig.ICE_SPIKE_FULL_CHARGE_TICKS) {
 			level.playSound(null, player.getX(), player.getY(), player.getZ(), AuraSounds.AMETHYST_BLOCK_CHIME.value(), SoundSource.PLAYERS, 1.2f, 1.8f);
