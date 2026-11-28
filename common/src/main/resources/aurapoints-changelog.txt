@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.65.0
+- Fixes: branch cooldowns now apply to Thunderbolt and to sneak/charged casts (Surge and Conductor Thunderbolt follow their branch), Eclipse keeps a running Vanish, Vanish Step works in Deep Vanish, Rift Anchor's mark no longer counts as a cast.
+- Rift trial fixes: the Prism Chamber waits while nobody is inside, Dig pit mobs respect the mob cap, a full inventory no longer drops your chestplate in Skyward Rings, the Choir ghost keeps its note, statue candles relight.
+
 == 5.64.0
 - Mage: bolts fly from the staff's crystal, Arcane Barrier pops a spell book open in your hands and snaps it shut, the Last Prism hits everything its beams sweep over, and Arcane Ray always strikes the ground (even aimed at the sky) as a tall round beam from the clouds.
 - New client option: split the ability panel, half left and half right of the hotbar.
