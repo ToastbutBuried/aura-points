@@ -105,7 +105,7 @@ public final class PhantomDecoy {
 		boolean pulse = server.getTickCount() % 5 == 0;
 		for (Iterator<Decoy> it = DECOYS.iterator(); it.hasNext(); ) {
 			Decoy d = it.next();
-			if (d.owner.isRemoved() || --d.ticksLeft <= 0) {
+			if (d.owner.isRemoved() || d.owner.level() != d.level || --d.ticksLeft <= 0) {
 				end(d);
 				it.remove();
 				continue;
