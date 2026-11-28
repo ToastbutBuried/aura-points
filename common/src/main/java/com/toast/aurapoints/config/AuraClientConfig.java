@@ -21,6 +21,7 @@ public final class AuraClientConfig {
 	public static final ModConfigSpec.BooleanValue SHOW_IDLE_ANIMATIONS, IDLE_FIRST_PERSON, AURA_TRAILS, OWN_TRAIL;
 
 	// HUD
+	public static final ModConfigSpec.EnumValue<HudStyle> HUD_STYLE;
 	public static final ModConfigSpec.EnumValue<Anchor> HUD_ANCHOR;
 	public static final ModConfigSpec.BooleanValue HUD_SPLIT;
 	public static final ModConfigSpec.IntValue HUD_OFFSET_X, HUD_OFFSET_Y;
@@ -49,7 +50,7 @@ public final class AuraClientConfig {
 
 	// sound
 	public static final ModConfigSpec.DoubleValue ABILITY_VOLUME;
-	public static final ModConfigSpec.BooleanValue READY_CHIME, NOT_READY_SOUND, CHARGE_HUMS, ALMOST_READY_TICK, HIT_SOUND, RIFT_MUSIC;
+	public static final ModConfigSpec.BooleanValue READY_CHIME, SLOT_CHIMES, NOT_READY_SOUND, CHARGE_HUMS, ALMOST_READY_TICK, HIT_SOUND, RIFT_MUSIC;
 
 	/** Which ability animations (arm poses and gestures) this client shows. */
 	public enum AnimationMode {
@@ -73,6 +74,18 @@ public final class AuraClientConfig {
 	public enum Anchor {
 		/** left of the hotbar (and right of it for a handheld's panel), as always */
 		HOTBAR, TOP_LEFT, TOP_CENTER, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT
+	}
+
+	/** How the ability HUD looks (5.66.0). */
+	public enum HudStyle {
+		/** the Legacy HUD: the framed panel with the aura's name, as before 5.66.0 */
+		LEGACY,
+		/** no frame or label: floating icons that move, a living mana bar, chain glow, charge ring */
+		CLEAN
+	}
+
+	public static boolean clean() {
+		return HUD_STYLE.get() == HudStyle.CLEAN;
 	}
 
 	public enum CooldownText {
@@ -193,6 +206,9 @@ public final class AuraClientConfig {
 
 		b.comment("The ability panel, charge bar and crosshair marks. /aurahud opens a screen to drag them around.")
 				.translation("aurapoints.configuration.hud").push("hud");
+		HUD_STYLE = b.comment("How the ability HUD looks: CLEAN (floating icons, living mana bar, chain glow, charge ring) or LEGACY (the Legacy HUD: framed panel with the aura's name).")
+				.translation("aurapoints.configuration.hudStyle")
+				.defineEnum("style", HudStyle.CLEAN);
 		HUD_ANCHOR = b
 				.comment("Where the ability panel sits: HOTBAR (next to the hotbar), or a screen corner / the top middle.")
 				.translation("aurapoints.configuration.hudAnchor")
@@ -333,6 +349,9 @@ public final class AuraClientConfig {
 		READY_CHIME = b.comment("A chime when an ability comes off cooldown (in your aura's own sound).")
 				.translation("aurapoints.configuration.readyChime")
 				.define("readyChime", true);
+		SLOT_CHIMES = b.comment("Each ability slot rings the ready chime at its own pitch, so you hear which one came back.")
+				.translation("aurapoints.configuration.slotChimes")
+				.define("slotChimes", true);
 		NOT_READY_SOUND = b.comment("A low thud when you press an ability that is still cooling down.")
 				.translation("aurapoints.configuration.notReadySound")
 				.define("notReadySound", true);

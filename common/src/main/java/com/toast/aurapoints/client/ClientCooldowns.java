@@ -108,8 +108,17 @@ public final class ClientCooldowns {
 			readyAt.put(a, now);
 			if (slot == null) TICKED.remove(a);
 			// only for abilities this aura shows; leftovers from an old aura stay quiet
-			if (aura != null && aura.has(a, ClientAuraState.branch)) ClientSounds.readyChime(aura);
+			if (aura != null && aura.has(a, ClientAuraState.branch)) ClientSounds.readyChime(aura, slotPitch(aura, a));
 		}
+	}
+
+	/** A rising step per HUD slot (slotChimes), so each ability's chime is its own; 1 with the option off. */
+	private static final float[] SLOT_PITCH = {1.0f, 1.12f, 1.26f, 1.41f, 1.5f, 1.68f};
+
+	private static float slotPitch(AuraType aura, Ability a) {
+		if (!AuraClientConfig.SLOT_CHIMES.get()) return 1.0f;
+		int i = com.toast.aurapoints.network.ClientAuraHud.shownAbilities(aura).indexOf(a);
+		return i < 0 ? 1.0f : SLOT_PITCH[Math.min(i, SLOT_PITCH.length - 1)];
 	}
 
 	/** An Ability key went down (ClientKeyHandler): punch the slot, or shake it if it's still cooling down. */

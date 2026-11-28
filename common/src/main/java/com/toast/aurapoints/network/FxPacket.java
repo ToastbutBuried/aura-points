@@ -52,6 +52,12 @@ public record FxPacket(byte kind, int value, String text) implements CustomPacke
 	/** A floating damage number (5.61, client/DamageNumbers): value = tenths of a health point, text = "entity id;flags" (flags bit 1 = a player, bit 2 = a kill, bit 4 = an ability hit). */
 	public static final byte DAMAGE = 15;
 
+	/**
+	 * A chain window (5.66, Clean HUD, network/CleanExtras): value = ticks it stays open, text = "next abilities (comma
+	 * separated);empower ticks (0 = no chain fired);the ability that fired it". Older clients ignore it.
+	 */
+	public static final byte CHAIN = 16;
+
 	public static final Type<FxPacket> TYPE =
 			new Type<>(ResourceLocation.fromNamespaceAndPath("aurapoints", "fx"));
 

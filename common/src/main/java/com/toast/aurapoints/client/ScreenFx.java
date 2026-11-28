@@ -98,7 +98,10 @@ public final class ScreenFx {
 				}
 				if (kill) streak = 0;
 			}
-			case FxPacket.DAMAGE -> DamageNumbers.add(mc, p.value(), p.text());
+			case FxPacket.DAMAGE -> {
+				DamageNumbers.add(mc, p.value(), p.text());
+				com.toast.aurapoints.network.CleanExtras.onHit();
+			}
 			case FxPacket.STUNT -> {
 				if (!AuraClientConfig.STUNT_POPUPS.get()) return;
 				stunts.add(new Stunt(title(p.text()), p.value() == 1, now));
@@ -127,7 +130,11 @@ public final class ScreenFx {
 				if (!all.contains(rolled)) all.add(rolled);
 				reel = new Reel(rolled, all, now, Math.max(400, p.value() * 50L));
 			}
-			case FxPacket.STUNNED -> StatusOverlays.stunned(p.value());
+			case FxPacket.STUNNED -> {
+				StatusOverlays.stunned(p.value());
+				com.toast.aurapoints.network.CleanExtras.onStunned(p.value());
+			}
+			case FxPacket.CHAIN -> com.toast.aurapoints.network.CleanExtras.onChain(p.value(), p.text());
 			case FxPacket.LIFESTEAL -> StatusOverlays.lifesteal(p.value() / 10f);
 			case FxPacket.BLOOD_MOON -> BloodMoonSky.start(p.value());
 			case FxPacket.BLIZZARD -> Blizzard.start(p.value());

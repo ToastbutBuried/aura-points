@@ -1,6 +1,10 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.66.0
+- New Clean HUD (now the default): floating ability icons that pop when ready, a living mana bar (number only, cost preview while you hold a spell key), a gold glow on the ability that chains next, a charge ring round the crosshair, a hit streak counter and a small buff ribbon. The old look is still there: client config > HUD > HUD style > LEGACY.
+- New client option "Ready chime per slot": each slot rings at its own pitch.
+
 == 5.65.0
 - Fixes: branch cooldowns now apply to Thunderbolt and to sneak/charged casts (Surge and Conductor Thunderbolt follow their branch), Eclipse keeps a running Vanish, Vanish Step works in Deep Vanish, Rift Anchor's mark no longer counts as a cast.
 - Rift trial fixes: the Prism Chamber waits while nobody is inside, Dig pit mobs respect the mob cap, a full inventory no longer drops your chestplate in Skyward Rings, the Choir ghost keeps its note, statue candles relight.

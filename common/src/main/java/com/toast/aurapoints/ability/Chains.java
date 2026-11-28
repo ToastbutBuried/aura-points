@@ -197,6 +197,7 @@ public final class Chains {
 		st.last = ability;
 		st.lastMode = mode;
 		st.lastTick = now;
+		hud(player, data, ability, mode, link);
 		if (link == null) return;
 		st.streak = st.active != null && now <= st.activeUntil + AuraConfig.CHAINS_WINDOW_TICKS ? st.streak + 1 : 2;
 		st.active = link;
@@ -207,6 +208,24 @@ public final class Chains {
 		com.toast.aurapoints.arena.ComboTrainer.onChain(player, link, st.streak);
 		castEffect(player, st, link, ability, now);
 		cue(player, data.aura, link, st.streak);
+	}
+
+	/**
+	 * Tells the Clean HUD which abilities chain from this press and for how long, and whether this press fired a chain
+	 * (FxPacket.CHAIN; old clients ignore it). Sent only when there is something to show.
+	 */
+	private static void hud(ServerPlayer player, AuraPlayerData data, Ability ability, CastMode mode, Link fired) {
+		StringBuilder next = new StringBuilder();
+		int window = 0;
+		for (Link l : links(data)) {
+			if (!l.first(ability, mode) || next.indexOf(l.to.name()) >= 0) continue;
+			if (next.length() > 0) next.append(',');
+			next.append(l.to.name());
+			window = Math.max(window, l.windowTicks());
+		}
+		if (next.length() == 0 && fired == null) return;
+		com.toast.aurapoints.network.NetworkHandler.sendFx(player, com.toast.aurapoints.network.FxPacket.CHAIN, window,
+				next + ";" + (fired == null ? 0 : fired.lastsTicks()) + ";" + (fired == null ? "" : ability.name()));
 	}
 
 	private static void castEffect(ServerPlayer player, State st, Link link, Ability ability, long now) {

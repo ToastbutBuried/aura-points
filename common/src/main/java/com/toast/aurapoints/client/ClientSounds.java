@@ -43,8 +43,13 @@ public final class ClientSounds {
 
 	/** The cooldown-ready chime: a soft shimmer, and the aura's own voice over it. */
 	public static void readyChime(AuraType aura) {
+		readyChime(aura, 1.0f);
+	}
+
+	/** The ready chime at {@code pitch} (per slot with the slotChimes option); the aura's own voice keeps its pitch. */
+	public static void readyChime(AuraType aura, float pitch) {
 		if (!AuraClientConfig.READY_CHIME.get()) return;
-		ui(AuraSounds.UI_READY.value(), 0.7f, 1.0f);
+		ui(AuraSounds.UI_READY.value(), 0.7f, pitch);
 		SoundEvent voice = aura == null ? null : switch (aura) {
 			case SHADOW -> AuraSounds.UI_READY_SHADOW.value();
 			case WATER -> AuraSounds.UI_READY_WATER.value();

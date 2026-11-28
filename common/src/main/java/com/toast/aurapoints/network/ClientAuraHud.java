@@ -84,6 +84,8 @@ public final class ClientAuraHud {
 				ResourceLocation.fromNamespaceAndPath("aurapoints", "bubble_stability"), ClientAuraHud::renderBubbleStability);
 		event.registerAbove(VanillaGuiLayers.CROSSHAIR,
 				ResourceLocation.fromNamespaceAndPath("aurapoints", "crosshair_pips"), ClientAuraHud::renderPips);
+		event.registerAbove(VanillaGuiLayers.CROSSHAIR,
+				ResourceLocation.fromNamespaceAndPath("aurapoints", "charge_ring"), CleanExtras::renderCross);
 	}
 
 	@SubscribeEvent
@@ -94,6 +96,7 @@ public final class ClientAuraHud {
 		FRAME_FX.clear();
 		BAR_FX.clear();
 		RING_DONE.clear();
+		CleanHud.clear();
 		ClientStorms.clear();
 		slidAura = null;
 	}
@@ -221,6 +224,7 @@ public final class ClientAuraHud {
 				int[] at = HudLayout.clampPanel(g.guiWidth(), g.guiHeight(), w, h, x, y);
 				panel(g, mc, aura, label, List.of(held), false, rgb, at[0], at[1] + slideY, w, now, alpha, false);
 			}
+			if (AuraClientConfig.clean()) CleanHud.flare(g, now);
 		} finally {
 			RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
 		}
@@ -233,6 +237,7 @@ public final class ClientAuraHud {
 	}
 
 	public static int width(Minecraft mc, String label, int slots) {
+		if (AuraClientConfig.clean()) return CleanHud.width(slots);
 		int slotsWidth = slots * SLOT + (slots - 1) * GAP;
 		int labelWidth = AuraClientConfig.HUD_LABEL.get() ? (int) Math.ceil(mc.font.width(label) * 0.75f) + 12 : 0;
 		return Math.max(PAD * 2 + slotsWidth, labelWidth);
@@ -248,6 +253,10 @@ public final class ClientAuraHud {
 	 */
 	private static void panel(GuiGraphics g, Minecraft mc, AuraType aura, String label, List<Ability> abilities, boolean flying, int rgb,
 							  float x, float y, int width, long now, float alpha, boolean frameFx) {
+		if (AuraClientConfig.clean()) {
+			CleanHud.panel(g, mc, aura, abilities, flying, rgb, x, y, width, now, frameFx, slideSince, HudLayout.scale());
+			return;
+		}
 		Font font = mc.font;
 		float s = HudLayout.scale();
 		int slotsWidth = abilities.size() * SLOT + (abilities.size() - 1) * GAP;
@@ -307,6 +316,11 @@ public final class ClientAuraHud {
 		AuraClientConfig.ManaBarPlace place = AuraClientConfig.MANA_BAR.get();
 		if (ClientAuraState.mana < 0 || place == AuraClientConfig.ManaBarPlace.OFF || mc.player == null || mc.options.hideGui || mc.player.isSpectator()) {
 			shownMana = -1;
+			return;
+		}
+		if (AuraClientConfig.clean()) {
+			shownMana = -1;
+			CleanMana.render(g, mc, place);
 			return;
 		}
 		float target = ClientAuraState.mana;
@@ -614,7 +628,7 @@ public final class ClientAuraHud {
 	 * while cracked, dim while one grows back. With no layers left the icon is shaded and the time
 	 * until the next one shows. Whole: the slot pulses like a ready ability.
 	 */
-	private static void drawIceShell(GuiGraphics g, Font font, int sx, int sy, int rgb, long now) {
+	static void drawIceShell(GuiGraphics g, Font font, int sx, int sy, int rgb, long now) {
 		IceShellPacket shell = ClientAuraState.iceShell;
 		int max = shell == null ? 3 : Math.max(1, shell.maxLayers());
 		int layers = shell == null ? max : shell.layers();
@@ -679,7 +693,8 @@ public final class ClientAuraHud {
 	 */
 	private static void renderFireCharge(GuiGraphics g, DeltaTracker delta) {
 		Minecraft mc = Minecraft.getInstance();
-		if (!ClientAuraState.fireBending || mc.player == null || mc.options.hideGui || mc.player.isSpectator()) {
+		// the Clean HUD shows the charge as a ring round the crosshair instead (CleanExtras.renderCross)
+		if (!ClientAuraState.fireBending || AuraClientConfig.clean() || mc.player == null || mc.options.hideGui || mc.player.isSpectator()) {
 			shownCharge = 0;
 			wasReady = false;
 			BAR_FX.clear();
