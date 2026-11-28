@@ -1,6 +1,9 @@
 # Player-facing changelog shown by /changelog. Newest first. A line "== <version>" starts an entry,
 # every "- " line under it is one short point. Keep it brief: one or two points per version.
 
+== 5.67.1
+- The marks round the crosshair (cooldown arcs, charge ring, bubble mark) hide while you zoom (Zoomify, OK Zoomer, the spyglass) or when another mod hides the crosshair.
+
 == 5.67.0
 - Mage: the Arcane Orb no longer freezes when fully charged - it swells, spins faster, beats, crackles and hums with a rune ring round it. Arcane Ray, the orb's throw and Last Prism have their own moves now.
 - More moves: Flame Cloak, Diver's Bubble, Frost Path, Mending Beam, Vanish Step, Elytra Dash and Lift, Blue Bell. A fully charged Ice Spike and any held charged cast keep pulsing. Clean HUD: the crosshair marks are thin arcs now.

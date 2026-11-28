@@ -296,7 +296,8 @@ public final class CleanExtras {
 	/** GUI layer above the crosshair. Clean style only. */
 	static void renderCross(GuiGraphics g, DeltaTracker delta) {
 		Minecraft mc = Minecraft.getInstance();
-		if (!AuraClientConfig.clean() || mc.player == null || mc.options.hideGui || mc.player.isSpectator()) return;
+		if (!AuraClientConfig.clean() || mc.player == null || mc.options.hideGui || mc.player.isSpectator()
+				|| !com.toast.aurapoints.client.CrosshairState.shown(delta)) return;
 		long now = System.currentTimeMillis();
 		boolean calm = CleanHud.calm();
 		float charge = charge(mc, now);

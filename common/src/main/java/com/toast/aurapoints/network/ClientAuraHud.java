@@ -803,7 +803,8 @@ public final class ClientAuraHud {
 		Minecraft mc = Minecraft.getInstance();
 		AuraType aura = ClientAuraState.aura;
 		if (aura == null || !AuraClientConfig.CROSSHAIR_PIPS.get() || mc.player == null || mc.options.hideGui
-				|| mc.player.isSpectator() || !mc.options.getCameraType().isFirstPerson() || ClientAuraState.bubble != null) return;
+				|| mc.player.isSpectator() || !mc.options.getCameraType().isFirstPerson() || ClientAuraState.bubble != null
+				|| !com.toast.aurapoints.client.CrosshairState.shown(delta)) return;
 		List<Ability> abilities = shownAbilities(aura);
 		abilities.removeIf(a -> a == Ability.ICE_SHELL);
 		if (abilities.isEmpty()) return;
@@ -848,7 +849,7 @@ public final class ClientAuraHud {
 	private static void renderBubbleStability(GuiGraphics g, DeltaTracker delta) {
 		Minecraft mc = Minecraft.getInstance();
 		var bubble = ClientAuraState.bubble;
-		if (bubble == null || mc.player == null || mc.options.hideGui) return;
+		if (bubble == null || mc.player == null || mc.options.hideGui || !com.toast.aurapoints.client.CrosshairState.shown(delta)) return;
 		float strain = Math.min(1f, com.toast.aurapoints.client.BubbleShake.strain());
 		long now = System.currentTimeMillis();
 		int cx = g.guiWidth() / 2, cy = g.guiHeight() / 2;

@@ -27,7 +27,9 @@
     "ClientLevelMixin",
     "CameraMixin",
     "ClientPacketListenerMixin",
-    "BlockDisplayRendererMixin"
+    "BlockDisplayRendererMixin",
+    "GuiCrosshairMixin",
+    "GameRendererInvoker"
   ],
   "injectors": {
     "defaultRequire": 1
