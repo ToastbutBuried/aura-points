@@ -209,9 +209,10 @@ public final class Casts {
 				: mode == CastMode.CHARGED ? AuraConfig.CAST_CHARGED_COOLDOWN_FACTOR : 1.0);
 	}
 
-	static void used(ServerPlayer player, Ability ability, long now, double factor) {
-		int ticks = (int) Math.round(ability.cooldownTicks() * factor);
-		if (ticks == ability.cooldownTicks()) AuraAbilities.markUsed(player, ability, now);
+	public static void used(ServerPlayer player, Ability ability, long now, double factor) {
+		// the branch's cooldown first (markUsed applies it too), then the cast's factor on top
+		int ticks = (int) Math.round(Branch.cooldown(player, ability, ability.cooldownTicks()) * factor);
+		if (factor == 1.0) AuraAbilities.markUsed(player, ability, now);
 		else AuraAbilities.startCooldown(player, ability, Math.max(1, ticks), now);
 	}
 

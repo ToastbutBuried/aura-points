@@ -235,7 +235,7 @@ public final class Thunderbolt {
 			}
 			player.displayClientMessage(Component.empty(), true);
 		}
-		int ticks = AuraConfig.THUNDERBOLT_COOLDOWN_TICKS;
+		int ticks = Branch.cooldown(player, Ability.THUNDERBOLT, AuraConfig.THUNDERBOLT_COOLDOWN_TICKS);
 		if (inStorm(player)) ticks = (int) Math.round(ticks * (1.0 - Math.max(0, Math.min(1, AuraConfig.STORMBORN_COOLDOWN_REDUCTION))));
 		AuraAbilities.startCooldown(player, Ability.THUNDERBOLT, ticks, now);
 	}

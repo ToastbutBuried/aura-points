@@ -126,6 +126,13 @@ final class BranchDevTest {
 				+ AuraAbilities.hasAbility(data, AuraAbilities.Ability.DASH) + " (true), Void Pull " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.VOID_PULL) + " (false), Ultimate " + Ultimates(data) + " (ECLIPSE)");
 		log("Phantom cooldowns: Vanish " + Branch.cooldown(p, AuraAbilities.Ability.VANISH, 900) + " Dash " + Branch.cooldown(p, AuraAbilities.Ability.DASH, 100) + " Void Pull "
 				+ Branch.cooldown(p, AuraAbilities.Ability.VOID_PULL, 100) + " (must be " + Math.round(900 * AuraConfig.PHANTOM_COOLDOWN_FACTOR) + " / " + Math.round(100 * AuraConfig.PHANTOM_COOLDOWN_FACTOR) + " / 100)");
+		// 5.65.0: a cast with its own factor (Deep Vanish) keeps the branch's cut: (Vanish x Phantom) x charged factor, then Mastery
+		long cdNow = server.getTickCount();
+		com.toast.aurapoints.ability.Casts.used(p, AuraAbilities.Ability.VANISH, cdNow, AuraConfig.CAST_CHARGED_COOLDOWN_FACTOR);
+		log("Phantom Deep Vanish real cooldown " + AuraAbilities.cooldownTicksLeft(p, AuraAbilities.Ability.VANISH, cdNow) + " (must be "
+				+ (AuraAbilities.cooldownsDisabled(p) ? 0 : com.toast.aurapoints.ability.Mastery.cooldown(p, (int) Math.round(Branch.cooldown(p, AuraAbilities.Ability.VANISH, AuraConfig.VANISH_COOLDOWN_TICKS) * AuraConfig.CAST_CHARGED_COOLDOWN_FACTOR)))
+				+ ", not the base " + com.toast.aurapoints.ability.Mastery.cooldown(p, (int) Math.round(AuraConfig.VANISH_COOLDOWN_TICKS * AuraConfig.CAST_CHARGED_COOLDOWN_FACTOR)) + ")");
+		AuraAbilities.clearCooldowns(p);
 		// below Mastery V: no branch at all
 		data.mastery.put(AuraType.SHADOW, 4);
 		log("Mastery IV: branch " + Branch.current(data) + " (null), Void Pull " + AuraAbilities.hasAbility(data, AuraAbilities.Ability.VOID_PULL) + " (false)");
@@ -573,7 +580,7 @@ final class BranchDevTest {
 					.append(" arcs ").append(com.toast.aurapoints.ability.Thunderbolt.staticArcs(p)).append(" chain r ").append(com.toast.aurapoints.ability.Thunderbolt.chainRadius(p)).append(" | ");
 		}
 		log("Thunder " + thunder);
-		log("(must be: base bolt cd 400 chidori cd 280 chidori charge 30 arcs 2 chain r 5.0 | surge bolt cd 280 chidori cd 360 chidori charge 20 arcs 1 chain r 5.0 | conductor bolt cd 480 chidori cd 280 chidori charge 30 arcs 4 chain r 8.0)");
+		log("(must be: base bolt cd 400 chidori cd 280 chidori charge 30 arcs 2 chain r 5.0 | surge bolt cd " + AuraConfig.THUNDER_SURGE_THUNDERBOLT_COOLDOWN_TICKS + " chidori cd " + AuraConfig.THUNDER_SURGE_CHIDORI_COOLDOWN_TICKS + " chidori charge 20 arcs 1 chain r 5.0 | conductor bolt cd 480 chidori cd 280 chidori charge 30 arcs 4 chain r 8.0)");
 		data.branches.put(AuraType.THUNDER, Branch.CONDUCTOR);
 		net.minecraft.world.entity.animal.Pig v = pig(level, base.add(10, 0, 12));
 		net.minecraft.world.entity.animal.Pig n1 = pig(level, base.add(12, 0, 12)), n2 = pig(level, base.add(10, 0, 14)), n3 = pig(level, base.add(8, 0, 12)), nFar = pig(level, base.add(10, 0, 22));
